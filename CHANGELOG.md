@@ -2,6 +2,14 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.6.1 (2026-06-04)
+
+### 文档
+
+- 新增 `docs/GIT_PUBLISH.md`，记录 GitHub 发布规则：本地工作目录保持 `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`，远端 `master` 通过 `99_Temp/rustdesk_harmonyos_publish_root` 发布为项目根结构。
+- 明确禁止在本地工作仓库直接普通 `git pull` 合并远端发布提交，避免把本地目录结构改成线上根结构。
+- 在 `docs/README.md` 和 `docs/FILES.md` 增加 Git 发布说明入口和临时发布目录说明。
+
 ## v0.6.0 (2026-06-03)
 
 ### 新增

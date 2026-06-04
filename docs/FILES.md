@@ -15,6 +15,7 @@
 | `DESIGN.md` | 架构、UI、构建、真机测试设计约束 |
 | `UI.md` | UI布局、图标、核心页卡片细节 |
 | `BUILD_ARCHIVE.md` | 历史构建、脚本、Ubuntu路径和早期会话归档 |
+| `GIT_PUBLISH.md` | GitHub 发布说明。本地保持 `rustdesk_harmonyos/` 子目录结构，远端 `master` 发布为项目根结构；包含临时发布目录流程和禁止项。 |
 
 ## C++桥接层 (entry/src/main/cpp/)
 
@@ -143,4 +144,5 @@
 | `rustdesk_harmonyos_build/native_rust_core/target/harmony/librustdesk_harmony_bridge.a` | Windows native core构建产物；当前同步到项目libs的verified core见`CORE.md`，size `135,575,952` bytes，SHA256 `14863BC23CD2B940664CD501EE1501897E5B1E498150EAFDCFD607B78A38D0D4` |
 | `rustdesk_harmonyos_build/vcpkg/` | vcpkg包管理器及已安装依赖；`downloads/buildtrees/packages`缓存已清理 |
 | `rustdesk_harmonyos_backups/` | 当前项目zip备份目录；只保留最新2份，旧备份清理时删除。备份必须统一写入此目录，不要在 `99_Temp` 下新建 `rustdesk_harmonyos_project_backup_*` 等散落目录；需要备份时运行 `scripts/backup_project.ps1`。 |
+| `rustdesk_harmonyos_publish_root/` | GitHub 根目录结构发布用临时克隆目录。只用于生成/推送远端 `master` 的根结构快照；不要把它当成本地开发目录，也不要从本地工作仓库直接 `git pull` 合并该发布提交。 |
 | `rustdesk_harmonyos_test_logs/` | 真机安装/启动日志目录；历史日志仅作参考，当前验证结果以`CONNECTION_DEBUG_LOG.md`为准 |

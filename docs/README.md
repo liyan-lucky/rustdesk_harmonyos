@@ -131,6 +131,8 @@ UI 交互修复（2026-06-03）：
    - UI 布局、图标、核心页面卡片细节。
 9. `BUILD_ARCHIVE.md`
    - 历史构建、脚本、Ubuntu 路径、早期会话归档；不作为当前产物依据。
+10. `GIT_PUBLISH.md`
+   - GitHub 发布规则：本地保持 `rustdesk_harmonyos/` 子目录结构，远端 `master` 发布为项目根结构；包含临时发布目录操作方法和禁止项。
 
 ## 当前构建命令
 
@@ -167,6 +169,7 @@ cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.b
 - 多目标 HDC 环境必须显式加 `-t <target>`。
 - 当前优先使用 USB 目标 `2NX0224429035123`。
 - 历史无线目标 `192.168.11.100:36169` 仅备用。
+- GitHub 仓库展示结构和本地工作结构不同：本地必须保持 `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`，远端 `master` 通过 `99_Temp/rustdesk_harmonyos_publish_root` 发布为项目根结构。不要在本地普通 `git pull` 合并远端发布提交；发布前先读 `docs/GIT_PUBLISH.md`。
 
 ## 2026-06-03 当前补充
 
