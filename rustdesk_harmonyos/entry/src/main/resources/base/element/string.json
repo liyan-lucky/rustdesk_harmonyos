@@ -1,0 +1,76 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "RustDesk 主模块"
+    },
+    {
+      "name": "entryability_desc",
+      "value": "RustDesk 远程桌面应用"
+    },
+    {
+      "name": "entryability_label",
+      "value": "OpenRDesk"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于远程桌面连接和数据传输"
+    },
+    {
+      "name": "network_permission_reason",
+      "value": "用于检测网络状态和连接质量"
+    },
+    {
+      "name": "microphone_permission_reason",
+      "value": "用于传输远程音频"
+    },
+    {
+      "name": "float_window_permission_reason",
+      "value": "用于显示远程桌面悬浮窗"
+    },
+    {
+      "name": "storage_permission_reason",
+      "value": "用于保存会话日志和传输文件"
+    },
+    {
+      "name": "background_permission_reason",
+      "value": "用于保持远程桌面连接在后台运行"
+    },
+    {
+      "name": "screen_capture_permission_reason",
+      "value": "用于捕获本地屏幕并传输到远端"
+    },
+    {
+      "name": "input_permission_reason",
+      "value": "用于接收远程输入并模拟本地操作"
+    },
+    {
+      "name": "pasteboard_permission_reason",
+      "value": "用于读取剪贴板内容并同步文本"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "用于远程视频通话和屏幕共享"
+    },
+    {
+      "name": "location_permission_reason",
+      "value": "用于发现局域网内的远程设备"
+    },
+    {
+      "name": "notification_permission_reason",
+      "value": "用于显示连接状态和消息提醒"
+    },
+    {
+      "name": "bluetooth_permission_reason",
+      "value": "用于通过蓝牙连接远程设备"
+    },
+    {
+      "name": "open_link_permission_reason",
+      "value": "用于打开浏览器完成账户登录认证"
+    },
+    {
+      "name": "device_name_permission_reason",
+      "value": "用于获取本机设备名称显示在共享页面"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "modelVersion": "6.1.1",
+  "name": "rustdesk_harmonyos",
+  "version": "1.0.0",
+  "description": "RustDesk远程桌面 - 鸿蒙版本",
+  "main": "index.ets",
+  "author": "",
+  "license": "AGPL-3.0",
+  "keywords": [
+    "remote-desktop",
+    "vnc",
+    "harmonyos",
+    "rustdesk"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+}

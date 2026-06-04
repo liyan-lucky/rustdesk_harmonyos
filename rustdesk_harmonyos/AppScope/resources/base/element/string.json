@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "OpenRDesk"
+    },
+    {
+      "name": "app_description",
+      "value": "RustDesk远程桌面客户端"
+    }
+  ]
+}

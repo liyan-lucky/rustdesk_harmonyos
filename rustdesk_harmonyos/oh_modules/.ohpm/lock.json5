@@ -1,0 +1,41 @@
+{
+  "lockVersion": "1.0",
+  "settings": {
+    "resolveConflict": true,
+    "resolveConflictStrict": false,
+    "installAll": true
+  },
+  "overrides": {},
+  "overrideDependencyMap": {},
+  "modules": {
+    ".": {
+      "name": "",
+      "dependencies": {},
+      "devDependencies": {},
+      "dynamicDependencies": {},
+      "maskedByOverrideDependencyMap": false
+    },
+    "entry": {
+      "name": "entry",
+      "dependencies": {
+        "librustdesk_bridge.so": {
+          "specifier": "file:entry/src/main/cpp/types/librustdesk_bridge",
+          "version": "file:entry/src/main/cpp/types/librustdesk_bridge"
+        }
+      },
+      "devDependencies": {},
+      "dynamicDependencies": {},
+      "maskedByOverrideDependencyMap": false
+    }
+  },
+  "packages": {
+    "librustdesk_bridge.so@file:entry/src/main/cpp/types/librustdesk_bridge": {
+      "storePath": "entry/src/main/cpp/types/librustdesk_bridge",
+      "dependencies": {},
+      "dynamicDependencies": {},
+      "dev": false,
+      "dynamic": false,
+      "maskedByOverrideDependencyMap": false
+    }
+  }
+}

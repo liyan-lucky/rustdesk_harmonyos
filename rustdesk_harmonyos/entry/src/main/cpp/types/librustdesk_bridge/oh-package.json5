@@ -1,0 +1,6 @@
+{
+  "name": "librustdesk_bridge.so",
+  "types": "./index.d.ts",
+  "version": "",
+  "description": "RustDesk native bridge module"
+}

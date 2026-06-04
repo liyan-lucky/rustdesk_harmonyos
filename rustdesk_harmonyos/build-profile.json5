@@ -1,0 +1,91 @@
+{
+  "app": {
+    "products": [
+      {
+        "name": "default",
+        "compileSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "6.0.1(21)",
+        "targetSdkVersion": "6.1.1(24)",
+        "runtimeOS": "HarmonyOS",
+        "signingConfig": "default"
+      },
+      {
+        "name": "openharmony_verify",
+        "compileSdkVersion": "6.1.1(24)",
+        "compatibleSdkVersion": "6.0.1(21)",
+        "targetSdkVersion": "6.1.1(24)",
+        "runtimeOS": "OpenHarmony"
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\Li Yan\\.ohos\\config\\default_rustdesk_harmonyos_EuUK0QSB7on4aHNm0u5XVjwLN25GbrWS7xtdhjOFExY=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A0C94291F53C2B93E9BFFE84DDF725AC5696FB7B32D59624D1722549C95F7F5447D1216000DCC",
+          "profile": "C:\\Users\\Li Yan\\.ohos\\config\\default_rustdesk_harmonyos_EuUK0QSB7on4aHNm0u5XVjwLN25GbrWS7xtdhjOFExY=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\Li Yan\\.ohos\\config\\default_rustdesk_harmonyos_EuUK0QSB7on4aHNm0u5XVjwLN25GbrWS7xtdhjOFExY=.p12",
+          "storePassword": "0000001A775485241F1AB2FB359748F282034FE3E25D8DBCD73454A91A5B09CFEA74BCB525170C879D9E"
+        }
+      }
+    ],
+    "capabilities": [
+      {
+        "bundleName": "com.open.rundesk",
+        "config": [
+          {
+            "capability": "webAccessServiceForAIQA",
+            "name": "webAccessServiceForAIQA"
+          },
+          {
+            "capability": "com.huawei.service.push.base_service",
+            "name": "Push Kit"
+          },
+          {
+            "capability": "com.huawei.service.device_security.device_verify",
+            "name": "Device status detection"
+          },
+          {
+            "capability": "com.huawei.service.mapkit",
+            "name": "Map Kit"
+          },
+          {
+            "capability": "com.huawei.service.device_security.safety_detect",
+            "name": "Safety Detect"
+          }
+        ]
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        },
+        {
+          "name": "openharmony_verify",
+          "applyToProducts": [
+            "openharmony_verify"
+          ]
+        }
+      ]
+    }
+  ]
+}

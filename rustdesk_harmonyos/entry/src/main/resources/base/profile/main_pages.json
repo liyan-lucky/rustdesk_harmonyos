@@ -1,0 +1,14 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/LoginPage",
+    "pages/RemoteControl",
+    "pages/MyDevice",
+    "pages/AddressBook",
+    "pages/FileTransfer",
+    "pages/Terminal",
+    "pages/Chat",
+    "pages/Scan",
+    "pages/ViewCamera"
+  ]
+}

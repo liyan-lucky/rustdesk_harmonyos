@@ -1,0 +1,96 @@
+{
+  "color": [
+    {
+      "name": "gray_bg",
+      "value": "#EFEFF2"
+    },
+    {
+      "name": "accent_color",
+      "value": "#0071FF"
+    },
+    {
+      "name": "accent_50",
+      "value": "#770071FF"
+    },
+    {
+      "name": "accent_80",
+      "value": "#AA0071FF"
+    },
+    {
+      "name": "canvas_color",
+      "value": "#212121"
+    },
+    {
+      "name": "border_color",
+      "value": "#CCCCCC"
+    },
+    {
+      "name": "id_color",
+      "value": "#00B6F0"
+    },
+    {
+      "name": "dark_gray",
+      "value": "#949494"
+    },
+    {
+      "name": "cm_id_color",
+      "value": "#21790B"
+    },
+    {
+      "name": "button_color",
+      "value": "#2C8CFF"
+    },
+    {
+      "name": "hover_border",
+      "value": "#999999"
+    },
+    {
+      "name": "white",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "black",
+      "value": "#000000"
+    },
+    {
+      "name": "text_primary",
+      "value": "#111827"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#6B7280"
+    },
+    {
+      "name": "success_bg",
+      "value": "#D1FAE5"
+    },
+    {
+      "name": "success_text",
+      "value": "#047857"
+    },
+    {
+      "name": "error_bg",
+      "value": "#FEE2E2"
+    },
+    {
+      "name": "error_text",
+      "value": "#991B1B"
+    },
+    {
+      "name": "input_bg",
+      "value": "#F3F4F6"
+    },
+    {
+      "name": "secondary_btn_bg",
+      "value": "#EEF2FF"
+    },
+    {
+      "name": "secondary_btn_text",
+      "value": "#1E3A8A"
+    },
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    }
+  ]
+}
