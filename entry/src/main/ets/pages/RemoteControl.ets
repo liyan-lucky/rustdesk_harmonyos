@@ -373,12 +373,11 @@ struct RemoteControl {
   }
 
   private scheduleChatPanelScroll(delayMs: number): void {
-    setTimeout(() => {
-      this.chatPanelScroller.scrollEdge(Edge.Bottom);
-    }, delayMs);
-    setTimeout(() => {
-      this.chatPanelScroller.scrollEdge(Edge.Bottom);
-    }, delayMs + 120);
+    [0, delayMs, delayMs + 80, delayMs + 180].forEach((delay: number) => {
+      setTimeout(() => {
+        this.chatPanelScroller.scrollEdge(Edge.Bottom);
+      }, Math.max(0, delay));
+    });
   }
 
   private getChatMessageBody(message: ChatMessage): string {
@@ -566,8 +565,8 @@ struct RemoteControl {
               }
 
               Column() {}
-                .width(this.resolveRenderedImageWidth() > 0 ? this.resolveRenderedImageWidth() : '100%')
-                .height(this.resolveRenderedImageHeight() > 0 ? this.resolveRenderedImageHeight() : '100%')
+                .width('100%')
+                .height('100%')
                 .onTouch((event: TouchEvent) => {
                   this.handlePreviewTouch(event);
                 });
@@ -3320,8 +3319,10 @@ struct RemoteControl {
     const clampedX = Math.max(0, Math.min(renderedWidth, localX));
     const clampedY = Math.max(0, Math.min(renderedHeight, localY));
 
-    const remoteX = Math.round(clampedX / displayScale) + this.remoteDisplayOriginX;
-    const remoteY = Math.round(clampedY / displayScale) + this.remoteDisplayOriginY;
+    const localRemoteX = Math.max(0, Math.min(interactiveWidth - 1, Math.round(clampedX / displayScale)));
+    const localRemoteY = Math.max(0, Math.min(interactiveHeight - 1, Math.round(clampedY / displayScale)));
+    const remoteX = localRemoteX + this.remoteDisplayOriginX;
+    const remoteY = localRemoteY + this.remoteDisplayOriginY;
 
     return { x: remoteX, y: remoteY };
   }
@@ -3712,7 +3713,8 @@ struct RemoteControl {
     const touch = event.touches && event.touches.length > 0 ? event.touches[0] : undefined;
     let mappedTouch: RemoteTouchPoint | null = null;
     if (touch !== undefined) {
-      mappedTouch = this.mapTouchToRemote(touch.x, touch.y, true);
+      const clampToBounds = event.type !== TouchType.Down && this.pointerActive;
+      mappedTouch = this.mapTouchToRemote(touch.x, touch.y, clampToBounds);
       if (mappedTouch !== null) {
         this.updatePointerPosition(mappedTouch);
       }
@@ -3765,6 +3767,9 @@ struct RemoteControl {
 
   private handlePreviewTouch(event: TouchEvent): void {
     if (this.viewMode) {
+      return;
+    }
+    if (!this.hasRenderedFrame()) {
       return;
     }
     if (this.handleGestureTouch(event)) {

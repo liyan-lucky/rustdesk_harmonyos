@@ -5,6 +5,7 @@ import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../service
 import { I18nService } from '../services/I18nService';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
+import picker from '@ohos.file.picker';
 
 interface DragFileInfo {
   name: string;
@@ -19,9 +20,7 @@ struct Chat {
   private chatService: ChatService = ChatService.getInstance();
   private chatListener = (_event: ChatEvent): void => {
     this.refreshMessages();
-    setTimeout(() => {
-      this.chatScroller.scrollEdge(Edge.Bottom);
-    }, 50);
+    this.scheduleChatScroll(50);
   };
   private chatScroller: Scroller = new Scroller();
 
@@ -41,9 +40,7 @@ struct Chat {
     this.chatService.updateSessionDeviceName(this.deviceId, this.deviceName);
     this.refreshMessages();
     this.chatService.addEventListener(this.chatListener);
-    setTimeout(() => {
-      this.chatScroller.scrollEdge(Edge.Bottom);
-    }, 100);
+    this.scheduleChatScroll(100);
   }
 
   aboutToDisappear() {
@@ -379,14 +376,34 @@ struct Chat {
   }
 
   private async sendFileReference(): Promise<void> {
-    await this.chatService.sendFileMessage(this.deviceId, '/remote/Inbox/logs.zip', 'logs.zip', 8 * 1024 * 1024);
-    this.refreshMessages();
+    try {
+      const documentSelectOptions = new picker.DocumentSelectOptions();
+      const documentPicker = new picker.DocumentViewPicker();
+      const selectedUris: Array<string> = await documentPicker.select(documentSelectOptions);
+      if (selectedUris === undefined || selectedUris.length === 0) {
+        return;
+      }
+      const uri = selectedUris[0];
+      await this.chatService.sendFileMessage(this.deviceId, uri, this.extractFileName(uri), 0);
+      this.refreshMessages();
+      this.scheduleChatScroll(50);
+    } catch (error) {
+      console.error('Send file reference failed:', JSON.stringify(error));
+    }
   }
 
   private refreshMessages(): void {
     this.messages = this.chatService.getMessages(this.deviceId);
     this.unreadCount = this.chatService.getUnreadCount(this.deviceId);
     this.chatService.markAsRead(this.deviceId);
+  }
+
+  private scheduleChatScroll(delayMs: number): void {
+    [0, delayMs, delayMs + 80, delayMs + 180].forEach((delay: number) => {
+      setTimeout(() => {
+        this.chatScroller.scrollEdge(Edge.Bottom);
+      }, Math.max(0, delay));
+    });
   }
 
   private getRouteParams(): Record<string, string> {

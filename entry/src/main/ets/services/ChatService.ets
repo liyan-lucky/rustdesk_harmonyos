@@ -338,7 +338,8 @@ export class ChatService {
    * 获取聊天消息
    */
   getMessages(deviceId: string): ChatMessage[] {
-    return this.messages.get(deviceId) || [];
+    const messages = this.messages.get(deviceId);
+    return messages ? messages.slice() : [];
   }
 
   hasMessages(deviceId: string): boolean {
@@ -363,8 +364,9 @@ export class ChatService {
     if (messageId) {
       // 标记特定消息为已读
       const message = messages.find(msg => msg.id === messageId);
-      if (message) {
+      if (message && !message.isRead) {
         message.isRead = true;
+        this.persistMessages();
 
         this.dispatchEvent({
           type: 'message_read',
@@ -373,13 +375,18 @@ export class ChatService {
       }
     } else {
       // 标记所有消息为已读
+      let changed = false;
       messages.forEach(message => {
         if (!message.isRead) {
           message.isRead = true;
+          changed = true;
         }
       });
 
       session.unreadCount = 0;
+      if (changed) {
+        this.persistMessages();
+      }
 
       this.dispatchEvent({
         type: 'session_updated',
@@ -400,6 +407,7 @@ export class ChatService {
     const index = messages.findIndex(msg => msg.id === messageId);
     if (index > -1) {
       messages.splice(index, 1);
+      this.persistMessages();
     }
   }
 

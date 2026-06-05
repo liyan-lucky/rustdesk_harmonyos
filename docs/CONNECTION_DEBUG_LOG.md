@@ -423,3 +423,21 @@
 - 签名 HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
 - 签名 HAP 大小：`45,406,876` bytes。
 - HAP 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
+
+## 2026-06-06 00:24
+
+### 修改
+
+- 远控触摸输入按显示区域重新审查：首帧前不发输入，Down 必须落在渲染图像内，Move/Up 在已有指针时钳制到图像边界。
+- TAB 聊天、远控聊天浮窗、独立聊天页统一改为消息快照刷新，并在发送/接收后多次调度滚动到底部。
+- 独立聊天页移除固定 `/remote/Inbox/logs.zip` 文件引用，改用文档选择器选择真实文件 URI。
+- 设置页和扫码页的服务器配置导入均直接保存，并同步 native `key`。
+
+### 验证结果
+
+- `scripts\AUTO_BUILD_INSTALL.bat auto` 增量构建通过。
+- BuildInfo 编译时间：`2026-06-06 00:24`。
+- App 显示版本：`0.6.8`，versionCode：`1000013`。
+- 签名 HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
+- 签名 HAP 大小：`45,408,949` bytes。
+- HAP 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。

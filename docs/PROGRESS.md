@@ -1,13 +1,13 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-06 00:02。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-06 00:24。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最后一次增量安装启动通过，BuildInfo 编译时间 `2026-06-06 00:02`，App 显示版本 `0.6.6`。
-- 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-05.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最后一次增量安装启动通过，BuildInfo 编译时间 `2026-06-06 00:24`，App 显示版本 `0.6.8`。
+- 最新 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
 - 当前 U 盘存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳无法可靠删除。日常构建使用 staged copy，日常全量重建清理外部 build/stage 产物并保留 `harmonyos_cache`，避免 Hvigor 内置 clean 访问这些坏目录；深度清理 cache 需显式使用 `-IncludeHvigorCache`。
 
 - 扫码页已新增相册图片二维码识别入口，使用 `photo.svg` 图标；相机扫码和相册识别共用同一结果处理路径。
@@ -23,8 +23,8 @@
   - 大小：`135,673,254` bytes
   - SHA256: `B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
 - 当前已验证 HAP：
-  - BuildInfo 编译时间：`2026-06-06 00:02`
-  - App 显示版本：`0.6.6`
+  - BuildInfo 编译时间：`2026-06-06 00:24`
+  - App 显示版本：`0.6.8`
   - bundle：`com.open.rundesk`
   - 无线目标：`192.168.11.100:36169`
   - 无线安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。

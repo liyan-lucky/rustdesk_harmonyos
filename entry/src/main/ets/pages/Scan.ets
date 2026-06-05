@@ -9,6 +9,7 @@ import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { I18nService } from '../services/I18nService';
 import { PermissionService, PermissionStatus } from '../services/PermissionService';
 import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
+import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
 
 @Entry
 @Component
@@ -396,12 +397,13 @@ struct Scan {
     }
 
     const settings = this.appData.getSettings();
-    this.appData.updateSettings({
+    const nextSettings = this.appData.updateSettings({
       idServer: config.idServer !== null ? config.idServer : settings.idServer,
       relayServer: config.relayServer !== null ? config.relayServer : settings.relayServer,
       apiServer: config.apiServer !== null ? config.apiServer : settings.apiServer,
       key: config.key !== null ? config.key : settings.key
     });
+    NativeRustDeskBridge.setLocalOption('key', nextSettings.key.trim());
     this.status = this.lt('Server config imported and saved');
     void this.showToast(this.status);
     return true;

@@ -31,6 +31,7 @@
 | `UI.md` | UI布局、图标、核心页卡片细节 |
 | `BUILD_ARCHIVE.md` | 历史构建、脚本、Ubuntu路径和早期会话归档 |
 | `GIT_PUBLISH.md` | GitHub 发布说明。本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。 |
+| `FUNCTION_LOGIC_AUDIT_2026-06-06.md` | 最新 100 轮全功能逻辑检查、已修问题和后续补齐清单。 |
 
 ## C++桥接层 (entry/src/main/cpp/)
 

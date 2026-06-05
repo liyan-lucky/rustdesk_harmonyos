@@ -1078,6 +1078,7 @@ struct Index {
       .width(44)
       .height(44)
       .justifyContent(FlexAlign.Center)
+      .hitTestBehavior(HitTestMode.Block)
       .onClick(() => {
         this.recentMenuSessionId = entry.id;
       })
@@ -2156,6 +2157,7 @@ struct Index {
       .width(44)
       .height(44)
       .justifyContent(FlexAlign.Center)
+      .hitTestBehavior(HitTestMode.Block)
       .onClick(() => {
         this.recentMenuSessionId = session.id;
       })
@@ -2943,9 +2945,7 @@ struct Index {
     .onClick(() => {
       this.currentTab = tab;
       if (tab === 'chat' && this.chatMessages.length > 0) {
-        setTimeout(() => {
-          this.chatTabScroller.scrollEdge(Edge.Bottom);
-        }, 100);
+        this.scheduleChatTabScroll(100);
       }
     })
   }
@@ -2982,9 +2982,7 @@ struct Index {
     .onClick(() => {
       this.currentTab = tab;
       if (tab === 'chat' && this.chatMessages.length > 0) {
-        setTimeout(() => {
-          this.chatTabScroller.scrollEdge(Edge.Bottom);
-        }, 100);
+        this.scheduleChatTabScroll(100);
       }
     })
   }
@@ -3078,9 +3076,11 @@ struct Index {
   }
 
   private scheduleChatTabScroll(delayMs: number): void {
-    setTimeout(() => {
-      this.chatTabScroller.scrollEdge(Edge.Bottom);
-    }, delayMs);
+    [0, delayMs, delayMs + 80, delayMs + 180].forEach((delay: number) => {
+      setTimeout(() => {
+        this.chatTabScroller.scrollEdge(Edge.Bottom);
+      }, Math.max(0, delay));
+    });
   }
 
   private refreshAllSessionOnlineStatus(): void {
@@ -3253,9 +3253,7 @@ struct Index {
       apiServer: this.draftApiServer.trim(),
       key: this.draftKey.trim()
     });
-    if (this.draftKey.trim().length > 0) {
-      NativeRustDeskBridge.setLocalOption('key', this.draftKey.trim());
-    }
+    NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
     this.syncDraftServers();
     this.setStatusMessage("server_updated");
     void this.refreshState();
@@ -3303,18 +3301,15 @@ struct Index {
       await this.showToast(this.lt('invalid_server_config'));
       return;
     }
-    if (config.idServer !== null) {
-      this.draftIdServer = config.idServer;
-    }
-    if (config.relayServer !== null) {
-      this.draftRelayServer = config.relayServer;
-    }
-    if (config.apiServer !== null) {
-      this.draftApiServer = config.apiServer;
-    }
-    if (config.key !== null) {
-      this.draftKey = config.key;
-    }
+    const currentSettings = this.appData.getSettings();
+    this.settings = this.appData.updateSettings({
+      idServer: config.idServer !== null ? config.idServer : currentSettings.idServer,
+      relayServer: config.relayServer !== null ? config.relayServer : currentSettings.relayServer,
+      apiServer: config.apiServer !== null ? config.apiServer : currentSettings.apiServer,
+      key: config.key !== null ? config.key : currentSettings.key
+    });
+    NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
+    this.syncDraftServers();
     this.setStatusMessage('server_config_imported');
     await this.showToast(this.lt('server_config_imported'));
   }
@@ -4089,6 +4084,7 @@ struct Index {
     this.chatDraft = '';
     await this.chatService.sendTextMessage(peerId, text);
     this.chatMessages = this.chatService.getMessages(peerId);
+    this.scheduleChatTabScroll(50);
   }
 
   private navigateTo(url: string, params?: DeviceRouteParams): void {
