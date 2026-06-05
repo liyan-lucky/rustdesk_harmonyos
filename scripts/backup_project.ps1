@@ -18,6 +18,7 @@ if (Test-Path -LiteralPath $stageRoot) {
 }
 
 $excludeDirs = @(
+  (Join-Path $projectRoot ".git"),
   (Join-Path $projectRoot ".codeartsdoer"),
   (Join-Path $projectRoot ".hvigor"),
   (Join-Path $projectRoot ".hvigor_home"),
@@ -26,13 +27,14 @@ $excludeDirs = @(
   (Join-Path $projectRoot ".vscode"),
   (Join-Path $projectRoot "rustdesk_harmonyos"),
   (Join-Path $projectRoot "oh_modules"),
+  (Join-Path $projectRoot "entry\oh_modules"),
   (Join-Path $projectRoot "entry\build"),
   (Join-Path $projectRoot "entry\.cxx"),
   (Join-Path $projectRoot "native_rust_core\target")
 )
 
 try {
-  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XD") + $excludeDirs + @("/XF", "*.log", "*.tmp", "*.bak", "*.hap", "*.a", "*.so")
+  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XD") + $excludeDirs + @("/XF", "*.log", "*.tmp", "*.bak", "*.hap", "*.a", "*.so", "local.properties", "check_i18n.py", "check_result.txt")
   & robocopy @robocopyArgs | Out-Host
   $robocopyExit = $LASTEXITCODE
   if ($robocopyExit -gt 7) {
