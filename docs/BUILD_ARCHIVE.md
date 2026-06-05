@@ -19,7 +19,7 @@
 
 `build_full_hap.bat` 是全量 HAP 构建入口，会先运行 `clean_project.ps1` 清理生成产物，再调用标准 Hvigor wrapper，因此 App 内构建时间会同步刷新。
 
-`AUTO_BUILD_INSTALL.bat` 支持 `auto` 目标：优先 USB `2NX0224429035123`，USB 不在线时自动尝试无线 `192.168.11.100:36169`。默认目标可用 `RUSTDESK_HARMONY_USB_TARGET` 和 `RUSTDESK_HARMONY_WIRELESS_TARGET` 覆盖。
+`AUTO_BUILD_INSTALL.bat` 支持 `auto` 目标：优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标，USB 不在线时自动尝试无线 `192.168.11.100:36169`。默认目标可用 `RUSTDESK_HARMONY_USB_TARGET` 和 `RUSTDESK_HARMONY_WIRELESS_TARGET` 覆盖。
 
 已清理的重复脚本：
 
@@ -118,9 +118,9 @@ Ubuntu 交叉编译路径曾验证成功，但当前优先使用 Windows 的 `bu
 历史 Ubuntu 入口：
 
 ```bash
-export RUSTDESK_HARMONY_BUILD_DIR="/media/$USER/Data/Visual_Studio_Code/99_Temp/rustdesk_harmonyos_build"
+export RUSTDESK_HARMONY_BUILD_DIR="$VSCODE_ROOT_LINUX/99_Temp/rustdesk_harmonyos_build"
 export OHOS_NDK_HOME="$RUSTDESK_HARMONY_BUILD_DIR/ohos-sdk"
-cd /media/$USER/Data/Visual_Studio_Code/11_Rustdesk/rustdesk_harmonyos/scripts
+cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 ./build_native_bridge.sh aarch64-unknown-linux-ohos release
 ```
 

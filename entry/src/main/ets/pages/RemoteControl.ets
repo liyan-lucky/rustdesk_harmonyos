@@ -184,8 +184,15 @@ struct RemoteControl {
     }
   };
   private chatListener = (event: ChatEvent): void => {
-    if (event.message && event.message.sender === 'remote' && event.message) {
+    if (!this.showChatPanel) {
+      return;
+    }
+    if (event.session && event.session.deviceId !== this.deviceId) {
+      return;
+    }
+    if (event.type === 'message_received' || event.type === 'message_sent' || event.type === 'session_updated') {
       this.chatMessages = this.chatService.getMessages(this.deviceId);
+      this.scheduleChatPanelScroll(50);
     }
   };
 
@@ -227,6 +234,7 @@ struct RemoteControl {
   @State showChatPanel: boolean = false;
   @State chatDraft: string = '';
   @State chatMessages: ChatMessage[] = [];
+  private chatPanelScroller: Scroller = new Scroller();
   @State chatPanelOffsetX: number = 0;
   @State chatPanelOffsetY: number = 0;
   private chatPanelDragStartX: number = 0;
@@ -350,6 +358,7 @@ struct RemoteControl {
     this.chatDraft = '';
     this.chatMessages = this.chatService.getMessages(this.deviceId);
     this.chatService.updateSessionDeviceName(this.deviceId, this.deviceName);
+    this.scheduleChatPanelScroll(100);
   }
 
   private async sendSessionChatMessage(): Promise<void> {
@@ -360,6 +369,16 @@ struct RemoteControl {
     this.chatDraft = '';
     await this.chatService.sendTextMessage(this.deviceId, text);
     this.chatMessages = this.chatService.getMessages(this.deviceId);
+    this.scheduleChatPanelScroll(50);
+  }
+
+  private scheduleChatPanelScroll(delayMs: number): void {
+    setTimeout(() => {
+      this.chatPanelScroller.scrollEdge(Edge.Bottom);
+    }, delayMs);
+    setTimeout(() => {
+      this.chatPanelScroller.scrollEdge(Edge.Bottom);
+    }, delayMs + 120);
   }
 
   private getChatMessageBody(message: ChatMessage): string {
@@ -547,8 +566,8 @@ struct RemoteControl {
               }
 
               Column() {}
-                .width('100%')
-                .height('100%')
+                .width(this.resolveRenderedImageWidth() > 0 ? this.resolveRenderedImageWidth() : '100%')
+                .height(this.resolveRenderedImageHeight() > 0 ? this.resolveRenderedImageHeight() : '100%')
                 .onTouch((event: TouchEvent) => {
                   this.handlePreviewTouch(event);
                 });
@@ -1234,19 +1253,19 @@ struct RemoteControl {
             .fontColor(this.theme_TEXT_TERTIARY)
             .width('100%')
             .padding({ bottom: 6 });
-          RadioOptionItem({ label: this.lt('Original Size'), selected: this.displayScaleMode === 0, onSelected: () => { this.displayScaleMode = 0; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
-          RadioOptionItem({ label: this.lt('Fit Window'), selected: this.displayScaleMode === 1, onSelected: () => { this.displayScaleMode = 1; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
-          RadioOptionItem({ label: this.lt('Custom Zoom'), selected: this.displayScaleMode === 2, onSelected: () => { this.displayScaleMode = 2; this.pinchScale = 1.6; } })
+          RadioOptionItem({ label: this.lt('Original Size'), icon: 'opt_original.svg', selected: this.displayScaleMode === 0, onSelected: () => { this.displayScaleMode = 0; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
+          RadioOptionItem({ label: this.lt('Fit Window'), icon: 'opt_fit.svg', selected: this.displayScaleMode === 1, onSelected: () => { this.displayScaleMode = 1; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
+          RadioOptionItem({ label: this.lt('Custom Zoom'), icon: 'opt_zoom.svg', selected: this.displayScaleMode === 2, onSelected: () => { this.displayScaleMode = 2; this.pinchScale = 1.6; } })
 
           Text(this.lt('Image Quality'))
             .fontSize(13)
             .fontColor(this.theme_TEXT_TERTIARY)
             .width('100%')
             .padding({ top: 12, bottom: 6 });
-          RadioOptionItem({ label: this.lt('Best Quality'), selected: this.imageQualityMode === 0, onSelected: () => { this.applyImageQuality(0); } })
-          RadioOptionItem({ label: this.lt('Balanced'), selected: this.imageQualityMode === 1, onSelected: () => { this.applyImageQuality(1); } })
-          RadioOptionItem({ label: this.lt('Best Speed'), selected: this.imageQualityMode === 2, onSelected: () => { this.applyImageQuality(2); } })
-          RadioOptionItem({ label: this.lt('Custom'), selected: this.imageQualityMode === 3, onSelected: () => { this.applyImageQuality(3); } })
+          RadioOptionItem({ label: this.lt('Best Quality'), icon: 'opt_quality.svg', selected: this.imageQualityMode === 0, onSelected: () => { this.applyImageQuality(0); } })
+          RadioOptionItem({ label: this.lt('Balanced'), icon: 'opt_balance.svg', selected: this.imageQualityMode === 1, onSelected: () => { this.applyImageQuality(1); } })
+          RadioOptionItem({ label: this.lt('Best Speed'), icon: 'opt_speed.svg', selected: this.imageQualityMode === 2, onSelected: () => { this.applyImageQuality(2); } })
+          RadioOptionItem({ label: this.lt('Custom'), icon: 'opt_custom.svg', selected: this.imageQualityMode === 3, onSelected: () => { this.applyImageQuality(3); } })
           if (this.imageQualityMode === 3) {
             Column() {
               Row() {
@@ -1324,21 +1343,21 @@ struct RemoteControl {
             .fontColor(this.theme_TEXT_TERTIARY)
             .width('100%')
             .padding({ top: 12, bottom: 6 });
-          RadioOptionItem({ label: 'Auto (H265)', selected: this.videoCodecMode === 0, onSelected: () => { this.applyVideoCodec(0); } })
-          RadioOptionItem({ label: 'VP8', selected: this.videoCodecMode === 1, onSelected: () => { this.applyVideoCodec(1); } })
-          RadioOptionItem({ label: 'VP9', selected: this.videoCodecMode === 2, onSelected: () => { this.applyVideoCodec(2); } })
-          RadioOptionItem({ label: 'AV1', selected: this.videoCodecMode === 3, onSelected: () => { this.applyVideoCodec(3); } })
-          RadioOptionItem({ label: 'H264', selected: this.videoCodecMode === 4, onSelected: () => { this.applyVideoCodec(4); } })
-          RadioOptionItem({ label: 'H265', selected: this.videoCodecMode === 5, onSelected: () => { this.applyVideoCodec(5); } })
+          RadioOptionItem({ label: 'Auto (H265)', icon: 'opt_codec.svg', selected: this.videoCodecMode === 0, onSelected: () => { this.applyVideoCodec(0); } })
+          RadioOptionItem({ label: 'VP8', icon: 'opt_codec.svg', selected: this.videoCodecMode === 1, onSelected: () => { this.applyVideoCodec(1); } })
+          RadioOptionItem({ label: 'VP9', icon: 'opt_codec.svg', selected: this.videoCodecMode === 2, onSelected: () => { this.applyVideoCodec(2); } })
+          RadioOptionItem({ label: 'AV1', icon: 'opt_codec.svg', selected: this.videoCodecMode === 3, onSelected: () => { this.applyVideoCodec(3); } })
+          RadioOptionItem({ label: 'H264', icon: 'opt_codec.svg', selected: this.videoCodecMode === 4, onSelected: () => { this.applyVideoCodec(4); } })
+          RadioOptionItem({ label: 'H265', icon: 'opt_codec.svg', selected: this.videoCodecMode === 5, onSelected: () => { this.applyVideoCodec(5); } })
 
           Text(this.lt('Keyboard Mode'))
             .fontSize(13)
             .fontColor(this.theme_TEXT_TERTIARY)
             .width('100%')
             .padding({ top: 12, bottom: 6 });
-          RadioOptionItem({ label: this.lt('Legacy mode'), selected: this.keyboardMode === 0, onSelected: () => { this.keyboardMode = 0; this.applySessionOption('keyboard-mode', 'legacy'); } })
-          RadioOptionItem({ label: this.lt('Map mode'), selected: this.keyboardMode === 1, onSelected: () => { this.keyboardMode = 1; this.applySessionOption('keyboard-mode', 'map'); } })
-          RadioOptionItem({ label: this.lt('Translate mode'), selected: this.keyboardMode === 2, onSelected: () => { this.keyboardMode = 2; this.applySessionOption('keyboard-mode', 'translate'); } })
+          RadioOptionItem({ label: this.lt('Legacy mode'), icon: 'settings_terminal.svg', selected: this.keyboardMode === 0, onSelected: () => { this.keyboardMode = 0; this.applySessionOption('keyboard-mode', 'legacy'); } })
+          RadioOptionItem({ label: this.lt('Map mode'), icon: 'opt_grid.svg', selected: this.keyboardMode === 1, onSelected: () => { this.keyboardMode = 1; this.applySessionOption('keyboard-mode', 'map'); } })
+          RadioOptionItem({ label: this.lt('Translate mode'), icon: 'opt_translate.svg', selected: this.keyboardMode === 2, onSelected: () => { this.keyboardMode = 2; this.applySessionOption('keyboard-mode', 'translate'); } })
 
           Column() {}
             .width('100%')
@@ -1346,16 +1365,16 @@ struct RemoteControl {
             .backgroundColor(this.theme_BORDER_SOFT)
             .margin({ top: 12, bottom: 8 });
 
-          CheckboxOptionItem({ label: this.lt('Show Remote Cursor'), checked: this.showRemoteCursor, onToggle: () => { this.showRemoteCursor = !this.showRemoteCursor; this.applyToggleOption('show-remote-cursor', this.showRemoteCursor); } })
-          CheckboxOptionItem({ label: this.lt('Show Quality Monitor'), checked: this.showQualityMonitor, onToggle: () => { this.showQualityMonitor = !this.showQualityMonitor; this.setConnectionInfoVisible(this.showQualityMonitor); this.applyToggleOption('show-quality-monitor', this.showQualityMonitor); } })
-          CheckboxOptionItem({ label: this.lt('Mute'), checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); if (this.muteAudio && this.audioService.isCapturingActive()) { void this.audioService.stopCapture(); } } })
-          CheckboxOptionItem({ label: this.lt('Send Local Audio'), checked: this.audioService.isCapturingActive(), onToggle: () => { void this.toggleLocalAudioCapture(); } })
-          CheckboxOptionItem({ label: this.lt('Disable Clipboard'), checked: this.disableClipboard, onToggle: () => { this.disableClipboard = !this.disableClipboard; this.applyToggleOption('disable-clipboard', this.disableClipboard); } })
-          CheckboxOptionItem({ label: this.lt('Lock After Session End'), checked: this.lockAfterSession, onToggle: () => { this.lockAfterSession = !this.lockAfterSession; this.applyToggleOption('lock-after-session-end', this.lockAfterSession); } })
-          CheckboxOptionItem({ label: this.lt('Reverse Scroll'), checked: this.reverseScroll, onToggle: () => { this.reverseScroll = !this.reverseScroll; this.applyToggleOption('reverse-scroll', this.reverseScroll); } })
-          CheckboxOptionItem({ label: this.lt('Swap Mouse Buttons'), checked: this.swapMouseButtons, onToggle: () => { this.swapMouseButtons = !this.swapMouseButtons; this.applyToggleOption('swap-left-right-mouse', this.swapMouseButtons); } })
-          CheckboxOptionItem({ label: this.lt('View Mode'), checked: this.viewMode, onToggle: () => { this.viewMode = !this.viewMode; this.applyToggleOption('view-only', this.viewMode); } })
-          CheckboxOptionItem({ label: this.lt('Privacy Mode'), checked: this.privacyMode, onToggle: () => { this.privacyMode = !this.privacyMode; this.applyToggleOption('privacy-mode', this.privacyMode); } })
+          CheckboxOptionItem({ label: this.lt('Show Remote Cursor'), icon: 'opt_mouse.svg', checked: this.showRemoteCursor, onToggle: () => { this.showRemoteCursor = !this.showRemoteCursor; this.applyToggleOption('show-remote-cursor', this.showRemoteCursor); } })
+          CheckboxOptionItem({ label: this.lt('Show Quality Monitor'), icon: 'opt_activity.svg', checked: this.showQualityMonitor, onToggle: () => { this.showQualityMonitor = !this.showQualityMonitor; this.setConnectionInfoVisible(this.showQualityMonitor); this.applyToggleOption('show-quality-monitor', this.showQualityMonitor); } })
+          CheckboxOptionItem({ label: this.lt('Mute'), icon: 'opt_mute.svg', checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); if (this.muteAudio && this.audioService.isCapturingActive()) { void this.audioService.stopCapture(); } } })
+          CheckboxOptionItem({ label: this.lt('Send Local Audio'), icon: 'opt_mic.svg', checked: this.audioService.isCapturingActive(), onToggle: () => { void this.toggleLocalAudioCapture(); } })
+          CheckboxOptionItem({ label: this.lt('Disable Clipboard'), icon: 'menu_clipboard.svg', checked: this.disableClipboard, onToggle: () => { this.disableClipboard = !this.disableClipboard; this.applyToggleOption('disable-clipboard', this.disableClipboard); } })
+          CheckboxOptionItem({ label: this.lt('Lock After Session End'), icon: 'menu_lock.svg', checked: this.lockAfterSession, onToggle: () => { this.lockAfterSession = !this.lockAfterSession; this.applyToggleOption('lock-after-session-end', this.lockAfterSession); } })
+          CheckboxOptionItem({ label: this.lt('Reverse Scroll'), icon: 'settings_udp.svg', checked: this.reverseScroll, onToggle: () => { this.reverseScroll = !this.reverseScroll; this.applyToggleOption('reverse-scroll', this.reverseScroll); } })
+          CheckboxOptionItem({ label: this.lt('Swap Mouse Buttons'), icon: 'menu_switch.svg', checked: this.swapMouseButtons, onToggle: () => { this.swapMouseButtons = !this.swapMouseButtons; this.applyToggleOption('swap-left-right-mouse', this.swapMouseButtons); } })
+          CheckboxOptionItem({ label: this.lt('View Mode'), icon: 'opt_view.svg', checked: this.viewMode, onToggle: () => { this.viewMode = !this.viewMode; this.applyToggleOption('view-only', this.viewMode); } })
+          CheckboxOptionItem({ label: this.lt('Privacy Mode'), icon: 'opt_shield.svg', checked: this.privacyMode, onToggle: () => { this.privacyMode = !this.privacyMode; this.applyToggleOption('privacy-mode', this.privacyMode); } })
         }
         .padding({ left: 20, right: 20, bottom: 20 });
       }
@@ -1375,8 +1394,8 @@ struct RemoteControl {
     Column() {
       this.buildSessionPanelHeader(this.lt('Mouse Control'), 'mouse');
 
-      RadioOptionItem({ label: this.lt('Touch Mode'), selected: this.mouseControlMode === 0, onSelected: () => { this.mouseControlMode = 0; } })
-      RadioOptionItem({ label: this.lt('Simulated Mouse'), selected: this.mouseControlMode === 1, onSelected: () => { this.mouseControlMode = 1; } })
+      RadioOptionItem({ label: this.lt('Touch Mode'), icon: 'opt_touch.svg', selected: this.mouseControlMode === 0, onSelected: () => { this.mouseControlMode = 0; } })
+      RadioOptionItem({ label: this.lt('Simulated Mouse'), icon: 'opt_mouse.svg', selected: this.mouseControlMode === 1, onSelected: () => { this.mouseControlMode = 1; } })
 
       Column() {}
         .width('100%')
@@ -1390,9 +1409,9 @@ struct RemoteControl {
         .width('100%')
         .padding({ bottom: 6, left: 20, right: 20 });
 
-      RadioOptionItem({ label: this.lt('Two-finger Zoom/Scroll'), selected: this.multiTouchFingers === 2, onSelected: () => { this.multiTouchFingers = 2; } })
-      RadioOptionItem({ label: this.lt('Three-finger Drag'), selected: this.multiTouchFingers === 3, onSelected: () => { this.multiTouchFingers = 3; } })
-      RadioOptionItem({ label: this.lt('Four-finger Gesture'), selected: this.multiTouchFingers === 4, onSelected: () => { this.multiTouchFingers = 4; } })
+      RadioOptionItem({ label: this.lt('Two-finger Zoom/Scroll'), icon: 'opt_zoom.svg', selected: this.multiTouchFingers === 2, onSelected: () => { this.multiTouchFingers = 2; } })
+      RadioOptionItem({ label: this.lt('Three-finger Drag'), icon: 'opt_grip.svg', selected: this.multiTouchFingers === 3, onSelected: () => { this.multiTouchFingers = 3; } })
+      RadioOptionItem({ label: this.lt('Four-finger Gesture'), icon: 'opt_touch.svg', selected: this.multiTouchFingers === 4, onSelected: () => { this.multiTouchFingers = 4; } })
     }
     .width(280)
     .borderRadius({ topLeft: 16, topRight: 16 })
@@ -1407,19 +1426,19 @@ struct RemoteControl {
 
       Scroll() {
         Column({ space: 0 }) {
-          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; this.showPasswordDialog = true; });
-          this.buildMenuRow(this.lt('Send Clipboard Keys'), () => { this.showMoreMenu = false; this.sendClipboardToRemote(); });
-          this.buildMenuRow(this.lt('Reset Canvas'), () => { this.showMoreMenu = false; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; void this.showToast(this.lt('Reset')); });
-          this.buildMenuRow(this.lt('Insert Ctrl+Alt+Del'), () => { this.showMoreMenu = false; if (this.sendCtrlAltDel()) { void this.showToast(this.lt('Inserted Ctrl+Alt+Del')); } });
-          this.buildMenuRow(this.lt('Restart Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('restart'); });
-          this.buildMenuRow(this.lt('Lock Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('lock_screen'); });
-          this.buildToggleMenuRow(this.lt('Block User Input'), this.blockInputOn, () => { this.showMoreMenu = false; this.toggleBlockInput(); });
-          this.buildMenuRow(this.lt('Refresh Screen'), () => { this.showMoreMenu = false; this.maybeRequestVideoRefresh(true); void this.showToast(this.lt('Refreshing...')); });
-          this.buildMenuRow(this.lt('File Transfer'), () => { this.showMoreMenu = false; void this.openFileTransferWithPermissionCheck(); }, true);
-          this.buildMenuRow(this.lt('Copy Fingerprint'), () => { this.showMoreMenu = false; this.copyFingerprint(); });
-          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.sendOptionCommand('switch-sides', 'Y'); });
-          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.sendOptionCommand('take-screenshot', 'Y'); });
-          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; void this.toggleSessionRecording(); });
+          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; this.showPasswordDialog = true; }, false, 'menu_key.svg');
+          this.buildMenuRow(this.lt('Send Clipboard Keys'), () => { this.showMoreMenu = false; this.sendClipboardToRemote(); }, false, 'menu_clipboard.svg');
+          this.buildMenuRow(this.lt('Reset Canvas'), () => { this.showMoreMenu = false; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; void this.showToast(this.lt('Reset')); }, false, 'menu_reset.svg');
+          this.buildMenuRow(this.lt('Insert Ctrl+Alt+Del'), () => { this.showMoreMenu = false; if (this.sendCtrlAltDel()) { void this.showToast(this.lt('Inserted Ctrl+Alt+Del')); } }, false, 'menu_key.svg');
+          this.buildMenuRow(this.lt('Restart Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('restart'); }, false, 'menu_restart.svg');
+          this.buildMenuRow(this.lt('Lock Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('lock_screen'); }, false, 'menu_lock.svg');
+          this.buildToggleMenuRow(this.lt('Block User Input'), this.blockInputOn, () => { this.showMoreMenu = false; this.toggleBlockInput(); }, 'menu_block.svg');
+          this.buildMenuRow(this.lt('Refresh Screen'), () => { this.showMoreMenu = false; this.maybeRequestVideoRefresh(true); void this.showToast(this.lt('Refreshing...')); }, false, 'menu_refresh.svg');
+          this.buildMenuRow(this.lt('File Transfer'), () => { this.showMoreMenu = false; void this.openFileTransferWithPermissionCheck(); }, true, 'menu_transfer.svg');
+          this.buildMenuRow(this.lt('Copy Fingerprint'), () => { this.showMoreMenu = false; this.copyFingerprint(); }, false, 'menu_fingerprint.svg');
+          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.sendOptionCommand('switch-sides', 'Y'); }, false, 'menu_switch.svg');
+          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.sendOptionCommand('take-screenshot', 'Y'); }, false, 'menu_screenshot.svg');
+          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; void this.toggleSessionRecording(); }, 'menu_record.svg');
         }
       }
       .scrollable(ScrollDirection.Vertical)
@@ -1438,7 +1457,7 @@ struct RemoteControl {
     Column() {
       this.buildSessionPanelHeader(this.deviceName.length > 0 ? this.deviceName : this.lt('Chat'), 'chat');
 
-      Scroll() {
+      Scroll(this.chatPanelScroller) {
         Column({ space: 10 }) {
           if (this.chatMessages.length === 0) {
             EmptyState($rawfile('chat.svg'), this.lt('No messages yet.'))
@@ -1563,8 +1582,14 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildMenuRow(label: string, action: () => void, showArrow: boolean = false) {
-    Row() {
+  private buildMenuRow(label: string, action: () => void, showArrow: boolean = false, icon: string = '') {
+    Row({ space: 10 }) {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(18)
+          .height(18)
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
       Text(label)
         .fontSize(14)
         .fontColor(this.theme_TEXT_PRIMARY)
@@ -1584,8 +1609,15 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildToggleMenuRow(label: string, isOn: boolean, action: () => void) {
+  private buildToggleMenuRow(label: string, isOn: boolean, action: () => void, icon: string = '') {
     Row({ space: 10 }) {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(18)
+          .height(18)
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
+
       Stack() {
         Circle()
           .width(20)
@@ -2425,7 +2457,9 @@ struct RemoteControl {
         return;
       }
       if (!this.sessionCloseRequestedLocally) {
-        if (this.shouldShowReconnectPromptNow()) {
+        if (this.sessionBecameActive && !this.hasReceivedFrame) {
+          this.showReconnectDialogFromState(this.lt('Connection Error'), coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('No video frame received'));
+        } else if (this.shouldShowReconnectPromptNow()) {
           this.showReconnectDialogFromState(this.lt('Connection Error'), coreState.detailMessage);
         } else {
           this.finishTerminalSession(
@@ -3855,12 +3889,42 @@ struct RemoteControl {
     this.sendRemoteMouseMask(MOUSE_MASK.MOVE | MOUSE_MASK.MOTION, activeTouch.x, activeTouch.y, event.type);
   }
 
+  private static readonly HARMONY_TO_VK: Record<number, number> = {
+    2000: 48, 2001: 49, 2002: 50, 2003: 51, 2004: 52,
+    2005: 53, 2006: 54, 2007: 55, 2008: 56, 2009: 57,
+    2011: 65, 2012: 66, 2013: 67, 2014: 68, 2015: 69,
+    2016: 70, 2017: 71, 2018: 72, 2019: 73, 2020: 74,
+    2021: 75, 2022: 76, 2023: 77, 2024: 78, 2025: 79,
+    2026: 80, 2027: 81, 2028: 82, 2029: 83, 2030: 84,
+    2031: 85, 2032: 86, 2033: 87, 2034: 88, 2035: 89,
+    2036: 90,
+  };
+
+  private static readonly HARMONY_SPECIAL_TO_VK: Record<number, number> = {
+    2017: 13, 2018: 8, 2019: 9, 2020: 32, 2022: 27, 2021: 46,
+    2029: 17, 2030: 17, 2031: 16, 2032: 16, 2033: 18, 2034: 18,
+    2037: 112, 2038: 113, 2039: 114, 2040: 115, 2041: 116,
+    2042: 117, 2043: 118, 2044: 119, 2045: 120, 2046: 121,
+    2047: 122, 2048: 123,
+    2049: 186, 2050: 187, 2051: 188, 2052: 189, 2053: 190,
+    2054: 191, 2055: 192, 2056: 219, 2057: 220, 2058: 221,
+    2059: 222,
+    2074: 37, 2075: 38, 2076: 39, 2077: 40,
+    2066: 45, 2067: 36, 2068: 35, 2069: 33, 2070: 34,
+    2071: 144, 2072: 111, 2073: 106,
+  };
+
   private handleKeyEvent(event: KeyEvent): void {
     if (this.viewMode) {
       return;
     }
     const pressed = event.type === KeyType.Down;
-    NativeRustDeskBridge.sendKeyboardInput(event.keyCode, pressed, 0);
+    let vk = RemoteControl.HARMONY_SPECIAL_TO_VK[event.keyCode] ?? RemoteControl.HARMONY_TO_VK[event.keyCode];
+    if (vk === undefined) {
+      return;
+    }
+    let modifiers = 0;
+    NativeRustDeskBridge.sendKeyboardInput(vk, pressed, modifiers);
     if (pressed) {
       this.maybeRequestVideoRefresh(true);
     }
@@ -4007,6 +4071,7 @@ struct RemoteControl {
 struct RadioOptionItem {
   @Prop selected: boolean = false;
   label: string = '';
+  icon: string = '';
   onSelected: () => void = () => {};
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
@@ -4014,6 +4079,18 @@ struct RadioOptionItem {
 
   build() {
     Row({ space: 10 }) {
+      if (this.icon.length > 0) {
+        Image($rawfile(this.icon))
+          .width(18)
+          .height(18)
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
+
+      Text(this.label)
+        .fontSize(14)
+        .fontColor(this.selected ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .layoutWeight(1);
+
       Stack() {
         Circle()
           .width(20)
@@ -4031,11 +4108,6 @@ struct RadioOptionItem {
       }
       .width(20)
       .height(20)
-
-      Text(this.label)
-        .fontSize(14)
-        .fontColor(this.selected ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
-        .layoutWeight(1);
     }
     .width('100%')
     .height(44)
@@ -4049,13 +4121,27 @@ struct RadioOptionItem {
 struct CheckboxOptionItem {
   @Prop checked: boolean = false;
   label: string = '';
+  icon: string = '';
   onToggle: () => void = () => {};
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_BORDER_SOFT') theme_BORDER_SOFT: string = '#3A4355';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
+  @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
 
   build() {
     Row({ space: 10 }) {
+      if (this.icon.length > 0) {
+        Image($rawfile(this.icon))
+          .width(18)
+          .height(18)
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
+
+      Text(this.label)
+        .fontSize(14)
+        .fontColor(this.checked ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .layoutWeight(1);
+
       Stack() {
         Circle()
           .width(20)
@@ -4073,11 +4159,6 @@ struct CheckboxOptionItem {
       }
       .width(20)
       .height(20)
-
-      Text(this.label)
-        .fontSize(14)
-        .fontColor(this.checked ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
-        .layoutWeight(1);
     }
     .width('100%')
     .height(44)

@@ -1,4 +1,4 @@
-﻿import { AppDataService, LocalDeviceProfile, RecentSession, SettingsState } from '../services/AppDataService';
+import { AppDataService, LocalDeviceProfile, RecentSession, SettingsState } from '../services/AppDataService';
 import router from '@ohos.router';
 import { ThemeConfig, ThemeManager, AppThemeMode } from '../common/ThemeConfig';
 import { AddressBookEntry } from '../services/AppDataService';
@@ -24,6 +24,7 @@ import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { PreferenceStore } from '../services/PreferenceStore';
 import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
+import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
 import { WindowChromeService } from '../services/WindowChromeService';
 import { BuildInfo } from '../common/BuildInfo';
 import drawing from '@ohos.graphics.drawing';
@@ -34,7 +35,6 @@ import { PermissionService } from '../services/PermissionService';
 import { PermissionStatus } from '../services/PermissionService';
 import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
 import hilog from '@ohos.hilog';
-import util from '@ohos.util';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
 type ConnectPeerTab = 'recent' | 'favorites' | 'discovered' | 'addressBook' | 'account' | 'core';
@@ -50,7 +50,8 @@ interface CoreModuleInfo {
   validElf: boolean;
   buildTime: string;
   statusText: string;
-  statusColor: string;
+  statusActive: boolean;
+  icon: string;
   lastError: string;
   detailMessage: string;
   statusSummary: string;
@@ -119,6 +120,9 @@ struct Index {
     if (!prevReady && this.officialCoreState.coreReady) {
       this.startOnlineStatusPoll();
     }
+    if (event.kind === 'session-connected' || event.kind === 'session-closed' || event.kind === 'session-error') {
+      this.refreshCurrentSessionChat(true);
+    }
   };
   private onlineStatusListener = (result: OnlineStatusResult): void => {
     this.appData.updateOnlineStatusFromResult(result.onlines, result.offlines);
@@ -131,11 +135,9 @@ struct Index {
     this.peerOnlineVersion++;
   };
   private chatEventListener = (event: ChatEvent): void => {
-    if (event.type === 'message_received' || event.type === 'message_sent') {
-      const activePeerId = this.officialCoreState.activePeerId.trim();
-      if (activePeerId.length > 0 && this.officialCoreState.sessionStage === 'connected') {
-        this.chatMessages = this.chatService.getMessages(activePeerId);
-      }
+    if (event.type === 'message_received' || event.type === 'message_sent' || event.type === 'session_updated') {
+      this.refreshChatSessions();
+      this.refreshCurrentSessionChat(true);
     }
   };
 
@@ -251,6 +253,7 @@ struct Index {
   @State recentSessions: RecentSession[] = this.appData.getRecentSessions();
   @State chatSessions: ChatSession[] = [];
   @State chatMessages: ChatMessage[] = [];
+  private chatTabScroller: Scroller = new Scroller();
   @State chatDraft: string = '';
   @State localDevice: LocalDeviceProfile = this.appData.getLocalDevice();
   @State oneTimePassword: string = this.appData.getPassword();
@@ -415,6 +418,9 @@ struct Index {
       this.showAccountDialog = false;
       this.loginErrorMsg = '';
     }
+    void this.refreshState().then(() => {
+      this.refreshCurrentSessionChat(true);
+    });
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
@@ -480,7 +486,7 @@ struct Index {
   private buildChatOverview() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column() {
-        Scroll() {
+        Scroll(this.chatTabScroller) {
           Column({ space: ThemeConfig.SPACING_SM }) {
             if (!this.hasHadSession) {
               Column() {
@@ -527,7 +533,50 @@ struct Index {
       .height('100%')
 
       Column() {
-        Column() { PageHeader(this.lt('RustDesk')) }
+        Column() {
+          if (this.hasHadSession && this.lastSessionPeerId.length > 0) {
+            Row() {
+              Image($rawfile('call-made.svg'))
+                .width(22)
+                .height(22)
+                .fillColor(this.theme_TEXT_PRIMARY)
+
+              Column({ space: 2 }) {
+                Text(this.resolveChatPeerName())
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(this.theme_TEXT_PRIMARY)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                Text(this.formatId(this.lastSessionPeerId))
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_TERTIARY)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+              .margin({ left: 12 })
+
+              Row() {
+                Image($rawfile('group.svg'))
+                  .width(22)
+                  .height(22)
+                  .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+              }
+              .width(40)
+              .height(40)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(VerticalAlign.Center)
+              .backgroundColor(this.theme_ACCENT_SURFACE)
+              .borderRadius(20)
+            }
+            .width('100%')
+            .height(56)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
+          } else {
+            PageHeader(this.lt('RustDesk'))
+          }
+        }
           .width('100%')
           .padding({ top: this.avoidStatusBarHeight })
       }
@@ -602,42 +651,7 @@ struct Index {
       .padding({ top: 80, bottom: 120 })
 
       Column() {
-        Column() {
-          if (this.hasHadSession && this.lastSessionPeerId.length > 0) {
-            Row() {
-              Image($rawfile('call-made.svg'))
-                .width(22)
-                .height(22)
-                .fillColor(this.theme_TEXT_PRIMARY)
-
-              Column({ space: 2 }) {
-                Text(this.resolveChatPeerName())
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(this.theme_TEXT_PRIMARY)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(this.formatId(this.lastSessionPeerId))
-                  .fontSize(12)
-                  .fontColor(this.theme_TEXT_TERTIARY)
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-              .margin({ left: 12 })
-
-              Image($rawfile('group.svg'))
-                .width(22)
-                .height(22)
-                .fillColor(this.theme_TEXT_PRIMARY)
-            }
-            .width('100%')
-            .height(56)
-            .padding({ left: 16, right: 16 })
-            .alignItems(VerticalAlign.Center)
-          } else {
-            PageHeader(this.lt('RustDesk'))
-          }
-        }
+        Column() { this.buildSettingsPageHeader() }
           .width('100%')
           .padding({ top: this.avoidStatusBarHeight })
       }
@@ -981,9 +995,9 @@ struct Index {
         }
         .width('100%')
 
-        InfoRow(this.lt('Account'), this.describeAccountName())
-        InfoRow(this.lt('Provider'), this.describeAccountProvider())
-        InfoRow(this.lt('Status'), this.describeAccountState())
+        InfoRow(this.lt('Account'), this.describeAccountName(), 'settings_person.svg')
+        InfoRow(this.lt('Provider'), this.describeAccountProvider(), 'settings_server.svg')
+        InfoRow(this.lt('Status'), this.describeAccountState(), 'settings_record.svg')
 
         CaptionLabel((this.accountState.detail ?? '').trim().length > 0 ? (this.accountState.detail ?? '') : this.lt('Account synced, can continue outgoing.'))
 
@@ -1025,10 +1039,7 @@ struct Index {
   private buildConnectAddressEntryRow(entry: AddressBookEntry) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        Image(this.resolvePlatformIcon(entry.platform))
-          .width(26)
-          .height(26)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+        this.buildThemedPlatformIcon(entry.platform, 26)
       }
       .width(40)
       .height(40)
@@ -1142,19 +1153,19 @@ struct Index {
           }, '', true, 'settings_proxy.svg')
           this.buildSettingsToggleSettingRow(this.lt('Use WebSocket'), this.settings.allowWebSocket, (value: boolean) => {
             this.updateSettings({ allowWebSocket: value });
-          }, '', true)
+          }, '', true, 'settings_websocket.svg')
           this.buildSettingsToggleSettingRow(this.lt('Enable UDP Hole Punching'), this.settings.enableUdpHolePunching, (value: boolean) => {
             this.updateSettings({ enableUdpHolePunching: value });
-          }, '', true)
+          }, '', true, 'settings_udp.svg')
           this.buildSettingsToggleSettingRow(this.lt('Enable IPv6 P2P Connection'), this.settings.enableIpv6P2p, (value: boolean) => {
             this.updateSettings({ enableIpv6P2p: value });
-          }, '', true)
+          }, '', true, 'settings_ipv6.svg')
 
           Row({ space: ThemeConfig.SPACING_MD }) {
             Image($rawfile('translate.svg'))
               .width(20)
               .height(20)
-              .fillColor(this.theme_TEXT_PRIMARY)
+              .fillColor(this.theme_TEXT_TERTIARY)
 
             Column({ space: 4 }) {
               Text(this.lt('Language'))
@@ -1188,7 +1199,7 @@ struct Index {
               .width(20)
               .height(20)
               .objectFit(ImageFit.Contain)
-              .fillColor(this.theme_TEXT_PRIMARY)
+              .fillColor(this.theme_TEXT_TERTIARY)
 
             Column({ space: 4 }) {
               Text(this.themeIsDark ? this.lt('Dark Theme') : this.lt('Light Theme'))
@@ -1219,10 +1230,10 @@ struct Index {
 
           this.buildSettingsToggleSettingRow(this.lt('Request remark at session end'), this.settings.requestRemarkOnSessionEnd, (value: boolean) => {
             this.updateSettings({ requestRemarkOnSessionEnd: value });
-          }, '', true)
+          }, '', true, 'settings_remark.svg')
           this.buildSettingsToggleSettingRow(this.lt('Keep screen on during outgoing sessions'), this.settings.keepScreenOn !== 'never', (value: boolean) => {
             this.updateSettings({ keepScreenOn: value ? 'session' : 'never' });
-          }, '', true)
+          }, '', true, 'settings_keepscreen.svg')
         }
         .width('100%')
       }
@@ -1274,7 +1285,7 @@ struct Index {
         Column({ space: 0 }) {
           this.buildSettingsToggleSettingRow(this.lt('Enable hardware codec'), this.settings.enableHardwareCodec, (value: boolean) => {
             this.updateSettings({ enableHardwareCodec: value });
-          })
+          }, '', false, 'settings_cpu.svg')
         }
         .width('100%')
       }
@@ -1290,11 +1301,11 @@ struct Index {
         Column({ space: 0 }) {
           this.buildSettingsToggleSettingRow(this.lt('Auto-record incoming'), this.settings.autoRecordIncoming, (value: boolean) => {
             this.updateSettings({ autoRecordIncoming: value });
-          })
+          }, '', false, 'settings_record_in.svg')
           this.buildSettingsToggleSettingRow(this.lt('Auto-record outgoing'), this.settings.autoRecordOutgoing, (value: boolean) => {
             this.updateSettings({ autoRecordOutgoing: value });
-          }, '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Directory'), this.getScreenRecordingDirectory(), '', true)
+          }, '', true, 'settings_record_out.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Directory'), this.getScreenRecordingDirectory(), 'settings_folder.svg', '', true)
         }
         .width('100%')
       }
@@ -1305,12 +1316,15 @@ struct Index {
   @Builder
   private buildSettingsTwoFactorSection() {
     Column({ space: ThemeConfig.SPACING_SM }) {
-      this.buildSettingsSectionLabel(this.lt('2FA'), 'settings_shield.svg')
+      this.buildSettingsSectionLabel(this.lt('Two Factor Auth'), 'settings_shield.svg')
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsToggleSettingRow(this.lt('Enable two-factor authentication'), this.settings.twoFactorEnabled, (value: boolean) => {
+          this.buildSettingsToggleSettingRow(this.lt('Enable Two Factor'), this.settings.twoFactorEnabled, (value: boolean) => {
             this.updateSettings({ twoFactorEnabled: value });
-          })
+          }, '', false, 'settings_shield.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Only Whitelist IP Access'), this.settings.onlyWhitelistIpAccess, (value: boolean) => {
+            this.updateSettings({ onlyWhitelistIpAccess: value });
+          }, '', true, 'settings_whitelist.svg')
         }
         .width('100%')
       }
@@ -1321,36 +1335,18 @@ struct Index {
   @Builder
   private buildSettingsShareScreenSection() {
     Column({ space: ThemeConfig.SPACING_SM }) {
-      this.buildSettingsSectionLabel(this.lt('Share Screen'), 'settings_monitor.svg')
+      this.buildSettingsSectionLabel(this.lt('Share Screen'), 'settings_display.svg')
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsToggleSettingRow(this.lt('Deny LAN discovery'), this.settings.denyLanDiscovery, (value: boolean) => {
-            this.updateSettings({ denyLanDiscovery: value });
-            if (value) {
-              LanDiscoveryService.getInstance().stopDiscovery();
-              NativeRustDeskBridge.setLocalOption('enable-lan-discovery', 'N');
-              this.appData.clearDiscoveredDevices();
-            } else {
-              LanDiscoveryService.getInstance().startDiscovery();
-            }
-            this.addressBookVersion++;
-            this.peerOnlineVersion++;
-          })
-          this.buildSettingsToggleSettingRow(this.lt('Only allow whitelisted IP access'), this.settings.onlyWhitelistIpAccess, (value: boolean) => {
-            this.updateSettings({ onlyWhitelistIpAccess: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Adaptive Bitrate'), this.settings.enableAdaptiveBitrate, (value: boolean) => {
-            this.updateSettings({ enableAdaptiveBitrate: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Allow recording sessions'), this.settings.allowRecordingSessions, (value: boolean) => {
+          this.buildSettingsToggleSettingRow(this.lt('Allow Recording Sessions'), this.settings.allowRecordingSessions, (value: boolean) => {
             this.updateSettings({ allowRecordingSessions: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Direct IP access'), this.settings.enableDirectIp, (value: boolean) => {
-            this.updateSettings({ enableDirectIp: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Auto close inactive sessions'), this.settings.autoCloseInactiveSessions, (value: boolean) => {
+          }, '', false, 'settings_record.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Auto Close Inactive Sessions'), this.settings.autoCloseInactiveSessions, (value: boolean) => {
             this.updateSettings({ autoCloseInactiveSessions: value });
-          }, '', true)
+          }, '', true, 'settings_power.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Keep Screen On When Controlled'), this.settings.keepScreenOnWhenControlled, (value: boolean) => {
+            this.updateSettings({ keepScreenOnWhenControlled: value });
+          }, '', true, 'settings_keepscreen.svg')
         }
         .width('100%')
       }
@@ -1361,24 +1357,24 @@ struct Index {
   @Builder
   private buildSettingsEnhancedSection() {
     Column({ space: ThemeConfig.SPACING_SM }) {
-      this.buildSettingsSectionLabel(this.lt('Enhanced Features'), 'settings_tune.svg')
+      this.buildSettingsSectionLabel(this.lt('Enhanced'), 'settings_tune.svg')
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsToggleSettingRow(this.lt('Start on boot'), this.settings.startOnBoot, (value: boolean) => {
+          this.buildSettingsToggleSettingRow(this.lt('Enable Adaptive Bitrate'), this.settings.enableAdaptiveBitrate, (value: boolean) => {
+            this.updateSettings({ enableAdaptiveBitrate: value });
+          }, '', false, 'settings_gauge.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Enable Direct IP'), this.settings.enableDirectIp, (value: boolean) => {
+            this.updateSettings({ enableDirectIp: value });
+          }, '', true, 'settings_network.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Deny LAN Discovery'), this.settings.denyLanDiscovery, (value: boolean) => {
+            this.updateSettings({ denyLanDiscovery: value });
+          }, '', true, 'settings_wifi_off.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Start On Boot'), this.settings.startOnBoot, (value: boolean) => {
             this.updateSettings({ startOnBoot: value });
-          }, this.lt('Start RustDesk in background after device startup.'), false)
-          this.buildSettingsToggleSettingRow(this.lt('Check for software updates on startup'), this.settings.checkUpdatesOnStartup, (value: boolean) => {
-            this.updateSettings({ checkUpdatesOnStartup: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Show terminal extra keys'), this.settings.showTerminalExtraKeys, (value: boolean) => {
+          }, '', true, 'settings_power.svg')
+          this.buildSettingsToggleSettingRow(this.lt('Show Terminal Extra Keys'), this.settings.showTerminalExtraKeys, (value: boolean) => {
             this.updateSettings({ showTerminalExtraKeys: value });
-          }, '', true)
-          this.buildSettingsToggleSettingRow(this.lt('Enable floating window'), this.settings.enableFloatingWindow, (value: boolean) => {
-            void this.toggleFloatingWindowSetting(value);
-          }, this.lt('Keep RustDesk running in background during remote control.'), true)
-          this.buildSettingsToggleSettingRow(this.lt('Keep screen open'), this.settings.keepScreenOnWhenControlled, (value: boolean) => {
-            this.updateSettings({ keepScreenOnWhenControlled: value });
-          }, this.lt('When controlled'), true)
+          }, '', true, 'settings_terminal.svg')
         }
         .width('100%')
       }
@@ -1392,18 +1388,29 @@ struct Index {
       this.buildSettingsSectionLabel(this.lt('About'), 'settings_info.svg')
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`)
-          this.buildSettingsInfoSettingRow(this.lt('Build Time'), this.buildTime, '', true)
+          this.buildSettingsToggleSettingRow(this.lt('Check Updates On Startup'), this.settings.checkUpdatesOnStartup, (value: boolean) => {
+            this.updateSettings({ checkUpdatesOnStartup: value });
+          }, '', false, 'settings_update.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`, 'settings_info_circle.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Build Time'), this.buildTime, 'settings_timer.svg', '', true)
           Row({ space: ThemeConfig.SPACING_MD }) {
+            Image($rawfile('fingerprint.svg'))
+              .width(20)
+              .height(20)
+              .fillColor(this.theme_TEXT_TERTIARY)
+
             Text(this.lt('Fingerprint'))
               .fontSize(ThemeConfig.FONT_SIZE_XL)
               .fontColor(this.theme_TEXT_PRIMARY)
               .layoutWeight(1)
 
-            Image($rawfile('fingerprint.svg'))
-              .width(36)
-              .height(36)
-              .fillColor(this.theme_TEXT_TERTIARY)
+            Text(this.localDevice.fingerprint.length > 0 ? this.localDevice.fingerprint.substring(0, 12) + '...' : '')
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_SECONDARY)
+              .textAlign(TextAlign.End)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .constraintSize({ maxWidth: '40%' })
               .onClick(() => {
                 if (this.localDevice.fingerprint.length > 0) {
                   void this.copyText(this.localDevice.fingerprint, this.lt('Fingerprint copied'));
@@ -1420,7 +1427,7 @@ struct Index {
             } catch (_e) {
               void this.copyText('https://rustdesk.com/privacy', this.lt('Privacy link copied'));
             }
-          }, '', true)
+          }, '', true, 'settings_privacy.svg')
         }
         .width('100%')
       }
@@ -1448,15 +1455,24 @@ struct Index {
         Column({ space: 0 }) {
           ForEach(this.coreModules.length > 0 ? this.coreModules : [null as CoreModuleInfo | null], (modItem: CoreModuleInfo | null, index: number) => {
             Row({ space: ThemeConfig.SPACING_MD }) {
+              if (modItem !== null && modItem.icon.length > 0) {
+                Image($rawfile(modItem.icon))
+                  .width(20)
+                  .height(20)
+                  .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              } else if (modItem === null) {
+                Image($rawfile('settings_cpu.svg'))
+                  .width(20)
+                  .height(20)
+                  .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              }
+
               Text(modItem !== null ? modItem.name : this.lt('Rust Core'))
                 .fontSize(ThemeConfig.FONT_SIZE_XL)
                 .fontColor(this.theme_TEXT_PRIMARY)
                 .layoutWeight(1)
 
-              Text(modItem !== null ? modItem.statusText : this.getCoreStatusText())
-                .fontSize(ThemeConfig.FONT_SIZE_SM)
-                .fontColor(modItem !== null ? modItem.statusColor : this.getCoreStatusColor())
-                .textAlign(TextAlign.End)
+              StatusBadge(modItem !== null ? modItem.statusText : this.getCoreStatusText(), modItem !== null ? modItem.statusActive : this.getCoreStatusActive())
 
               Image($rawfile('arrow-forward-ios.svg'))
                 .width(16)
@@ -1571,8 +1587,9 @@ struct Index {
       hash: '',
       validElf: true,
       buildTime: BuildInfo.BUILD_TIME,
-      statusText: this.officialCoreState.coreReady || nativeModuleReady ? this.lt('Ready') : this.lt('Unrecognized'),
-      statusColor: this.officialCoreState.coreReady || nativeModuleReady ? this.theme_SUCCESS_TEXT : this.theme_WARNING_TEXT,
+      statusText: this.officialCoreState.coreReady || nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
+      statusActive: this.officialCoreState.coreReady || nativeModuleReady,
+      icon: 'settings_tune.svg',
       lastError: this.officialCoreState.lastError,
       detailMessage: this.nativeBridgeSummary,
       statusSummary: `adapter=${this.officialCoreState.adapter}; stage=${this.officialCoreState.sessionStage}; peer=${this.officialCoreState.activePeerId}`
@@ -1588,8 +1605,9 @@ struct Index {
       hash: bridgeInfo.hash,
       validElf: bridgeInfo.validElf,
       buildTime: bridgeInfo.buildTime.length > 0 ? bridgeInfo.buildTime : BuildInfo.BUILD_TIME,
-      statusText: nativeModuleReady ? this.lt('Ready') : this.lt('Unrecognized'),
-      statusColor: nativeModuleReady ? this.theme_SUCCESS_TEXT : this.theme_ERROR_TEXT,
+      statusText: nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
+      statusActive: nativeModuleReady,
+      icon: 'info_code.svg',
       lastError: nativeModuleReady ? '' : NativeRustDeskBridge.getCoreLoadInfo(),
       detailMessage: this.nativeBridgeSummary,
       statusSummary: nativeModuleReady ? this.lt('Native Module') : this.lt('Unrecognized')
@@ -1605,8 +1623,9 @@ struct Index {
       hash: rustInfo.hash,
       validElf: this.officialCoreState.coreReady || nativeCoreReady,
       buildTime: rustInfo.buildTime.length > 0 ? rustInfo.buildTime : BuildInfo.BUILD_TIME,
-      statusText: nativeCoreReady ? this.lt('Loaded') : this.lt('Not loaded'),
-      statusColor: nativeCoreReady ? this.theme_SUCCESS_TEXT : this.theme_WARNING_TEXT,
+      statusText: nativeCoreReady ? this.lt('Ready') : this.lt('Stop'),
+      statusActive: nativeCoreReady,
+      icon: 'settings_cpu.svg',
       lastError: this.officialCoreState.lastError,
       detailMessage: this.officialCoreState.detailMessage.length > 0 ? this.officialCoreState.detailMessage : this.nativeBridgeSummary,
       statusSummary: this.officialCoreState.statusSummary
@@ -1626,7 +1645,8 @@ struct Index {
       validElf: false,
       buildTime: '',
       statusText: '',
-      statusColor: '',
+      statusActive: false,
+      icon: '',
       lastError: '',
       detailMessage: '',
       statusSummary: ''
@@ -1671,17 +1691,17 @@ struct Index {
         .width('100%')
 
         Column({ space: 0 }) {
-          this.buildSettingsInfoSettingRow(this.lt('Type'), this.getSelectedCoreModuleField('kind').length > 0 ? this.getSelectedCoreModuleField('kind') : this.lt('Unknown'))
-          this.buildSettingsInfoSettingRow(this.lt('Status'), this.getCoreStatusDetailText())
-          this.buildSettingsInfoSettingRow(this.lt('Runtime Summary'), this.getSelectedCoreModuleField('statusSummary').length > 0 ? this.getSelectedCoreModuleField('statusSummary') : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Error'), this.getSelectedCoreModuleField('lastError').length > 0 ? this.getSelectedCoreModuleField('lastError') : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Detail'), this.getSelectedCoreModuleField('detailMessage').length > 0 ? this.getSelectedCoreModuleField('detailMessage') : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('File'), this.getSelectedCoreModuleField('path').length > 0 ? this.getSelectedCoreModuleField('path').split('/').pop() ?? this.getSelectedCoreModuleField('path') : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('File Size'), this.getSelectedCoreModuleField('fileSizeMB').length > 0 ? `${this.getSelectedCoreModuleField('fileSizeMB')} MB` : this.lt('Unknown'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Hash (FNV-1a)'), this.getSelectedCoreModuleField('hash').length > 0 ? this.getSelectedCoreModuleField('hash') : this.lt('Unknown'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Valid ELF'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Compile Time'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Source'), this.getSelectedCoreModuleField('source').length > 0 ? this.getSelectedCoreModuleField('source') : this.lt('Unknown'), '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Type'), this.getSelectedCoreModuleField('kind').length > 0 ? this.getSelectedCoreModuleField('kind') : this.lt('Unknown'), 'info_layers.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Status'), this.getCoreStatusDetailText(), 'settings_record.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Runtime Summary'), this.getSelectedCoreModuleField('statusSummary').length > 0 ? this.getSelectedCoreModuleField('statusSummary') : this.lt('None'), 'settings_terminal.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Error'), this.getSelectedCoreModuleField('lastError').length > 0 ? this.getSelectedCoreModuleField('lastError') : this.lt('None'), 'info_alert.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Detail'), this.getSelectedCoreModuleField('detailMessage').length > 0 ? this.getSelectedCoreModuleField('detailMessage') : this.lt('None'), 'info_file.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('File'), this.getSelectedCoreModuleField('path').length > 0 ? this.getSelectedCoreModuleField('path').split('/').pop() ?? this.getSelectedCoreModuleField('path') : this.lt('None'), 'info_file.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('File Size'), this.getSelectedCoreModuleField('fileSizeMB').length > 0 ? `${this.getSelectedCoreModuleField('fileSizeMB')} MB` : this.lt('Unknown'), 'info_drive.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Hash (FNV-1a)'), this.getSelectedCoreModuleField('hash').length > 0 ? this.getSelectedCoreModuleField('hash') : this.lt('Unknown'), 'info_hash.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Valid ELF'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), 'opt_shield.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Compile Time'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), 'info_clock.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Source'), this.getSelectedCoreModuleField('source').length > 0 ? this.getSelectedCoreModuleField('source') : this.lt('Unknown'), 'info_code.svg', '', true)
         }
         .width('100%')
       }
@@ -1749,39 +1769,33 @@ struct Index {
 
   private getCoreStatusText(): string {
     if (this.officialCoreState.coreReady) {
-      return this.lt('Core Ready');
+      return this.lt('Ready');
     }
     if (NativeRustDeskBridge.isCoreLoaded()) {
-      return this.lt('Core Stopped');
+      return this.lt('Stop');
     }
     if (NativeRustDeskBridge.hasNativeModule()) {
-      return this.lt('Core Stopped');
+      return this.lt('Stop');
     }
-    return this.lt('Core Unknown');
+    return this.lt('Error');
   }
 
   private getCoreStatusDetailText(): string {
     if (this.officialCoreState.coreReady) {
       const summary = this.officialCoreState.statusSummary.trim();
-      return summary.length > 0 ? summary : this.lt('Loaded');
+      return summary.length > 0 ? summary : this.lt('Ready');
     }
     if (NativeRustDeskBridge.isCoreLoaded()) {
-      return this.lt('Stopped');
+      return this.lt('Stop');
     }
     if (NativeRustDeskBridge.hasNativeModule()) {
-      return this.lt('Stopped');
+      return this.lt('Stop');
     }
-    return this.lt('Unrecognized');
+    return this.lt('Error');
   }
 
-  private getCoreStatusColor(): string {
-    if (this.officialCoreState.coreReady) {
-      return this.theme_SUCCESS_TEXT;
-    }
-    if (NativeRustDeskBridge.isCoreLoaded() || NativeRustDeskBridge.hasNativeModule()) {
-      return this.theme_WARNING_TEXT;
-    }
-    return this.theme_ERROR_TEXT;
+  private getCoreStatusActive(): boolean {
+    return this.officialCoreState.coreReady;
   }
 
   @Builder
@@ -1790,10 +1804,10 @@ struct Index {
       this.buildSettingsSectionLabel(this.lt('Service Info'))
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsInfoSettingRow(this.lt('Display ID'), this.officialCoreState.displayId.length > 0 ? this.formatId(this.officialCoreState.displayId) : this.lt('Waiting for core init'))
-          this.buildSettingsInfoSettingRow(this.lt('Server'), this.describeEffectiveServer(), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Fingerprint'), this.officialCoreState.fingerprint.length > 0 ? this.officialCoreState.fingerprint : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Direct Address'), this.officialCoreState.directAddress.length > 0 ? this.officialCoreState.directAddress : this.lt('None'), '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Display ID'), this.officialCoreState.displayId.length > 0 ? this.formatId(this.officialCoreState.displayId) : this.lt('Waiting for core init'), 'info_hash.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Server'), this.describeEffectiveServer(), 'settings_server.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Fingerprint'), this.officialCoreState.fingerprint.length > 0 ? this.officialCoreState.fingerprint : this.lt('None'), 'settings_shield_check.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Direct Address'), this.officialCoreState.directAddress.length > 0 ? this.officialCoreState.directAddress : this.lt('None'), 'opt_link.svg', '', true)
         }
         .width('100%')
       }
@@ -1807,12 +1821,12 @@ struct Index {
       this.buildSettingsSectionLabel(this.lt('Session'))
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildSettingsInfoSettingRow(this.lt('Stage'), this.officialCoreState.sessionStage)
-          this.buildSettingsInfoSettingRow(this.lt('Current Target'), this.officialCoreState.activePeerId.length > 0 ? this.formatId(this.officialCoreState.activePeerId) : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Status'), this.officialCoreState.statusSummary.length > 0 ? this.officialCoreState.statusSummary : this.lt('Idle'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Error'), this.officialCoreState.lastError.length > 0 ? this.officialCoreState.lastError : this.lt('None'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Input Control'), this.settings.allowRemoteControl ? this.lt('Allowed') : this.lt('Not Allowed'), '', true)
-          this.buildSettingsInfoSettingRow(this.lt('File transfer'), this.settings.allowFileTransfer ? this.lt('Allowed') : this.lt('Not Allowed'), '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Stage'), this.officialCoreState.sessionStage, 'info_layers.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Current Target'), this.officialCoreState.activePeerId.length > 0 ? this.formatId(this.officialCoreState.activePeerId) : this.lt('None'), 'info_target.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Status'), this.officialCoreState.statusSummary.length > 0 ? this.officialCoreState.statusSummary : this.lt('Idle'), 'settings_record.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Error'), this.officialCoreState.lastError.length > 0 ? this.officialCoreState.lastError : this.lt('None'), 'info_alert.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Input Control'), this.settings.allowRemoteControl ? this.lt('Allowed') : this.lt('Not Allowed'), 'opt_mouse.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('File transfer'), this.settings.allowFileTransfer ? this.lt('Allowed') : this.lt('Not Allowed'), 'menu_transfer.svg', '', true)
         }
         .width('100%')
       }
@@ -1872,10 +1886,7 @@ struct Index {
   private buildChatSessionCard(session: ChatSession) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        Image(this.resolvePlatformIcon(session.deviceName))
-          .width(26)
-          .height(26)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+        this.buildThemedPlatformIcon(session.deviceName, 26)
       }
       .width(40)
       .height(40)
@@ -1957,8 +1968,10 @@ struct Index {
         }
         .width('100%')
 
-        InfoRow(this.lt('Device name'), this.localDevice.alias)
-        InfoRow(this.lt('Service state'), this.officialCoreState.statusSummary.length > 0 ? this.officialCoreState.statusSummary : this.lt('Idle'))
+        Column({ space: 0 }) {
+          this.buildSettingsInfoSettingRow(this.lt('Device name'), this.localDevice.alias)
+        }
+        .width('100%')
         if (this.isShareServiceRunning()) {
           this.buildCopyableInfoRow(
             this.lt('Device ID'),
@@ -2058,7 +2071,7 @@ struct Index {
             } else {
               void this.toggleIncomingService(false);
             }
-          })
+          }, false, 'settings_monitor.svg')
           this.buildToggleRow(this.lt('Input Control'), this.settings.allowRemoteControl, (value: boolean) => {
             if (value) {
               this.updateSettings({ allowRemoteControl: true });
@@ -2066,7 +2079,7 @@ struct Index {
             } else {
               this.updateSettings({ allowRemoteControl: false });
             }
-          }, true)
+          }, true, 'opt_mouse.svg')
           this.buildToggleRow(this.lt('File transfer'), this.settings.allowFileTransfer, (value: boolean) => {
             if (value) {
               this.updateSettings({ allowFileTransfer: true });
@@ -2074,7 +2087,7 @@ struct Index {
             } else {
               this.updateSettings({ allowFileTransfer: false });
             }
-          }, true)
+          }, true, 'menu_transfer.svg')
           this.buildToggleRow(this.lt('Audio Recording'), this.settings.enableAudio, (value: boolean) => {
             if (value) {
               this.updateSettings({ enableAudio: true });
@@ -2082,7 +2095,7 @@ struct Index {
             } else {
               this.updateSettings({ enableAudio: false });
             }
-          }, true)
+          }, true, 'opt_mic.svg')
           this.buildToggleRow(this.lt('Allow Clipboard Sync'), this.settings.allowClipboard, (value: boolean) => {
             if (value) {
               this.updateSettings({ allowClipboard: true, enableClipboard: true });
@@ -2090,7 +2103,7 @@ struct Index {
             } else {
               this.updateSettings({ allowClipboard: false, enableClipboard: false });
             }
-          }, true)
+          }, true, 'menu_clipboard.svg')
         }
         .width('100%')
       }
@@ -2102,10 +2115,7 @@ struct Index {
   private buildRecentSessionRow(session: RecentSession) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        Image(this.resolvePlatformIcon(session.platform))
-          .width(26)
-          .height(26)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+        this.buildThemedPlatformIcon(session.platform, 26)
       }
       .width(40)
       .height(40)
@@ -2506,8 +2516,16 @@ struct Index {
   }
 
   @Builder
-  private buildToggleRow(label: string, value: boolean, action: (value: boolean) => void, showTopBorder: boolean = false) {
+  private buildToggleRow(label: string, value: boolean, action: (value: boolean) => void, showTopBorder: boolean = false, icon: string = '') {
     Row() {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(20)
+          .height(20)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .margin({ right: ThemeConfig.SPACING_SM })
+      }
+
       Text(label)
         .fontSize(ThemeConfig.FONT_SIZE_MD)
         .fontColor(this.theme_TEXT_PRIMARY)
@@ -2546,13 +2564,19 @@ struct Index {
           .fontColor(this.theme_TEXT_PRIMARY)
           .layoutWeight(1)
 
-        Image($rawfile('scan_frame.svg'))
-          .width(24)
-          .height(24)
-          .fillColor(this.theme_TEXT_TERTIARY)
-          .onClick(() => {
-            this.navigateTo('pages/Scan');
-          })
+        Button() {
+          Image($rawfile('scan_frame.svg'))
+            .width(22)
+            .height(22)
+            .fillColor(this.theme_ACCENT)
+        }
+        .width(40)
+        .height(40)
+        .borderRadius(20)
+        .backgroundColor(this.theme_ACCENT_SURFACE)
+        .onClick(() => {
+          this.navigateTo('pages/Scan');
+        })
       }
       .width('100%')
     }
@@ -2672,8 +2696,15 @@ struct Index {
   }
 
   @Builder
-  private buildSettingsInfoSettingRow(label: string, value: string, detail: string = '', showTopBorder: boolean = false) {
+  private buildSettingsInfoSettingRow(label: string, value: string, icon: string = '', detail: string = '', showTopBorder: boolean = false) {
     Row({ space: ThemeConfig.SPACING_MD }) {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(20)
+          .height(20)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
+
       Column({ space: 4 }) {
         Text(label)
           .fontSize(ThemeConfig.FONT_SIZE_XL)
@@ -2705,8 +2736,15 @@ struct Index {
   }
 
   @Builder
-  private buildSettingsToggleSettingRow(label: string, value: boolean, action: (value: boolean) => void, detail: string = '', showTopBorder: boolean = false) {
+  private buildSettingsToggleSettingRow(label: string, value: boolean, action: (value: boolean) => void, detail: string = '', showTopBorder: boolean = false, icon: string = '') {
     Row({ space: ThemeConfig.SPACING_MD }) {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(20)
+          .height(20)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
+
       Column({ space: 4 }) {
         Text(label)
           .fontSize(ThemeConfig.FONT_SIZE_XL)
@@ -2904,6 +2942,11 @@ struct Index {
     .padding({ top: 4, bottom: 4 })
     .onClick(() => {
       this.currentTab = tab;
+      if (tab === 'chat' && this.chatMessages.length > 0) {
+        setTimeout(() => {
+          this.chatTabScroller.scrollEdge(Edge.Bottom);
+        }, 100);
+      }
     })
   }
 
@@ -2938,6 +2981,11 @@ struct Index {
     .padding({ top: 4, bottom: 4 })
     .onClick(() => {
       this.currentTab = tab;
+      if (tab === 'chat' && this.chatMessages.length > 0) {
+        setTimeout(() => {
+          this.chatTabScroller.scrollEdge(Edge.Bottom);
+        }, 100);
+      }
     })
   }
 
@@ -2980,16 +3028,59 @@ struct Index {
     this.accountState = this.appState.getAccount();
     this.recentSessions = this.appData.getRecentSessions();
     this.refreshAllSessionOnlineStatus();
-    this.seedChatSessions();
+    this.refreshChatSessions();
+    this.refreshCurrentSessionChat(false);
+  }
+
+  private refreshChatSessions(): void {
     this.chatSessions = this.chatService.getAllSessions().slice().sort((left: ChatSession, right: ChatSession) => {
       const leftTimestamp = left.lastMessage ? left.lastMessage.timestamp : 0;
       const rightTimestamp = right.lastMessage ? right.lastMessage.timestamp : 0;
       return rightTimestamp - leftTimestamp;
     });
+  }
+
+  private resolveCurrentChatPeerId(): string {
     const activePeerId = this.officialCoreState.activePeerId.trim();
-    if (activePeerId.length > 0 && this.officialCoreState.sessionStage === 'connected') {
-      this.chatMessages = this.chatService.getMessages(activePeerId);
+    if (activePeerId.length > 0) {
+      return activePeerId;
     }
+    const lastPeerId = this.lastSessionPeerId.trim();
+    if (lastPeerId.length > 0) {
+      return lastPeerId;
+    }
+    if (this.recentSessions.length > 0) {
+      return this.recentSessions[0].id;
+    }
+    if (this.chatSessions.length > 0) {
+      return this.chatSessions[0].deviceId;
+    }
+    return '';
+  }
+
+  private refreshCurrentSessionChat(shouldScroll: boolean): void {
+    const targetPeerId = this.resolveCurrentChatPeerId();
+    if (targetPeerId.length === 0) {
+      this.hasHadSession = false;
+      this.chatMessages = [];
+      return;
+    }
+    this.hasHadSession = true;
+    this.lastSessionPeerId = targetPeerId;
+    this.chatMessages = this.chatService.getMessages(targetPeerId);
+    if (this.currentTab === 'chat' && this.chatService.getUnreadCount(targetPeerId) > 0) {
+      this.chatService.markAsRead(targetPeerId);
+    }
+    this.refreshChatSessions();
+    if (shouldScroll && this.chatMessages.length > 0) {
+      this.scheduleChatTabScroll(50);
+    }
+  }
+
+  private scheduleChatTabScroll(delayMs: number): void {
+    setTimeout(() => {
+      this.chatTabScroller.scrollEdge(Edge.Bottom);
+    }, delayMs);
   }
 
   private refreshAllSessionOnlineStatus(): void {
@@ -3031,6 +3122,14 @@ struct Index {
       }
     });
     this.recentSessions = this.appData.getRecentSessions();
+  }
+
+  @Builder
+  private buildThemedPlatformIcon(platform: string, size: number) {
+    Image(this.resolvePlatformIcon(platform))
+      .width(size)
+      .height(size)
+      .fillColor(this.theme_ACCENT)
   }
 
   private refreshRecentSessionFromPeerInfo(peerId: string, detail: string = ''): void {
@@ -3120,24 +3219,6 @@ struct Index {
     console.info('[Index] queryOnlines returned:', result);
   }
 
-  private seedChatSessions(): void {
-    const sessions = this.appData.getRecentSessions();
-    sessions.forEach((session: RecentSession) => {
-      this.chatService.updateSessionDeviceName(session.id, session.name);
-      if (this.chatService.hasMessages(session.id)) {
-        return;
-      }
-      const seedMessages = this.appData.getChatMessages(session.id);
-      seedMessages.forEach((message) => {
-        if (message.sender === 'remote') {
-          this.chatService.receiveTextMessage(session.id, message.text);
-        } else {
-          this.chatService.sendSystemMessage(session.id, message.text);
-        }
-      });
-    });
-  }
-
   private updateSettings(patch: Partial<SettingsState>): void {
     this.settings = this.appData.updateSettings(patch);
     if (patch.theme !== undefined) {
@@ -3202,25 +3283,12 @@ struct Index {
   }
 
   private async exportServerConfig(): Promise<void> {
-    const config: Record<string, string> = {};
-    const effective = AppDataService.resolveServerConfig(this.appData.getSettings());
-    config['host'] = effective.idServer;
-    config['relay'] = effective.relayServer;
-    config['api'] = effective.apiServer;
-    config['key'] = effective.key;
-    const json = JSON.stringify(config);
-    const base64 = new util.Base64Helper();
-    const textEncoder = new util.TextEncoder();
-    const encodedBytes = textEncoder.encodeInto(json);
-    const b64Bytes = base64.encodeSync(encodedBytes);
-    let b64Str = '';
-    for (let i = 0; i < b64Bytes.length; i++) {
-      b64Str += String.fromCharCode(b64Bytes[i] as number);
-    }
-    const encoded = b64Str.split('').reverse().join('');
+    const settings = this.appData.getSettings();
+    const encoded = ServerConfigCodec.encode(settings);
     const success = await this.clipboardService.copyText(encoded);
     if (success) {
       this.setStatusMessage('server_config_copied');
+      await this.showToast(this.lt('server_config_copied'));
     }
   }
 
@@ -3229,28 +3297,26 @@ struct Index {
     if (!raw || raw.trim().length === 0) {
       return;
     }
-    try {
-      const reversed = raw.trim().split('').reverse().join('');
-      const base64 = new util.Base64Helper();
-      const decodedBytes = base64.decodeSync(reversed);
-      const textDecoder = util.TextDecoder.create('utf-8');
-      const jsonStr = textDecoder.decodeToString(decodedBytes);
-      const config = JSON.parse(jsonStr) as Record<string, string>;
-      if (config['host'] !== undefined) {
-        this.draftIdServer = config['host'];
-      }
-      if (config['relay'] !== undefined) {
-        this.draftRelayServer = config['relay'];
-      }
-      if (config['api'] !== undefined) {
-        this.draftApiServer = config['api'];
-      }
-      if (config['key'] !== undefined) {
-        this.draftKey = config['key'];
-      }
-    } catch (_e) {
+    const config: ServerConfigImportResult | null = ServerConfigCodec.decode(raw);
+    if (config === null) {
       this.setStatusMessage('invalid_server_config');
+      await this.showToast(this.lt('invalid_server_config'));
+      return;
     }
+    if (config.idServer !== null) {
+      this.draftIdServer = config.idServer;
+    }
+    if (config.relayServer !== null) {
+      this.draftRelayServer = config.relayServer;
+    }
+    if (config.apiServer !== null) {
+      this.draftApiServer = config.apiServer;
+    }
+    if (config.key !== null) {
+      this.draftKey = config.key;
+    }
+    this.setStatusMessage('server_config_imported');
+    await this.showToast(this.lt('server_config_imported'));
   }
 
   private startRefreshLoop(): void {
@@ -3614,9 +3680,13 @@ struct Index {
       return;
     }
     const success = await this.clipboardService.copyText(value);
+    await this.showToast(success ? message : this.lt('Copy failed'));
+  }
+
+  private async showToast(message: string): Promise<void> {
     try {
       await this.getUIContext().getPromptAction().openToast({
-        message: success ? message : this.lt('Copy failed')
+        message
       });
     } catch (error) {
       console.error('toast failed', JSON.stringify(error));
@@ -4141,7 +4211,7 @@ struct Index {
           Image($rawfile('arrow-autofit-up.svg'))
             .width(22)
             .height(22)
-            .fillColor(this.theme_TEXT_SECONDARY)
+            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
             .onClick(() => {
               void this.exportServerConfig();
             })
@@ -4149,7 +4219,7 @@ struct Index {
           Image($rawfile('arrow-autofit-down.svg'))
             .width(22)
             .height(22)
-            .fillColor(this.theme_TEXT_SECONDARY)
+            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
             .margin({ left: 12 })
             .onClick(() => {
               void this.importServerConfig();
@@ -4158,17 +4228,19 @@ struct Index {
         .width('100%')
 
         Column({ space: 0 }) {
-          Column({ space: 4 }) {
+          Column({ space: 2 }) {
             Text(this.lt('ID Server'))
               .fontSize(12)
-              .fontColor(this.theme_TEXT_TERTIARY)
+              .fontColor(this.draftIdServer.length > 0 ? this.theme_TEXT_TERTIARY : Color.Transparent)
               .width('100%')
-            TextInput({ text: this.draftIdServer, placeholder: this.lt('Official default') })
+              .height(this.draftIdServer.length > 0 ? 16 : 0)
+            TextInput({ text: this.draftIdServer, placeholder: this.lt('ID Server') })
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
               .placeholderColor(this.theme_TEXT_TERTIARY)
               .backgroundColor(Color.Transparent)
               .border({ width: { bottom: 1 }, color: this.theme_BORDER_SUBTLE })
+              .borderRadius(0)
               .padding({ left: 0, right: 0, top: 4, bottom: 8 })
               .width('100%')
               .onChange((val: string) => {
@@ -4176,19 +4248,21 @@ struct Index {
               })
           }
           .width('100%')
-          .padding({ top: 12, bottom: 4 })
+          .padding({ top: 8, bottom: 4 })
 
-          Column({ space: 4 }) {
+          Column({ space: 2 }) {
             Text(this.lt('Relay Server'))
               .fontSize(12)
-              .fontColor(this.theme_TEXT_TERTIARY)
+              .fontColor(this.draftRelayServer.length > 0 ? this.theme_TEXT_TERTIARY : Color.Transparent)
               .width('100%')
-            TextInput({ text: this.draftRelayServer, placeholder: this.lt('Official default') })
+              .height(this.draftRelayServer.length > 0 ? 16 : 0)
+            TextInput({ text: this.draftRelayServer, placeholder: this.lt('Relay Server') })
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
               .placeholderColor(this.theme_TEXT_TERTIARY)
               .backgroundColor(Color.Transparent)
               .border({ width: { bottom: 1 }, color: this.theme_BORDER_SUBTLE })
+              .borderRadius(0)
               .padding({ left: 0, right: 0, top: 4, bottom: 8 })
               .width('100%')
               .onChange((val: string) => {
@@ -4196,19 +4270,21 @@ struct Index {
               })
           }
           .width('100%')
-          .padding({ top: 12, bottom: 4 })
+          .padding({ top: 8, bottom: 4 })
 
-          Column({ space: 4 }) {
+          Column({ space: 2 }) {
             Text(this.lt('API Server'))
               .fontSize(12)
-              .fontColor(this.theme_TEXT_TERTIARY)
+              .fontColor(this.draftApiServer.length > 0 ? this.theme_TEXT_TERTIARY : Color.Transparent)
               .width('100%')
-            TextInput({ text: this.draftApiServer, placeholder: this.lt('Official default') })
+              .height(this.draftApiServer.length > 0 ? 16 : 0)
+            TextInput({ text: this.draftApiServer, placeholder: this.lt('API Server') })
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
               .placeholderColor(this.theme_TEXT_TERTIARY)
               .backgroundColor(Color.Transparent)
               .border({ width: { bottom: 1 }, color: this.theme_BORDER_SUBTLE })
+              .borderRadius(0)
               .padding({ left: 0, right: 0, top: 4, bottom: 8 })
               .width('100%')
               .onChange((val: string) => {
@@ -4216,19 +4292,21 @@ struct Index {
               })
           }
           .width('100%')
-          .padding({ top: 12, bottom: 4 })
+          .padding({ top: 8, bottom: 4 })
 
-          Column({ space: 4 }) {
+          Column({ space: 2 }) {
             Text('Key')
               .fontSize(12)
-              .fontColor(this.theme_TEXT_TERTIARY)
+              .fontColor(this.draftKey.length > 0 ? this.theme_TEXT_TERTIARY : Color.Transparent)
               .width('100%')
-            TextInput({ text: this.draftKey, placeholder: '' })
+              .height(this.draftKey.length > 0 ? 16 : 0)
+            TextInput({ text: this.draftKey, placeholder: 'Key' })
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
               .placeholderColor(this.theme_TEXT_TERTIARY)
               .backgroundColor(Color.Transparent)
               .border({ width: { bottom: 1 }, color: this.theme_BORDER_SUBTLE })
+              .borderRadius(0)
               .padding({ left: 0, right: 0, top: 4, bottom: 8 })
               .width('100%')
               .onChange((val: string) => {
@@ -4236,7 +4314,7 @@ struct Index {
               })
           }
           .width('100%')
-          .padding({ top: 12, bottom: 4 })
+          .padding({ top: 8, bottom: 4 })
         }
         .width('100%')
 
@@ -4586,13 +4664,20 @@ struct Index {
         .width('100%')
 
         if (this.accountState.isLoggedIn) {
-          Text(this.describeAccountName())
-            .fontSize(16)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .width('100%')
+          Row({ space: 8 }) {
+            Image($rawfile('settings_person.svg'))
+              .width(18)
+              .height(18)
+              .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            Text(this.describeAccountName())
+              .fontSize(16)
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .layoutWeight(1)
+          }
+          .width('100%')
 
-          this.buildSettingsInfoSettingRow(this.lt('Provider'), this.describeAccountProvider())
-          this.buildSettingsInfoSettingRow(this.lt('Status'), this.describeAccountState(), '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Provider'), this.describeAccountProvider(), 'settings_server.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Status'), this.describeAccountState(), 'settings_record.svg', '', true)
 
           Row() {
             SecondaryButton(this.lt('Sign out'), () => {
@@ -4622,18 +4707,34 @@ struct Index {
             }
             .width('100%')
           } else {
-            TextInput({ placeholder: this.lt('Username'), text: this.loginUsername })
-              .height(44)
-              .backgroundColor(this.theme_INPUT_BG)
-              .borderRadius(8)
-              .onChange((v: string) => this.loginUsername = v)
+            Row({ space: 8 }) {
+              Image($rawfile('opt_user.svg'))
+                .width(18)
+                .height(18)
+                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              TextInput({ placeholder: this.lt('Username'), text: this.loginUsername })
+                .height(44)
+                .backgroundColor(this.theme_INPUT_BG)
+                .borderRadius(8)
+                .layoutWeight(1)
+                .onChange((v: string) => this.loginUsername = v)
+            }
+            .width('100%')
 
-            TextInput({ placeholder: this.lt('Password'), text: this.loginPassword })
-              .height(44)
-              .type(InputType.Password)
-              .backgroundColor(this.theme_INPUT_BG)
-              .borderRadius(8)
-              .onChange((v: string) => this.loginPassword = v)
+            Row({ space: 8 }) {
+              Image($rawfile('menu_key.svg'))
+                .width(18)
+                .height(18)
+                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              TextInput({ placeholder: this.lt('Password'), text: this.loginPassword })
+                .height(44)
+                .type(InputType.Password)
+                .backgroundColor(this.theme_INPUT_BG)
+                .borderRadius(8)
+                .layoutWeight(1)
+                .onChange((v: string) => this.loginPassword = v)
+            }
+            .width('100%')
 
             if (this.loginErrorMsg.length > 0) {
               Text(this.loginErrorMsg)

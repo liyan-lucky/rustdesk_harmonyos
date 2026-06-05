@@ -81,7 +81,7 @@
 - HAP 通过 `node scripts/run_hvigor_with_sdk_patch.js assembleHap` 重建成功。
 - BuildInfo 编译时间：`2026-06-02 14:23`。
 - 签名 HAP 大小：45,298,265 bytes。
-- USB 安装到 `2NX0224429035123` 成功。
+- USB 安装到 `%RUSTDESK_HARMONY_USB_TARGET%` 成功。
 - `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 - bundle dump 确认 `com.open.rundesk` 已安装并更新。
 
@@ -113,9 +113,9 @@
 
 - HAP 通过 `node scripts/run_hvigor_with_sdk_patch.js assembleHap` 重建成功。
 - BuildInfo 编译时间：`2026-06-02 14:06`。
-- 签名 HAP：`E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
+- 签名 HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
 - HAP 大小：45,296,009 bytes。
-- USB 安装到 `2NX0224429035123` 成功。
+- USB 安装到 `%RUSTDESK_HARMONY_USB_TARGET%` 成功。
 - 第一次启动因设备锁屏被阻止：`Error Code:10106102`。
 - 重试后 `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 - bundle dump 确认 `com.open.rundesk` 已安装并更新。
@@ -156,9 +156,9 @@
 - 新 `entry/src/main/libs/arm64/librustdesk_core.a` 大小：135,594,242 bytes。
 - native core SHA256：`98C913805A5A8F6DCEB6DED2834ED8BE495902DB4B4406E26765520AA0097EE1`。
 - HAP 通过 `node scripts/run_hvigor_with_sdk_patch.js assembleHap` 重建成功。
-- 签名 HAP：`E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
+- 签名 HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
 - HAP 大小：45,286,721 bytes。
-- 检测到 USB 目标：`2NX0224429035123`。
+- 检测到 USB 目标：`%RUSTDESK_HARMONY_USB_TARGET%`。
 - HAP 安装成功。
 
 ### 下一步验证
@@ -207,7 +207,7 @@
 
 - 移除不支持的 wrapper 字段后，native core 重编成功。
 - 修复 ArkTS `@Builder` 局部变量语法后，HAP 重建成功。
-- 安装到 USB 目标 `2NX0224429035123` 并通过 `aa start` 启动。
+- 安装到 USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%` 并通过 `aa start` 启动。
 - hilog 显示控制端媒体状态活跃：
   - `connected=true`
   - `hasFrame=true`
@@ -248,7 +248,7 @@
 ### 验证计划
 
 - 通过 `node scripts/run_hvigor_with_sdk_patch.js assembleHap` 重建 HAP。
-- 安装并启动到 USB 目标 `2NX0224429035123`。
+- 安装并启动到 USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%`。
 - 验证初始连接在首个可用会话状态前不再弹重试对话框。
 - 验证键盘工具条显示在视频内容上方。
 
@@ -258,7 +258,7 @@
 - 键盘覆盖位置改为固定顶部覆盖 (`y: 8`) 后，ArkTS/HAP 构建通过。
 - BuildInfo 编译时间：`2026-06-02 14:40`。
 - 签名 HAP 大小：`45,297,012` bytes。
-- USB 安装到 `2NX0224429035123` 成功。
+- USB 安装到 `%RUSTDESK_HARMONY_USB_TARGET%` 成功。
 - `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 
 ## 2026-06-02 20:18
@@ -295,7 +295,7 @@
 - BuildInfo 编译时间：`2026-06-02 20:18`。
 - 签名 HAP 大小：`45,310,005` bytes。
 - 本轮 native ABI 未变更，未重编 native core。
-- USB 目标 `2NX0224429035123` 安装成功。
+- USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%` 安装成功。
 - `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 - 仍需在界面内继续实机复验共享服务默认关闭、关闭后重启保持关闭、LAN 手动强刷新和被访问端视频建连。
 
@@ -308,7 +308,7 @@
 - 重新构建 HAP 通过。
 - BuildInfo 编译时间：`2026-06-02 20:24`。
 - 签名 HAP 大小：`45,317,003` bytes。
-- USB 目标 `2NX0224429035123` 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
+- USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%` 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 - 执行 `aa force-stop com.open.rundesk` 后再次 `aa start -a EntryAbility -b com.open.rundesk` 启动成功，用于覆盖迁移后的重启路径。
 
 ### 20:35 LAN 发现和刷新图标补充修复
@@ -322,7 +322,7 @@
   - BuildInfo 编译时间：`2026-06-02 20:33`
   - 签名 HAP 大小：`45,316,179` bytes
   - 本轮 native ABI 未变更，未重编 native core。
-- USB 目标 `2NX0224429035123` 安装成功，`aa force-stop` 后 `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
+- USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%` 安装成功，`aa force-stop` 后 `aa start -a EntryAbility -b com.open.rundesk` 启动成功。
 - 启动后 hilog 验证到 LAN 发现返回：
   - `id=1283267036`
   - `hostname=latitude-5290-2-in-1`
@@ -362,7 +362,7 @@
 
 ### 验证结果
 
-- `cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat` 原生重编通过。
+- `cmd /c %VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat` 原生重编通过。
 - native core：
   - Size: `135,430,764` bytes
   - SHA256: `18AF989D8AFD8BF8EB7C7ED87FD213F3801FB5B723B64CCF2069C201BD32D724`
@@ -397,11 +397,29 @@
 
 ### 验证结果
 
-- `cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat` 原生重编通过。
+- `cmd /c %VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat` 原生重编通过。
 - native core：
   - Size: `135,673,254` bytes
   - SHA256: `B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
 - `node scripts\run_hvigor_with_sdk_patch.js assembleHap` 构建通过。
 - BuildInfo 编译时间：`2026-06-02 21:15`。
 - 签名 HAP 大小：`45,416,051` bytes。
-- USB 目标 `2NX0224429035123` 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
+- USB 目标 `%RUSTDESK_HARMONY_USB_TARGET%` 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
+
+## 2026-06-06 00:02
+
+### 修改
+
+- 项目源码提升到 `%VSCODE_ROOT%\11_Rustdesk_harmonyos` 根目录，旧内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略。
+- Windows HAP 构建入口改为先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，构建产物输出到 `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos`。
+- staging 脚本只重写临时副本中的签名材料路径，根项目继续使用便携相对路径。
+- 批处理构建入口改用 delayed expansion 读取 `BUILD_PROJECT_ROOT`，避免 staging 构建后版本同步参数为空。
+
+### 验证结果
+
+- `scripts\AUTO_BUILD_INSTALL.bat auto` 增量构建通过。
+- BuildInfo 编译时间：`2026-06-06 00:02`。
+- App 显示版本：`0.6.6`，versionCode：`1000011`。
+- 签名 HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`。
+- 签名 HAP 大小：`45,406,876` bytes。
+- HAP 安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。

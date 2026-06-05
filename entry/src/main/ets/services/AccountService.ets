@@ -383,10 +383,8 @@ export class AccountService {
         }
       }
 
-      if (entries.length > 0) {
-        AppDataService.getInstance().setAddressBook(entries);
-        this.eventBus.emit(EventType.ADDRESS_BOOK_UPDATED, { entries });
-      }
+      AppDataService.getInstance().setAddressBook(entries);
+      this.eventBus.emit(EventType.ADDRESS_BOOK_UPDATED, { entries });
     }
   }
 

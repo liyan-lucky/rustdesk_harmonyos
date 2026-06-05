@@ -1339,19 +1339,35 @@ export class NativeRustDeskBridge {
   static sendKeyboardInput(keyCode: number, isPressed: boolean, modifiers: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendKeyboardInput) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, boolean, number], boolean>(
+      nativeModule,
+      ['sendKeyboardInput', 'send_keyboard_input', 'rustdesk_bridge_send_keyboard_input']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendKeyboardInput(keyCode, isPressed, modifiers) === true;
+    try {
+      return fn(keyCode, isPressed, modifiers) === true;
+    } catch (error) {
+      return false;
+    }
   }
 
   static sendCtrlAltDel(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendCtrlAltDel) {
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
+      nativeModule,
+      ['sendCtrlAltDel', 'send_ctrl_alt_del', 'rustdesk_bridge_send_ctrl_alt_del']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendCtrlAltDel() === true;
+    try {
+      return fn() === true;
+    } catch (error) {
+      return false;
+    }
   }
 
   static sendClipboardData(content: string, timestamp: number): boolean {

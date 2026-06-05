@@ -1,4 +1,4 @@
-﻿                 U OH_LOG_Print
+                 U OH_LOG_Print
                  U OH_TimeService_GetTimeZone
                  w ZSTD_trace_compress_begin
                  w ZSTD_trace_compress_end

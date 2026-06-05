@@ -1,8 +1,21 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-04 01:20。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-06 00:02。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 当前状态快照
+
+- 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
+- HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最后一次增量安装启动通过，BuildInfo 编译时间 `2026-06-06 00:02`，App 显示版本 `0.6.6`。
+- 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-05.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
+- 当前 U 盘存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳无法可靠删除。日常构建使用 staged copy，日常全量重建清理外部 build/stage 产物并保留 `harmonyos_cache`，避免 Hvigor 内置 clean 访问这些坏目录；深度清理 cache 需显式使用 `-IncludeHvigorCache`。
+
+- 扫码页已新增相册图片二维码识别入口，使用 `photo.svg` 图标；相机扫码和相册识别共用同一结果处理路径。
+- 服务器配置导入导出格式抽到 `ServerConfigCodec.ets`：设置页导入/导出会弹出成功提示；扫码结果如果符合服务器导入文本格式，会直接导入服务器配置并保存。
+- 构建脚本版本逻辑已调整：增量构建自增版本号右侧数字，全量构建自增中间数字并重置右侧数字，`AppScope/app.json5` 与 `BuildInfo.ets` 同步更新。
+- 聊天Tab已按会话内容显示：优先当前会话，返回主页或会话结束后回退最近一次会话；peer 信息只替换聊天Tab头部区域，不再替换连接Tab，并保留右侧 `group.svg` 图标。远控会话聊天浮窗绑定 Scroller，并在打开、发送、接收消息后自动滚动到新消息。
+- 固定测试聊天消息和本地模拟自动回复已移除，持久化聊天消息加载时会重建 `ChatSession` 摘要。
+- 项目根 `README.md` 已作为线上默认介绍，标题为 `DESIGN`，指向 `docs/DESIGN.md`。
 
 - Native core 已采用 `staticlib + CMake 直接链接`，HAP 内通过 `librustdesk_bridge.so` 调用 Rust C ABI。
 - 当前已验证 native core：
@@ -10,7 +23,8 @@
   - 大小：`135,673,254` bytes
   - SHA256: `B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
 - 当前已验证 HAP：
-  - BuildInfo 编译时间：`2026-06-03 21:41`
+  - BuildInfo 编译时间：`2026-06-06 00:02`
+  - App 显示版本：`0.6.6`
   - bundle：`com.open.rundesk`
   - 无线目标：`192.168.11.100:36169`
   - 无线安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
@@ -24,7 +38,7 @@
 
 核心和构建：
 
-- Windows native core 重编脚本已验证：`E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat`
+- Windows native core 重编脚本已验证：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat`
 - HAP 构建脚本已验证：`node scripts\run_hvigor_with_sdk_patch.js assembleHap`
 - `run_hvigor_with_sdk_patch.js` 会自动更新 `BuildInfo.ets`。
 - C++ NAPI、Rust ABI、ArkTS d.ts 已对齐。
@@ -110,7 +124,7 @@
 
 - 扫码页已改为相机扫码路径：`Scan.ets` 使用 HMS `customScan` + `XComponent` 相机预览，页面仅保留返回、重扫、复制扫到的内容。扫码结果会写入最近会话和通讯录，复制走 `ClipboardService`。
 - 共享服务已完成两处修复并重新构建：ArkTS `ScreenCaptureService` 从缺失的 `avScreenCapture` 临时路径改为当前 SDK 可编译的 `@ohos.screenshot.capture()` 探测/截图；native `set_incoming_service_enabled()` 不再返回空 `{}`，会写入官方 server option 并请求 `start_server(true, false)`。
-- 最新 HAP 已安装到 USB 设备 `2NX0224429035123`，但 `aa start` 被设备锁屏阻止：`Error Code:10106102`。需要设备手动解锁后继续复测共享 Tab 启动服务和 hilog。
+- 最新 HAP 已安装到 USB 设备 `%RUSTDESK_HARMONY_USB_TARGET%`，但 `aa start` 被设备锁屏阻止：`Error Code:10106102`。需要设备手动解锁后继续复测共享 Tab 启动服务和 hilog。
 - 服务器配置已调整为官方默认隐含配置：`AppDataService` 默认存储空字符串，运行时通过 `resolveServerConfig()` 将空 ID/Relay/API 分别回落到官方 `rs-ny.rustdesk.com`、`rs-ny.rustdesk.com`、`https://admin.rustdesk.com`。设置页不再显示官方服务器明文，显示为“官方默认”。
 - 后续 10 轮全功能覆盖检查待共享启动复测后执行，范围包括连接、共享、权限、扫码、登录、通讯录、聊天、文件、显示/输入、会话命令（含发送重启/关机）等细小功能；每轮修改后立即更新文档并构建验证。
 - 共享截图 fallback 已限速：`ScreenCaptureService` 默认帧率从 30fps 降到 2fps，interval 下限 500ms，避免当前 `@ohos.screenshot.capture()` 临时方案在启动恢复服务时高频调用系统截图导致页面退出或系统压力过高。
@@ -118,7 +132,7 @@
 
 ## 2026-06-03 10:53 共享服务 USB 复测结论
 
-- 最新 HAP 构建时间：`2026-06-03 10:52`，已安装到 USB 设备 `2NX0224429035123` 并启动成功。
+- 最新 HAP 构建时间：`2026-06-03 10:52`，已安装到 USB 设备 `%RUSTDESK_HARMONY_USB_TARGET%` 并启动成功。
 - App 进程稳定存在：`com.open.rundesk`，本轮日志未再出现 `signal:6`、`LastFatal` 或 RustDesk 进程 `Unexpected call: exit(-1)`。
 - native `set_incoming_service_enabled()` 已调整为 Harmony 安全路径：不再调用会触发 appspawn 退出的桌面端 `start_server(true, false)`，而是写入 server option、`stop-service=N`、标记 incoming requested 并刷新 rendezvous 状态。
 - native `get_core_snapshot_json()` 已补齐 `incomingReady` 快照，前端共享状态不会再因刷新快照丢失 incoming 状态。
@@ -194,7 +208,7 @@
 
 ## 2026-06-03 全功能检查第 9 轮
 
-- USB 安装验证：`entry-default-signed.hap` 已安装到 USB 设备 `2NX0224429035123`，安装结果 `install bundle successfully`。
+- USB 安装验证：`entry-default-signed.hap` 已安装到 USB 设备 `%RUSTDESK_HARMONY_USB_TARGET%`，安装结果 `install bundle successfully`。
 - USB 启动验证：`aa start -a EntryAbility -b com.open.rundesk` 返回 `start ability successfully`，App 进程 `com.open.rundesk` 稳定存在，PID `32275`。
 - 启动日志验证：过滤 hilog 后，`LastFatal: 0`、`signal:6: 0`、`Unexpected call: 0`、`exit(-1): 0`，未复现此前共享/截图 fallback 相关崩溃。
 - 运行状态验证：日志出现 `coreReady` 与 `query-onlines-result`，说明 native core 已可用并完成在线状态查询；官方 API `logout` 返回 400 属于旧账号/token 退出请求失败，不影响启动稳定性。
@@ -205,8 +219,64 @@
 - 10 轮覆盖已完成：本轮次覆盖连接、共享、设置、扫码、账号登录、Web 登录、通讯录/LAN 发现、聊天、文件传输、远控显示/输入、会话命令、权限、增强功能、构建与 USB 启动烟测。
 - 已落地修复汇总：远端重启/锁屏命令、键盘输入、会话选项、文件访问授权、设置页冲突菜单、旧设置分组、服务器默认隐含配置、扫码相机页、扫码导入校验、LAN 忽略列表、在线状态同步、聊天发送、远程文件目录/创建/删除/传输请求、重复 `@Builder` 警告、悬浮窗授权回滚。
 - 明确未伪装完成的缺口：远端关机命令、远程剪贴板主动设置、真实远程音频 payload、真实 Harmony 屏幕采集、远控会话级 2FA 输入、开机启动、启动时真实更新检查、被控保持亮屏、真实悬浮窗 overlay 服务仍需后续平台/native 能力接入。
-- 构建与设备验证：最后一次 HAP 构建通过，构建时间 `2026-06-03 11:34`；USB 设备 `2NX0224429035123` 安装启动成功，PID `32275` 稳定，崩溃关键字为 0。
-- Git 状态说明：当前 Git 根为 `E:\Visual_Studio_Code\11_Rustdesk`，`rustdesk_harmonyos/` 整体在该仓库视角下仍是未跟踪目录，因此 `git diff` 不显示逐文件差异；本次变更以项目文件和构建产物为准。
+- 构建与设备验证：最后一次 HAP 构建通过，构建时间 `2026-06-03 11:34`；USB 设备 `%RUSTDESK_HARMONY_USB_TARGET%` 安装启动成功，PID `32275` 稳定，崩溃关键字为 0。
+- Git 状态说明：当前 Git 根与项目根一致，为 `%VSCODE_ROOT%\11_Rustdesk_harmonyos`；历史内层 `rustdesk_harmonyos/` 残留只作为本地坏缓存壳处理，已加入 `.gitignore`，不会进入远端。
+
+## 2026-06-05 设置项图标添加 + 多项修复
+
+- **为设置中每条选题添加图标**：所有设置行（Toggle/Info/Link）现在左侧显示对应stroke格式SVG图标，图标来源为 proicons.com 收录的 Lucide Icons 图标集（MIT许可，stroke风格，24x24）。
+- **触摸区域匹配修复**：远控页面触摸覆盖层从100%容器尺寸改为视频画面实际渲染尺寸，避免黑边区域响应触摸。
+- **首次连接跳回修复**：session已连接但未收到视频帧时断开，不再自动关闭页面，改为显示重试对话框。
+- **聊天背景更透明+自动滚动**：聊天头部背景从50%改为25%透明；添加Scroller，新消息自动滚动到底部。
+- **键盘按键半透明**：KeyboardToolbar所有按键背景改为半透明色（#55333333等），避免遮挡远程画面。
+- **scan_frame扫码图标恢复**：设置Tab头部从PageHeader()替换为buildSettingsPageHeader()，恢复扫码入口。
+- **图标颜色统一**：Language/Theme/Display行内图标从fillColor改为colorFilter+theme_TEXT_TERTIARY，与新图标一致。
+- **指纹图标位置调整**：指纹图标移到行首20x20，后面显示指纹前12字符文本，点击可复制。
+- **版本号自动同步**：构建脚本从app.json5读取versionName写入BuildInfo.ets，不再硬编码。
+- 构建验证：`BUILD SUCCESSFUL in 8 s 866 ms`，BuildInfo编译时间 `2026-06-05 02:30`。
+
+## 2026-06-05 More菜单图标添加
+
+- **More菜单所有13项添加图标**：`buildMenuRow`/`buildToggleMenuRow` 调用处全部传入icon参数。
+- **新增SVG资源**（7个）：menu_restart.svg(rotate-ccw)、menu_refresh.svg(refresh-cw)、menu_transfer.svg(folder-sync)、menu_fingerprint.svg(copy)、menu_switch.svg(arrow-left-right)、menu_screenshot.svg(camera)、menu_record.svg(circle-dot)。
+- **图标映射**：OS Password→key、Send Clipboard Keys→clipboard、Reset Canvas→reset、Insert Ctrl+Alt+Del→key(复用)、Restart Remote→restart、Lock Remote→lock、Block User Input→block、Refresh Screen→refresh、File Transfer→transfer、Copy Fingerprint→fingerprint、Switch Sides→switch、Take Screenshot→screenshot、Session Recording→record。
+- 构建验证：BUILD SUCCESSFUL，BuildInfo编译时间 `2026-06-05 03:07`。
+
+## 2026-06-05 设置页缺失section方法修复 + 账户页登录后图标
+
+- **重建4个缺失settings section方法**：`buildSettingsTwoFactorSection`/`buildSettingsShareScreenSection`/`buildSettingsEnhancedSection`/`buildSettingsAboutSection` 在之前编辑中意外丢失，已重建。
+  - TwoFactor：双因素认证开关 + IP白名单开关
+  - ShareScreen：允许录屏 + 自动关闭非活跃会话 + 被控保持亮屏
+  - Enhanced：自适应码率 + 直连IP + 拒绝LAN发现 + 开机启动 + 终端额外键
+  - About：启动检查更新 + 版本 + 构建时间
+- **InfoRow组件添加icon参数**：`CommonComponents.ets` 中 `InfoRow(label, value, icon='')` 新增可选icon，传入时在label前显示18px stroke图标（colorFilter + TEXT_TERTIARY）。
+- **连接Tab账户卡片添加图标**：Account→settings_person.svg、Provider→settings_server.svg、Status→settings_record.svg。
+- **账户对话框登录后添加图标**：账户名前添加settings_person.svg图标（Provider/Status已有图标）。
+- 构建验证：BUILD SUCCESSFUL，BuildInfo编译时间 `2026-06-05 20:41`；无线设备安装启动成功。
+
+## 2026-06-05 图标fill/stroke规范修复 + section选项归位 + 34项翻译补齐
+
+- **fill格式SVG还原+代码改用fillColor**：fingerprint/translate/dark_mode/light_mode/display 5个SVG还原为fill格式（`fill="#000000"`），代码中对应Image从`colorFilter(createStrokeIconColorFilter())`改为`fillColor(theme_TEXT_TERTIARY)`，遵循文档规范：fill格式用fillColor，stroke格式用colorFilter。
+- **核心页指纹图标**：`buildSettingsInfoSettingRow`中fingerprint.svg改为settings_shield_check.svg（stroke格式），因为helper方法统一用colorFilter。
+- **设置section选项归位**：Recording section中误放的Version/Build Time/Fingerprint/Privacy Policy移回About section；Recording只保留Auto-record incoming/outgoing+Directory。
+- **34项翻译补齐**：I18nService中文和英文section各新增34条翻译，覆盖Allow Recording Sessions/Auto Close Inactive Sessions/Check Updates On Startup/Clipboard permission denied/Continue with/Core stopped/Debug summary copied/Deny LAN Discovery/Enable Adaptive Bitrate/Enable Direct IP/Enable Two Factor/Enhanced/File access permission denied/Input control permission denied/Keep Screen On When Controlled/Login failed/Login failed please check username and password/Login successful/Microphone permission denied/No active connection/No matching results/Only Whitelist IP Access/Rust Core/Screen capture permission denied/Search/Session/Show Terminal Extra Keys/Start On Boot/Starting.../Terms/Two Factor Auth/Two-factor authentication required/Type/or。
+- 构建验证：BUILD SUCCESSFUL，BuildInfo编译时间 `2026-06-05 21:xx`；无线设备安装启动成功。
+
+## 2026-06-05 聊天tab头部peer信息+聊天内容刷新
+
+- **聊天tab头部**：有会话时只在聊天Tab显示左侧会话图标、peer名称+ID和右侧 `group.svg` 图标；无会话时显示"RustDesk"，不含扫码入口；连接Tab和设置Tab保持原来的头部显示。
+- **聊天内容刷新**：`onPageShow()`中重新加载chatMessages，从RemoteControl返回时聊天记录会更新；会话结束后聊天Tab继续显示最近一次会话的聊天记录。
+- **聊天浮窗自动滚动**：`RemoteControl.ets` 的会话聊天浮窗消息区绑定 `chatPanelScroller`，收到远端消息、本地发送和打开面板后都会滚动到底部。
+- **固定测试消息移除**：`AppDataService.getChatMessages()` 不再返回示例消息，`Chat.ets` 移除本地模拟自动回复，`ChatService` 从持久化消息恢复会话摘要。
+- 构建验证：全量构建安装通过，版本 `0.6.0`，启动阶段因设备锁屏跳过；补回右侧图标后增量构建安装启动通过，版本 `0.6.2`。
+
+## 2026-06-05 设置项图标添加
+
+- **为设置中每条选题添加图标**：所有设置行（Toggle/Info/Link）现在左侧显示对应stroke格式SVG图标，图标来源为 proicons.com 收录的 Lucide Icons 图标集（MIT许可，stroke风格，24x24）。
+- **新增SVG资源**（22个）：settings_websocket.svg、settings_network.svg、settings_udp.svg、settings_ipv6.svg、settings_remark.svg、settings_keepscreen.svg、settings_folder.svg、settings_shield_check.svg、settings_wifi_off.svg、settings_whitelist.svg、settings_gauge.svg、settings_record.svg、settings_router.svg、settings_timer.svg、settings_power.svg、settings_update.svg、settings_terminal.svg、settings_floating.svg、settings_display.svg、settings_info_circle.svg、settings_privacy.svg、settings_language.svg、settings_palette.svg、settings_record_in.svg、settings_record_out.svg。
+- **代码修改**：`buildSettingsToggleSettingRow` 和 `buildSettingsInfoSettingRow` 新增 `icon` 可选参数，传入图标文件名时在行首渲染20x20 colorFilter stroke图标；不传时保持原样无图标。
+- **图标映射**：WebSocket→globe、UDP打洞→arrow-down-up、IPv6→network、备注→message-square-plus、保持亮屏→sun、目录→folder、2FA开关→shield-check、LAN发现→wifi-off、白名单→shield-alert、自适应码率→gauge、录制→circle-dot、直连IP→router、自动关闭→timer、开机启动→power、检查更新→refresh-cw、终端→terminal、悬浮窗→app-window、显示→monitor、版本→info、隐私→file-text、录入站→arrow-down-to-line、录出站→arrow-up-from-line。
+- 构建验证：`BUILD SUCCESSFUL in 10 s 478 ms`，BuildInfo编译时间 `2026-06-05 01:45`。
 
 ## 2026-06-03 UI 交互修复轮
 
@@ -293,4 +363,4 @@
 - **设置菜单所有选项添加图标+主题匹配**：从Lucide Icons获取9个stroke格式SVG图标（settings_person/settings_server/settings_proxy/settings_cpu/settings_video/settings_shield/settings_monitor/settings_tune/settings_info），全部 `stroke="#000000"`。`buildSettingsSectionLabel` 和 `buildSettingsLinkRow` 新增icon参数，9个section分别配置对应图标，统一使用 `colorFilter(createStrokeIconColorFilter(theme_TEXT_TERTIARY))` 着色。
 - **发现页排序/刷新图标主题匹配修复**：`Sorting_order.svg` 从 `currentColor` 改为 `stroke="#000000"`，代码从 `fillColor` 改为 `colorFilter(createStrokeIconColorFilter())`。`refresh.svg` 确认stroke格式正确，代码使用colorFilter。两个图标暗色主题下可见性修复。
 - **构建验证**：HAP构建通过，构建时间 `2026-06-04 01:14`；无线设备 `192.168.11.100:36169` 安装成功。
-- **项目备份移动**：`backup_20260604_001655` 从项目目录移动到 `E:\Visual_Studio_Code\99_Temp\backup_20260604_001655`。
+- **项目备份移动**：`backup_20260604_001655` 从项目目录移动到 `%VSCODE_ROOT%\99_Temp\backup_20260604_001655`。

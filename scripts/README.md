@@ -4,10 +4,10 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 
 ## Daily entry points
 
-- `run_hvigor_with_sdk_patch.js`: canonical HAP build entry. It updates `BuildInfo.ets` and applies the DevEco/Hvigor SDK compatibility patches.
-- `build_hap.bat`: Windows incremental HAP build. It calls `run_hvigor_with_sdk_patch.js`, so app build time is refreshed automatically without clearing caches.
-- `build_full_hap.bat`: Windows full HAP rebuild. It cleans generated project artifacts, then calls `run_hvigor_with_sdk_patch.js`, so app build time is refreshed automatically.
-- `AUTO_BUILD_INSTALL.bat`: Windows build, install, and launch wrapper. It calls `run_hvigor_with_sdk_patch.js`, then installs the signed HAP with `hdc -t <target>`. With no target or `auto`, it prefers USB target `2NX0224429035123`, then tries wireless target `192.168.11.100:36169`.
+- `run_hvigor_with_sdk_patch.js`: canonical HAP build entry. It updates `BuildInfo.ets`, applies the DevEco/Hvigor SDK compatibility patches, and discovers DevEco paths from environment variables, `local.properties`, or the default install location.
+- `build_hap.bat`: Windows incremental HAP build. It stages a clean project copy under `99_Temp/harmonyos_stage/<project name>`, sets `RUSTDESK_HARMONY_VERSION_BUMP=incremental`, increments the rightmost app version number, builds under `99_Temp/harmonyos_build/<project name>`, then syncs version files back to the real project.
+- `build_full_hap.bat`: Windows full HAP rebuild. It sets `RUSTDESK_HARMONY_VERSION_BUMP=full`, so the middle app version number is incremented and the rightmost number is reset to 0. It cleans generated project artifacts and `99_Temp/harmonyos_build/<project name>`, then runs the same staged Hvigor build path. It keeps `99_Temp/harmonyos_cache` by default to avoid DevEco/Hvigor built-in clean touching stale USB project caches.
+- `AUTO_BUILD_INSTALL.bat`: Windows build, install, and launch wrapper. It uses the staged HAP build path, then installs the signed HAP with `hdc -t <target>`. With no target or `auto`, it uses `RUSTDESK_HARMONY_USB_TARGET` when configured, then tries wireless target `192.168.11.100:36169`, then falls back to the first available HDC target.
 - `build_harmonyos_hap.ps1`: Windows HAP staging helper for signed or unsigned artifacts.
 - `verify_native_harmonyos_hap.ps1`: HAP inspection, optional install, launch, and log helper.
 
@@ -21,9 +21,11 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 
 ## Maintenance helpers
 
-- `clean_project.ps1`: Windows cleanup for generated project artifacts. Use `-IncludeExternalBuild` to also remove `99_Temp/harmonyos_build/rustdesk_harmonyos` and `99_Temp/harmonyos_cache`.
-- `backup_project.ps1`: Windows project backup helper. It always writes zip backups under `E:/Visual_Studio_Code/99_Temp/rustdesk_harmonyos_backups` and keeps the latest 2 archives.
+- `clean_project.ps1`: Windows cleanup for generated project artifacts. Use `-IncludeExternalBuild` to also remove `99_Temp/harmonyos_build/<project name>` and `99_Temp/harmonyos_stage/<project name>`; add `-IncludeHvigorCache` only when you explicitly need to remove `99_Temp/harmonyos_cache`.
+- `backup_project.ps1`: Windows project backup helper. It derives `%VSCODE_ROOT%` from the current project location, writes zip backups under `%VSCODE_ROOT%/99_Temp/rustdesk_harmonyos_backups`, and keeps the latest 2 archives.
 - `clean_project_artifacts.sh`: Linux/macOS cleanup for generated project artifacts.
+- `stage_project_for_build.ps1`: Copies a clean build snapshot into `99_Temp/harmonyos_stage/<project name>` and rewrites only the staged signing paths so root config can stay portable.
+- `sync_build_version_from_stage.ps1`: Copies `AppScope/app.json5` and `BuildInfo.ets` from the staged build back to the real project after a successful build.
 - `check_harmony_signing_profile.ps1`: signing preflight used by the HAP staging helper.
 - `export_deveco_signing_command.js`: signing command export/debug utility.
 
@@ -33,6 +35,17 @@ Removed scripts were stale duplicate build/install chains, old hard-coded SDK wr
 
 - `RUSTDESK_HARMONY_USB_TARGET`
 - `RUSTDESK_HARMONY_WIRELESS_TARGET`
+
+Borrowed-computer path overrides:
+
+- `DEVECO_NODE_EXE` or `local.properties` `npm.dir` for Node.
+- `HDC_EXE` or `local.properties` `sdk.dir` for HDC.
+- `DEVECO_TOOLS_HOME` for Hvigor tools when DevEco is not installed in the default location.
+- `DEVECO_SDK_HOME` for the DevEco SDK root when `local.properties` is not enough.
+- `RUSTDESK_HARMONY_TEMP_ROOT` if `99_Temp` is not beside `11_Rustdesk_harmonyos`.
+- `RUSTDESK_HARMONY_BUILD_DIR` if native build files live outside `%VSCODE_ROOT%/99_Temp/rustdesk_harmonyos_build`.
+
+The Windows HAP entry points set `CI=true`, `RUSTDESK_HARMONY_TEMP_ROOT`, and `BUILD_CACHE_DIR` before Node starts, then build from a staged clean copy. This keeps Hvigor outputs, logs, and Native `.cxx` files under `99_Temp` instead of the real project tree, which is important when the workspace is carried on a USB drive between borrowed computers.
 
 If install succeeds but launch returns `Error Code:10106102`, the script reports a warning and exits successfully because the device is locked and cannot be auto-unlocked by HDC in developer mode.
 

@@ -19,7 +19,11 @@ struct Chat {
   private chatService: ChatService = ChatService.getInstance();
   private chatListener = (_event: ChatEvent): void => {
     this.refreshMessages();
+    setTimeout(() => {
+      this.chatScroller.scrollEdge(Edge.Bottom);
+    }, 50);
   };
+  private chatScroller: Scroller = new Scroller();
 
   @State deviceId: string = '';
   @State deviceName: string = '';
@@ -35,9 +39,11 @@ struct Chat {
     }
     this.deviceName = this.appData.getDisplayName(this.deviceId);
     this.chatService.updateSessionDeviceName(this.deviceId, this.deviceName);
-    this.seedMessagesIfNeeded();
     this.refreshMessages();
     this.chatService.addEventListener(this.chatListener);
+    setTimeout(() => {
+      this.chatScroller.scrollEdge(Edge.Bottom);
+    }, 100);
   }
 
   aboutToDisappear() {
@@ -61,7 +67,7 @@ struct Chat {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Scroll() {
+      Scroll(this.chatScroller) {
         if (this.messages.length === 0) {
           Column() {
             EmptyState($rawfile('chat.svg'), this.lt('No messages yet.'))
@@ -101,7 +107,7 @@ struct Chat {
         })
       }
       .padding({ top: this.avoidStatusBarHeight })
-      .backgroundColor(this.themeIsDark ? '#802D3139' : '#80F8FAFC')
+      .backgroundColor(this.themeIsDark ? '#402D3139' : '#40F8FAFC')
 
       Column() {
         Blank().layoutWeight(1)
@@ -367,7 +373,6 @@ struct Chat {
     this.draft = '';
     void this.chatService.sendTextMessage(this.deviceId, text).then(() => {
       this.refreshMessages();
-      this.scheduleAutoReply(text);
     }).catch(() => {
       console.error('send chat message failed');
     });
@@ -376,28 +381,6 @@ struct Chat {
   private async sendFileReference(): Promise<void> {
     await this.chatService.sendFileMessage(this.deviceId, '/remote/Inbox/logs.zip', 'logs.zip', 8 * 1024 * 1024);
     this.refreshMessages();
-  }
-
-  private scheduleAutoReply(source: string): void {
-    const preview = source.length > 18 ? `${source.substring(0, 18)}...` : source;
-    setTimeout(() => {
-      this.chatService.receiveTextMessage(this.deviceId, `${this.lt('Received')}: ${preview}`);
-      this.refreshMessages();
-    }, 600);
-  }
-
-  private seedMessagesIfNeeded(): void {
-    if (this.chatService.hasMessages(this.deviceId)) {
-      return;
-    }
-    const seedMessages = this.appData.getChatMessages(this.deviceId);
-    seedMessages.forEach((item) => {
-      if (item.sender === 'remote') {
-        this.chatService.receiveTextMessage(this.deviceId, item.text);
-      } else {
-        this.chatService.sendSystemMessage(this.deviceId, item.text);
-      }
-    });
   }
 
   private refreshMessages(): void {

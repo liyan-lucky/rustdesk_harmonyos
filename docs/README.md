@@ -5,17 +5,42 @@
 ## 当前项目状态
 
 - 项目：RustDesk HarmonyOS 客户端。
-- 工作区：`E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`
-- 当前 USB 测试设备：`2NX0224429035123`
+- 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
+- 当前 USB 测试设备：由 `RUSTDESK_HARMONY_USB_TARGET` 指定，文档不记录硬件编号。
 - 当前无线测试设备：`192.168.11.100:36169`
 - 包名：`com.open.rundesk`
-- 当前 HAP 输出：`E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
+- 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
-- 最新构建安装验证：
-  - BuildInfo 编译时间：`2026-06-03 20:03`
-  - USB 安装成功
-  - `aa start -a EntryAbility -b com.open.rundesk` 启动成功
+- 最新构建验证：
+  - BuildInfo 编译时间：`2026-06-06 00:02`
+  - App 显示版本：`0.6.6`
+  - 项目提升到根目录后，增量 HAP staging 构建、签名、安装、启动成功；版本递增到 `0.6.6`。
+  - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
+  - 100 轮功能逻辑审查已完成：`docs/FUNCTION_LOGIC_AUDIT_2026-06-05.md`
+
+## 便携工作区路径
+
+`%VSCODE_ROOT%` 表示包含 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 的工作区根目录；当前 U 盘环境会按项目位置自动检测该根目录，后续借用不同电脑时盘符可能变化。项目文档、构建脚本和发布流程都不应再绑定某个固定盘符，而应按当前项目位置向上匹配同级 `99_Temp`。
+
+当前匹配关系：
+
+- App 项目：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
+- 本地 Git 根：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
+- RustDesk 上游源码：`%VSCODE_ROOT%\99_Temp\rustdesk-master`
+- Native 构建工作区：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
+- HAP 输出、staging 和 Hvigor 缓存：`%VSCODE_ROOT%\99_Temp\harmonyos_build`、`%VSCODE_ROOT%\99_Temp\harmonyos_stage`、`%VSCODE_ROOT%\99_Temp\harmonyos_cache`
+- 便携签名材料：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing`
+- 备份目录：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups`
+- GitHub 发布方式：本地项目根与远端仓库根一致，直接从当前项目根提交并推送。
+
+换电脑后先确认三件事：
+
+1. `11_Rustdesk_harmonyos/` 和 `99_Temp/` 仍在同一个 `%VSCODE_ROOT%` 下。
+2. DevEco Studio 路径如不在默认位置，更新 `local.properties` 的 `sdk.dir`、`hwsdk.dir`、`npm.dir`，或设置 `DEVECO_SDK_HOME`、`DEVECO_TOOLS_HOME`、`DEVECO_NODE_EXE`、`HDC_EXE`。
+3. U 盘文件系统可能触发 Git dubious ownership；临时查看可用 `git -c safe.directory=<当前11_Rustdesk_harmonyos路径> status`，不要为了消除提示执行普通 `git pull`。
+
+当前 U 盘上存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/`，以及旧内层 `rustdesk_harmonyos/` 空缓存壳可能无法删除。构建脚本会先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor cache、HAP 输出和 Native `.cxx` 放到 `%VSCODE_ROOT%\99_Temp`；日常使用 `scripts\build_hap.bat` 或 `scripts\build_full_hap.bat`，不要直接运行 DevEco/Hvigor 内置 clean。`scripts\clean_project.ps1 -IncludeExternalBuild` 清理外部 build/stage 产物；只有明确需要深度清理时才额外加 `-IncludeHvigorCache`。
 
 ## 当前核心状态
 
@@ -132,30 +157,34 @@ UI 交互修复（2026-06-03）：
 9. `BUILD_ARCHIVE.md`
    - 历史构建、脚本、Ubuntu 路径、早期会话归档；不作为当前产物依据。
 10. `GIT_PUBLISH.md`
-   - GitHub 发布规则：本地保持 `rustdesk_harmonyos/` 子目录结构，远端 `master` 发布为项目根结构；包含临时发布目录操作方法和禁止项。
+   - GitHub 发布规则：本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。
 
 ## 当前构建命令
 
-构建 HAP：
+增量构建 HAP：
 
 ```powershell
-cd E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
-node scripts\run_hvigor_with_sdk_patch.js assembleHap
+$env:VSCODE_ROOT = (Resolve-Path ..).Path
+Set-Location "$env:VSCODE_ROOT\11_Rustdesk_harmonyos"
+cmd /c scripts\build_hap.bat
 ```
 
 安装并启动：
 
 ```powershell
 $hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
-$hap = 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap'
-& $hdc -t 2NX0224429035123 install -r $hap
-& $hdc -t 2NX0224429035123 shell aa start -a EntryAbility -b com.open.rundesk
+$env:VSCODE_ROOT = (Resolve-Path ..).Path
+$target = $env:RUSTDESK_HARMONY_USB_TARGET
+$hap = "$env:VSCODE_ROOT\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap"
+& $hdc -t $target install -r $hap
+& $hdc -t $target shell aa start -a EntryAbility -b com.open.rundesk
 ```
 
 重编 native core：
 
-```cmd
-cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat
+```powershell
+$env:VSCODE_ROOT = (Resolve-Path ..).Path
+cmd /c "$env:VSCODE_ROOT\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat"
 ```
 
 ## 接手规则
@@ -167,12 +196,21 @@ cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.b
 - 修改核心后必须重新构建 native core，再构建 HAP，再安装验证。
 - 修改 ArkTS/UI 后至少重新构建 HAP 并安装验证。
 - 多目标 HDC 环境必须显式加 `-t <target>`。
-- 当前优先使用 USB 目标 `2NX0224429035123`。
+- 当前优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标。
 - 历史无线目标 `192.168.11.100:36169` 仅备用。
-- GitHub 仓库展示结构和本地工作结构不同：本地必须保持 `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`，远端 `master` 通过 `99_Temp/rustdesk_harmonyos_publish_root` 发布为项目根结构。不要在本地普通 `git pull` 合并远端发布提交；发布前先读 `docs/GIT_PUBLISH.md`。
+- GitHub 仓库展示结构和本地工作结构一致：项目根为 `%VSCODE_ROOT%\11_Rustdesk_harmonyos`，直接从当前项目根提交并推送；发布前先读 `docs/GIT_PUBLISH.md`。
 
 ## 2026-06-03 当前补充
 
 - 服务器配置默认值已改为“官方默认但不显示”：设置中空 ID/Relay/API 会在运行时回落到官方 `rs-ny.rustdesk.com`、`rs-ny.rustdesk.com`、`https://admin.rustdesk.com`，UI 只显示“官方默认”。
-- 扫码页已改为相机扫码页，仅保留重扫和复制扫到的内容。
+- 扫码页已改为相机扫码页，支持相册图片二维码识别；扫到服务器配置导入文本时会直接写入服务器配置并保存，扫到普通设备 ID 时继续写入最近会话和通讯录。
 - 共享服务 native incoming 入口已从空 `{}` 返回修正为请求启动 official server；最新 HAP 已安装到 USB 设备，但设备锁屏导致启动复测暂时阻塞。
+
+## 2026-06-05 当前补充
+
+- `scripts\build_hap.bat` 标记为增量构建，每次构建将版本号右侧数字自增 1。
+- `scripts\build_full_hap.bat` 标记为全量构建，每次构建将版本号中间数字自增 1，并把右侧数字归零。
+- `run_hvigor_with_sdk_patch.js` 会同步更新 `AppScope/app.json5` 的 `versionName/versionCode` 和 `BuildInfo.ets` 的 `BUILD_TIME/VERSION`。
+- 项目根目录新增 `README.md`，线上仓库默认介绍以 `DESIGN` 为入口，并指向 `docs/DESIGN.md`。
+- 聊天Tab用于显示当前/最近一次会话中的聊天内容；会话结束返回主页后会刷新同一会话历史，peer信息只替换聊天Tab头部区域，并保留右侧 `group.svg` 图标。远控会话中的聊天浮窗在打开、发送和收到消息后都会滚动到最新消息。
+- 已移除固定测试聊天消息和本地模拟自动回复，聊天记录只来自真实会话收发或持久化历史。

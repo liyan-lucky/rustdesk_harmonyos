@@ -99,8 +99,15 @@ export function CaptionLabel(text: string) {
 }
 
 @Builder
-export function InfoRow(label: string, value: string) {
-  Row() {
+export function InfoRow(label: string, value: string, icon: string = '') {
+  Row({ space: icon.length > 0 ? 8 : 0 }) {
+    if (icon.length > 0) {
+      Image($rawfile(icon))
+        .width(18)
+        .height(18)
+        .colorFilter(drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(ThemeConfig.TEXT_TERTIARY), drawing.BlendMode.SRC_IN))
+    }
+
     Text(label)
       .fontSize(ThemeConfig.FONT_SIZE_MD)
       .fontColor(ThemeConfig.TEXT_SECONDARY)

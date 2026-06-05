@@ -1,11 +1,14 @@
 import customScan from '@hms.core.scan.customScan';
+import detectBarcode from '@hms.core.scan.detectBarcode';
 import scanCore from '@hms.core.scan.scanCore';
 import type scanBarcode from '@hms.core.scan.scanBarcode';
+import picker from '@ohos.file.picker';
 import { AppDataService } from '../services/AppDataService';
 import { ClipboardService } from '../services/ClipboardService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { I18nService } from '../services/I18nService';
 import { PermissionService, PermissionStatus } from '../services/PermissionService';
+import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
 
 @Entry
 @Component
@@ -83,8 +86,19 @@ struct Scan {
             .fontColor('#FFFFFF')
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
-          Blank()
-            .width(44)
+          Button() {
+            Image($rawfile('photo.svg'))
+              .width(22)
+              .height(22)
+              .fillColor('#FFFFFF')
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor('#66000000')
+          .borderRadius(22)
+          .onClick(() => {
+            void this.importPhotoQrCode();
+          })
         }
         .width('100%')
         .height(56)
@@ -235,7 +249,7 @@ struct Scan {
       customScan.init({
         scanTypes: [scanCore.ScanType.QR_CODE],
         enableMultiMode: false,
-        enableAlbum: false
+        enableAlbum: true
       });
       this.scanResult = '';
       this.status = this.lt('Scanning...');
@@ -277,6 +291,44 @@ struct Scan {
     this.applyScanResult(value);
   }
 
+  private async importPhotoQrCode(): Promise<void> {
+    try {
+      await this.stopScan(false);
+      this.status = this.lt('Select QR image...');
+      const photoSelectOptions = new picker.PhotoSelectOptions();
+      photoSelectOptions.MIMEType = picker.PhotoViewMIMETypes.IMAGE_TYPE;
+      photoSelectOptions.maxSelectNumber = 1;
+      const photoPicker = new picker.PhotoViewPicker();
+      const result = await photoPicker.select(photoSelectOptions);
+      if (!result || result.photoUris.length === 0) {
+        this.status = this.lt('Scanning...');
+        await this.startCustomScan();
+        return;
+      }
+
+      this.status = this.lt('Recognizing photo...');
+      const inputImage: detectBarcode.InputImage = { uri: result.photoUris[0] };
+      const results = await detectBarcode.decode(inputImage, {
+        scanTypes: [scanCore.ScanType.QR_CODE],
+        enableMultiMode: false,
+        enableAlbum: false
+      });
+      if (!results || results.length === 0) {
+        this.status = this.lt('No QR code found in photo');
+        await this.showToast(this.status);
+        await this.startCustomScan();
+        return;
+      }
+
+      this.handleScanResults(results);
+    } catch (error) {
+      console.error('photo QR import failed: ' + JSON.stringify(error));
+      this.status = this.lt('Photo import failed');
+      await this.showToast(this.status);
+      await this.startCustomScan();
+    }
+  }
+
   private async rescan(): Promise<void> {
     this.scanResult = '';
     this.status = this.lt('Scanning...');
@@ -316,6 +368,10 @@ struct Scan {
   }
 
   private applyScanResult(value: string): void {
+    if (this.applyServerConfig(value)) {
+      return;
+    }
+
     const deviceId = this.extractDeviceId(value);
     if (!this.isPlausibleDeviceId(deviceId)) {
       return;
@@ -331,6 +387,24 @@ struct Scan {
       favorite: false,
       platform: ''
     });
+  }
+
+  private applyServerConfig(value: string): boolean {
+    const config: ServerConfigImportResult | null = ServerConfigCodec.decode(value);
+    if (config === null) {
+      return false;
+    }
+
+    const settings = this.appData.getSettings();
+    this.appData.updateSettings({
+      idServer: config.idServer !== null ? config.idServer : settings.idServer,
+      relayServer: config.relayServer !== null ? config.relayServer : settings.relayServer,
+      apiServer: config.apiServer !== null ? config.apiServer : settings.apiServer,
+      key: config.key !== null ? config.key : settings.key
+    });
+    this.status = this.lt('Server config imported and saved');
+    void this.showToast(this.status);
+    return true;
   }
 
   private extractDeviceId(text: string): string {

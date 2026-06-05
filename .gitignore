@@ -4,6 +4,7 @@
 .vscode/
 .codeartsdoer/
 .appanalyzer/
+rustdesk_harmonyos/
 native_rust_core/target/
 **/target/
 native_rust_core/cargo-check.log
@@ -21,6 +22,9 @@ entry/.cxx/
 *.obj
 
 node_modules/
+oh_modules/
+**/oh_modules/
+local.properties
 .cxx/
 .hvigor/
 
@@ -28,5 +32,7 @@ backup_*/
 *.log
 *.tmp
 *.bak
+check_i18n.py
+check_result.txt
 
 entry/src/main/libs/arm64/librustdesk_core.a

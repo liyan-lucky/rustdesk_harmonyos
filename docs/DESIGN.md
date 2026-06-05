@@ -72,7 +72,7 @@
 - 去掉触摸的视觉点击效果
 - 主题使用点击弹出菜单选中，默认跟随系统
 - 语言切换关闭动画1000ms + 页面淡入淡出400ms
-- 自定义键盘显示在远程画面顶部，背景透明，不遮挡下方内容；面板内不放额外键盘按钮和关闭按钮，由会话工具栏负责开关。
+- 自定义键盘显示在远程画面顶部，背景透明，不遮挡下方内容；面板内不放额外键盘按钮和关闭按钮，由会话工具栏负责开关。所有按键背景必须使用半透明色（如#55333333），避免遮挡远程画面。
 
 ## 图标设计要求
 
@@ -104,6 +104,8 @@
 
 ### 目录规范
 - 所有编译/调试/备份临时产物在项目目录**之外**进行(99_Temp/)
+- 文档和脚本不得写死具体盘符；使用 `%VSCODE_ROOT%` 说明工作区根，运行时从项目位置推导 `99_Temp/`，或通过 `RUSTDESK_HARMONY_TEMP_ROOT`、`RUSTDESK_HARMONY_BUILD_DIR` 覆盖。
+- 借用不同电脑时，`local.properties` 只记录当前电脑 DevEco 路径；构建脚本必须优先支持环境变量和 `local.properties`，再回退默认安装路径。
 - 构建输出默认不在项目目录内；唯一例外是HAP链接需要的 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 文档只保留docs/下9个指定文件，入口为 `docs/README.md`
 - 项目备份统一放在 `99_Temp/rustdesk_harmonyos_backups/`，以后只保留最新2份；不要每次备份新建独立路径，备份入口固定为 `scripts/backup_project.ps1`
@@ -120,13 +122,16 @@
 
 ### HAP构建
 - 构建前必须更新BuildInfo.ets的BUILD_TIME(脚本自动处理)
+- 增量构建入口 `scripts/build_hap.bat` 必须设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`，版本号右侧数字自增1。
+- 全量构建入口 `scripts/build_full_hap.bat` 必须设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`，版本号中间数字自增1，并将右侧数字归零。
+- `run_hvigor_with_sdk_patch.js` 必须同步写入 `AppScope/app.json5` 的 `versionName/versionCode` 和 `BuildInfo.ets` 的 `VERSION/BUILD_TIME`。
 - 增量编译可能不生效，全量重编需删除entry/build
 - 使用`node scripts/run_hvigor_with_sdk_patch.js assembleHap`构建
 
 ### 真机测试
-- 当前USB测试设备: `2NX0224429035123`
+- 当前USB测试设备由 `RUSTDESK_HARMONY_USB_TARGET` 指定，文档不记录设备硬件编号。
 - 同时存在USB和无线目标时，所有hdc命令必须显式加 `-t <target>`
-- 当前USB安装HAP使用 `hdc -t 2NX0224429035123 install -r <hap>`，不要加 `-g`
+- 当前USB安装HAP使用 `hdc -t <target> install -r <hap>`，不要加 `-g`
 - 历史无线目标 `192.168.11.100:36169` 如需使用，先执行 `hdc tconn 192.168.11.100:36169`
 - 核心验证以 `initializeRuntimeFn returned` 和 `Bootstrap snapshot` 为准，预期 `coreReady:true`、`adapter:"official-native"`
 

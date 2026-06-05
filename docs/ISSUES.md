@@ -189,7 +189,7 @@
 **根因**: 上游stub的空JSON泄漏到了NAPI返回值；仅检查Rust符号存在和SO可加载不够，必须检查ArkTS实际收到的`initializeRuntimeFn returned`原始值
 **解决**: 修改`bridge_api.rs`，`initialize_runtime`调用上游stub后由导出层明确返回`BridgeSnapshot`有效JSON（`coreReady:true`, `adapter:"official-native"`）；`get_core_snapshot`在上游返回`{}`时继续使用本地快照
 **验证**: 2026-06-01 22:45，无线设备`192.168.11.100:36169`安装启动成功；日志显示`RustDesk bridge loader module registered (50 functions)`、`initializeRuntimeFn returned`为有效JSON、`Bootstrap snapshot`为`{"adapter":"official-native","coreReady":true,...}`
-**日志**: `E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_test_logs\launch_after_fix_20260601_224528.log`
+**日志**: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_test_logs\launch_after_fix_20260601_224528.log`
 **教训**: ✅上游stub返回空JSON时bridge层必须填充默认值；✅BridgeSnapshot结构已有完整序列化逻辑，应优先使用；✅每次修复核心返回值都要同时验证staticlib、bridge SO、HAP内是否包含新标记，再看真机NAPI原始返回值
 
 ### XCB未解析符号导致SO加载失败 (2026-06-01发现, 已修复)
@@ -247,6 +247,54 @@
 **根因**: LoginPage有独立的轮询逻辑(pollTimer/pollCount)，与AccountService的轮询重复；轮询成功后不触发EventBus ACCOUNT_LOGIN事件，其他组件感知不到登录状态变化
 **解决**: LoginPage.handleOAuthLogin()改为调用accountService.loginWithOAuth()，移除LoginPage的startWebPolling()/handleWebLoginSuccess()；通过@Watch('onAccountChanged')监听accountState变化自动返回
 **教训**: ✅登录操作必须统一走AccountService，不要在页面层重复实现轮询；✅登录成功通过AppState+EventBus通知全局
+
+### 远控触摸响应区域超出视频显示区域 (2026-06-05发现, 已修复)
+**现象**: 远控页面触摸事件在视频画面外的黑边区域也有响应，触摸黑边会被钳制到画面边缘产生非预期操作
+**根因**: RemoteControl.ets第549行触摸覆盖层Column(){}设为width('100%')height('100%')，覆盖整个预览容器而非仅视频画面
+**解决**: 触摸覆盖层尺寸改为resolveRenderedImageWidth()×resolveRenderedImageHeight()，仅覆盖实际视频画面区域
+**教训**: ✅触摸响应区域必须与视频显示区域精确匹配，不能使用100%容器尺寸
+
+### 首次连接远程画面不显示就跳回连接页面 (2026-06-05发现, 已修复)
+**现象**: App开启后第一次连接远程，画面没有显示出来就自动跳回连接页面；第二次连接正常
+**根因**: session短暂进入connected状态后断开(idle)，此时sessionBecameActive=true但hasReceivedFrame=false，shouldAutoCloseTerminalSession()返回true，直接finishTerminalSession返回连接页面而不显示重试对话框
+**解决**: idle状态下，如果sessionBecameActive且!hasReceivedFrame（连接过但没收到帧），优先显示重试对话框而非直接关闭
+**教训**: ✅连接已建立但未收到视频帧时不应自动关闭，应给用户重试机会；✅首次连接和重连的帧到达时序可能不同
+
+### 设置页扫码图标丢失 (2026-06-05发现, 已修复)
+**现象**: 设置页右上角扫码图标(scan_frame)不见了
+**根因**: buildSettingsPageHeader()方法已定义但未被调用，设置Tab头部使用的是PageHeader()通用组件，不含扫码按钮
+**解决**: 设置Tab头部从PageHeader(this.lt('RustDesk'))替换为this.buildSettingsPageHeader()
+**教训**: ✅修改页面头部时要检查所有Tab是否使用了正确的头部Builder；✅定义了但未调用的Builder方法容易遗漏
+
+### 设置行图标颜色不一致 (2026-06-05发现, 已修复)
+**现象**: 新添加的设置行图标使用colorFilter(stroke格式)，旧图标(Language/Theme/Display)使用fillColor(fill格式)，颜色和渲染方式不统一
+**根因**: 旧图标行是内联Row直接写fillColor，新图标通过buildSettingsToggleSettingRow的icon参数使用colorFilter
+**解决**: Language行translate.svg、Theme行dark_mode/light_mode.svg、Display行display.svg统一改为colorFilter+theme_TEXT_TERTIARY
+**教训**: ✅同类位置图标必须统一渲染方式(colorFilter vs fillColor)和颜色层级(TEXT_TERTIARY for行内图标)
+
+### 自定义键盘按键不透明 (2026-06-05发现, 已修复)
+**现象**: KeyboardToolbar中修饰键、功能键、特殊组合键、Input/Enter按钮全部使用不透明背景色
+**根因**: 所有按键直接使用theme_INACTIVE_BG/theme_ACCENT/theme_WHITE等不透明主题色
+**解决**: 未激活修饰键、功能键、Clear、Input/Hide改为#55333333(约33%半透明)；Lock/Enter改为#550071FF；Ctrl+Alt+Del改为#80FCA5A5；TextInput背景改为#55333333
+**教训**: ✅覆盖在远程画面上的键盘面板所有按键必须使用半透明背景，避免遮挡画面
+
+### 聊天页面背景不够透明且不自动滚动 (2026-06-05发现, 已修复)
+**现象**: 聊天头部背景50%透明度不够透；新消息到达后列表不自动滚动到底部
+**根因**: 头部背景色#80前缀(50%透明)；Scroll没有Scroller控制器，没有scrollEdge调用
+**解决**: 头部背景从#80改为#40(25%透明)；添加Scroller实例，chatListener和aboutToAppear中调用scrollEdge(Edge.Bottom)
+**教训**: ✅聊天类页面必须自动滚动到最新消息；✅覆盖层背景透明度应足够低避免遮挡内容
+
+### 关于页面指纹图标位置和文本显示 (2026-06-05发现, 已修复)
+**现象**: 指纹图标在右侧以36x36大图标显示，没有显示实际指纹文本值
+**根因**: 原设计把指纹图标当复制按钮放在右侧，与设置行"图标+标签+值"的统一格式不一致
+**解决**: 指纹图标移到行首(20x20 colorFilter stroke格式)，标签后显示指纹前12字符+...，点击文本可复制完整指纹
+**教训**: ✅设置行格式应统一为"图标+标签+值"模式；✅可复制内容应显示部分文本提示用户可交互
+
+### 版本号不从app.json5同步 (2026-06-05发现, 已修复)
+**现象**: 关于页面版本号始终显示v0.4.0，与app.json5中versionName不一致
+**根因**: run_hvigor_with_sdk_patch.js中BuildInfo.VERSION硬编码为'0.4.0'，且旧读取路径指向了错误的AppScope位置
+**解决**: 构建脚本基于当前BuildInfo显示版本自增并同步写回AppScope/app.json5与BuildInfo.ets；增量构建右侧数字+1，全量构建中间数字+1且右侧归零，versionCode每次构建单调+1
+**教训**: ✅构建入口必须明确传入增量/全量版本自增模式；✅显示版本、AppScope版本和versionCode必须由脚本同步维护；✅不要在构建脚本中硬编码版本号
 
 ### 密码登录未处理email_check/tfa_check
 **现象**: 密码登录返回email_check/tfa_check时，LoginPage/Settings/Index只显示"登录失败"，不触发邮箱验证或2FA流程
@@ -580,8 +628,8 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **解决**: 删除Settings.ets独立页面，MyDevice跳转改为Index页面，main_pages.json移除Settings注册。Index.ets设置tab保留完整9个section。
 **教训**: ✅同一功能只保留一个入口；✅删除重复页面时要同步更新所有引用和路由注册。
 
-### 聊天tab不显示会话聊天记录 (2026-06-03发现, 已修复)
-**现象**: 聊天tab始终显示"No active connection"，即使有过会话也不显示聊天记录。
-**根因**: chatMessages只在RemoteControl中加载，Index.ets未在连接成功时加载；未连接时清空chatMessages；连接新目标时清空旧记录。
-**解决**: 连接成功时加载chatMessages；新增 `hasHadSession`/`lastSessionPeerId` 标志；会话结束后显示记录或"No messages yet."而非"No active connection"；不再清空历史记录。
-**教训**: ✅聊天记录应持久保留到下次会话；✅"无连接"和"会话结束无消息"是不同状态需区分显示。
+### 聊天tab不显示会话聊天记录 / 浮窗不自动滚动 (2026-06-05补充, 已修复)
+**现象**: 聊天tab应显示会话中的聊天内容，但会话结束或从RemoteControl返回后没有稳定展示最近会话记录；远控会话中的聊天浮窗收到新消息后不会自动滚到底部；页面还会混入固定测试聊天消息。
+**根因**: Index.ets只在连接态读取activePeerId，idle/error后没有稳定回退到最近会话；RemoteControl聊天浮窗未绑定Scroller；AppDataService和Chat.ets仍保留示例种子消息与本地模拟回复。
+**解决**: Index.ets新增当前/最近会话peer解析与 `refreshCurrentSessionChat()`，`onPageShow()`和会话事件都会刷新最近会话聊天；RemoteControl聊天浮窗绑定 `chatPanelScroller` 并在打开、发送、接收时滚到底部；AppDataService不再返回固定测试消息，Chat.ets移除模拟自动回复；ChatService从持久化消息恢复会话摘要。
+**教训**: ✅Chat tab是会话聊天记录视图，不是独立测试聊天页；✅会话结束后仍要保留最近会话peer作为读取目标；✅示例/模拟消息不能进入真实聊天服务。

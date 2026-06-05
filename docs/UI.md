@@ -311,15 +311,52 @@ export function createStrokeIconColorFilter(color: string): drawing.ColorFilter 
 | Sorting_order.svg | 排序 |
 | mac.svg | macOS平台 |
 | linux.svg | Linux平台 |
-| settings_person.svg | 设置-账户 |
-| settings_server.svg | 设置-服务器 |
-| settings_proxy.svg | 设置-代理 |
-| settings_cpu.svg | 设置-硬件编解码 |
-| settings_video.svg | 设置-录屏 |
-| settings_shield.svg | 设置-2FA |
-| settings_monitor.svg | 设置-共享屏幕 |
-| settings_tune.svg | 设置-显示 |
-| settings_info.svg | 设置-关于 |
+| settings_person.svg | 设置-账户(分组标签) |
+| settings_server.svg | 设置-服务器(分组标签+行图标) |
+| settings_proxy.svg | 设置-代理(行图标) |
+| settings_cpu.svg | 设置-硬件编解码(分组标签+行图标) |
+| settings_video.svg | 设置-录屏(分组标签) |
+| settings_shield.svg | 设置-2FA(分组标签) |
+| settings_monitor.svg | 设置-共享屏幕/显示(分组标签) |
+| settings_tune.svg | 设置-增强功能(分组标签) |
+| settings_info.svg | 设置-关于(分组标签) |
+| settings_websocket.svg | 设置-WebSocket(Lucide globe) |
+| settings_network.svg | 设置-IPv6 P2P(Lucide network) |
+| settings_udp.svg | 设置-UDP打洞(Lucide arrow-down-up) |
+| settings_ipv6.svg | 设置-IPv6(Lucide network) |
+| settings_remark.svg | 设置-会话结束备注(Lucide message-square-plus) |
+| settings_keepscreen.svg | 设置-保持亮屏(Lucide sun) |
+| settings_folder.svg | 设置-目录(Lucide folder) |
+| settings_shield_check.svg | 设置-2FA开关(Lucide shield-check) |
+| settings_wifi_off.svg | 设置-拒绝LAN发现(Lucide wifi-off) |
+| settings_whitelist.svg | 设置-白名单IP(Lucide shield-alert) |
+| settings_gauge.svg | 设置-自适应码率(Lucide gauge) |
+| settings_record.svg | 设置-允许录制(Lucide circle-dot) |
+| settings_router.svg | 设置-直连IP(Lucide router) |
+| settings_timer.svg | 设置-自动关闭/构建时间(Lucide timer) |
+| settings_power.svg | 设置-开机启动(Lucide power) |
+| settings_update.svg | 设置-检查更新(Lucide refresh-cw) |
+| settings_terminal.svg | 设置-终端扩展键(Lucide terminal) |
+| settings_floating.svg | 设置-悬浮窗(Lucide app-window) |
+| settings_display.svg | 设置-显示/保持亮屏(Lucide monitor) |
+| settings_info_circle.svg | 设置-版本信息(Lucide info) |
+| settings_privacy.svg | 设置-隐私政策(Lucide file-text) |
+| settings_language.svg | 设置-语言(Lucide languages) |
+| settings_palette.svg | 设置-主题(Lucide palette) |
+| settings_record_in.svg | 设置-录入站(Lucide arrow-down-to-line) |
+| settings_record_out.svg | 设置-录出站(Lucide arrow-up-from-line) |
+| menu_key.svg | 菜单-密码/Ctrl+Alt+Del(Lucide key) |
+| menu_clipboard.svg | 菜单-发送剪贴板(Lucide clipboard) |
+| menu_reset.svg | 菜单-重置画布(Lucide maximize) |
+| menu_lock.svg | 菜单-锁屏(Lucide lock) |
+| menu_block.svg | 菜单-阻止输入(Lucide ban) |
+| menu_restart.svg | 菜单-重启远端(Lucide rotate-ccw) |
+| menu_refresh.svg | 菜单-刷新屏幕(Lucide refresh-cw) |
+| menu_transfer.svg | 菜单-文件传输(Lucide folder-sync) |
+| menu_fingerprint.svg | 菜单-复制指纹(Lucide copy) |
+| menu_switch.svg | 菜单-切换方向(Lucide arrow-left-right) |
+| menu_screenshot.svg | 菜单-截图(Lucide camera) |
+| menu_record.svg | 菜单-会话录制(Lucide circle-dot) |
 
 ### 动态图标方案 (refresh.svg为例)
 
@@ -365,7 +402,15 @@ this.refreshAngle = 0;
 - 亮色主题 → 深色图标
 - 暗色主题 → 浅色图标
 
-关键位置: Tab菜单图标 / ConnectPeerTab图标 / 远程控制工具栏 / 返回箭头 / 搜索/排序 / 三点菜单 / 扫描/指纹
+关键位置: Tab菜单图标 / ConnectPeerTab图标 / 远程控制工具栏 / 返回箭头 / 搜索/排序 / 三点菜单 / 扫描/指纹 / 账户页InfoRow图标
+
+---
+
+## 账户页登录后图标 (2026-06-05)
+
+- **InfoRow组件**：`InfoRow(label, value, icon='')` 新增可选icon参数，传入时在label前显示18px stroke图标
+- **连接Tab账户卡片**：Account→settings_person.svg、Provider→settings_server.svg、Status→settings_record.svg
+- **账户对话框登录后**：账户名前添加settings_person.svg图标（Provider/Status已有buildSettingsInfoSettingRow图标）
 
 ---
 

@@ -2,11 +2,52 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.6.3 (2026-06-05)
+
+### 修复
+
+- 工作区路径便携化：文档统一使用 `%VSCODE_ROOT%` 表示包含 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 的可移动根目录，不再绑定旧固定盘符。
+- Hvigor 缓存和 HAP 输出改为相对 `../99_Temp/...`，适配 U 盘换盘符和借用不同电脑。
+- HAP 签名路径改为 `../99_Temp/rustdesk_harmonyos_signing/...`，当前有效签名材料已移动到 `99_Temp` 便携目录。
+- Windows HAP 构建入口补充 `local.properties` / 环境变量查找，支持 DevEco 安装在非默认路径。
+- Windows HAP 构建入口在 Node 启动前设置 `CI=true`、`RUSTDESK_HARMONY_TEMP_ROOT` 和 `BUILD_CACHE_DIR`，让 Hvigor 日志、HAP 输出和 Native `.cxx` 中间目录落到 `99_Temp`，避免 U 盘项目内旧 `.hvigor/entry/build/entry/.cxx` 权限残留阻断构建。
+- `clean_project.ps1` 增加长路径删除支持；`-IncludeExternalBuild` 默认只清理 `99_Temp/harmonyos_build/rustdesk_harmonyos`，`-IncludeHvigorCache` 作为显式深度缓存清理开关。
+- `AccountService.fetchAddressBook()` 修复空通讯录响应不覆盖旧缓存的问题，避免切换账号或服务端后显示过期设备。
+- `HttpClient` 请求体、响应体和 URL 查询参数日志增加脱敏，避免 password/token/uuid/code 等敏感值进入日志。
+- 扫码页新增相册图片二维码识别入口，扫到服务器配置导入文本时直接保存到服务器配置；设置页服务器导入/导出成功增加 toast 提示。
+- 构建脚本新增版本自增规则：增量构建自增右侧数字，全量构建自增中间数字并重置右侧数字，同时同步 `AppScope/app.json5` 与 `BuildInfo.ets`。
+- 新增项目根 `README.md` 作为线上默认 `DESIGN` 介绍；Markdown 文档不再记录 USB 设备硬件编号。
+- 聊天Tab改为显示当前/最近一次会话中的聊天内容；会话结束或从远控页返回后刷新最近会话历史，peer信息只替换聊天Tab头部并保留右侧图标。
+- 远控会话聊天浮窗新增自动滚动到最新消息，每次发送和接收消息后都会滚动；移除固定测试聊天消息和本地模拟自动回复。
+- `clean_project.ps1` 在外部构建目录内容已清空但空目录无法删除时降级为警告，避免全量构建被空目录阻断。
+
+### 验证
+
+- 签名 profile 校验通过，bundleName 为 `com.open.rundesk`，profile 有效期 `2026-06-03` 至 `2027-06-03`。
+- `scripts\AUTO_BUILD_INSTALL.bat --full auto` 全量重建安装通过，版本从 `0.5.1` 递增到 `0.6.0`，启动阶段因设备锁屏跳过。
+- 补回聊天标题右侧图标后，`scripts\AUTO_BUILD_INSTALL.bat auto` 增量构建安装启动通过，版本递增到 `0.6.2`，签名 HAP 输出到 `99_Temp/harmonyos_build/rustdesk_harmonyos/entry/build/default/outputs/default/entry-default-signed.hap`。
+- 已完成 100 轮功能逻辑审查，明细记录在 `docs/FUNCTION_LOGIC_AUDIT_2026-06-05.md`。
+
+## v0.6.2 (2026-06-04)
+
+### 修复
+
+- 平台图标着色统一：Windows、Android、Linux、macOS/iOS 等平台图标统一使用主题强调色 SVG 填充，保持与原 Windows 蓝色图标效果一致，同时不改动 SVG 造型。
+- 设置页右上角恢复扫码入口，使用固定尺寸主题色图标按钮，避免被标题栏布局或图标颜色隐藏。
+- 共享页服务卡片删除“服务状态”信息行，并将设备名称行调整为与设置页信息行一致的显示样式。
+- 设置页服务器导入/导出图标改为 stroke 主题色滤镜，适配深浅主题。
+- 服务器配置导出结构改为官方短字段 `host/relay/api/key`，导入同时兼容 `idServer/relayServer/apiServer/key` 历史剪贴板内容。
+
+### 验证
+
+- 增量 HAP 构建通过，BuildInfo 更新时间：`2026-06-04 23:04`。
+- 自动安装并启动通过，目标：`192.168.11.100:36169`。
+
 ## v0.6.1 (2026-06-04)
 
 ### 文档
 
-- 新增 `docs/GIT_PUBLISH.md`，记录 GitHub 发布规则：本地工作目录保持 `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`，远端 `master` 通过 `99_Temp/rustdesk_harmonyos_publish_root` 发布为项目根结构。
+- 更新 `docs/GIT_PUBLISH.md`：本地工作目录与远端 `master` 统一为项目根结构，正常从 `%VSCODE_ROOT%\11_Rustdesk_harmonyos` 提交推送。
 - 明确禁止在本地工作仓库直接普通 `git pull` 合并远端发布提交，避免把本地目录结构改成线上根结构。
 - 在 `docs/README.md` 和 `docs/FILES.md` 增加 Git 发布说明入口和临时发布目录说明。
 

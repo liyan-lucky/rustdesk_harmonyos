@@ -30,11 +30,14 @@ RustDesk Server / Peer
 
 关键关系：
 
-- Harmony app project: `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos`
-- RustDesk upstream source: `E:\Visual_Studio_Code\99_Temp\rustdesk-master`
-- Native build workspace: `E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build`
-- Core staticlib in app: `E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a`
-- Signed HAP output: `E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
+`%VSCODE_ROOT%` 是可移动工作区根目录，不是固定盘符。当前脚本默认从项目目录向上一级匹配同级 `99_Temp`，所以 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 必须保持在同一个工作区根下。
+
+- Harmony app project: `%VSCODE_ROOT%\11_Rustdesk_harmonyos`
+- RustDesk upstream source: `%VSCODE_ROOT%\99_Temp\rustdesk-master`
+- Native build workspace: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
+- Core staticlib in app: `%VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a`
+- HAP staged project copy: `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`
+- Signed HAP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 
 ## 关键文件
 
@@ -52,7 +55,7 @@ RustDesk Server / Peer
 
 ## 当前核心必须保留的能力
 
-重建环境时，`E:\Visual_Studio_Code\99_Temp\rustdesk-master` 中的 Harmony bridge 相关改动必须保留，尤其是：
+重建环境时，`%VSCODE_ROOT%\99_Temp\rustdesk-master` 中的 Harmony bridge 相关改动必须保留，尤其是：
 
 - `src/harmony_bridge/core.rs`
   - `connect_to_peer()` 走官方 RustDesk session 路径，并保存 active `Session<HarmonyHandler>`。
@@ -84,7 +87,7 @@ HAP:
 - Signed HAP size: `45,416,051` bytes
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
-- USB target used for validation: `2NX0224429035123`
+- USB target used for validation: configured by `RUSTDESK_HARMONY_USB_TARGET`; hardware IDs are not recorded in docs.
 - Wireless target used for validation: `192.168.11.100:36169`
 
 ## Windows 一键重编核心
@@ -93,6 +96,7 @@ HAP:
 
 - DevEco Studio SDK: `C:\Program Files\Huawei\DevEco Studio\sdk\default`
 - DevEco Node/Hvigor: `C:\Program Files\Huawei\DevEco Studio\tools`
+- 如果借用电脑上的 DevEco 不在默认路径，优先更新 `local.properties`，或设置 `DEVECO_SDK_HOME`、`DEVECO_TOOLS_HOME`、`DEVECO_NODE_EXE`、`HDC_EXE`。
 - Rust stable toolchain
 - Rust target:
 
@@ -101,13 +105,13 @@ rustup target add aarch64-unknown-linux-ohos --toolchain stable
 ```
 
 - MSYS2: `C:\msys64`
-- OHOS SDK mirror: `E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\ohos-sdk`
-- vcpkg/libsodium outputs under `E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build`
+- OHOS SDK mirror: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\ohos-sdk`
+- vcpkg/libsodium outputs under `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
 
 重编命令：
 
 ```cmd
-cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat
+cmd /c %VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat
 ```
 
 预期结果：
@@ -117,14 +121,15 @@ cmd /c E:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_build\build_bridge_now.b
 - 脚本复制产物到：
 
 ```text
-E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
+%VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
 ```
 
 重编后检查：
 
 ```powershell
-Get-Item E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
-Get-FileHash E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a -Algorithm SHA256
+$env:VSCODE_ROOT = (Resolve-Path ..\..).Path
+Get-Item "$env:VSCODE_ROOT\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a"
+Get-FileHash "$env:VSCODE_ROOT\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a" -Algorithm SHA256
 ```
 
 ## 构建和安装 HAP
@@ -132,41 +137,43 @@ Get-FileHash E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos\entry\src\main
 构建：
 
 ```cmd
-cd E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
+cd %VSCODE_ROOT%\11_Rustdesk_harmonyos
 scripts\build_hap.bat
 ```
 
-`build_hap.bat` 是增量构建入口，会自动更新 App 内构建时间；底层仍调用 `node scripts\run_hvigor_with_sdk_patch.js assembleHap`。
+`build_hap.bat` 是增量构建入口，会先复制干净 staging 副本，自动更新 App 内构建时间，并将版本号右侧数字自增 1；底层仍调用 `node scripts\run_hvigor_with_sdk_patch.js assembleHap`，构建成功后把 `AppScope/app.json5` 和 `BuildInfo.ets` 同步回真实项目根。
 
-全量构建 HAP（会清理生成产物，并自动更新 App 内构建时间）：
+全量构建 HAP（会清理生成产物、`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos` 和对应 staging 副本，自动更新 App 内构建时间，并将版本号中间数字自增 1、右侧数字归零）：
 
 ```cmd
-cd /d E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
+cd /d %VSCODE_ROOT%\11_Rustdesk_harmonyos
 scripts\build_full_hap.bat
 ```
+
+`build_full_hap.bat` 默认保留 `%VSCODE_ROOT%\99_Temp\harmonyos_cache`，避免 Hvigor 内置 clean 触碰 U 盘上历史残留的项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 坏目录。需要深度清理 Hvigor cache 时，手动运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean_project.ps1 -IncludeExternalBuild -IncludeHvigorCache`，随后再运行 `scripts\build_hap.bat`。
 
 一键构建、安装、启动：
 
 ```cmd
-cd /d E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
-scripts\AUTO_BUILD_INSTALL.bat 2NX0224429035123
+cd /d %VSCODE_ROOT%\11_Rustdesk_harmonyos
+scripts\AUTO_BUILD_INSTALL.bat %RUSTDESK_HARMONY_USB_TARGET%
 ```
 
 全量构建后自动安装：
 
 ```cmd
-cd /d E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
+cd /d %VSCODE_ROOT%\11_Rustdesk_harmonyos
 scripts\AUTO_BUILD_INSTALL.bat --full auto
 ```
 
 自动选择 USB/无线目标：
 
 ```cmd
-cd /d E:\Visual_Studio_Code\11_Rustdesk\rustdesk_harmonyos
+cd /d %VSCODE_ROOT%\11_Rustdesk_harmonyos
 scripts\AUTO_BUILD_INSTALL.bat auto
 ```
 
-`AUTO_BUILD_INSTALL.bat` 会优先使用 USB 目标 `2NX0224429035123`；USB 不在线时，会尝试 `hdc tconn 192.168.11.100:36169` 并使用无线目标。可通过 `RUSTDESK_HARMONY_USB_TARGET` 和 `RUSTDESK_HARMONY_WIRELESS_TARGET` 覆盖默认值。
+`AUTO_BUILD_INSTALL.bat` 会优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标；USB 不在线时，会尝试 `hdc tconn 192.168.11.100:36169` 并使用无线目标。可通过 `RUSTDESK_HARMONY_USB_TARGET` 和 `RUSTDESK_HARMONY_WIRELESS_TARGET` 覆盖默认值。
 
 如果安装成功但启动返回 `Error Code:10106102`，表示设备锁屏且 HDC 无法自动解锁；脚本会将其视为“安装成功、启动需手动解锁后复测”的 warning。
 
@@ -174,28 +181,32 @@ scripts\AUTO_BUILD_INSTALL.bat auto
 
 ```powershell
 $hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
-$hap = 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap'
-& $hdc -t 2NX0224429035123 install -r $hap
-& $hdc -t 2NX0224429035123 shell aa start -a EntryAbility -b com.open.rundesk
+$env:VSCODE_ROOT = (Resolve-Path ..\..).Path
+$target = $env:RUSTDESK_HARMONY_USB_TARGET
+$hap = "$env:VSCODE_ROOT\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap"
+& $hdc -t $target install -r $hap
+& $hdc -t $target shell aa start -a EntryAbility -b com.open.rundesk
 ```
 
 ### HDC 设备验证
 
 当前默认 USB 目标：
 
-- 目标设备：`2NX0224429035123`
+- 目标设备：由 `RUSTDESK_HARMONY_USB_TARGET` 指定
 - 包名：`com.open.rundesk`
 - Ability：`EntryAbility`
-- 签名HAP：`E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
+- 签名HAP：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 
 USB 验证流程：
 
 ```powershell
 $hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
-$hap = 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap'
+$env:VSCODE_ROOT = (Resolve-Path ..\..).Path
+$target = $env:RUSTDESK_HARMONY_USB_TARGET
+$hap = "$env:VSCODE_ROOT\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap"
 & $hdc list targets
-& $hdc -t 2NX0224429035123 install -r $hap
-& $hdc -t 2NX0224429035123 shell aa start -a EntryAbility -b com.open.rundesk
+& $hdc -t $target install -r $hap
+& $hdc -t $target shell aa start -a EntryAbility -b com.open.rundesk
 ```
 
 2026-06-02 14:40 验证结果：
@@ -351,9 +362,9 @@ Ubuntu 交叉编译路径曾验证通过，但当前优先使用 Windows 的 `bu
 历史 Ubuntu 入口：
 
 ```bash
-export RUSTDESK_HARMONY_BUILD_DIR="/media/$USER/Data/Visual_Studio_Code/99_Temp/rustdesk_harmonyos_build"
+export RUSTDESK_HARMONY_BUILD_DIR="$VSCODE_ROOT_LINUX/99_Temp/rustdesk_harmonyos_build"
 export OHOS_NDK_HOME="$RUSTDESK_HARMONY_BUILD_DIR/ohos-sdk"
-cd /media/$USER/Data/Visual_Studio_Code/11_Rustdesk/rustdesk_harmonyos/scripts
+cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 ./build_native_bridge.sh aarch64-unknown-linux-ohos release
 ```
 

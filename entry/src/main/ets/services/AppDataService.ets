@@ -770,11 +770,7 @@ export class AppDataService {
   }
 
   getChatMessages(deviceId: string): ChatMessage[] {
-    return [
-      { id: `${deviceId}-chat-1`, sender: 'remote', text: '连接看起来比较稳定，现在可以开始检查更新了。', time: '09:41' },
-      { id: `${deviceId}-chat-2`, sender: 'local', text: '收到，我先核对版本，然后再打开文件传输。', time: '09:42' },
-      { id: `${deviceId}-chat-3`, sender: 'remote', text: '可以，剪贴板同步先保持开启。', time: '09:43' }
-    ];
+    return [];
   }
 
   private persistSettings(): void {

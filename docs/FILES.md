@@ -2,6 +2,21 @@
 
 > 每个代码文件的作用，修改前必读
 
+## 工作区项目匹配
+
+`%VSCODE_ROOT%` 是包含 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 的可移动工作区根目录。当前项目只依赖下列 RustDesk/HarmonyOS 相关目录；`01_DeepSeek-*`、`03_ Excel_VBA _database`、`04_Excel_VBA_Files`、`05_Excel_VBA_HR`、`06_Excel_VBA_Inventory`、`07 Rustdesk-api-server-pro`、`08_Gun_Rrub2`、`09_Win_desk_time`、`10_Tabssh.github.io`、`12_Monitor tool`、`98_Test` 等同级目录不是当前 HAP 构建依赖。
+
+| 工作区目录 | 匹配结果 |
+|------|------|
+| `11_Rustdesk_harmonyos/` | 当前 Git 根和 HarmonyOS App 项目根，顶层直接包含 `AppScope/`、`entry/`、`docs/`、`scripts/` |
+| `99_Temp/rustdesk-master/` | RustDesk 上游源码和 Harmony bridge patch 源 |
+| `99_Temp/rustdesk_harmonyos_build/` | Native core 构建工作区、OHOS SDK mirror、vcpkg、外部依赖 |
+| `99_Temp/harmonyos_build/` | HAP 构建输出 |
+| `99_Temp/harmonyos_stage/` | HAP 构建前的干净项目副本，避开本地旧生成目录权限残留 |
+| `99_Temp/harmonyos_cache/` | Hvigor 缓存 |
+| `99_Temp/rustdesk_harmonyos_signing/` | 当前可移动签名材料，`build-profile.json5` 通过相对路径引用 |
+| `99_Temp/rustdesk_harmonyos_backups/` | 项目 zip 备份目录，只保留最新 2 份 |
+
 ## 文档目录 (docs/)
 
 | 文件 | 作用 |
@@ -15,7 +30,7 @@
 | `DESIGN.md` | 架构、UI、构建、真机测试设计约束 |
 | `UI.md` | UI布局、图标、核心页卡片细节 |
 | `BUILD_ARCHIVE.md` | 历史构建、脚本、Ubuntu路径和早期会话归档 |
-| `GIT_PUBLISH.md` | GitHub 发布说明。本地保持 `rustdesk_harmonyos/` 子目录结构，远端 `master` 发布为项目根结构；包含临时发布目录流程和禁止项。 |
+| `GIT_PUBLISH.md` | GitHub 发布说明。本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。 |
 
 ## C++桥接层 (entry/src/main/cpp/)
 
@@ -41,28 +56,29 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `Index.ets` | 5000 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，权限开关先同步更新再异步请求，hilog调试日志 |
-| `RemoteControl.ets` | 3540 | **远程控制页**，视频渲染+输入控制+工具栏+手势，127个lt()调用 |
+| `Index.ets` | 5027 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
+| `RemoteControl.ets` | 3884 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息 |
 | ~~`Settings.ets`~~ | - | 已删除，设置功能合并到Index.ets设置tab |
 | `FileTransfer.ets` | 635 | 文件传输页面 |
 | `LoginPage.ets` | 393 | 登录页面(OAuth+密码，统一走AccountService) |
 | `Terminal.ets` | 470 | 终端页面(多会话) |
 | `AddressBook.ets` | 487 | 地址簿页面 |
-| `Chat.ets` | 461 | 聊天页面 |
+| `Chat.ets` | 412 | 聊天页面，移除固定示例回复和种子消息 |
 | `MyDevice.ets` | 364 | 我的设备页面 |
 | `ViewCamera.ets` | 323 | 摄像头页面 |
 | `WebLoginPage.ets` | 232 | Web登录页面 |
-| `Scan.ets` | 187 | 扫描页面 |
+| `Scan.ets` | 410 | 扫描页面，相机/相册二维码识别，服务器配置扫码直存 |
 
 ## ArkTS服务层 (entry/src/main/ets/services/)
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
 | `NativeRustDeskBridge.ts` | 1653 | **NAPI底层桥接**，ArkTS封装C++ SO；getPeerInfo()/getPeerOption优先解析NAPI函数，未注册时回退读取PeerConfig文件 |
-| `I18nService.ets` | 1793 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染 |
+| `I18nService.ets` | 1956 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染 |
 | `OfficialRustDeskBridge.ets` | 772 | 官方桥接高层封装，统一调用NativeRustDeskBridge |
-| `AppDataService.ets` | 964 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31) |
-| `ChatService.ets` | 614 | 聊天服务 |
+| `AppDataService.ets` | 1053 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31)，不再返回固定测试聊天消息 |
+| `ServerConfigCodec.ets` | 66 | 服务器配置导入导出编解码，复用官方 JSON→Base64→反转格式 |
+| `ChatService.ets` | 544 | 聊天服务，持久化消息加载时重建会话摘要 |
 | `AccountService.ets` | 515 | 账户服务(token持久化/登录登出/PasswordLoginResult) |
 | `FileTransferService.ets` | 537 | 文件传输服务 |
 | `CoreLoaderService.ts` | 443 | 核心SO加载服务(staticlib方案下仅做初始化检查) |
@@ -89,7 +105,7 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `CommonComponents.ets` | 516 | **通用UI组件库**，CardContainer/PrimaryButton/SecondaryButton/SectionTitle/PageHeader/createStrokeIconColorFilter/toArgbColor |
+| `CommonComponents.ets` | 516 | **通用UI组件库**，CardContainer/PrimaryButton/SecondaryButton/SectionTitle/PageHeader/InfoRow(含icon)/createStrokeIconColorFilter/toArgbColor |
 | `ThemeConfig.ets` | 383 | **主题配置**，ThemeManager(单例)/ThemeConfig(AppStorage管理颜色)，MENU_ITEM_HEIGHT=50 |
 | `ErrorHandler.ets` | 465 | 错误处理器 |
 | `SessionDiagnostic.ets` | 449 | 会话诊断 |
@@ -125,13 +141,13 @@
 ## 修改注意事项
 
 - **设置Tab**: 所有UI代码在Index.ets中，不在Settings.ets
-- **Index.ets**: 5000行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console
-- **RemoteControl.ets**: 3540行，视频帧性能敏感，避免ForEach
+- **Index.ets**: 5027行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console
+- **RemoteControl.ets**: 3884行，视频帧性能敏感，避免ForEach
 - **I18nService.ets**: 所有翻译文本在此，新增语言需添加
 - **ThemeConfig.ets**: 颜色通过AppStorage管理，不是color.json
 - **BuildInfo.ets**: 每次构建前脚本自动更新BUILD_TIME
 
-## 外部依赖目录 (`E:\Visual_Studio_Code\99_Temp\` / Ubuntu挂载同名目录)
+## 外部依赖目录 (`%VSCODE_ROOT%\99_Temp\` / Ubuntu挂载同名目录)
 
 | 目录 | 作用 |
 |------|------|
@@ -143,6 +159,8 @@
 | `rustdesk_harmonyos_build/build/libsodium/aarch64-unknown-linux-ohos/lib/liblibsodium.a` | Windows端交叉编译得到的OHOS libsodium静态库 |
 | `rustdesk_harmonyos_build/native_rust_core/target/harmony/librustdesk_harmony_bridge.a` | Windows native core构建产物；当前同步到项目libs的verified core见`CORE.md`，size `135,575,952` bytes，SHA256 `14863BC23CD2B940664CD501EE1501897E5B1E498150EAFDCFD607B78A38D0D4` |
 | `rustdesk_harmonyos_build/vcpkg/` | vcpkg包管理器及已安装依赖；`downloads/buildtrees/packages`缓存已清理 |
+| `harmonyos_build/` | 当前 HAP 输出目录，项目子目录名与 `11_Rustdesk_harmonyos/` 保持一致 |
+| `harmonyos_stage/` | 临时 staged build 目录，可删除，可由脚本重新生成 |
+| `rustdesk_harmonyos_signing/` | 便携签名材料目录，包含当前 `com.open.rundesk` HAP 签名所需 `.cer`、`.p12`、`.p7b` 和 `material/`；换电脑时必须随 `99_Temp` 一起保留 |
 | `rustdesk_harmonyos_backups/` | 当前项目zip备份目录；只保留最新2份，旧备份清理时删除。备份必须统一写入此目录，不要在 `99_Temp` 下新建 `rustdesk_harmonyos_project_backup_*` 等散落目录；需要备份时运行 `scripts/backup_project.ps1`。 |
-| `rustdesk_harmonyos_publish_root/` | GitHub 根目录结构发布用临时克隆目录。只用于生成/推送远端 `master` 的根结构快照；不要把它当成本地开发目录，也不要从本地工作仓库直接 `git pull` 合并该发布提交。 |
 | `rustdesk_harmonyos_test_logs/` | 真机安装/启动日志目录；历史日志仅作参考，当前验证结果以`CONNECTION_DEBUG_LOG.md`为准 |

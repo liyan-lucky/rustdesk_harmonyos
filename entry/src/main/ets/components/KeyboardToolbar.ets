@@ -112,7 +112,7 @@ export struct KeyboardToolbar {
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.isModifierActive(key.mask) ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-          .backgroundColor(this.isModifierActive(key.mask) ? key.color : this.theme_INACTIVE_BG)
+          .backgroundColor(this.isModifierActive(key.mask) ? key.color : '#55333333')
           .borderRadius(8)
           .onClick(() => {
             this.toggleModifier(key.mask);
@@ -132,7 +132,7 @@ export struct KeyboardToolbar {
           .height(36)
           .fontSize(12)
           .fontColor(this.theme_TEXT_PRIMARY)
-          .backgroundColor(this.theme_WHITE)
+          .backgroundColor('#55333333')
           .border({ width: 1, color: this.theme_BORDER_SOFT })
           .borderRadius(6)
           .margin(2)
@@ -151,7 +151,7 @@ export struct KeyboardToolbar {
         .height(40)
         .fontSize(13)
         .fontColor(this.theme_CONTRAST_TEXT)
-        .backgroundColor(this.theme_ERROR_TEXT)
+        .backgroundColor('#80FCA5A5')
         .borderRadius(8)
         .onClick(() => {
           this.sendCtrlAltDel();
@@ -161,7 +161,7 @@ export struct KeyboardToolbar {
         .height(40)
         .fontSize(13)
         .fontColor(this.theme_ACCENT_TEXT)
-        .backgroundColor(this.theme_ACCENT)
+        .backgroundColor('#550071FF')
         .borderRadius(8)
         .onClick(() => {
           this.sendLockScreen();
@@ -171,7 +171,7 @@ export struct KeyboardToolbar {
         .height(40)
         .fontSize(13)
         .fontColor(this.theme_TEXT_PRIMARY)
-        .backgroundColor(this.theme_INACTIVE_BG)
+        .backgroundColor('#55333333')
         .borderRadius(8)
         .onClick(() => {
           this.modifiers = 0;
@@ -189,7 +189,7 @@ export struct KeyboardToolbar {
           .height(36)
           .fontSize(13)
           .fontColor(this.theme_TEXT_PRIMARY)
-          .backgroundColor(this.theme_INACTIVE_BG)
+          .backgroundColor('#55333333')
           .borderRadius(8)
           .onClick(() => {
             this.showTextInput = !this.showTextInput;
@@ -200,7 +200,7 @@ export struct KeyboardToolbar {
             .height(36)
             .fontSize(13)
             .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .backgroundColor('#550071FF')
             .borderRadius(8)
             .onClick(() => {
               this.sendKey(13);
@@ -214,7 +214,7 @@ export struct KeyboardToolbar {
           .width('100%')
           .height(44)
           .fontSize(16)
-          .backgroundColor(this.theme_WHITE)
+          .backgroundColor('#55333333')
           .border({ width: 1, color: this.theme_BORDER_SOFT })
           .borderRadius(8)
           .onChange((value: string) => {

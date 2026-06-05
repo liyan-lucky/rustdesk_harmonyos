@@ -157,11 +157,12 @@ export class HttpClient {
   ): Promise<HttpResult<T>> {
     const httpRequest = http.createHttp();
     const url = `${this.baseUrl}${path}`;
+    const logUrl = this.redactUrlForLog(url);
     const accessToken = this.getAccessToken();
 
-    console.info(`[HttpClient] ${method === http.RequestMethod.GET ? 'GET' : 'POST'} ${url}`);
+    console.info(`[HttpClient] ${method === http.RequestMethod.GET ? 'GET' : 'POST'} ${logUrl}`);
     if (body) {
-      console.info(`[HttpClient] body: ${JSON.stringify(body)}`);
+      console.info(`[HttpClient] body: ${this.redactForLog(body)}`);
     }
 
     const headers: Record<string, string> = {
@@ -193,7 +194,7 @@ export class HttpClient {
 
       if (statusCode >= 200 && statusCode < 300) {
         const data = response.result as T;
-        console.info(`[HttpClient] Response data: ${JSON.stringify(data).substring(0, 200)}`);
+        console.info(`[HttpClient] Response data: ${this.redactForLog(response.result)}`);
         return { success: true, data, statusCode };
       }
 
@@ -231,6 +232,24 @@ export class HttpClient {
       }
     }
     return '请求失败';
+  }
+
+  private redactForLog(value: Object | string | undefined): string {
+    if (value === undefined) {
+      return '';
+    }
+    try {
+      const text = typeof value === 'string' ? value : JSON.stringify(value);
+      return text
+        .replace(/("(?:password|access_token|token|uuid)"\s*:\s*")[^"]*(")/gi, '$1***$2')
+        .substring(0, 200);
+    } catch (_error) {
+      return '[unserializable]';
+    }
+  }
+
+  private redactUrlForLog(url: string): string {
+    return url.replace(/([?&](?:code|uuid|token|access_token)=)[^&]*/gi, '$1***');
   }
 
   async get<T>(path: string): Promise<HttpResult<T>> {
@@ -321,7 +340,7 @@ export class HttpClient {
   async oidcAuthQuery(code: string): Promise<HttpResult<AuthQueryResponse>> {
     const id = this.getDeviceId();
     const uuid = this.getDeviceUuidBase64();
-    console.info(`[HttpClient] oidcAuthQuery: code=${code}, id=${id}, uuid_len=${uuid.length}`);
+    console.info(`[HttpClient] oidcAuthQuery: code_len=${code.length}, id=${id}, uuid_len=${uuid.length}`);
     const rawResult = await this.get<Record<string, Object>>(`/api/oidc/auth-query?code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}&uuid=${encodeURIComponent(uuid)}`);
 
     if (!rawResult.success || !rawResult.data) {

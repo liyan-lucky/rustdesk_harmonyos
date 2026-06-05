@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $workspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot ".."))
-$tempRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "..\99_Temp"))
+$tempRoot = [System.IO.Path]::GetFullPath((Join-Path $workspaceRoot "99_Temp"))
 $backupRoot = Join-Path $tempRoot "rustdesk_harmonyos_backups"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $stageRoot = Join-Path $env:TEMP "rustdesk_harmonyos_backup_$timestamp"
@@ -18,9 +18,13 @@ if (Test-Path -LiteralPath $stageRoot) {
 }
 
 $excludeDirs = @(
+  (Join-Path $projectRoot ".codeartsdoer"),
   (Join-Path $projectRoot ".hvigor"),
   (Join-Path $projectRoot ".hvigor_home"),
+  (Join-Path $projectRoot ".idea"),
   (Join-Path $projectRoot ".appanalyzer"),
+  (Join-Path $projectRoot ".vscode"),
+  (Join-Path $projectRoot "rustdesk_harmonyos"),
   (Join-Path $projectRoot "oh_modules"),
   (Join-Path $projectRoot "entry\build"),
   (Join-Path $projectRoot "entry\.cxx"),
@@ -28,7 +32,7 @@ $excludeDirs = @(
 )
 
 try {
-  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XD") + $excludeDirs + @("/XF", "*.log")
+  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XD") + $excludeDirs + @("/XF", "*.log", "*.tmp", "*.bak", "*.hap", "*.a", "*.so")
   & robocopy @robocopyArgs | Out-Host
   $robocopyExit = $LASTEXITCODE
   if ($robocopyExit -gt 7) {

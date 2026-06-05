@@ -490,7 +490,26 @@ export class ChatService {
       const keys = Object.keys(data);
       for (let i = 0; i < keys.length; i++) {
         const deviceId = keys[i];
-        this.messages.set(deviceId, data[deviceId]);
+        const messages = data[deviceId];
+        if (!Array.isArray(messages)) {
+          continue;
+        }
+        this.messages.set(deviceId, messages);
+        if (messages.length > 0) {
+          const lastMessage = messages[messages.length - 1];
+          let unreadCount = 0;
+          messages.forEach((message: ChatMessage) => {
+            if (message.sender === 'remote' && !message.isRead) {
+              unreadCount += 1;
+            }
+          });
+          this.sessions.set(deviceId, {
+            deviceId,
+            deviceName: 'Unknown Device',
+            unreadCount,
+            lastMessage
+          });
+        }
       }
     } catch (error) {
       console.error('Load persisted chat messages failed:', error);
