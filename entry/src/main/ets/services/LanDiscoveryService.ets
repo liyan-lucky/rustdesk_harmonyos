@@ -24,6 +24,7 @@ export class LanDiscoveryService {
   private isDiscovering: boolean = false;
   private ignoredPeerIdsLoaded: boolean = false;
   private listeners: LanDiscoveryListener[] = [];
+  private consecutiveEmptyLoadCount: number = 0;
 
   private constructor() {}
 
@@ -131,6 +132,13 @@ export class LanDiscoveryService {
         }
       } catch (e) {
         hilog.error(0xA03D00, 'LAN', 'loadDiscoveredPeers parse error %{public}s', JSON.stringify(e));
+      }
+      this.consecutiveEmptyLoadCount = 0;
+    } else {
+      this.consecutiveEmptyLoadCount += 1;
+      if (this.consecutiveEmptyLoadCount < 3) {
+        hilog.info(0xA03D00, 'LAN', 'Keeping previous LAN peers after empty load count=%{public}d', this.consecutiveEmptyLoadCount);
+        return;
       }
     }
     let removed = false;

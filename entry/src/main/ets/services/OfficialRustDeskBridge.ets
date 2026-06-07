@@ -493,7 +493,11 @@ export class OfficialRustDeskBridge {
       changed = true;
     }
 
-    if (event.kind === 'connect-requested' || event.kind === 'login-requested') {
+    if (event.kind === 'connect-requested' ||
+      event.kind === 'login-requested' ||
+      event.kind === 'login' ||
+      event.kind === 'reconnect' ||
+      event.kind === 'reconnect-relay') {
       this.closeRequestedByUser = false;
       nextState.coreReady = true;
       nextState.adapter = 'official-native';
@@ -502,17 +506,19 @@ export class OfficialRustDeskBridge {
       if (normalizedDetail.length > 0) {
         nextState.detailMessage = normalizedDetail;
       }
-      if (event.kind === 'login-requested') {
+      if (event.kind === 'login-requested' || event.kind === 'login') {
         nextState.statusSummary = nextState.activePeerId.length > 0
           ? `Submitting password for ${nextState.activePeerId}`
           : 'Submitting password';
+      } else if (event.kind === 'reconnect' || event.kind === 'reconnect-relay') {
+        nextState.statusSummary = event.kind === 'reconnect-relay' ? 'Connecting through relay' : 'Connecting';
       } else {
         nextState.statusSummary = nextState.activePeerId.length > 0
           ? `Connecting ${nextState.activePeerId}`
           : 'Connecting';
       }
       changed = true;
-    } else if (event.kind === 'session-connected') {
+    } else if (event.kind === 'session-connected' || event.kind === 'connection-ready') {
       nextState.coreReady = true;
       nextState.adapter = 'official-native';
       nextState.sessionStage = 'connected';
@@ -532,7 +538,7 @@ export class OfficialRustDeskBridge {
         nextState.detailMessage = normalizedDetail;
       }
       changed = true;
-    } else if (event.kind === 'session-closed') {
+    } else if (event.kind === 'session-closed' || event.kind === 'closed') {
       nextState.sessionStage = 'idle';
       nextState.lastError = '';
       if (normalizedPeerId.length > 0) {
@@ -593,7 +599,8 @@ export class OfficialRustDeskBridge {
           }
           changed = true;
         } else if (parsedMessageBox.msgType.trim() === 'wait-remote-accept-nook' ||
-          parsedMessageBox.msgType.trim() === 'relay-hint') {
+          parsedMessageBox.msgType.trim() === 'relay-hint' ||
+          parsedMessageBox.msgType.trim() === 'relay-hint2') {
           nextState.sessionStage = 'connecting';
           if (nextState.lastError.length > 0) {
             nextState.lastError = '';

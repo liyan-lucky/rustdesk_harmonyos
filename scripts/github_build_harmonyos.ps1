@@ -8,6 +8,8 @@ param(
   [string]$SigningZipBase64 = $env:RUSTDESK_SIGNING_ZIP_B64,
   [string]$ArtifactsDir = "",
   [int64]$MinCoreBytes = 52428800,
+  [switch]$SkipPackageVerify,
+  [switch]$DisableStage,
   [switch]$PreflightOnly
 )
 
@@ -23,7 +25,7 @@ $tempRoot = if ($env:RUSTDESK_HARMONY_TEMP_ROOT) {
 }
 
 if ([string]::IsNullOrWhiteSpace($ArtifactsDir)) {
-  $ArtifactsDir = Join-Path $projectRoot "github_artifacts"
+  $ArtifactsDir = Join-Path $tempRoot "harmonyos_artifacts\$projectName"
 }
 $ArtifactsDir = [System.IO.Path]::GetFullPath($ArtifactsDir)
 
@@ -332,7 +334,9 @@ function Confirm-RequiredRepoFiles {
     "entry\src\main\cpp\types\librustdesk_bridge\oh-package.json5",
     "entry\src\main\cpp\types\librustdesk_bridge\index.d.ts",
     "entry\src\main\module.json5",
-    "scripts\run_hvigor_with_sdk_patch.js"
+    "scripts\run_hvigor_with_sdk_patch.js",
+    "scripts\stage_project_for_build.ps1",
+    "scripts\sync_build_version_from_stage.ps1"
   )
 
   foreach ($relativePath in $requiredFiles) {
@@ -353,15 +357,26 @@ function Get-HvigorTasks {
   return @("assembleApp")
 }
 
+function Get-PackageSearchRoots {
+  return @(
+    (Join-Path $tempRoot "harmonyos_build\$projectName\entry\build\default\outputs\default"),
+    (Join-Path $tempRoot "harmonyos_build\$projectName\build\outputs\default"),
+    (Join-Path $projectRoot "entry\build\default\outputs\default"),
+    (Join-Path $projectRoot "build\outputs\default")
+  ) | Where-Object { Test-Path -LiteralPath $_ }
+}
+
 function Invoke-HarmonyBuild {
   param(
     [Parameter(Mandatory = $true)]
     [string]$NodeExe,
     [Parameter(Mandatory = $true)]
-    [string[]]$Tasks
+    [string[]]$Tasks,
+    [Parameter(Mandatory = $true)]
+    [string]$BuildRoot
   )
 
-  $runHvigorScript = Join-Path $scriptDir "run_hvigor_with_sdk_patch.js"
+  $runHvigorScript = Join-Path $BuildRoot "scripts\run_hvigor_with_sdk_patch.js"
   if ($VersionBump -eq "none") {
     Remove-Item Env:RUSTDESK_HARMONY_VERSION_BUMP -ErrorAction SilentlyContinue
   } else {
@@ -369,7 +384,8 @@ function Invoke-HarmonyBuild {
   }
 
   Write-Host "Running Hvigor tasks: $($Tasks -join ', ')"
-  Push-Location $projectRoot
+  Write-Host "Build root: $BuildRoot"
+  Push-Location $BuildRoot
   try {
     & $NodeExe $runHvigorScript @Tasks
     if ($LASTEXITCODE -ne 0) {
@@ -380,8 +396,57 @@ function Invoke-HarmonyBuild {
   }
 }
 
+function New-BuildStage {
+  if ($DisableStage) {
+    Write-Host "Build staging disabled by -DisableStage."
+    return $projectRoot
+  }
+
+  $stageScript = Join-Path $scriptDir "stage_project_for_build.ps1"
+  $stageRoot = [System.IO.Path]::GetFullPath((Join-Path $tempRoot "harmonyos_stage\$projectName"))
+  Write-Host "Staging clean build project: $stageRoot"
+  $global:LASTEXITCODE = 0
+  & $stageScript -StageRoot $stageRoot
+  $stageSucceeded = $?
+  $stageExitCode = $LASTEXITCODE
+  if (-not $stageSucceeded -or $stageExitCode -ne 0) {
+    throw "Build staging failed with exit code $stageExitCode."
+  }
+  return $stageRoot
+}
+
+function Sync-BuildStage {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$BuildRoot
+  )
+
+  $resolvedBuildRoot = [System.IO.Path]::GetFullPath($BuildRoot).TrimEnd('\', '/')
+  $resolvedProjectRoot = [System.IO.Path]::GetFullPath($projectRoot).TrimEnd('\', '/')
+  if ($resolvedBuildRoot.Equals($resolvedProjectRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+    return
+  }
+
+  $syncScript = Join-Path $scriptDir "sync_build_version_from_stage.ps1"
+  Write-Host "Syncing build metadata from staged project."
+  $global:LASTEXITCODE = 0
+  & $syncScript -StageRoot $resolvedBuildRoot
+  $syncSucceeded = $?
+  $syncExitCode = $LASTEXITCODE
+  if (-not $syncSucceeded -or $syncExitCode -ne 0) {
+    throw "Build metadata sync failed with exit code $syncExitCode."
+  }
+}
+
 function Copy-BuildArtifacts {
-  $artifactRoot = Reset-Directory -Path $ArtifactsDir -SafeParent $projectRoot -Label "Artifacts directory"
+  $resolvedArtifactsDir = [System.IO.Path]::GetFullPath($ArtifactsDir)
+  $resolvedTempRoot = [System.IO.Path]::GetFullPath($tempRoot).TrimEnd('\', '/')
+  $artifactSafeParent = if ($resolvedArtifactsDir.StartsWith($resolvedTempRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+    $tempRoot
+  } else {
+    $projectRoot
+  }
+  $artifactRoot = Reset-Directory -Path $ArtifactsDir -SafeParent $artifactSafeParent -Label "Artifacts directory"
   $expectedExtensions = if ($ArtifactType -eq "both") {
     @(".hap", ".app")
   } elseif ($ArtifactType -eq "hap") {
@@ -390,11 +455,7 @@ function Copy-BuildArtifacts {
     @(".app")
   }
 
-  $searchRoots = @(
-    (Join-Path $tempRoot "harmonyos_build\$projectName"),
-    (Join-Path $projectRoot "entry\build"),
-    (Join-Path $projectRoot "build")
-  ) | Where-Object { Test-Path -LiteralPath $_ }
+  $searchRoots = Get-PackageSearchRoots
 
   if ($searchRoots.Count -eq 0) {
     throw "No HarmonyOS build output roots were found."
@@ -418,7 +479,13 @@ function Copy-BuildArtifacts {
 
     foreach ($file in $matchingFiles | Select-Object -First 4) {
       $destination = Join-Path $artifactRoot $file.Name
-      if (Test-Path -LiteralPath $destination) {
+      $destinationExists = $false
+      try {
+        $destinationExists = Test-Path -LiteralPath $destination
+      } catch {
+        $destinationExists = $true
+      }
+      if ($destinationExists) {
         $baseName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $destination = Join-Path $artifactRoot ("{0}-{1:yyyyMMddHHmmss}{2}" -f $baseName, $file.LastWriteTime, $file.Extension)
       }
@@ -443,6 +510,53 @@ function Copy-BuildArtifacts {
   }
 
   return $copied
+}
+
+function Find-LatestBuiltPackage {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Extension
+  )
+
+  $searchRoots = @($ArtifactsDir) + @(Get-PackageSearchRoots)
+  $searchRoots = $searchRoots | Where-Object { Test-Path -LiteralPath $_ }
+
+  foreach ($root in $searchRoots) {
+    $candidate = Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.Extension -eq $Extension } |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+    if ($candidate) {
+      return $candidate.FullName
+    }
+  }
+  return ""
+}
+
+function Invoke-PackageVerification {
+  if ($SkipPackageVerify) {
+    Write-Host "Package verification skipped by -SkipPackageVerify."
+    return
+  }
+
+  $verifyScript = Join-Path $scriptDir "verify_native_harmonyos_hap.ps1"
+  if (-not (Test-Path -LiteralPath $verifyScript)) {
+    throw "Package verification script was not found: $verifyScript"
+  }
+
+  $hapPath = Find-LatestBuiltPackage -Extension ".hap"
+  if ([string]::IsNullOrWhiteSpace($hapPath)) {
+    throw "No HAP was found for package verification. APP packaging should also produce an embedded module HAP."
+  }
+
+  Write-Host "Verifying generated HAP: $hapPath"
+  $global:LASTEXITCODE = 0
+  & $verifyScript -HapPath $hapPath -SkipLaunch -SkipLogs
+  $verifySucceeded = $?
+  $verifyExitCode = $LASTEXITCODE
+  if (-not $verifySucceeded -or $verifyExitCode -ne 0) {
+    throw "Generated HAP verification failed with exit code $verifyExitCode."
+  }
 }
 
 function Write-Manifest {
@@ -493,11 +607,14 @@ if ($PreflightOnly) {
 }
 
 $tasks = Get-HvigorTasks
-Invoke-HarmonyBuild -NodeExe $nodeExe -Tasks $tasks
+$buildRoot = New-BuildStage
+Invoke-HarmonyBuild -NodeExe $nodeExe -Tasks $tasks -BuildRoot $buildRoot
+Sync-BuildStage -BuildRoot $buildRoot
 $artifacts = Copy-BuildArtifacts
-Write-Manifest -CoreInfo $coreInfo -Artifacts $artifacts.ToArray()
+Invoke-PackageVerification
+Write-Manifest -CoreInfo $coreInfo -Artifacts @($artifacts)
 
 Write-Host "Generated artifacts:"
-foreach ($artifact in $artifacts) {
+foreach ($artifact in @($artifacts)) {
   Write-Host " - $($artifact.Name) ($($artifact.Size) bytes, sha256=$($artifact.Sha256))"
 }

@@ -2,6 +2,43 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 顽固问题 (未解决)
+
+### 并行密码+无密码连接流程：密码框不弹出 (2026-06-07)
+
+**用户要求**：无保存密码时，立即弹密码框 + 同时发无密码申请；无密码申请成功则关闭密码框；用户输入密码则切换密码连接。
+
+**已做改动**：
+- `Index.ets handleConnect()`: 无保存密码时调 `showConnectPasswordDialog()` + `initiateBackgroundConnection()`
+- `RemoteControl.ets aboutToAppear()`: 接收 `showPasswordDialog` 路由参数
+- `RemoteControl.ets syncBridgeState()`: connecting 状态+无保存密码时设 `showPasswordDialog=true`
+- `RemoteControl.ets bridgeListener()`: msgbox 含密码关键词时设 `showPasswordDialog=true`
+- `RemoteControl.ets applyBridgeState()`: connecting 状态不调 `updatePasswordDialogState`；error 状态密码框开着则保持
+- `RemoteControl.ets handleTerminalBridgeEvent()`: 删掉 `!hasReceivedFrame` 阻止条件；密码框开着时 return true
+- 密码框 UI 新增"等待确认"按钮；i18n 翻译已添加
+
+**仍未弹出的原因**：用户从最近会话/历史记录进入 RemoteControl，不经过 Index 的 `handleConnect`。RemoteControl 的 `syncBridgeState` 检查 `coreState.sessionStage === 'connecting'` 但 msgbox 到达时 stage 可能已变。`bridgeListener` 的 msgbox 检查已加但仍未生效，需进一步调试确认 `showPasswordDialog` 被谁覆盖回 false。
+
+**下一步**：在 `showPasswordDialog` 的 setter 中加 hilog 追踪所有赋值点，确认被谁覆盖。
+
+### ECONNRESET 后无重连提示 (2026-06-07)
+
+**现象**：连接建立后立即被对端重置（`Connection reset by peer (os error 104)`），页面卡在 `connected=false hasFrame=false`，无重连对话框。
+
+**已做改动**：
+- `handleTerminalBridgeEvent()` 删掉了 `!this.hasReceivedFrame && !this.shouldShowReconnectPromptNow()` 的 return false 条件
+- `applyBridgeState()` error 分支中 `showPasswordDialog` 为 true 时保持不触发重连
+
+**仍未弹出的原因**：ECONNRESET 发生在从未收到帧的情况下，`shouldShowReconnectPromptNow()` 可能返回 false。删掉阻止条件后仍不弹，需确认 `handleTerminalBridgeEvent` 是否被调用、`showReconnectDialogFromState` 是否执行。
+
+**下一步**：在 `handleTerminalBridgeEvent` 和 `showReconnectDialogFromState` 加 hilog 追踪执行路径。
+
+### 远端密码提示 msgbox 到达但未触发密码框 (2026-06-07)
+
+**hilog 证据**：`Event: msgbox, detail: 当前连接没有携带预设密码。若远端配置为密码访问，请填写 RustDesk 密码；也可以先保存密码以便下次自动填充。`
+
+msgbox 事件到达了 ArkTS，但密码框未弹出。说明 `bridgeListener` 中新增的 msgbox 检查逻辑未生效，或 `showPasswordDialog` 被后续 `applyBridgeState` 调用覆盖为 false。
+
 ## 连接问题 (排查中)
 
 ### 连接流程应采用并行密码+无密码策略 (2026-06-07用户要求, 待实现)
@@ -701,3 +738,10 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **根因**: Index.ets只在连接态读取activePeerId，idle/error后没有稳定回退到最近会话；RemoteControl聊天浮窗未绑定Scroller；AppDataService和Chat.ets仍保留示例种子消息与本地模拟回复。
 **解决**: Index.ets新增当前/最近会话peer解析与 `refreshCurrentSessionChat()`，`onPageShow()`和会话事件都会刷新最近会话聊天；RemoteControl聊天浮窗绑定 `chatPanelScroller` 并在打开、发送、接收时滚到底部；AppDataService不再返回固定测试消息，Chat.ets移除模拟自动回复；ChatService从持久化消息恢复会话摘要。
 **教训**: ✅Chat tab是会话聊天记录视图，不是独立测试聊天页；✅会话结束后仍要保留最近会话peer作为读取目标；✅示例/模拟消息不能进入真实聊天服务。
+
+### 无密码连接密码框、对端重置重试、LAN发现与线上生成包 (2026-06-07补充, 已修复)
+**现象**: 升级核心后，无保存密码发起连接不会先弹密码框；对端 reset/closed 后远控页停在最后画面且不弹重试；LAN 发现列表会被一次空结果刷空；线上构建需要同时生成 HAP 和 APP，并在构建前确认 native 核心完整。
+**根因**: `Index.ets` 和 `RemoteControl.ets` 对“无密码授权等待”和“输入密码切换连接”没有作为并行流程处理；`RemoteControl.ets` 的 connected 快照会在首帧前关闭对话框并掩盖刚关闭的 native 会话；retry 判断没有覆盖 `closed`、`session-closed` 和 `Connection reset by peer (os error 104)` 这类实际错误；`LanDiscoveryService.ets` 对 native 短暂空列表没有容错；线上构建脚本缺少 staged 产物校验和 HAP/APP 双格式收集。
+**解决**: 无保存密码时立即弹出密码框并并行发送无密码连接申请，输入密码确认后重置当前连接并切到密码连接；reset/closed/error 均进入统一 retry 判断，首帧前的 connected 快照不再关闭重连对话框；LAN 发现连续三次空结果才清空旧列表；`github_build_harmonyos.ps1` 增加 strict preflight、staged build、HAP native 校验、HAP/APP 双产物收集和 workflow 输入。
+**验证**: `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none` 通过；signed HAP 安装到 `192.168.11.100:36169` 成功；HAP native 库和签名校验通过；`scripts\audit_connection_chain.ps1` 为 `50 PASS, 0 FAIL, 0 SKIP`；`scripts\audit_full_function_rounds.ps1 -Rounds 100` 每轮 `96 PASS, 0 SKIP`。
+**剩余条件**: 设备当前锁屏导致 `aa start` 返回 `Error Code:10106102`，本轮无法继续自动抓取启动后的实机交互日志；解锁后可直接用已安装包继续复测实际无密码授权等待、密码切换、reset 重试弹窗和 LAN 发现。

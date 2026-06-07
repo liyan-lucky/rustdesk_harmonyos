@@ -34,6 +34,16 @@ on:
         required: true
         default: false
         type: boolean
+      skip_package_verify:
+        description: "Skip generated HAP native/signature verification"
+        required: true
+        default: false
+        type: boolean
+      disable_stage:
+        description: "Build directly in the checkout instead of a staged copy"
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -49,6 +59,7 @@ jobs:
       DEVECO_TOOLS_HOME: ${{ secrets.DEVECO_TOOLS_HOME || vars.DEVECO_TOOLS_HOME }}
       DEVECO_SDK_HOME: ${{ secrets.DEVECO_SDK_HOME || vars.DEVECO_SDK_HOME }}
       DEVECO_NODE_EXE: ${{ secrets.DEVECO_NODE_EXE || vars.DEVECO_NODE_EXE }}
+      HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
 
     steps:
       - name: Checkout
@@ -66,10 +77,16 @@ jobs:
           $args = @(
             "-ArtifactType", "${{ inputs.artifact_type }}",
             "-VersionBump", "${{ inputs.version_bump }}",
-            "-ArtifactsDir", (Join-Path $env:GITHUB_WORKSPACE "github_artifacts")
+            "-ArtifactsDir", $env:HARMONY_ARTIFACTS_DIR
           )
           if ($preflightOnly) {
             $args += "-PreflightOnly"
+          }
+          if ("${{ inputs.skip_package_verify }}" -eq "true") {
+            $args += "-SkipPackageVerify"
+          }
+          if ("${{ inputs.disable_stage }}" -eq "true") {
+            $args += "-DisableStage"
           }
           powershell -NoProfile -ExecutionPolicy Bypass -File scripts\github_build_harmonyos.ps1 @args
 
@@ -78,5 +95,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: harmonyos-${{ inputs.artifact_type }}
-          path: github_artifacts/**
+          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
           if-no-files-found: error

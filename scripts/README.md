@@ -11,8 +11,9 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 - `build_harmonyos_hap.ps1`: Windows HAP staging helper for signed or unsigned artifacts.
 - `verify_native_harmonyos_hap.ps1`: HAP inspection, optional install, launch, and log helper.
 - `audit_connection_chain.ps1`: 50-check connection-chain audit. It verifies native core metadata, NAPI aliases, bridge wrappers, reconnect handling, quality-status display, packaged HAP native libraries, and the absence of the unsupported `libtime_service_ndk.so` runtime dependency. It writes `reports/connection_chain_audit_latest.md`.
-- `github_build_harmonyos.ps1`: GitHub Actions/self-hosted build entry. It can build `hap`, `app`, or `both`; `both` uses the APP packaging task because it also produces the embedded/signed HAP. It has `-PreflightOnly` for DevEco SDK, signing, and native core completeness checks before packaging.
-- `.github/workflows/build-harmonyos.yml`: manual online package workflow. Configure `RUSTDESK_CORE_URL`, `RUSTDESK_CORE_SHA256`, and `RUSTDESK_SIGNING_ZIP_B64`; set `DEVECO_TOOLS_HOME`, `DEVECO_SDK_HOME`, and `DEVECO_NODE_EXE` when the runner does not use the default DevEco install paths.
+- `audit_full_function_rounds.ps1`: repeatable full-function static/package audit. It checks connection flow, retry/reset handling, LAN discovery, native core metadata, quality info display, service wrappers, GitHub packaging files, and optional HAP/APP artifacts. Use `-Rounds 100` after broad connection-chain changes. It writes `reports/full_function_audit_latest.md`.
+- `github_build_harmonyos.ps1`: GitHub Actions/self-hosted build entry. It can build `hap`, `app`, or `both`; `both` uses the APP packaging task because it also produces the embedded/signed HAP. It has `-PreflightOnly` for DevEco SDK, signing, native core completeness, native core size, and optional SHA256 checks before packaging. By default it builds from a staged copy under `99_Temp` and writes artifacts to `99_Temp/harmonyos_artifacts/<project name>`.
+- `.github/workflows/build-harmonyos.yml`: manual online package workflow. Configure `RUSTDESK_CORE_URL`, `RUSTDESK_CORE_SHA256`, and `RUSTDESK_SIGNING_ZIP_B64`; set `DEVECO_TOOLS_HOME`, `DEVECO_SDK_HOME`, and `DEVECO_NODE_EXE` when the runner does not use the default DevEco install paths. Workflow inputs include `artifact_type`, `version_bump`, `skip_package_verify`, and `disable_stage`.
 
 ## Native core helpers
 
@@ -55,3 +56,5 @@ If install succeeds but launch returns `Error Code:10106102`, the script reports
 Use `build_hap.bat` for a fast incremental build, `build_full_hap.bat` for a clean rebuild, and `AUTO_BUILD_INSTALL.bat --full auto` when the build and install flow should start from a clean generated state.
 
 Use `powershell -ExecutionPolicy Bypass -File scripts\audit_connection_chain.ps1` after connection-chain changes. A healthy local build should finish with `50 PASS, 0 FAIL, 0 SKIP`.
+
+Use `powershell -ExecutionPolicy Bypass -File scripts\audit_full_function_rounds.ps1 -Rounds 100 -HapPath <signed.hap> -AppPath <signed.app>` after broad native/core/package changes. A healthy run should finish every round without FAIL results.

@@ -8,7 +8,11 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $stageRootFull = [System.IO.Path]::GetFullPath($StageRoot)
 $workspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot ".."))
-$tempRoot = [System.IO.Path]::GetFullPath((Join-Path $workspaceRoot "99_Temp"))
+$tempRoot = if ($env:RUSTDESK_HARMONY_TEMP_ROOT) {
+  [System.IO.Path]::GetFullPath($env:RUSTDESK_HARMONY_TEMP_ROOT)
+} else {
+  [System.IO.Path]::GetFullPath((Join-Path $workspaceRoot "99_Temp"))
+}
 
 if (-not $stageRootFull.StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
   throw "Refusing to stage outside 99_Temp: $stageRootFull"
@@ -27,6 +31,7 @@ $excludeDirs = @(
   (Join-Path $projectRoot ".vscode"),
   (Join-Path $projectRoot ".appanalyzer"),
   (Join-Path $projectRoot ".local_sdk"),
+  (Join-Path $projectRoot "github_artifacts"),
   (Join-Path $projectRoot "rustdesk_harmonyos"),
   (Join-Path $projectRoot "node_modules"),
   (Join-Path $projectRoot "entry\build"),
@@ -44,7 +49,7 @@ $excludeFiles = @(
 )
 
 New-Item -ItemType Directory -Force -Path $stageRootFull | Out-Null
-$robocopyArgs = @($projectRoot, $stageRootFull, "/E", "/XD") + $excludeDirs + @("/XF") + $excludeFiles
+$robocopyArgs = @($projectRoot, $stageRootFull, "/E", "/R:2", "/W:1", "/XD") + $excludeDirs + @("/XF") + $excludeFiles
 & robocopy @robocopyArgs | Out-Host
 $robocopyExit = $LASTEXITCODE
 if ($robocopyExit -gt 7) {
@@ -61,3 +66,4 @@ if (Test-Path -LiteralPath $buildProfilePath) {
 }
 
 Write-Host "Staged project for build at $stageRootFull"
+$global:LASTEXITCODE = 0

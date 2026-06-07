@@ -486,3 +486,60 @@
 - **文档更新**：`docs/CONNECTION_DEBUG_LOG.md` 新增修复记录
 
 - **待验证**：需要在设备上实际发起无密码连接确认密码框弹出；确认被访问端拒绝/超时时不再直接关闭页面；确认 LAN 监听线程日志 `lan discovery listener started` 出现
+
+## 2026-06-07 并行密码+无密码连接流程（未解决）
+
+- **目标**：无保存密码时，立即弹密码框 + 同时发无密码申请；无密码申请成功则关闭密码框；用户输入密码则切换密码连接
+- **已做改动**：
+  - `Index.ets handleConnect()`: 无保存密码时 `showConnectPasswordDialog()` + `initiateBackgroundConnection()` 并行
+  - `Index.ets openRemoteControlForPendingSession()`: 传递 `showPasswordDialog` 路由参数
+  - `Index.ets buildPasswordDialog()`: 新增"等待确认"按钮，修改描述文字
+  - `RemoteControl.ets aboutToAppear()`: 接收 `showPasswordDialog` 路由参数
+  - `RemoteControl.ets syncBridgeState()`: connecting+无保存密码时设 `showPasswordDialog=true`
+  - `RemoteControl.ets bridgeListener()`: msgbox 含密码关键词时设 `showPasswordDialog=true`
+  - `RemoteControl.ets applyBridgeState()`: connecting 不调 `updatePasswordDialogState`；error 时密码框开着则保持；connected 时无条件关闭密码框
+  - `RemoteControl.ets handleTerminalBridgeEvent()`: 删 `!hasReceivedFrame` 阻止条件；密码框开着时 return true
+  - `RemoteControl.ets submitSessionPassword()`: 密码提交失败时调 `reconnectWithPassword()`
+  - `RemoteControl.ets reconnectWithPassword()`: 新增方法，断开当前连接后用密码重连
+  - `RemoteControl.ets buildPasswordDialog()`: 新增"等待确认"按钮
+  - `I18nService.ets`: 新增5个翻译键
+- **顽固问题**：
+  - **密码框仍不弹出**：用户从最近会话进入 RemoteControl 不经过 Index；msgbox 密码提示到达但密码框未弹出；`showPasswordDialog` 可能被后续 `applyBridgeState` 覆盖为 false
+  - **ECONNRESET 后无重连提示**：连接被对端重置后页面卡住，无重连对话框
+- **下一步**：在 `showPasswordDialog` setter 加追踪确认被谁覆盖；在 `handleTerminalBridgeEvent` 和 `showReconnectDialogFromState` 加追踪确认执行路径
+
+## 2026-06-07 连接流程、LAN 发现、线上生成包收口
+
+- 修改前已备份项目到 `L:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_backups\project_backup_20260607_061033`，其中包含 git 状态和 diff 快照。
+- 无保存密码连接流程已修复：
+  - `Index.ets` 在无保存密码时立即打开密码对话框，同时后台发起无密码授权连接。
+  - 用户输入密码确认后会重置当前待处理连接，并切换到密码连接路径。
+  - `RemoteControl.ets` 会保留主动弹出的密码框，直到收到首帧或会话明确结束，避免被 `connected` 快照过早关闭。
+- 对端重置/关闭后的重试提示已修复：
+  - `RemoteControl.ets` 统一处理 `closed`、`session-closed`、`session-error`。
+  - `Connection reset by peer`、`connection reset`、`os error 104`、强制关闭、EOF、broken pipe、timeout 以及中文重置/关闭/超时文案都会触发重连对话框。
+  - “已连接但尚未收到首帧”的状态不再关闭重连对话框，也不再把 native 已关闭会话误当作正常连接。
+- LAN 发现链路已增强：
+  - `LanDiscoveryService.ets` 对 native 临时返回空列表做容错，前两次空结果保留旧发现列表，第三次连续为空才清空。
+  - 这样避免一次空 `loadLanPeers()` 结果把发现页直接刷空，看起来像 LAN 功能失效。
+- 连接质量详细信息显示已优化：
+  - 详情面板改为可滚动并增加最大高度。
+  - 原始详情保留长度增加，指标行允许换行，长 payload 不再被面板截掉。
+- 核心详情元数据已修正为 native 核心文件信息：
+  - 文件大小：`137430594` bytes (`131.06 MB`)
+  - 编译时间：`2026-06-07 06:20`
+  - SHA256：`00B1735321D83C23F68DCDA4058ADA879729055AC88BD9D2D8AB574CE0CE6E7C`
+  - 兼容官方版本：`1.4.7`
+- 线上生成包功能已完善：
+  - `.github/workflows/build-harmonyos.yml` 支持手动选择 `hap`、`app`、`both`。
+  - `scripts/github_build_harmonyos.ps1` 构建前检查 DevEco SDK、签名配置、native 核心是否存在、核心大小和可选 SHA256。
+  - 构建从 `99_Temp` 下的干净 staged copy 执行，产物写到 `L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos`，避免污染源码目录。
+  - 本轮 signed HAP：`entry-default-signed.hap`，`18020747` bytes，SHA256 `93554B4C39F42330625C7B3B66D451F4BC751E2533F0489F297A3228BF91CC0F`。
+  - 本轮 signed APP：`11_Rustdesk_harmonyos-default-signed.app`，`16953810` bytes，SHA256 `5FC0F5478E48A07259AA06505A3BAFB683D90213B70FDDCA387120A8B9346C27`。
+- 验证结果：
+  - `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none` 通过，HAP 和 APP 均生成成功。
+  - HAP native 校验通过：`librustdesk_bridge.so`、`libc++_shared.so` 均存在，运行时依赖和签名校验通过。
+  - 设备 `192.168.11.100:36169` 安装成功。
+  - 启动日志抓取受设备锁屏限制阻断，`aa start` 返回 `Error Code:10106102`；安装与包校验本身正常。
+  - `scripts\audit_connection_chain.ps1` 通过：`50 PASS, 0 FAIL, 0 SKIP`。
+  - `scripts\audit_full_function_rounds.ps1 -Rounds 100` 通过：100 轮均为 `96 PASS, 0 SKIP`。

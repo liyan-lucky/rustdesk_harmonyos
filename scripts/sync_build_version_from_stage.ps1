@@ -8,7 +8,11 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $stageRootFull = [System.IO.Path]::GetFullPath($StageRoot)
 $workspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot ".."))
-$tempRoot = [System.IO.Path]::GetFullPath((Join-Path $workspaceRoot "99_Temp"))
+$tempRoot = if ($env:RUSTDESK_HARMONY_TEMP_ROOT) {
+  [System.IO.Path]::GetFullPath($env:RUSTDESK_HARMONY_TEMP_ROOT)
+} else {
+  [System.IO.Path]::GetFullPath((Join-Path $workspaceRoot "99_Temp"))
+}
 
 if (-not $stageRootFull.StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
   throw "Refusing to sync from outside 99_Temp: $stageRootFull"

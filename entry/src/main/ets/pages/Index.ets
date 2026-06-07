@@ -90,6 +90,7 @@ function saveVisibleTabs(tabs: Set<ConnectPeerTab>): void {
 interface DeviceRouteParams {
   deviceId: string;
   showPasswordDialog?: boolean;
+  passwordPromptProactive?: boolean;
 }
 
 @Entry
@@ -279,6 +280,7 @@ struct Index {
   @State pendingPassword: string = '';
   @State rememberPassword: boolean = false;
   @State pendingPeerId: string = '';
+  private pendingPasswordDialogProactive: boolean = false;
   @State swipedRecentTargetId: string = '';
   @State recentMenuSessionId: string = '';
   @State showRenameDialog: boolean = false;
@@ -3400,6 +3402,7 @@ struct Index {
     this.pendingConnectionMonitorId += 1;
     this.showPasswordDialog = false;
     this.pendingPassword = '';
+    this.pendingPasswordDialogProactive = false;
     this.autoSubmittedSavedPasswordPeerId = '';
     this.isConnecting = false;
     this.pendingConnectionInactivePollCount = 0;
@@ -3484,15 +3487,13 @@ struct Index {
     this.isConnecting = true;
     this.setStatusMessage("connecting", targetId);
 
-    console.info('[Connect] Initiating parallel connection: empty-password request + password dialog for ' + targetId);
-    this.showConnectPasswordDialog(targetId);
+    hilog.info(0xA03D00, 'CONN', `[handleConnect] parallel: no saved password for ${targetId}, showing password dialog + empty-password connect`);
+    this.showConnectPasswordDialog(targetId, true);
+    hilog.info(0xA03D00, 'CONN', `[handleConnect] showPasswordDialog=${this.showPasswordDialog} pendingPeerId=${this.pendingPeerId}`);
     const started = await this.initiateBackgroundConnection(targetId);
     this.isConnecting = false;
     if (started) {
       const state = this.officialBridge.getCoreState();
-      if (state.sessionStage === 'connected') {
-        this.showPasswordDialog = false;
-      }
       this.openRemoteControlForPendingSession(targetId, state);
       return;
     }
@@ -5113,9 +5114,11 @@ struct Index {
     }
   }
 
-  private showConnectPasswordDialog(peerId: string): void {
+  private showConnectPasswordDialog(peerId: string, proactive: boolean = false): void {
     this.pendingPeerId = peerId;
+    this.pendingPasswordDialogProactive = proactive;
     const savedPassword: string = PreferenceStore.getPeerPassword(peerId) ?? '';
+    hilog.info(0xA03D00, 'CONN', `[showConnectPasswordDialog] peerId=${peerId} savedPassword=${savedPassword.length > 0 ? 'yes' : 'no'}`);
     if (savedPassword.trim().length > 0 && this.autoSubmittedSavedPasswordPeerId !== peerId) {
       this.autoSubmittedSavedPasswordPeerId = peerId;
       this.pendingPassword = savedPassword.trim();
@@ -5126,6 +5129,7 @@ struct Index {
     }
     this.pendingPassword = savedPassword;
     this.showPasswordDialog = true;
+    hilog.info(0xA03D00, 'CONN', `[showConnectPasswordDialog] showPasswordDialog set to TRUE`);
     this.setStatusMessageRaw(savedPassword
       ? this.lt('Saved password filled, submit directly or modify.')
       : this.lt('Enter remote password if known, or wait for remote confirmation.'));
@@ -5168,7 +5172,8 @@ struct Index {
     if (normalizedPeerId.length === 0) {
       return;
     }
-    const shouldShowPasswordDialog = this.showPasswordDialog && state.sessionStage !== 'connected';
+    const shouldShowPasswordDialog = this.showPasswordDialog;
+    const shouldUseProactivePasswordDialog = shouldShowPasswordDialog && this.pendingPasswordDialogProactive;
     this.officialCoreState = state;
     if (state.detailMessage.includes('hostname=')) {
       this.parseHostnameFromDetail(state.detailMessage);
@@ -5186,13 +5191,18 @@ struct Index {
     this.pendingPeerId = '';
     this.pendingPassword = '';
     this.showPasswordDialog = false;
+    this.pendingPasswordDialogProactive = false;
     this.isConnecting = false;
     this.pendingConnectionRetryCount = 0;
     this.pendingConnectionInactivePollCount = 0;
     this.setStatusMessageRaw(state.sessionStage === 'connected'
       ? this.lt('Connection established. Opening remote desktop...')
       : this.lt('Connection request continuing...'));
-    this.navigateTo('pages/RemoteControl', { deviceId: normalizedPeerId, showPasswordDialog: shouldShowPasswordDialog });
+    this.navigateTo('pages/RemoteControl', {
+      deviceId: normalizedPeerId,
+      showPasswordDialog: shouldShowPasswordDialog,
+      passwordPromptProactive: shouldUseProactivePasswordDialog
+    });
   }
 
   private async monitorConnectionWhileWaiting(): Promise<void> {
@@ -5213,7 +5223,6 @@ struct Index {
       }
       this.syncPendingConnectionUi(state);
       if (state.sessionStage === 'connected') {
-        this.showPasswordDialog = false;
         this.openRemoteControlForPendingSession(peerId, state);
         return;
       }
@@ -5261,6 +5270,7 @@ struct Index {
       return;
     }
     this.showPasswordDialog = false;
+    this.pendingPasswordDialogProactive = false;
     const state = await this.officialBridge.refresh(this.settings);
     this.officialCoreState = state;
     this.pendingConnectionInactivePollCount = 0;
@@ -5288,6 +5298,13 @@ struct Index {
     this.pendingConnectionInactivePollCount = 0;
     this.isConnecting = true;
     this.showPasswordDialog = false;
+    if (this.pendingPasswordDialogProactive) {
+      this.pendingPasswordDialogProactive = false;
+      this.setStatusMessageRaw(this.lt('Switching to password connection...'));
+      await this.resetPendingConnectionState(true);
+      await this.handleConnectWithPassword(peerId, password);
+      return;
+    }
     const submitted = this.officialBridge.submitSessionPassword(password, false);
     if (submitted) {
       this.pendingPassword = '';
