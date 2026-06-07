@@ -27,6 +27,7 @@ import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
 import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
 import { WindowChromeService } from '../services/WindowChromeService';
 import { BuildInfo } from '../common/BuildInfo';
+import { CoreBuildInfo } from '../common/CoreBuildInfo';
 import drawing from '@ohos.graphics.drawing';
 
 import { LanDiscoveryService } from '../services/LanDiscoveryService';
@@ -47,6 +48,7 @@ interface CoreModuleInfo {
   fileSize: string;
   fileSizeMB: string;
   hash: string;
+  compatibleOfficialVersion: string;
   validElf: boolean;
   buildTime: string;
   statusText: string;
@@ -87,6 +89,7 @@ function saveVisibleTabs(tabs: Set<ConnectPeerTab>): void {
 
 interface DeviceRouteParams {
   deviceId: string;
+  showPasswordDialog?: boolean;
 }
 
 @Entry
@@ -1572,11 +1575,18 @@ struct Index {
   private refreshCoreDetailInfo(): void {
     const modules: CoreModuleInfo[] = [];
     const corePath = CoreLoaderService.getInstance().getCorePath();
-    const bridgePath = '/data/storage/el1/bundle/libs/arm64/librustdesk_bridge.so';
-    const bridgeInfo = this.readCoreFileInfo(bridgePath);
-    const rustInfo = corePath.length > 0 ? this.readCoreFileInfo(corePath) : this.createEmptyCoreFileInfo();
+    const bridgePaths: string[] = [
+      '/data/storage/el1/bundle/libs/arm64/librustdesk_bridge.so',
+      '/data/storage/el1/bundle/libs/arm64-v8a/librustdesk_bridge.so',
+      '/data/app/el1/bundle/public/com.open.rundesk/libs/arm64-v8a/librustdesk_bridge.so',
+      '/data/app/el1/bundle/public/com.open.rundesk/entry/libs/arm64-v8a/librustdesk_bridge.so'
+    ];
+    const bridgeInfo = this.readFirstCoreFileInfo(bridgePaths);
+    const rustInfo = corePath.length > 0 ? this.readCoreFileInfo(corePath) : this.readStaticCoreBuildInfo();
     const nativeModuleReady = NativeRustDeskBridge.hasNativeModule();
-    const nativeCoreReady = NativeRustDeskBridge.isCoreLoaded();
+    const nativeCoreLoaded = NativeRustDeskBridge.isCoreLoaded();
+    const staticCorePackaged = CoreBuildInfo.FILE_SIZE.length > 0;
+    const nativeCoreReady = nativeCoreLoaded || this.officialCoreState.coreReady || (nativeModuleReady && staticCorePackaged);
 
     modules.push({
       kind: 'adapter',
@@ -1586,6 +1596,7 @@ struct Index {
       fileSize: '',
       fileSizeMB: '',
       hash: '',
+      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
       validElf: true,
       buildTime: BuildInfo.BUILD_TIME,
       statusText: this.officialCoreState.coreReady || nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
@@ -1599,17 +1610,18 @@ struct Index {
     modules.push({
       kind: 'native-module',
       name: this.lt('Native Module'),
-      path: bridgePath,
+      path: bridgeInfo.path.length > 0 ? bridgeInfo.path : bridgePaths[0],
       source: 'bundle',
       fileSize: bridgeInfo.fileSize,
       fileSizeMB: bridgeInfo.fileSizeMB,
       hash: bridgeInfo.hash,
-      validElf: bridgeInfo.validElf,
+      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
+      validElf: bridgeInfo.validElf || nativeModuleReady,
       buildTime: bridgeInfo.buildTime.length > 0 ? bridgeInfo.buildTime : BuildInfo.BUILD_TIME,
       statusText: nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
       statusActive: nativeModuleReady,
       icon: 'info_code.svg',
-      lastError: nativeModuleReady ? '' : NativeRustDeskBridge.getCoreLoadInfo(),
+      lastError: nativeModuleReady ? '' : NativeRustDeskBridge.getCombinedDebugSummary(),
       detailMessage: this.nativeBridgeSummary,
       statusSummary: nativeModuleReady ? this.lt('Native Module') : this.lt('Unrecognized')
     });
@@ -1617,17 +1629,18 @@ struct Index {
     modules.push({
       kind: 'native-core',
       name: this.lt('Native Core'),
-      path: corePath.length > 0 ? corePath : 'linked into librustdesk_bridge.so',
+      path: corePath.length > 0 ? corePath : (rustInfo.path.length > 0 ? rustInfo.path : 'linked into librustdesk_bridge.so'),
       source: CoreLoaderService.getInstance().getCoreSource().length > 0 ? CoreLoaderService.getInstance().getCoreSource() : 'staticlib',
       fileSize: rustInfo.fileSize,
       fileSizeMB: rustInfo.fileSizeMB,
       hash: rustInfo.hash,
+      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
       validElf: this.officialCoreState.coreReady || nativeCoreReady,
-      buildTime: rustInfo.buildTime.length > 0 ? rustInfo.buildTime : BuildInfo.BUILD_TIME,
-      statusText: nativeCoreReady ? this.lt('Ready') : this.lt('Stop'),
+      buildTime: rustInfo.buildTime,
+      statusText: nativeCoreReady ? this.lt('Ready') : (nativeModuleReady ? this.lt('Stop') : this.lt('Error')),
       statusActive: nativeCoreReady,
       icon: 'settings_cpu.svg',
-      lastError: this.officialCoreState.lastError,
+      lastError: nativeModuleReady ? this.officialCoreState.lastError : NativeRustDeskBridge.getCombinedDebugSummary(),
       detailMessage: this.officialCoreState.detailMessage.length > 0 ? this.officialCoreState.detailMessage : this.nativeBridgeSummary,
       statusSummary: this.officialCoreState.statusSummary
     });
@@ -1643,6 +1656,7 @@ struct Index {
       fileSize: '',
       fileSizeMB: '',
       hash: '',
+      compatibleOfficialVersion: '',
       validElf: false,
       buildTime: '',
       statusText: '',
@@ -1652,6 +1666,32 @@ struct Index {
       detailMessage: '',
       statusSummary: ''
     };
+  }
+
+  private readStaticCoreBuildInfo(): CoreModuleInfo {
+    const info = this.createEmptyCoreFileInfo();
+    info.path = CoreBuildInfo.SOURCE_PATH;
+    info.fileSize = CoreBuildInfo.FILE_SIZE;
+    info.fileSizeMB = CoreBuildInfo.FILE_SIZE_MB;
+    info.hash = CoreBuildInfo.HASH_FNV1A_1MB.length > 0 ? CoreBuildInfo.HASH_FNV1A_1MB : CoreBuildInfo.HASH_SHA256;
+    info.buildTime = CoreBuildInfo.COMPILE_TIME.length > 0
+      ? CoreBuildInfo.COMPILE_TIME
+      : this.formatCoreCompileTime(Number(CoreBuildInfo.MODIFIED_TIME));
+    return info;
+  }
+
+  private readFirstCoreFileInfo(paths: string[]): CoreModuleInfo {
+    let fallback = this.createEmptyCoreFileInfo();
+    for (let index = 0; index < paths.length; index += 1) {
+      const info = this.readCoreFileInfo(paths[index]);
+      if (index === 0) {
+        fallback = info;
+      }
+      if (info.fileSize.length > 0 || info.validElf) {
+        return info;
+      }
+    }
+    return fallback;
   }
 
   private readCoreFileInfo(path: string): CoreModuleInfo {
@@ -1697,8 +1737,9 @@ struct Index {
           this.buildSettingsInfoSettingRow(this.lt('Runtime Summary'), this.getSelectedCoreModuleField('statusSummary').length > 0 ? this.getSelectedCoreModuleField('statusSummary') : this.lt('None'), 'settings_terminal.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Error'), this.getSelectedCoreModuleField('lastError').length > 0 ? this.getSelectedCoreModuleField('lastError') : this.lt('None'), 'info_alert.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Detail'), this.getSelectedCoreModuleField('detailMessage').length > 0 ? this.getSelectedCoreModuleField('detailMessage') : this.lt('None'), 'info_file.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Compatible Official Version'), this.getSelectedCoreModuleField('compatibleOfficialVersion').length > 0 ? `RustDesk ${this.getSelectedCoreModuleField('compatibleOfficialVersion')}` : this.lt('Unknown'), 'info_code.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('File'), this.getSelectedCoreModuleField('path').length > 0 ? this.getSelectedCoreModuleField('path').split('/').pop() ?? this.getSelectedCoreModuleField('path') : this.lt('None'), 'info_file.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('File Size'), this.getSelectedCoreModuleField('fileSizeMB').length > 0 ? `${this.getSelectedCoreModuleField('fileSizeMB')} MB` : this.lt('Unknown'), 'info_drive.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('File Size'), this.getSelectedCoreFileSizeText(), 'info_drive.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Hash (FNV-1a)'), this.getSelectedCoreModuleField('hash').length > 0 ? this.getSelectedCoreModuleField('hash') : this.lt('Unknown'), 'info_hash.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Valid ELF'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), 'opt_shield.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Compile Time'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), 'info_clock.svg', '', true)
@@ -1738,12 +1779,29 @@ struct Index {
       if (field === 'detailMessage') return mod.detailMessage;
       if (field === 'statusSummary') return mod.statusSummary;
       if (field === 'path') return mod.path;
+      if (field === 'fileSize') return mod.fileSize;
       if (field === 'fileSizeMB') return mod.fileSizeMB;
       if (field === 'hash') return mod.hash;
+      if (field === 'compatibleOfficialVersion') return mod.compatibleOfficialVersion;
       if (field === 'buildTime') return mod.buildTime;
       if (field === 'source') return mod.source;
     }
     return '';
+  }
+
+  private getSelectedCoreFileSizeText(): string {
+    const fileSizeMb = this.getSelectedCoreModuleField('fileSizeMB');
+    const fileSize = this.getSelectedCoreModuleField('fileSize');
+    if (fileSizeMb.length > 0 && fileSize.length > 0) {
+      return `${fileSizeMb} MB (${fileSize} bytes)`;
+    }
+    if (fileSizeMb.length > 0) {
+      return `${fileSizeMb} MB`;
+    }
+    if (fileSize.length > 0) {
+      return `${fileSize} bytes`;
+    }
+    return this.lt('Unknown');
   }
 
   private getSelectedCoreModuleValidElf(): boolean {
@@ -3022,6 +3080,9 @@ struct Index {
     this.officialCoreState = await this.officialBridge.refresh(this.settings);
     this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.appData.getLocalDevice(), this.officialCoreState);
     this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();
+    if (this.currentConnectTab === 'core' || this.showCoreDetailDialog) {
+      this.refreshCoreDetailInfo();
+    }
     this.syncPendingConnectionUi(this.officialCoreState);
     this.accountState = this.appState.getAccount();
     this.recentSessions = this.appData.getRecentSessions();
@@ -3420,20 +3481,45 @@ struct Index {
     }
 
     this.pendingPassword = '';
-    this.showPasswordDialog = true;
+    this.isConnecting = true;
     this.setStatusMessage("connecting", targetId);
 
-    console.info('[Connect] Initiating connection to ' + targetId + ' with empty password (background)');
-    void this.initiateBackgroundConnection(targetId);
-    void this.monitorConnectionWhileWaiting();
+    console.info('[Connect] Initiating parallel connection: empty-password request + password dialog for ' + targetId);
+    this.showConnectPasswordDialog(targetId);
+    const started = await this.initiateBackgroundConnection(targetId);
+    this.isConnecting = false;
+    if (started) {
+      const state = this.officialBridge.getCoreState();
+      if (state.sessionStage === 'connected') {
+        this.showPasswordDialog = false;
+      }
+      this.openRemoteControlForPendingSession(targetId, state);
+      return;
+    }
+    this.pendingPeerId = '';
+    this.pendingConnectionRetryCount = 0;
+    this.pendingConnectionInactivePollCount = 0;
   }
 
-  private async initiateBackgroundConnection(peerId: string): Promise<void> {
+  private async initiateBackgroundConnection(peerId: string, password: string = ''): Promise<boolean> {
     try {
-      await this.officialBridge.connectToPeer(peerId, '', this.settings);
+      await this.officialBridge.connectToPeer(peerId, password, this.settings);
+      this.officialCoreState = this.officialBridge.getCoreState();
       console.info('[Connect] Background connectToPeer completed');
+      return true;
     } catch (error) {
       console.error('[Connect] Background connection error:', error);
+      const nextState = await this.officialBridge.refresh(this.settings);
+      this.officialCoreState = nextState;
+      const errMsg = nextState.lastError || nextState.detailMessage;
+      if (errMsg.length > 0) {
+        this.setStatusMessageRaw(errMsg);
+      } else if (error instanceof Error) {
+        this.setStatusMessageRaw(error.message);
+      } else {
+        this.setStatusMessage("connection_failed");
+      }
+      return false;
     }
   }
 
@@ -4111,10 +4197,9 @@ struct Index {
           .fontColor(this.theme_TEXT_PRIMARY)
           .width('100%')
 
-        Text(this.resolvePendingDialogSummary())
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.theme_TEXT_PRIMARY)
+        Text(this.lt('If you know the remote password, enter it to connect directly. A no-password request has also been sent — if the remote side approves, the connection will be established automatically.'))
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_SECONDARY)
           .width('100%')
 
         TextInput({ placeholder: this.lt('Enter Password'), text: this.pendingPassword })
@@ -4149,6 +4234,16 @@ struct Index {
         })
 
         Row() {
+          Text(this.lt('Wait for confirmation'))
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .onClick(() => {
+              this.showPasswordDialog = false;
+              void this.continueWaitingForPendingSession();
+            })
+
+          Blank()
+
           Text(this.lt('Cancel'))
             .fontSize(16)
             .fontColor(this.theme_ACCENT)
@@ -4187,8 +4282,6 @@ struct Index {
     .backgroundColor(this.theme_DIALOG_OVERLAY)
     .justifyContent(FlexAlign.Center)
     .onClick(() => {
-      this.showPasswordDialog = false;
-      void this.cancelPendingConnection();
     })
   }
 
@@ -4992,18 +5085,14 @@ struct Index {
     this.pendingPeerId = peerId;
     this.showPasswordDialog = false;
     this.isConnecting = true;
-    let keepPendingSession: boolean = false;
+    let openedSession: boolean = false;
     this.setStatusMessage("connecting", peerId);
 
     try {
       await this.officialBridge.connectToPeer(peerId, password, this.settings);
-      const launched = await this.waitForSessionLaunch(peerId, false);
-      if (!launched) {
-        keepPendingSession = true;
-        this.pendingPeerId = peerId;
-        this.setStatusMessageRaw(this.lt('Connect request still in progress, waiting for remote response...'));
-        void this.monitorConnectionWhileWaiting();
-      }
+      this.officialCoreState = this.officialBridge.getCoreState();
+      this.openRemoteControlForPendingSession(peerId, this.officialCoreState);
+      openedSession = true;
       return;
     } catch (error) {
       const nextState = await this.officialBridge.refresh(this.settings);
@@ -5018,7 +5107,7 @@ struct Index {
     } finally {
       this.isConnecting = false;
       this.pendingPassword = '';
-      if (!keepPendingSession) {
+      if (!openedSession) {
         this.pendingPeerId = '';
       }
     }
@@ -5074,6 +5163,38 @@ struct Index {
     await this.submitPendingPassword();
   }
 
+  private openRemoteControlForPendingSession(peerId: string, state: OfficialCoreState): void {
+    const normalizedPeerId = peerId.trim();
+    if (normalizedPeerId.length === 0) {
+      return;
+    }
+    const shouldShowPasswordDialog = this.showPasswordDialog && state.sessionStage !== 'connected';
+    this.officialCoreState = state;
+    if (state.detailMessage.includes('hostname=')) {
+      this.parseHostnameFromDetail(state.detailMessage);
+    }
+    const hostname = this.getResolvedHostname(state.detailMessage);
+    const parsedPlatform = this.parseFieldFromDetail(state.detailMessage, 'platform');
+    const parsedUsername = this.parseFieldFromDetail(state.detailMessage, 'username');
+    const platform = parsedPlatform.length > 0 ? parsedPlatform : 'RustDesk';
+    this.appData.addRecentSession(this.appData.createRecentSession(normalizedPeerId, platform, true, hostname, parsedUsername));
+    this.recentSessions = this.appData.getRecentSessions();
+    this.chatMessages = this.chatService.getMessages(normalizedPeerId);
+    this.hasHadSession = true;
+    this.lastSessionPeerId = normalizedPeerId;
+    this.pendingConnectionMonitorId += 1;
+    this.pendingPeerId = '';
+    this.pendingPassword = '';
+    this.showPasswordDialog = false;
+    this.isConnecting = false;
+    this.pendingConnectionRetryCount = 0;
+    this.pendingConnectionInactivePollCount = 0;
+    this.setStatusMessageRaw(state.sessionStage === 'connected'
+      ? this.lt('Connection established. Opening remote desktop...')
+      : this.lt('Connection request continuing...'));
+    this.navigateTo('pages/RemoteControl', { deviceId: normalizedPeerId, showPasswordDialog: shouldShowPasswordDialog });
+  }
+
   private async monitorConnectionWhileWaiting(): Promise<void> {
     const peerId = this.pendingPeerId.trim();
     if (peerId.length === 0) {
@@ -5092,17 +5213,8 @@ struct Index {
       }
       this.syncPendingConnectionUi(state);
       if (state.sessionStage === 'connected') {
-        this.pendingConnectionInactivePollCount = 0;
         this.showPasswordDialog = false;
-        this.pendingConnectionRetryCount = 0;
-        const hostname = this.getResolvedHostname(state.detailMessage);
-        this.appData.addRecentSession(this.appData.createRecentSession(peerId, 'RustDesk', true, hostname));
-        this.recentSessions = this.appData.getRecentSessions();
-        this.setStatusMessage("connection_established");
-        this.chatMessages = this.chatService.getMessages(peerId);
-        this.hasHadSession = true;
-        this.lastSessionPeerId = peerId;
-        this.navigateTo('pages/RemoteControl', { deviceId: peerId });
+        this.openRemoteControlForPendingSession(peerId, state);
         return;
       }
       if (state.sessionStage === 'error') {
@@ -5218,15 +5330,7 @@ struct Index {
       }
 
       if (latestState.sessionStage === 'connected') {
-        this.officialCoreState = latestState;
-        const hostname = this.getResolvedHostname(latestState.detailMessage);
-        const parsedPlatform = this.parseFieldFromDetail(latestState.detailMessage, 'platform');
-        const parsedUsername = this.parseFieldFromDetail(latestState.detailMessage, 'username');
-        const platform = parsedPlatform.length > 0 ? parsedPlatform : 'RustDesk';
-        this.appData.addRecentSession(this.appData.createRecentSession(peerId, platform, true, hostname, parsedUsername));
-        this.recentSessions = this.appData.getRecentSessions();
-        this.setStatusMessage("connection_established");
-        this.navigateTo('pages/RemoteControl', { deviceId: peerId });
+        this.openRemoteControlForPendingSession(peerId, latestState);
         return true;
       }
 

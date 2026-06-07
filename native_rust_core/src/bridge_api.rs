@@ -564,3 +564,21 @@ pub extern "C" fn rustdesk_bridge_remove_discovered_peer(peer_id: *const c_char)
         0
     }
 }
+
+#[no_mangle]
+pub extern "C" fn rustdesk_bridge_send_ctrl_alt_del() -> c_int {
+    if rustdesk_core::harmony_bridge::send_ctrl_alt_del() {
+        1
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rustdesk_bridge_reconnect_session(force_relay: c_int) -> c_int {
+    if rustdesk_core::harmony_bridge::reconnect_session(force_relay != 0) {
+        1
+    } else {
+        0
+    }
+}

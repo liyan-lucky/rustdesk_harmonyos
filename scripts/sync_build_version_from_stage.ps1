@@ -16,7 +16,8 @@ if (-not $stageRootFull.StartsWith($tempRoot, [System.StringComparison]::Ordinal
 
 $filesToSync = @(
   "AppScope\app.json5",
-  "entry\src\main\ets\common\BuildInfo.ets"
+  "entry\src\main\ets\common\BuildInfo.ets",
+  "entry\src\main\ets\common\CoreBuildInfo.ets"
 )
 
 foreach ($relativePath in $filesToSync) {

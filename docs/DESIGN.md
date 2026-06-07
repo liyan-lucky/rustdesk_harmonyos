@@ -1,4 +1,4 @@
-# 项目设计要求
+﻿# 项目设计要求
 
 > 修改方向必须符合这些设计要求，避免偏离
 
@@ -122,11 +122,23 @@
 
 ### HAP构建
 - 构建前必须更新BuildInfo.ets的BUILD_TIME(脚本自动处理)
+- **module.json5 必须设置**: `compressNativeLibs: true` + `extractNativeLibs: true` + `libIsolation: true`，确保设备安装时正确解压 native SO 到 `libs/` 目录供运行时加载。设备上 `isCompressNativeLibs` 始终为 `true`（系统行为），`extractNativeLibs: true` 保证 SO 被解压而非直接从 APK 内 mmap。
 - 增量构建入口 `scripts/build_hap.bat` 必须设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`，版本号右侧数字自增1。
 - 全量构建入口 `scripts/build_full_hap.bat` 必须设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`，版本号中间数字自增1，并将右侧数字归零。
 - `run_hvigor_with_sdk_patch.js` 必须同步写入 `AppScope/app.json5` 的 `versionName/versionCode` 和 `BuildInfo.ets` 的 `VERSION/BUILD_TIME`。
 - 增量编译可能不生效，全量重编需删除entry/build
 - 使用`node scripts/run_hvigor_with_sdk_patch.js assembleHap`构建
+
+### Native Core构建（上游源码）
+- **上游源码位置**: `%VSCODE_ROOT%\99_Temp\rustdesk-master`
+- **当前兼容版本**: 1.4.6（已验证），1.4.7（升级进行中）
+- **OHOS 交叉编译必须排除的桌面端依赖**（`target_os = "linux"` 会命中）：
+  - `Cargo.toml`: 注释 tray-icon/tao/keepawake；用 `not(target_env = "ohos")` 排除 wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等
+  - `scrap/Cargo.toml`: 排除 dbus/gstreamer/zbus/nokhwa
+  - `build.rs`: 基于 `CARGO_CFG_TARGET_OS` 运行时检查，避免 OHOS 交叉编译触发 Windows C++ 编译
+  - `lib.rs`: 所有桌面端模块（tray/whiteboard/updater/ui_cm_interface/ui_interface/clipboard/clipboard_file）需 `not(target_env = "ohos")` 条件
+- **核心页详细信息必须显示兼容的官方版本号**，避免远端版本不匹配时找不到支撑信息
+- **harmony_bridge 目录**不在上游仓库中，升级源码时必须保留并恢复
 
 ### 真机测试
 - 当前USB测试设备由 `RUSTDESK_HARMONY_USB_TARGET` 指定，文档不记录设备硬件编号。

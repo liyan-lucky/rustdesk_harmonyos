@@ -1,0 +1,82 @@
+name: Build HarmonyOS Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_type:
+        description: "Package type to build"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - hap
+          - app
+      version_bump:
+        description: "Version bump mode before packaging"
+        required: true
+        default: "incremental"
+        type: choice
+        options:
+          - incremental
+          - full
+          - none
+      runner:
+        description: "Runner label. Use self-hosted if DevEco is preinstalled there."
+        required: true
+        default: "windows-latest"
+        type: choice
+        options:
+          - windows-latest
+          - self-hosted
+      preflight_only:
+        description: "Run environment/core/signing checks without building"
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    name: Build ${{ inputs.artifact_type }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 90
+
+    env:
+      CI: "true"
+      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
+      RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
+      RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
+      DEVECO_TOOLS_HOME: ${{ secrets.DEVECO_TOOLS_HOME || vars.DEVECO_TOOLS_HOME }}
+      DEVECO_SDK_HOME: ${{ secrets.DEVECO_SDK_HOME || vars.DEVECO_SDK_HOME }}
+      DEVECO_NODE_EXE: ${{ secrets.DEVECO_NODE_EXE || vars.DEVECO_NODE_EXE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node fallback
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Preflight and build
+        shell: pwsh
+        run: |
+          $preflightOnly = "${{ inputs.preflight_only }}" -eq "true"
+          $args = @(
+            "-ArtifactType", "${{ inputs.artifact_type }}",
+            "-VersionBump", "${{ inputs.version_bump }}",
+            "-ArtifactsDir", (Join-Path $env:GITHUB_WORKSPACE "github_artifacts")
+          )
+          if ($preflightOnly) {
+            $args += "-PreflightOnly"
+          }
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\github_build_harmonyos.ps1 @args
+
+      - name: Upload HarmonyOS artifacts
+        if: ${{ !inputs.preflight_only }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmonyos-${{ inputs.artifact_type }}
+          path: github_artifacts/**
+          if-no-files-found: error

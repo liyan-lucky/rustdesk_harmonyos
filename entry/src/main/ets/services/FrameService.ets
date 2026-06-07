@@ -46,12 +46,12 @@ export class FrameService {
   private lastRenderTime: number = 0;
 
   private frameQueue: FrameInfo[] = [];
-  private readonly MAX_QUEUE_SIZE: number = 3;
+  private readonly MAX_QUEUE_SIZE: number = 5;
 
   private stats: FrameStats = new FrameStatsImpl();
 
   private fpsHistory: number[] = [];
-  private readonly FPS_HISTORY_SIZE: number = 30;
+  private readonly FPS_HISTORY_SIZE: number = 60;
 
   private refreshCallback: (() => void) | null = null;
   private isRendering: boolean = false;
@@ -74,11 +74,6 @@ export class FrameService {
   }
 
   async processFrame(frameData: ArrayBuffer, width: number, height: number): Promise<boolean> {
-    if (this.isRendering) {
-      this.stats.droppedFrames++;
-      return false;
-    }
-
     const now = Date.now();
     const frameId = ++this.currentFrameId;
 

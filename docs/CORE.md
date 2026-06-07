@@ -49,8 +49,9 @@ RustDesk Server / Peer
 | `entry/src/main/cpp/rustdesk_bridge_loader.cpp` | NAPI bridge loader |
 | `entry/src/main/cpp/CMakeLists.txt` | 将 `librustdesk_core.a` 链接进 `librustdesk_bridge.so` |
 | `entry/src/main/libs/arm64/librustdesk_core.a` | 当前 HAP 链接用 Rust staticlib |
+| `entry/src/main/ets/common/CoreBuildInfo.ets` | 构建时生成的 native core 文件大小、mtime 和 hash 信息 |
 | `entry/src/main/ets/services/NativeRustDeskBridge.ts` | ArkTS 原生桥接封装 |
-| `entry/src/main/ets/services/OfficialRustDeskBridge.ts` | 官方连接状态和事件封装 |
+| `entry/src/main/ets/services/OfficialRustDeskBridge.ets` | 官方连接状态和事件封装 |
 | `entry/src/main/ets/pages/RemoteControl.ets` | 远程会话 UI、视频帧、输入、重试弹窗 |
 
 ## 当前核心必须保留的能力
@@ -66,29 +67,44 @@ RustDesk Server / Peer
   - `send_mouse_input(mask, x, y)` 转发到 active session，不能退回旧的 stub `false`。
   - `send_ctrl_alt_del()` 调用 active session 的 official `ctrl_alt_del()`，不能用普通键盘按键模拟替代。
   - `get_peer_info(peer_id)` 从 `PeerConfig.info` 返回 hostname、username、platform、alias。
+  - `HarmonyHandler.close_success()` 只能表示官方 UI 的连接成功提示关闭；首帧时也会触发，必须保持 `connected` 并上报 `connection-ready`，不能映射成 `session-closed`。
 - OHOS platform stubs 必须避免依赖桌面 Linux/Windows API。
 - ArkTS 输入必须按官方 RustDesk mouse mask 编码：
   - 低 3 bit 是 event type。
   - button bits 左移 3 位。
   - wheel 使用官方 wheel type 和滚动 delta。
 
+## 上游源码版本
+
+- 当前编译基于：**RustDesk 1.4.6**（`Cargo.toml version = "1.4.6"`）
+- 升级目标：**RustDesk 1.4.7**（GitHub 2026-06-02 发布）
+- 升级状态：**进行中**——Cargo.toml/lib.rs/build.rs/scrap/Cargo.toml 的 OHOS 排除修改已完成，编译待继续
+- 兼容说明：核心页详细信息应显示兼容的官方版本号，避免远端版本不匹配时找不到支撑信息
+- 源码位置：`%VSCODE_ROOT%\99_Temp\rustdesk-master`（当前为 1.4.7 源码 + harmony_bridge + OHOS 修改）
+- 备份位置：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\harmony_bridge_backup_20260606\`
+
 ## 当前验证过的产物
 
 Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
-- Size: `135,673,254` bytes
-- SHA256: `B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
-- Build time observed: `2026-06-02 21:15`
+- Size: `137,422,248` bytes (`131.06 MB`)
+- Build time observed: `2026-06-07 03:01`
+- FNV-1a 1MB: `5db8f431`
+- SHA256: `7C10663743785D8AD04078E16274D21497D451FEAAA942D8B2882CC4A58B3A2F`
 
 HAP:
 
-- BuildInfo compile time: `2026-06-04 01:14`
-- Signed HAP size: `45,416,051` bytes
+- BuildInfo compile time: `2026-06-07 03:09`
+- App version: `0.6.17`
+- versionCode: `1000022`
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
 - USB target used for validation: configured by `RUSTDESK_HARMONY_USB_TARGET`; hardware IDs are not recorded in docs.
 - Wireless target used for validation: `192.168.11.100:36169`
+- Latest wireless validation: 2026-06-07 HAP install and launch succeeded. hilog confirmed `module registered (52 functions)`, `coreReady=true`, `adapter=official-native`, no crashes.
+- **1.4.7 升级已完成**: 上游源码已升级到 1.4.7，native core 重编成功，HAP 构建安装通过。
+- **2026-06-07 修复**: (1) 无密码连接时密码输入框丢失——`RemoteControl.ets` applyBridgeState error/idle 分支优先检查 `shouldPromptForPassword`；(2) 无密码连接被访问端刚提示就结束会话——`handleTerminalBridgeEvent` 将密码检查扩展到 `session-closed`；(3) LAN 发现失效——`rendezvous_mediator_ohos.rs` start_all() 中启动 `crate::lan::start_listening()` 监听线程。
 
 ## Windows 一键重编核心
 
@@ -110,8 +126,9 @@ rustup target add aarch64-unknown-linux-ohos --toolchain stable
 
 重编命令：
 
-```cmd
-cmd /c %VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat
+```powershell
+cd $env:VSCODE_ROOT\11_Rustdesk_harmonyos
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1
 ```
 
 预期结果：
@@ -123,6 +140,7 @@ cmd /c %VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat
 ```text
 %VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
 ```
+- 脚本强制使用 Rust stable toolchain，避免 nightly 与旧依赖组合触发 `rustix` 编译错误。
 
 重编后检查：
 
@@ -385,6 +403,8 @@ cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 | 2026-06-02 | 成功 | 接入真实会话事件、视频刷新、帧读取、peer-info |
 | 2026-06-02 | 成功 | 修复共享页默认停止、密码刷新、在线刷新、触摸转发 |
 | 2026-06-02 | 成功 | 收紧重试弹窗触发条件，自定义键盘改为顶部覆盖 |
+| 2026-06-06 | 成功 | 修复 bridge_api.rs 缺失 send_ctrl_alt_del/reconnect_session 导出，NAPI 注册 52 函数，coreReady=true |
+| 2026-06-07 | 成功 | 1.4.7 升级完成，native core 重编（137,422,248 bytes）；修复无密码连接密码框丢失、会话过早关闭、LAN 发现失效（start_all 未启动 lan::start_listening） |
 
 ## 2026-06-03 服务器与共享核心状态
 
@@ -400,3 +420,14 @@ cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 - `get_core_snapshot_json()` 已返回 `incomingReady`、`displayId`、server 和状态摘要，避免 ArkTS 刷新时丢失共享状态。
 - 前端共享开关的多次轮询已收敛为单次延迟刷新；最新 USB 日志中 `incoming-service-requested` 只出现 1 次，App 进程保持稳定。
 - 屏幕采集仍是未完成项：系统截图 fallback 已确认会崩溃并被禁用，真实被控画面需要后续补 Harmony 可用的官方录屏/采集链路。
+## 2026-06-07 verified current core
+
+- Upstream compatibility: `RustDesk 1.4.7`.
+- Native core archive: `entry/src/main/libs/arm64/librustdesk_core.a`.
+- Native core size: `137,510,852` bytes (`131.14 MB`).
+- Native core compile time: `2026-06-07 01:36`.
+- Native core SHA256: `8EF4EE215FF7DED1EA78A68BC323A4E51DA613C46DBB6EA75C972EDCC572B272`.
+- App build info after verification: version `0.6.17`, build time `2026-06-07 01:51`.
+- Core detail page must show the native core compile time and `Compatible Official Version: RustDesk 1.4.7`; it must not use the app build time for native core metadata.
+- Signed HAP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`.
+- Signed APP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\outputs\default\11_Rustdesk_harmonyos-default-signed.app`.

@@ -26,6 +26,7 @@ interface DeviceRouteParams {
   deviceId: string;
   deviceName?: string;
   clearChat?: string;
+  showPasswordDialog?: boolean;
 }
 
 interface RemoteTouchPoint {
@@ -76,6 +77,12 @@ interface SessionRetryPrompt {
   canUseRelay: boolean;
 }
 
+interface QualityMetricItem {
+  label: string;
+  value: string;
+  priority: number;
+}
+
 function base64ToArrayBuffer(base64Str: string): ArrayBuffer {
   const base64Helper = new util.Base64Helper();
   const uint8Arr: Uint8Array = base64Helper.decodeSync(base64Str);
@@ -102,6 +109,7 @@ struct RemoteControl {
   private staleFrames: image.PixelMap[] = [];
   private lastFrameId: number = 0;
   private frameRefreshInFlight: boolean = false;
+  private renderGeneration: number = 0;
   private frameWidth: number = 0;
   private frameHeight: number = 0;
   private remoteDisplayWidth: number = 0;
@@ -123,9 +131,12 @@ struct RemoteControl {
   private hasPointerPosition: boolean = false;
   private lastRefreshTraceAt: number = 0;
   private lastFramePullTraceAt: number = 0;
+  private lastNativeFrameAdvanceAt: number = 0;
   private lastBridgeActivityAt: number = 0;
   private lastSilentSessionWarningAt: number = 0;
-  private readonly silentSessionTimeoutMs: number = 12000;
+  private readonly silentSessionTimeoutMs: number = 5000;
+  private readonly nativeFrameAdvanceMinIntervalMs: number = 48;
+  private readonly renderPixelMapTimeoutMs: number = 260;
   private readonly zoomLevels: number[] = [1, 1.6, 2.4, 3.4];
   private readonly maxPinchScale: number = 6;
   private readonly longPressRightClickMs: number = 520;
@@ -159,6 +170,9 @@ struct RemoteControl {
       return;
     }
     this.captureBridgeEvent(event);
+    if (this.handleTerminalBridgeEvent(event)) {
+      return;
+    }
     this.maybeShowReconnectDialogForEvent(event);
     if (this.showReconnectDialog) {
       return;
@@ -214,6 +228,7 @@ struct RemoteControl {
   @State reconnectDialogTitle: string = '';
   @State reconnectDialogText: string = '';
   @State reconnectDialogCanRelay: boolean = false;
+  @State isRetryingConnection: boolean = false;
   @State previewWidth: number = 0;
   @State previewHeight: number = 0;
   @State viewRotation: number = 0;
@@ -227,7 +242,11 @@ struct RemoteControl {
   @State connectionFps: number = 0;
   @State connectionRecvSpeed: string = '--';
   @State connectionSendSpeed: string = '--';
+  @State connectionSpeedDisplay: string = '--';
   @State connectionType: string = '';
+  @State qualityMetricItems: QualityMetricItem[] = [];
+  @State qualityDetailText: string = '';
+  @State qualityUpdatedAtText: string = '';
   @State showDisplayMenu: boolean = false;
   @State showMoreMenu: boolean = false;
   @State showMouseModeMenu: boolean = false;
@@ -246,7 +265,7 @@ struct RemoteControl {
   @State imageQualityMode: number = 1;
   @State videoCodecMode: number = 0;
   @State customBitrate: number = 50;
-  @State customFps: number = 30;
+  @State customFps: number = 60;
   @State showMoreBitrate: boolean = false;
   @State showCustomQualityPanel: boolean = false;
   @State keyboardMode: number = 0;
@@ -393,6 +412,13 @@ struct RemoteControl {
     if (params !== null && params.deviceId !== undefined) {
       this.deviceId = params.deviceId;
       this.deviceName = this.formatRemoteTitle(params.deviceId);
+      if (params.showPasswordDialog) {
+        this.showPasswordDialog = true;
+        const savedPassword = PreferenceStore.getPeerPassword(params.deviceId);
+        if (savedPassword) {
+          this.sessionPassword = savedPassword;
+        }
+      }
     }
     this.disposeRenderedFrame();
     this.settings = this.appData.getSettings();
@@ -400,10 +426,12 @@ struct RemoteControl {
     this.sessionBecameActiveAt = 0;
     this.sessionCloseRequestedLocally = false;
     this.sessionExitScheduled = false;
+    this.isRetryingConnection = false;
     this.lastFrameId = 0;
     this.lastFrameUpdatedAt = 0;
     this.lastVideoRefreshRequestAt = 0;
     this.lastFramePullTraceAt = 0;
+    this.lastNativeFrameAdvanceAt = 0;
     this.lastBridgeActivityAt = 0;
     this.lastSilentSessionWarningAt = 0;
     this.frameVersion = 0;
@@ -420,7 +448,9 @@ struct RemoteControl {
     this.connectionFps = 0;
     this.connectionRecvSpeed = '--';
     this.connectionSendSpeed = '--';
+    this.connectionSpeedDisplay = '--';
     this.connectionType = '';
+    this.clearConnectionQualityState();
     this.fpsCalcLastTime = 0;
     this.fpsCalcFrameCount = 0;
     this.lastNonZeroFps = 0;
@@ -877,13 +907,14 @@ struct RemoteControl {
       }
       .width('100%');
 
-      Column({ space: 8 }) {
+      Scroll() {
+        Column({ space: 8 }) {
         Row() {
           Text(this.lt('Resolution'))
             .fontSize(12)
             .fontColor(this.theme_DISABLED_TEXT);
           Blank();
-          Text(`${this.frameWidth} × ${this.frameHeight}`)
+          Text(this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth} × ${this.frameHeight}` : '--')
             .fontSize(12)
             .fontColor(this.theme_CONTRAST_TEXT);
         }
@@ -894,7 +925,7 @@ struct RemoteControl {
             .fontSize(12)
             .fontColor(this.theme_DISABLED_TEXT);
           Blank();
-          Text(`${this.connectionFps}`)
+          Text(this.connectionFps > 0 ? `${this.connectionFps}` : '--')
             .fontSize(12)
             .fontColor(this.theme_CONTRAST_TEXT);
         }
@@ -912,22 +943,11 @@ struct RemoteControl {
         .width('100%');
 
         Row() {
-          Text(this.lt('Received'))
+          Text(this.lt('Speed'))
             .fontSize(12)
             .fontColor(this.theme_DISABLED_TEXT);
           Blank();
-          Text(this.connectionRecvSpeed)
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('Sent'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.connectionSendSpeed)
+          Text(this.connectionSpeedDisplay)
             .fontSize(12)
             .fontColor(this.theme_CONTRAST_TEXT);
         }
@@ -954,14 +974,67 @@ struct RemoteControl {
             .fontColor(this.theme_CONTRAST_TEXT);
         }
         .width('100%');
+
+          if (this.qualityUpdatedAtText.length > 0) {
+            this.buildConnectionInfoRow(this.lt('Updated'), this.qualityUpdatedAtText, this.theme_DISABLED_TEXT);
+          }
+          if (this.qualityMetricItems.length > 0) {
+            Text(this.lt('Quality Details'))
+              .fontSize(11)
+              .fontColor(this.theme_DISABLED_TEXT)
+              .fontWeight(FontWeight.Medium)
+              .margin({ top: 6 });
+            ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
+              this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT);
+            }, (item: QualityMetricItem) => `${item.priority}-${item.label}`);
+          }
+          if (this.qualityDetailText.length > 0) {
+            Text(this.lt('Raw Quality Status'))
+              .fontSize(11)
+              .fontColor(this.theme_DISABLED_TEXT)
+              .fontWeight(FontWeight.Medium)
+              .margin({ top: 6 });
+            Text(this.qualityDetailText)
+              .fontSize(10)
+              .fontColor(this.theme_CONTRAST_TEXT)
+              .lineHeight(14)
+              .width('100%')
+              .maxLines(16)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+          }
       }
+      .width('100%')
     }
-    .width(210)
+    .height(360)
+    .scrollBar(BarState.Auto)
+    .width('100%');
+    }
+    .width(300)
     .padding(16)
     .backgroundColor(this.theme_OVERLAY_FULL)
     .borderRadius(12)
     .position({ x: '100%', y: 60 })
-    .translate({ x: -220 })
+    .translate({ x: -312 })
+  }
+
+  @Builder
+  private buildConnectionInfoRow(label: string, value: string, valueColor: string) {
+    Row({ space: 8 }) {
+      Text(label)
+        .fontSize(12)
+        .fontColor(this.theme_DISABLED_TEXT)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width(96);
+      Text(value.length > 0 ? value : '--')
+        .fontSize(12)
+        .fontColor(valueColor)
+        .textAlign(TextAlign.End)
+        .maxLines(3)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1);
+    }
+    .width('100%');
   }
 
   @Builder
@@ -1049,10 +1122,6 @@ struct RemoteControl {
       this.maybeRequestVideoRefresh(true);
       return;
     }
-    this.connectionLatency = 0;
-    this.connectionFps = 0;
-    this.connectionRecvSpeed = '--';
-    this.connectionSendSpeed = '--';
     this.lastNonZeroFps = 0;
     this.lastNonZeroFpsAt = 0;
     this.fpsCalcLastTime = 0;
@@ -1100,7 +1169,7 @@ struct RemoteControl {
       return;
     }
     const elapsed = now - this.fpsCalcLastTime;
-    if (elapsed >= 1000) {
+    if (elapsed >= 500) {
       const calculatedFps = Math.round(this.fpsCalcFrameCount * 1000 / elapsed);
       this.updateDisplayedFps(calculatedFps, now);
       this.fpsCalcFrameCount = 0;
@@ -1705,7 +1774,7 @@ struct RemoteControl {
           .fontWeight(FontWeight.Bold)
           .fontColor(this.theme_TEXT_PRIMARY);
 
-        Text(this.lt('If you know the remote password, you can enter and connect; or save the password for next auto-fill.'))
+        Text(this.lt('If you know the remote password, enter it to connect directly. A no-password request has also been sent — if the remote side approves, the connection will be established automatically.'))
           .fontSize(14)
           .fontColor(this.theme_TEXT_SECONDARY);
 
@@ -1722,29 +1791,40 @@ struct RemoteControl {
           });
 
         Row({ space: 12 }) {
+          Button(this.lt('Wait for confirmation'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .backgroundColor(this.theme_INACTIVE_BG)
+            .borderRadius(8)
+            .onClick(() => {
+              this.continueWaitingWithoutPassword();
+            });
+
           Button(this.lt('Save password'))
             .layoutWeight(1)
             .height(44)
-            .fontSize(16)
+            .fontSize(14)
             .fontColor(this.theme_TEXT_PRIMARY)
             .backgroundColor(this.theme_INACTIVE_BG)
             .borderRadius(8)
             .onClick(() => {
               this.savePeerPassword();
             });
-
-          Button(this.isSubmittingPassword ? this.lt('Submitting...') : this.lt('Submit password'))
-            .layoutWeight(1)
-            .height(44)
-            .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
-            .borderRadius(8)
-            .onClick(() => {
-              this.submitSessionPassword();
-            });
         }
         .width('100%');
+
+        Button(this.isSubmittingPassword ? this.lt('Submitting...') : this.lt('Submit password'))
+          .width('100%')
+          .height(44)
+          .fontSize(16)
+          .fontColor(this.theme_ACCENT_TEXT)
+          .backgroundColor(this.theme_ACCENT)
+          .borderRadius(8)
+          .onClick(() => {
+            this.submitSessionPassword();
+          });
       }
       .width('85%')
       .padding(24)
@@ -1758,7 +1838,6 @@ struct RemoteControl {
     .backgroundColor(this.theme_DIALOG_OVERLAY)
     .justifyContent(FlexAlign.Center)
     .onClick(() => {
-      this.showPasswordDialog = false;
     });
   }
 
@@ -1796,11 +1875,11 @@ struct RemoteControl {
               .backgroundColor(this.theme_INACTIVE_BG)
               .borderRadius(8)
               .onClick(() => {
-                this.retrySessionConnection(true);
+                void this.retrySessionConnection(true);
               });
           }
 
-          Button(this.lt('Retry'))
+          Button(this.isRetryingConnection ? this.lt('Connecting...') : this.lt('Retry'))
             .layoutWeight(1)
             .height(44)
             .fontSize(15)
@@ -1808,7 +1887,7 @@ struct RemoteControl {
             .backgroundColor(this.theme_ACCENT)
             .borderRadius(8)
             .onClick(() => {
-              this.retrySessionConnection(false);
+              void this.retrySessionConnection(false);
             });
         }
         .width('100%');
@@ -1832,6 +1911,7 @@ struct RemoteControl {
     }
     this.sessionCloseRequestedLocally = true;
     this.showReconnectDialog = false;
+    this.isRetryingConnection = false;
     if (this.isConnected || this.hasReceivedFrame) {
       this.sessionBecameActive = true;
     }
@@ -2194,7 +2274,33 @@ struct RemoteControl {
     this.frameRefreshTimer = setInterval(() => {
       void this.refreshRenderedFrame();
       this.maybeRequestVideoRefresh(false);
-    }, 8);
+      this.maybeAdvanceNativeFrame();
+    }, 16);
+  }
+
+  private maybeAdvanceNativeFrame(): void {
+    if (!this.isConnected || this.sessionExitScheduled) {
+      return;
+    }
+    const now = Date.now();
+    const staleMs = this.lastFrameUpdatedAt > 0 ? now - this.lastFrameUpdatedAt : 0;
+    const shouldPrimeFirstFrame = !this.hasReceivedFrame;
+    const shouldRecoverStaleFrame = this.hasReceivedFrame && staleMs > 200;
+    if (!shouldPrimeFirstFrame && !shouldRecoverStaleFrame) {
+      return;
+    }
+    if (now - this.lastNativeFrameAdvanceAt < this.nativeFrameAdvanceMinIntervalMs) {
+      return;
+    }
+    this.advanceNativeFrame(this.currentRemoteDisplay, now);
+  }
+
+  private advanceNativeFrame(display: number, now: number = Date.now()): void {
+    if (display < 0 || this.sessionExitScheduled) {
+      return;
+    }
+    NativeRustDeskBridge.harmonyNextRgba(display);
+    this.lastNativeFrameAdvanceAt = now;
   }
 
   private stopFrameRefresh(): void {
@@ -2385,16 +2491,15 @@ struct RemoteControl {
       this.showReconnectDialog = false;
       this.isConnected = true;
       this.isSubmittingPassword = false;
-      if (this.hasReceivedFrame) {
-        this.showPasswordDialog = false;
-      }
+      this.showPasswordDialog = false;
+      this.activePasswordPromptToken = '';
+      this.suppressedPasswordPromptToken = '';
       if (!this.hasReceivedFrame) {
         this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connected');
         this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Session connected, waiting for first frame...');
       } else if (coreState.statusSummary.length > 0) {
         this.statusText = coreState.statusSummary;
       }
-      this.updatePasswordDialogState(coreState);
       return;
     }
 
@@ -2403,7 +2508,9 @@ struct RemoteControl {
       this.isSubmittingPassword = false;
       this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
       this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Waiting for remote response...');
-      this.updatePasswordDialogState(coreState);
+      if (this.shouldPromptForPassword(coreState)) {
+        this.updatePasswordDialogState(coreState);
+      }
       return;
     }
 
@@ -2413,6 +2520,14 @@ struct RemoteControl {
         this.isSubmittingPassword = false;
         this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connection failed');
         this.videoStatus = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
+        return;
+      }
+      if (this.shouldPromptForPassword(coreState)) {
+        this.isConnected = false;
+        this.isSubmittingPassword = false;
+        this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
+        this.videoStatus = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
+        this.updatePasswordDialogState(coreState);
         return;
       }
       if (!this.sessionCloseRequestedLocally && this.shouldAutoCloseTerminalSession()) {
@@ -2456,6 +2571,14 @@ struct RemoteControl {
         return;
       }
       if (!this.sessionCloseRequestedLocally) {
+        if (this.shouldPromptForPassword(coreState)) {
+          this.isConnected = false;
+          this.isSubmittingPassword = false;
+          this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
+          this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Waiting for password...');
+          this.updatePasswordDialogState(coreState);
+          return;
+        }
         if (this.sessionBecameActive && !this.hasReceivedFrame) {
           this.showReconnectDialogFromState(this.lt('Connection Error'), coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('No video frame received'));
         } else if (this.shouldShowReconnectPromptNow()) {
@@ -2506,10 +2629,10 @@ struct RemoteControl {
         return;
       }
 
-      if (frameData.frameId === this.lastFrameId) {
+      if (frameData.frameId <= this.lastFrameId) {
         if (this.shouldTraceFramePull(now)) {
           console.log(
-            `[RemoteControl] pullLatestVideoFrame same frameId=${frameData.frameId} timestamp=${frameData.timestamp} bytes=${frameData.bytes}`
+            `[RemoteControl] pullLatestVideoFrame stale frameId=${frameData.frameId} lastFrameId=${this.lastFrameId} timestamp=${frameData.timestamp} bytes=${frameData.bytes}`
           );
         }
         return;
@@ -2521,12 +2644,11 @@ struct RemoteControl {
           `[RemoteControl] pullLatestVideoFrame new frameId=${frameData.frameId} prev=${this.lastFrameId} timestamp=${frameData.timestamp} ageMs=${ageMs} bytes=${frameData.bytes}`
         );
       }
-      try {
-        this.updateRenderedFrameSurface(frameData);
-      } finally {
-        // Notify the native bridge that Harmony has consumed this frame so
-        // the latest RGBA slot can continue advancing.
-        NativeRustDeskBridge.harmonyNextRgba(frameData.display);
+      this.advanceNativeFrame(frameData.display);
+      const renderGeneration = this.renderGeneration;
+      const rendered = await this.updateRenderedFrameSurfaceAsync(frameData, renderGeneration);
+      if (!rendered) {
+        return;
       }
       this.lastFrameId = frameData.frameId;
       this.frameWidth = frameData.width;
@@ -2569,7 +2691,7 @@ struct RemoteControl {
       return null;
     }
     const staleMs = this.lastFrameUpdatedAt > 0 ? now - this.lastFrameUpdatedAt : 0;
-    if (staleMs < 600) {
+    if (staleMs < 300) {
       return null;
     }
     const latestFrameCandidate = NativeRustDeskBridge.pullLatestVideoFrame(0);
@@ -2596,10 +2718,10 @@ struct RemoteControl {
     let minIntervalMs = 0;
     if (waitingFirstFrame) {
       minIntervalMs = force ? 450 : 900;
-    } else if (force && staleMs > 1500) {
-      minIntervalMs = 1200;
-    } else if (!force && staleMs > 5000) {
-      minIntervalMs = 3000;
+    } else if (force && staleMs > 800) {
+      minIntervalMs = 600;
+    } else if (!force && staleMs > 3000) {
+      minIntervalMs = 1500;
       if (this.showConnectionInfo) {
         this.updateDisplayedFps(0, now);
       }
@@ -2787,10 +2909,49 @@ struct RemoteControl {
     this.reconnectDialogCanRelay = prompt.canUseRelay;
     this.statusText = prompt.title;
     this.videoStatus = prompt.text;
+    this.prepareReconnectPromptSurface();
+    this.stopFrameRefresh();
+  }
+
+  private handleTerminalBridgeEvent(event: OfficialSessionEvent): boolean {
+    if (event.kind !== 'session-error' && event.kind !== 'session-closed') {
+      return false;
+    }
+    if (this.sessionCloseRequestedLocally || this.sessionExitScheduled) {
+      return true;
+    }
+    const coreState = this.officialBridge.getCoreState();
+    if (this.shouldPromptForPassword(coreState)) {
+      this.applyBridgeState(coreState);
+      return true;
+    }
+    if (!this.hasReceivedFrame && !this.shouldShowReconnectPromptNow()) {
+      return false;
+    }
+    const eventDetail = event.detail.trim();
+    const stateDetail = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
+    const detail = eventDetail.length > 0
+      ? eventDetail
+      : (stateDetail.length > 0 ? stateDetail : this.lt('Session ended'));
+    console.warn(`[RemoteControl] terminal session event kind=${event.kind} detail=${detail}`);
+    this.prepareReconnectPromptSurface();
+    this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
+    return true;
+  }
+
+  private prepareReconnectPromptSurface(): void {
+    this.isConnected = false;
+    this.isSubmittingPassword = false;
+    this.showPasswordDialog = false;
+    this.remoteCursorVisible = false;
+    this.pointerActive = false;
+    this.leftButtonActive = false;
+    this.disposeRenderedFrame();
     this.stopFrameRefresh();
   }
 
   private showReconnectDialogFromState(title: string, detail: string): void {
+    this.prepareReconnectPromptSurface();
     this.isConnected = false;
     this.isSubmittingPassword = false;
     this.showPasswordDialog = false;
@@ -2801,8 +2962,8 @@ struct RemoteControl {
     this.statusText = this.reconnectDialogTitle;
     this.videoStatus = this.reconnectDialogText;
     this.remoteCursorVisible = false;
-    this.stopBridgeRefresh();
     this.stopFrameRefresh();
+    this.startBridgeRefresh();
   }
 
   private parseRetryPrompt(event: OfficialSessionEvent): SessionRetryPrompt | null {
@@ -2852,6 +3013,7 @@ struct RemoteControl {
   }
 
   private cancelReconnectDialog(): void {
+    this.isRetryingConnection = false;
     this.showReconnectDialog = false;
     this.finishTerminalSession(
       this.lt('Session closed'),
@@ -2860,7 +3022,11 @@ struct RemoteControl {
     );
   }
 
-  private retrySessionConnection(forceRelay: boolean): void {
+  private async retrySessionConnection(forceRelay: boolean): Promise<void> {
+    if (this.isRetryingConnection) {
+      return;
+    }
+    this.isRetryingConnection = true;
     this.showReconnectDialog = false;
     this.sessionCloseRequestedLocally = false;
     this.sessionExitScheduled = false;
@@ -2873,12 +3039,46 @@ struct RemoteControl {
     this.videoStatus = forceRelay ? this.lt('Reconnecting through relay') : this.lt('Retrying connection');
     const reconnected = this.officialBridge.reconnectSession(forceRelay);
     if (!reconnected) {
-      this.showReconnectDialog = true;
-      this.videoStatus = this.lt('Cannot reconnect current session.');
-      return;
+      const peerId = this.resolveReconnectPeerId();
+      if (peerId.length === 0) {
+        this.isRetryingConnection = false;
+        this.showReconnectDialog = true;
+        this.videoStatus = this.lt('Cannot reconnect current session.');
+        return;
+      }
+      try {
+        await this.officialBridge.connectToPeer(peerId, this.resolveReconnectPassword(peerId), this.settings);
+      } catch (error) {
+        console.warn(`[RemoteControl] reconnect fallback connectToPeer failed: ${JSON.stringify(error)}`);
+        const latestState = await this.officialBridge.refresh(this.settings);
+        const detail = latestState.lastError.length > 0
+          ? latestState.lastError
+          : (latestState.detailMessage.length > 0 ? latestState.detailMessage : this.lt('Cannot reconnect current session.'));
+        this.isRetryingConnection = false;
+        this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
+        return;
+      }
     }
     this.startBridgeRefresh();
     this.startFrameRefresh();
+    this.isRetryingConnection = false;
+  }
+
+  private resolveReconnectPeerId(): string {
+    const statePeerId = this.officialBridge.getCoreState().activePeerId.trim();
+    if (statePeerId.length > 0) {
+      return statePeerId;
+    }
+    return this.deviceId.trim();
+  }
+
+  private resolveReconnectPassword(peerId: string): string {
+    const typedPassword = this.sessionPassword.trim();
+    if (typedPassword.length > 0) {
+      return typedPassword;
+    }
+    const savedPassword = PreferenceStore.getPeerPassword(peerId);
+    return savedPassword ? savedPassword.trim() : '';
   }
 
   private updateRecentSessionFromPeerInfoEvent(peerId: string, values: Record<string, string>): void {
@@ -3057,15 +3257,13 @@ struct RemoteControl {
   }
 
   private applyQualityStatus(detail: string): void {
-    if (!this.showConnectionInfo) {
-      return;
-    }
     try {
       const payload = this.parseQualityStatusPayload(detail);
       if (payload === null) {
         console.warn(`[RemoteControl] Failed to parse quality-status: ${detail}`);
         return;
       }
+      this.updateQualityDetailCache(payload, detail);
       const delayValue = payload['delay'];
       const parsedDelay = typeof delayValue === 'number' ? delayValue : Number(delayValue ?? '');
       if (Number.isFinite(parsedDelay) && parsedDelay >= 0) {
@@ -3073,14 +3271,23 @@ struct RemoteControl {
       }
 
       const recvSpeedValue = payload['speed'];
-      this.connectionRecvSpeed = typeof recvSpeedValue === 'string' && recvSpeedValue.trim().length > 0
-        ? recvSpeedValue.trim()
-        : '--';
+      if (recvSpeedValue !== undefined && recvSpeedValue !== null) {
+        this.connectionRecvSpeed = typeof recvSpeedValue === 'string' && recvSpeedValue.trim().length > 0
+          ? recvSpeedValue.trim()
+          : '--';
+      }
 
       const sendSpeedValue = payload['send_speed'];
-      this.connectionSendSpeed = typeof sendSpeedValue === 'string' && sendSpeedValue.trim().length > 0
-        ? sendSpeedValue.trim()
-        : '0.00kB/s';
+      if (sendSpeedValue !== undefined && sendSpeedValue !== null) {
+        this.connectionSendSpeed = typeof sendSpeedValue === 'string' && sendSpeedValue.trim().length > 0
+          ? sendSpeedValue.trim()
+          : '';
+      }
+      const combinedSpeedDisplay = this.computeCombinedSpeedDisplay(this.connectionRecvSpeed, this.connectionSendSpeed);
+      const targetBitrateDisplay = this.formatBitrateValue(payload['target_bitrate']);
+      this.connectionSpeedDisplay = combinedSpeedDisplay !== '--'
+        ? combinedSpeedDisplay
+        : (targetBitrateDisplay.length > 0 ? targetBitrateDisplay : '--');
 
       const fpsValue = payload['fps'];
       let parsedFps = Number.NaN;
@@ -3088,7 +3295,7 @@ struct RemoteControl {
         parsedFps = fpsValue;
       } else if (typeof fpsValue === 'string') {
         parsedFps = Number(fpsValue);
-      } else if (fpsValue !== undefined) {
+      } else if (fpsValue !== undefined && fpsValue !== null) {
         const fpsRecord = fpsValue as Record<string, number | string>;
         const currentDisplayValue = fpsRecord[this.currentRemoteDisplay.toString()];
         if (currentDisplayValue !== undefined) {
@@ -3125,19 +3332,208 @@ struct RemoteControl {
     }
   }
 
-  private parseQualityStatusPayload(detail: string): Record<string, number | string | Record<string, number | string> | undefined> | null {
+  private computeCombinedSpeedDisplay(recvSpeed: string, sendSpeed: string): string {
+    const recvMbps = this.parseSpeedToMbps(recvSpeed);
+    const sendMbps = this.parseSpeedToMbps(sendSpeed);
+    if (recvMbps === null && sendMbps === null) {
+      return '--';
+    }
+    const totalMbps = (recvMbps ?? 0) + (sendMbps ?? 0);
+    if (totalMbps >= 1) {
+      return `${totalMbps.toFixed(1)} MB/s`;
+    }
+    return `${(totalMbps * 1024).toFixed(0)} KB/s`;
+  }
+
+  private parseSpeedToMbps(speedStr: string): number | null {
+    if (!speedStr || speedStr === '--' || speedStr.trim().length === 0) {
+      return null;
+    }
+    const trimmed = speedStr.trim().toLowerCase();
+    const mbMatch = /^([\d.]+)\s*mb\/s/.exec(trimmed);
+    if (mbMatch) {
+      return parseFloat(mbMatch[1]);
+    }
+    const kbMatch = /^([\d.]+)\s*kb\/s/.exec(trimmed);
+    if (kbMatch) {
+      return parseFloat(kbMatch[1]) / 1024;
+    }
+    const gbMatch = /^([\d.]+)\s*gb\/s/.exec(trimmed);
+    if (gbMatch) {
+      return parseFloat(gbMatch[1]) * 1024;
+    }
+    const bMatch = /^([\d.]+)\s*b\/s/.exec(trimmed);
+    if (bMatch) {
+      return parseFloat(bMatch[1]) / (1024 * 1024);
+    }
+    return null;
+  }
+
+  private clearConnectionQualityState(): void {
+    this.qualityMetricItems = [];
+    this.qualityDetailText = '';
+    this.qualityUpdatedAtText = '';
+  }
+
+  private updateQualityDetailCache(
+    payload: Record<string, number | string | Record<string, number | string> | null | undefined>,
+    detail: string
+  ): void {
+    this.qualityUpdatedAtText = this.formatQualityTimestamp();
+    this.qualityMetricItems = this.buildQualityMetricItems(payload);
+    this.qualityDetailText = this.compactQualityDetail(detail);
+  }
+
+  private buildQualityMetricItems(
+    payload: Record<string, number | string | Record<string, number | string> | null | undefined>
+  ): QualityMetricItem[] {
+    const items: QualityMetricItem[] = [];
+    const keys = Object.keys(payload);
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index];
+      const value = payload[key];
+      const displayValue = this.formatQualityMetricValue(key, value);
+      if (displayValue.length === 0) {
+        continue;
+      }
+      items.push({
+        label: this.formatQualityMetricLabel(key),
+        value: displayValue,
+        priority: this.getQualityMetricPriority(key)
+      });
+    }
+    items.sort((left: QualityMetricItem, right: QualityMetricItem) => {
+      if (left.priority !== right.priority) {
+        return left.priority - right.priority;
+      }
+      return left.label > right.label ? 1 : -1;
+    });
+    return items;
+  }
+
+  private formatQualityMetricValue(
+    key: string,
+    value: number | string | Record<string, number | string> | null | undefined
+  ): string {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (key === 'target_bitrate') {
+      return this.formatBitrateValue(value);
+    }
+    if (typeof value === 'number') {
+      if (key === 'delay') {
+        return `${Math.round(value)} ms`;
+      }
+      return `${value}`;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length === 0 || trimmed === 'null' || trimmed === 'undefined') {
+        return '';
+      }
+      if (key === 'delay') {
+        const numericDelay = Number(trimmed);
+        return Number.isFinite(numericDelay) ? `${Math.round(numericDelay)} ms` : trimmed;
+      }
+      return trimmed;
+    }
+    const recordKeys = Object.keys(value);
+    const values: string[] = [];
+    for (let index = 0; index < recordKeys.length; index += 1) {
+      const itemKey = recordKeys[index];
+      const itemValue = value[itemKey];
+      values.push(`${itemKey}: ${itemValue}`);
+    }
+    return values.join(', ');
+  }
+
+  private formatQualityMetricLabel(key: string): string {
+    switch (key) {
+      case 'delay':
+        return this.lt('Latency');
+      case 'fps':
+        return this.lt('FPS');
+      case 'speed':
+        return this.lt('Download');
+      case 'send_speed':
+        return this.lt('Upload');
+      case 'target_bitrate':
+        return this.lt('Target Bitrate');
+      case 'codec_format':
+        return this.lt('Codec');
+      case 'chroma':
+        return this.lt('Chroma');
+      default:
+        return key.replace(/_/g, ' ');
+    }
+  }
+
+  private getQualityMetricPriority(key: string): number {
+    switch (key) {
+      case 'delay':
+        return 10;
+      case 'fps':
+        return 20;
+      case 'speed':
+        return 30;
+      case 'send_speed':
+        return 40;
+      case 'target_bitrate':
+        return 50;
+      case 'codec_format':
+        return 60;
+      case 'chroma':
+        return 70;
+      default:
+        return 100;
+    }
+  }
+
+  private formatBitrateValue(value: number | string | Record<string, number | string> | null | undefined): string {
+    if (value === undefined || value === null || typeof value === 'object') {
+      return '';
+    }
+    const numeric = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return typeof value === 'string' && value.trim().length > 0 ? value.trim() : '';
+    }
+    if (numeric >= 1000) {
+      return `${(numeric / 1000).toFixed(1)} Mbps target`;
+    }
+    return `${Math.round(numeric)} kbps target`;
+  }
+
+  private formatQualityTimestamp(): string {
+    const now = new Date();
+    return `${this.padTimeNumber(now.getHours())}:${this.padTimeNumber(now.getMinutes())}:${this.padTimeNumber(now.getSeconds())}`;
+  }
+
+  private padTimeNumber(value: number): string {
+    return value < 10 ? `0${value}` : `${value}`;
+  }
+
+  private compactQualityDetail(detail: string): string {
+    const trimmed = detail.trim();
+    if (trimmed.length <= 1200) {
+      return trimmed;
+    }
+    return `${trimmed.substring(0, 1200)}...`;
+  }
+
+  private parseQualityStatusPayload(detail: string): Record<string, number | string | Record<string, number | string> | null | undefined> | null {
     try {
-      return JSON.parse(detail) as Record<string, number | string | Record<string, number | string> | undefined>;
+      return JSON.parse(detail) as Record<string, number | string | Record<string, number | string> | null | undefined>;
     } catch (_error) {
       return this.parseRustDebugQualityStatus(detail);
     }
   }
 
-  private parseRustDebugQualityStatus(detail: string): Record<string, number | string | Record<string, number | string> | undefined> | null {
+  private parseRustDebugQualityStatus(detail: string): Record<string, number | string | Record<string, number | string> | null | undefined> | null {
     if (detail.indexOf('QualityStatus') < 0) {
       return null;
     }
-    const payload: Record<string, number | string | Record<string, number | string> | undefined> = {};
+    const payload: Record<string, number | string | Record<string, number | string> | null | undefined> = {};
     const speedMatch = /speed:\s*Some\("([^"]+)"\)/.exec(detail);
     const speedValue = speedMatch?.[1] ?? '';
     if (speedValue.length > 0) {
@@ -3147,6 +3543,16 @@ struct RemoteControl {
     const delayValue = delayMatch?.[1] ?? '';
     if (delayValue.length > 0) {
       payload['delay'] = Number(delayValue);
+    }
+    const targetBitrateMatch = /target_bitrate:\s*Some\((-?\d+)\)/.exec(detail);
+    const targetBitrateValue = targetBitrateMatch?.[1] ?? '';
+    if (targetBitrateValue.length > 0) {
+      payload['target_bitrate'] = Number(targetBitrateValue);
+    }
+    const codecMatch = /codec_format:\s*Some\((?:"([^"]+)"|([^)]+))\)/.exec(detail);
+    const codecValue = codecMatch?.[1] ?? codecMatch?.[2] ?? '';
+    if (codecValue.length > 0) {
+      payload['codec_format'] = codecValue.trim();
     }
     const fpsRecord: Record<string, number | string> = {};
     const fpsMatch = /fps:\s*\{([^}]*)\}/.exec(detail);
@@ -3201,25 +3607,67 @@ struct RemoteControl {
       this.resolveInteractiveHeight() > 0;
   }
 
-  private updateRenderedFrameSurface(frameData: NativeVideoFrame): void {
+  private async updateRenderedFrameSurfaceAsync(frameData: NativeVideoFrame, renderGeneration: number): Promise<boolean> {
     const pixelBuffer = this.toHarmonyPixelBuffer(frameData);
     try {
+      const pixelMap = await this.createFramePixelMapWithTimeout(pixelBuffer, frameData.width, frameData.height);
+      if (pixelMap === null) {
+        return false;
+      }
+      if (renderGeneration !== this.renderGeneration || this.sessionExitScheduled) {
+        pixelMap.release();
+        return false;
+      }
       const previousFrame = this.renderedFrame;
-      this.renderedFrame = image.createPixelMapSync(pixelBuffer, {
-        size: {
-          width: frameData.width,
-          height: frameData.height
-        },
-        pixelFormat: image.PixelMapFormat.BGRA_8888,
-        alphaType: image.AlphaType.UNPREMUL
-      });
+      this.renderedFrame = pixelMap;
       this.renderedFrameWidth = frameData.width;
       this.renderedFrameHeight = frameData.height;
       this.renderedFrameFormat = frameData.format;
       this.queueStaleFrame(previousFrame);
+      return true;
     } catch (outerError) {
-      console.error(`[RemoteControl] updateRenderedFrameSurface failed: ${JSON.stringify(outerError)}`);
+      console.error(`[RemoteControl] updateRenderedFrameSurfaceAsync failed: ${JSON.stringify(outerError)}`);
+      return false;
     }
+  }
+
+  private createFramePixelMapWithTimeout(pixelBuffer: ArrayBuffer, width: number, height: number): Promise<image.PixelMap | null> {
+    return new Promise<image.PixelMap | null>((resolve) => {
+      let settled = false;
+      const timeoutId = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        console.warn(`[RemoteControl] createPixelMap timeout width=${width} height=${height}`);
+        resolve(null);
+      }, this.renderPixelMapTimeoutMs);
+
+      image.createPixelMap(pixelBuffer, {
+        size: {
+          width,
+          height
+        },
+        pixelFormat: image.PixelMapFormat.BGRA_8888,
+        alphaType: image.AlphaType.UNPREMUL
+      }).then((pixelMap: image.PixelMap) => {
+        if (settled) {
+          pixelMap.release();
+          return;
+        }
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(pixelMap);
+      }).catch((error: Object) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeoutId);
+        console.error(`[RemoteControl] createPixelMap failed: ${JSON.stringify(error)}`);
+        resolve(null);
+      });
+    });
   }
 
   private resolveRenderedImageWidth(): number {
@@ -3395,13 +3843,41 @@ struct RemoteControl {
     const submitted = this.officialBridge.submitSessionPassword(password, false);
     if (!submitted) {
       this.isSubmittingPassword = false;
-      this.showPasswordDialog = true;
-      this.videoStatus = this.lt('Cannot submit password yet...');
+      this.reconnectWithPassword(password);
       return;
     }
     this.sessionPassword = '';
     this.statusText = this.lt('Submitting session password');
     this.videoStatus = this.lt('Password submitted, waiting for response...');
+  }
+
+  private reconnectWithPassword(password: string): void {
+    const peerId = this.deviceId.trim();
+    if (peerId.length === 0) {
+      this.showPasswordDialog = true;
+      this.videoStatus = this.lt('Cannot submit password yet...');
+      return;
+    }
+    this.showPasswordDialog = false;
+    this.isConnected = false;
+    this.statusText = this.lt('Switching to password connection...');
+    this.videoStatus = this.lt('Reconnecting with password...');
+    this.stopFrameRefresh();
+    this.stopBridgeRefresh();
+    NativeRustDeskBridge.closeSession();
+    setTimeout(() => {
+      this.sessionPassword = '';
+      this.isSubmittingPassword = false;
+      const settings = this.appData.getSettings();
+      void this.officialBridge.connectToPeer(peerId, password, settings).then(() => {
+        const state = this.officialBridge.getCoreState();
+        this.applyBridgeState(state);
+      }).catch(() => {
+        this.isSubmittingPassword = false;
+        const state = this.officialBridge.getCoreState();
+        this.applyBridgeState(state);
+      });
+    }, 300);
   }
 
   private updatePasswordDialogState(coreState: OfficialCoreState): void {
@@ -3460,7 +3936,7 @@ struct RemoteControl {
       return;
     }
     this.staleFrames.push(frame);
-    while (this.staleFrames.length > 2) {
+    while (this.staleFrames.length > 3) {
       const stale = this.staleFrames.shift();
       if (stale !== undefined) {
         stale.release();
@@ -3967,6 +4443,7 @@ struct RemoteControl {
   }
 
   private disposeRenderedFrame(): void {
+    this.renderGeneration += 1;
     this.clearLongPressTimer();
     this.pointerActive = false;
     this.leftButtonActive = false;
@@ -3985,6 +4462,7 @@ struct RemoteControl {
     this.lastFrameId = 0;
     this.lastFrameUpdatedAt = 0;
     this.lastFramePullTraceAt = 0;
+    this.lastNativeFrameAdvanceAt = 0;
     this.lastBridgeActivityAt = 0;
     this.lastSilentSessionWarningAt = 0;
     this.frameVersion = 0;
@@ -4003,7 +4481,9 @@ struct RemoteControl {
     this.connectionFps = 0;
     this.connectionRecvSpeed = '--';
     this.connectionSendSpeed = '--';
+    this.connectionSpeedDisplay = '--';
     this.connectionType = '';
+    this.clearConnectionQualityState();
     this.fpsCalcLastTime = 0;
     this.fpsCalcFrameCount = 0;
     this.lastNonZeroFps = 0;

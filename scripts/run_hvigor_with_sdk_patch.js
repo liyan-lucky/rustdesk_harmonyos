@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { createRequire } = require('module');
 const Module = require('module');
 
@@ -304,6 +305,14 @@ function readBuildInfoVersion(buildInfoPath) {
   return match && match[1] ? match[1] : '';
 }
 
+function readOfficialCoreVersion() {
+  const cargoTomlPath = path.resolve(tempRoot, 'rustdesk-master', 'Cargo.toml');
+  const content = readFileText(cargoTomlPath);
+  const packageSection = content.split(/\r?\n\[/)[0] || content;
+  const match = packageSection.match(/^version\s*=\s*"([^"]+)"/m);
+  return match && match[1] ? match[1] : '';
+}
+
 function normalizeVersionName(versionName) {
   const parts = String(versionName || '').trim().split('.');
   const numbers = [0, 4, 0];
@@ -335,14 +344,80 @@ function writeAppVersion(appJson5Path, appContent, versionName, versionCode) {
   fs.writeFileSync(appJson5Path, nextContent, 'utf8');
 }
 
+function formatLocalMinute(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function computeFnv1a32Hex(filePath, maxBytes) {
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(Math.min(maxBytes, 1024 * 1024));
+    const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, 0);
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < bytesRead; i += 1) {
+      hash ^= buffer[i];
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return hash.toString(16).padStart(8, '0');
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function computeSha256Hex(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex').toUpperCase();
+}
+
+function writeCoreBuildInfo(coreBuildInfoPath) {
+  const corePath = path.resolve(projectRoot, 'entry/src/main/libs/arm64/librustdesk_core.a');
+  const info = {
+    fileName: 'librustdesk_core.a',
+    sourcePath: 'entry/src/main/libs/arm64/librustdesk_core.a',
+    fileSize: '',
+    fileSizeMB: '',
+    modifiedTime: '',
+    compileTime: '',
+    hashFnv1a1Mb: '',
+    hashSha256: '',
+    compatibleOfficialVersion: readOfficialCoreVersion(),
+    generatedAt: formatLocalMinute(new Date())
+  };
+
+  if (fs.existsSync(corePath)) {
+    const stat = fs.statSync(corePath);
+    info.fileSize = String(stat.size);
+    info.fileSizeMB = (Math.round((stat.size / 1024 / 1024) * 100) / 100).toFixed(2);
+    info.modifiedTime = String(Math.floor(stat.mtimeMs / 1000));
+    info.compileTime = formatLocalMinute(stat.mtime);
+    info.hashFnv1a1Mb = computeFnv1a32Hex(corePath, 1024 * 1024);
+    info.hashSha256 = computeSha256Hex(corePath);
+  }
+
+  const content = `export class CoreBuildInfo {\n` +
+    `  static readonly FILE_NAME: string = ${JSON.stringify(info.fileName)};\n` +
+    `  static readonly SOURCE_PATH: string = ${JSON.stringify(info.sourcePath)};\n` +
+    `  static readonly FILE_SIZE: string = ${JSON.stringify(info.fileSize)};\n` +
+    `  static readonly FILE_SIZE_MB: string = ${JSON.stringify(info.fileSizeMB)};\n` +
+    `  static readonly MODIFIED_TIME: string = ${JSON.stringify(info.modifiedTime)};\n` +
+    `  static readonly COMPILE_TIME: string = ${JSON.stringify(info.compileTime)};\n` +
+    `  static readonly HASH_FNV1A_1MB: string = ${JSON.stringify(info.hashFnv1a1Mb)};\n` +
+    `  static readonly HASH_SHA256: string = ${JSON.stringify(info.hashSha256)};\n` +
+    `  static readonly COMPATIBLE_OFFICIAL_VERSION: string = ${JSON.stringify(info.compatibleOfficialVersion)};\n` +
+    `  static readonly GENERATED_AT: string = ${JSON.stringify(info.generatedAt)};\n` +
+    `}\n`;
+  fs.writeFileSync(coreBuildInfoPath, content, 'utf8');
+  console.log(`[CoreBuildInfo] Updated native core info: size=${info.fileSize || 'unknown'}, mtime=${info.compileTime || 'unknown'}, fnv1a=${info.hashFnv1a1Mb || 'unknown'}`);
+}
+
 if (require.main === module) {
   prepareHvigorConfigForCurrentWorkspace();
 
   const buildInfoPath = path.resolve(projectRoot, 'entry/src/main/ets/common/BuildInfo.ets');
+  const coreBuildInfoPath = path.resolve(projectRoot, 'entry/src/main/ets/common/CoreBuildInfo.ets');
   try {
     const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const buildTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const buildTime = formatLocalMinute(now);
     const appJson5Path = path.resolve(projectRoot, 'AppScope/app.json5');
     const appVersion = readAppVersion(appJson5Path);
     const buildInfoVersion = readBuildInfoVersion(buildInfoPath);
@@ -359,25 +434,36 @@ if (require.main === module) {
     fs.utimesSync(buildInfoPath, touchTime, touchTime);
     console.log(`[BuildInfo] Updated build time: ${buildTime}, version: ${versionName}, versionCode: ${versionCode}, bump: ${bumpMode || 'none'}`);
   } catch (_e) {}
+  try {
+    writeCoreBuildInfo(coreBuildInfoPath);
+  } catch (error) {
+    console.warn(`[CoreBuildInfo] Failed to update native core info: ${error && error.message ? error.message : String(error)}`);
+  }
 
   const hvigorTasks = process.argv.slice(2);
-  process.argv = [
+  const requestedTasks = hvigorTasks.length > 0 ? hvigorTasks : ['assembleHap'];
+  const requiresProjectMode = requestedTasks.some((task) => /(?:assemble|package).*app/i.test(task));
+  const hvigorArgs = [
     process.argv[0],
     hvigorEntry,
     '--no-daemon',
     '--mode',
-    'module',
+    requiresProjectMode ? 'project' : 'module',
     '--debug',
     '-p',
-    'product=default',
-    '-p',
-    'module=entry@default',
-    '-p',
-    'pageType=page',
-    '-p',
-    'compileResInc=true',
-    ...(hvigorTasks.length > 0 ? hvigorTasks : ['assembleHap'])
+    'product=default'
   ];
+  if (!requiresProjectMode) {
+    hvigorArgs.push(
+      '-p',
+      'module=entry@default',
+      '-p',
+      'pageType=page',
+      '-p',
+      'compileResInc=true'
+    );
+  }
+  process.argv = hvigorArgs.concat(requestedTasks);
 
   hvigorRequire(hvigorEntry);
 

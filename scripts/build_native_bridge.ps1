@@ -464,6 +464,7 @@ $cmdLines = @(
   "set `"OHOS_SDK_HOME=$hostSdkDir`"",
   "call `"$ohosEnvScript`" || exit /b 1",
   "set `"PATH=%LLVM_BIN%;$env:USERPROFILE\.cargo\bin;%PATH%;$msysBinDir`"",
+  "set `"RUSTUP_TOOLCHAIN=stable`"",
   "set `"CARGO_TARGET_DIR=$cargoTargetDir`"",
   "set `"VCPKG_ROOT=$vcpkgRoot`"",
   "set `"VCPKG_INSTALLED_ROOT=$vcpkgInstalledRoot`"",
@@ -501,9 +502,10 @@ $cmdScript = [string]::Join("`r`n", $cmdLines)
 $cmdScriptPath = Join-Path $buildRoot "build-native-bridge-$TargetTriple.cmd"
 Set-Content -Path $cmdScriptPath -Value $cmdScript -Encoding ascii
 try {
-  $cmdProcess = Start-Process -FilePath "cmd.exe" -ArgumentList "/d", "/c", $cmdScriptPath -NoNewWindow -Wait -PassThru
-  if ($cmdProcess.ExitCode -ne 0) {
-    throw "cargo build failed with exit code $($cmdProcess.ExitCode)."
+  & cmd.exe /d /c $cmdScriptPath
+  $cargoExitCode = $LASTEXITCODE
+  if ($cargoExitCode -ne 0) {
+    throw "cargo build failed with exit code $cargoExitCode."
   }
 } finally {
   Remove-Item -LiteralPath $cmdScriptPath -Force -ErrorAction SilentlyContinue
@@ -531,4 +533,9 @@ if (Test-Path $prefixedStaticLib) {
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 Copy-Item -LiteralPath $sourceLib -Destination (Join-Path $outputDir "librustdesk_harmony_bridge.a") -Force
 
+$appStaticLib = Join-Path $projectRoot "entry\src\main\libs\arm64\librustdesk_core.a"
+New-Item -ItemType Directory -Path (Split-Path -Parent $appStaticLib) -Force | Out-Null
+Copy-Item -LiteralPath $sourceLib -Destination $appStaticLib -Force
+
 Write-Host "Native bridge artifact copied to $outputDir\librustdesk_harmony_bridge.a"
+Write-Host "App native core staticlib updated at $appStaticLib"

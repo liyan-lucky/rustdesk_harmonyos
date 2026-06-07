@@ -13,9 +13,14 @@
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 最新构建验证：
-  - BuildInfo 编译时间：`2026-06-06 00:24`
-  - App 显示版本：`0.6.8`
-  - 项目提升到根目录后，增量 HAP staging 构建、签名、安装、启动成功；版本递增到 `0.6.8`。
+  - BuildInfo 编译时间：`2026-06-06 22:08`
+  - App 显示版本：`0.6.17`
+  - 项目提升到根目录后，增量 HAP staging 构建、签名、安装成功；最新版本递增到 `0.6.17`。
+  - 首帧后误报 `session-closed` 的 native `close_success()` 语义已修正；核心详情改为显示 native core 文件信息，而不是 App 构建时间。
+  - 核心页状态显示已修正：`Native Module` 不再因 bundle lib stat 路径不可访问而显示异常，staticlib 已打包且 NAPI 可用时 `Native Core` 显示就绪。
+  - `0.6.17` 已安装到无线目标 `192.168.11.100:36169`，启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+  - **连接问题**：远程连接收到 `ECONNRESET (os error 104)`，疑似上游版本不匹配。正在升级上游源码 1.4.6→1.4.7 并重编。
+  - 上游源码升级 1.4.7 状态：OHOS 排除修改已完成（Cargo.toml/lib.rs/build.rs/scrap），编译待继续。
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
   - 最新 100 轮功能逻辑审查已完成：`docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`
 
@@ -48,14 +53,16 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - 大小：`135,673,254` bytes
-  - SHA256：`B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
+  - 大小：`135,670,438` bytes
+  - 编译时间/mtime：`2026-06-06 22:03`
+  - FNV-1a 1MB：`45b5baa5`
+  - SHA256：`6CEDA7DB08CE3FF5BF39AC4691DED2C502F749F22D5C715166256155559E4827`
 - 核心页应显示三个状态入口：
   - `Adapter`
   - `Native Module`
   - `Native Core`
 - 每个入口都应有详情菜单。
-- 详情菜单中的时间字段应显示“编译时间”。
+- 详情菜单中的 Native Core 时间、大小和 hash 应来自 `CoreBuildInfo.ets` 记录的 `librustdesk_core.a` 文件信息，不应使用 App `BuildInfo` 兜底。
 
 ## 当前重点问题
 
@@ -104,7 +111,7 @@ UI 交互修复（2026-06-03）：
 连接稳定性：
 
 - 需要继续确认连接过程中是否还会在成功前先弹重试对话框。
-- 需要继续确认连接成功后访问端是否稳定持续显示远程画面，不再立即断开或停在等待视频流页面。
+- 2026-06-06 已优化：`createPixelMapSync` 改为异步、帧轮询16ms、stale阈值缩短、watchdog 5s、native帧主动推进；二次收紧 frameId 递增判断、PixelMap 超时和 native 推进节流。`0.6.12` 已构建并安装启动成功，点击连接可直接进入会话页；远端 `session-closed` / 非密码类 `session-error` 会清理旧画面并进入重连对话。
 - 官方重试对话框只应在非人为断开且会话已有效建立后出现。
 - 重试对话框按钮应为：取消、使用中继线路、重试。
 

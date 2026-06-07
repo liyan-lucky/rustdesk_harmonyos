@@ -173,6 +173,7 @@ export class NativeRustDeskBridge {
       return NativeRustDeskBridge.moduleCache;
     }
 
+    let staticFallbackModule: NativeBridgeModule | null = null;
     try {
       const staticModule = rustdeskBridgeLibrary as NativeBridgeModule;
       if (NativeRustDeskBridge.hasKnownBridgeFunction(staticModule)) {
@@ -183,18 +184,16 @@ export class NativeRustDeskBridge {
         );
         return staticModule;
       }
-      const staticRecord = staticModule as Record<string, Object | undefined>;
       const directNames = Object.getOwnPropertyNames(staticModule as Object);
       if (directNames.length > 0) {
-        NativeRustDeskBridge.moduleCache = staticModule;
-        NativeRustDeskBridge.warnedMissingLoader = false;
+        staticFallbackModule = staticModule;
         NativeRustDeskBridge.setModuleLoadSummary(
-          `module loaded via static import (forced); keys=${NativeRustDeskBridge.joinNames(directNames)}; ${NativeRustDeskBridge.describeModuleShape(staticModule)}`
+          `static import object has no bridge entry; keys=${NativeRustDeskBridge.joinNames(directNames)}; ${NativeRustDeskBridge.describeModuleShape(staticModule)}`
         );
-        return staticModule;
       }
     } catch (e) {
       console.warn('Static import failed:', e);
+      NativeRustDeskBridge.setModuleLoadSummary(`static import failed ${NativeRustDeskBridge.describeError(e)}`);
     }
 
     // Fallback to requireNapi
@@ -204,7 +203,14 @@ export class NativeRustDeskBridge {
         NativeRustDeskBridge.warnedMissingLoader = true;
         console.warn('NativeRustDeskBridge requireNapi is unavailable on globalThis; will retry later.');
       }
-      NativeRustDeskBridge.setDebugSummary('requireNapi missing on globalThis');
+      if (staticFallbackModule) {
+        NativeRustDeskBridge.moduleCache = staticFallbackModule;
+        NativeRustDeskBridge.setModuleLoadSummary(
+          `requireNapi missing; using static fallback without bridge entry; ${NativeRustDeskBridge.describeModuleShape(staticFallbackModule)}`
+        );
+        return staticFallbackModule;
+      }
+      NativeRustDeskBridge.setModuleLoadSummary('requireNapi missing on globalThis');
       return null;
     }
 
@@ -240,6 +246,14 @@ export class NativeRustDeskBridge {
           `module loaded but bridge funcs missing; ${NativeRustDeskBridge.truncate(attempts.join(' | '), 900)}`
         );
         return fallbackModule;
+      }
+      if (staticFallbackModule) {
+        NativeRustDeskBridge.moduleCache = staticFallbackModule;
+        NativeRustDeskBridge.warnedMissingLoader = false;
+        NativeRustDeskBridge.setModuleLoadSummary(
+          `requireNapi returned no usable module; using static fallback without bridge entry; ${NativeRustDeskBridge.truncate(attempts.join(' | '), 700)}; ${NativeRustDeskBridge.describeModuleShape(staticFallbackModule)}`
+        );
+        return staticFallbackModule;
       }
       NativeRustDeskBridge.setModuleLoadSummary(
         `requireNapi returned no usable module; ${NativeRustDeskBridge.truncate(attempts.join(' | '), 900)}`
@@ -337,7 +351,31 @@ export class NativeRustDeskBridge {
   }
 
   static hasNativeModule(): boolean {
-    return NativeRustDeskBridge.getModule() !== null;
+    const nativeModule = NativeRustDeskBridge.getModule();
+    if (!nativeModule) {
+      return false;
+    }
+    const bridgeEntryFn = NativeRustDeskBridge.resolveFunction<[], Object>(
+      nativeModule,
+      [
+        'initializeRuntime',
+        'getCoreSnapshot',
+        'connectToPeer',
+        'pullSessionEvents',
+        'isCoreLoaded',
+        'getCoreLoadInfo'
+      ]
+    );
+    if (bridgeEntryFn) {
+      return true;
+    }
+    NativeRustDeskBridge.setDebugSummary(
+      `native module object loaded but bridge entry missing; ${NativeRustDeskBridge.describeFunctionResolution(
+        nativeModule,
+        ['initializeRuntime', 'getCoreSnapshot', 'connectToPeer', 'isCoreLoaded', 'getCoreLoadInfo']
+      )}; ${NativeRustDeskBridge.describeModuleShape(nativeModule)}`
+    );
+    return false;
   }
 
   static getLastDebugSummary(): string {
@@ -1147,13 +1185,9 @@ export class NativeRustDeskBridge {
         return null;
       }
 
-      // Accept large forward jumps and only reject clearly older frames.
-      const frameIdDiff = frameId - sinceFrameId;
-      const isFrameValid = frameIdDiff > -3;
-      
-      if (!isFrameValid) {
-        if (frameIdDiff <= -3) {
-          console.warn(`[NativeBridge] Frame too old: frameId=${frameId}, sinceFrameId=${sinceFrameId}, diff=${frameIdDiff}`);
+      if (sinceFrameId > 0 && frameId <= sinceFrameId) {
+        if (frameId < sinceFrameId) {
+          console.warn(`[NativeBridge] Frame older than requested: frameId=${frameId}, sinceFrameId=${sinceFrameId}`);
         }
         return null;
       }
@@ -1178,7 +1212,7 @@ export class NativeRustDeskBridge {
         const retryWidth = typeof retryMetadata?.width === 'number' ? retryMetadata.width : 0;
         const retryHeight = typeof retryMetadata?.height === 'number' ? retryMetadata.height : 0;
         const retryBytes = typeof retryMetadata?.bytes === 'number' ? retryMetadata.bytes : 0;
-        if (retryFrameId > actualFrameId && retryWidth > 0 && retryHeight > 0 && retryBytes > 0) {
+        if (retryFrameId > Math.max(actualFrameId, sinceFrameId) && retryWidth > 0 && retryHeight > 0 && retryBytes > 0) {
           actualFrameId = retryFrameId;
           actualDisplay = typeof retryMetadata?.display === 'number' ? retryMetadata.display : actualDisplay;
           actualWidth = retryWidth;

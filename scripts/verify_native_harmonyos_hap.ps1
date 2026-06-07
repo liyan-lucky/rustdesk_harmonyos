@@ -201,6 +201,46 @@ function Read-ZipTextEntry {
   }
 }
 
+function Assert-NativeRuntimeDependencies {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$ZipPath
+  )
+
+  $readelfCommand = Get-Command readelf -ErrorAction SilentlyContinue
+  if (-not $readelfCommand -or -not $readelfCommand.Source) {
+    Write-Warning "readelf was not found; native runtime dependency check skipped."
+    return
+  }
+
+  $inspectDir = Join-Path $env:TEMP ("rustdesk_hap_native_" + [guid]::NewGuid().ToString("N"))
+  New-Item -ItemType Directory -Force -Path $inspectDir | Out-Null
+  try {
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+      $bridgeEntry = $archive.GetEntry("libs/arm64-v8a/librustdesk_bridge.so")
+      if ($null -eq $bridgeEntry) {
+        throw "librustdesk_bridge.so was not found inside $ZipPath"
+      }
+      $bridgePath = Join-Path $inspectDir "librustdesk_bridge.so"
+      [System.IO.Compression.ZipFileExtensions]::ExtractToFile($bridgeEntry, $bridgePath, $true)
+    } finally {
+      $archive.Dispose()
+    }
+
+    $neededLines = & $readelfCommand.Source -d $bridgePath 2>&1 | Select-String -Pattern "NEEDED"
+    $neededText = ($neededLines | ForEach-Object { "$_" }) -join "`n"
+    if ($neededText -match "libtime_service_ndk\.so") {
+      throw "librustdesk_bridge.so depends on libtime_service_ndk.so, which is not available on tested devices."
+    }
+    Write-Host "Native runtime dependency check passed."
+  } finally {
+    if (Test-Path -LiteralPath $inspectDir) {
+      Remove-Item -LiteralPath $inspectDir -Recurse -Force
+    }
+  }
+}
+
 function Quote-CmdArgument {
   param(
     [Parameter(Mandatory = $true)]
@@ -274,6 +314,7 @@ Write-Host "Verified native entries:"
 foreach ($entry in $expectedEntries) {
   Write-Host " - $entry"
 }
+Assert-NativeRuntimeDependencies -ZipPath $HapPath
 
 $packInfoText = Read-ZipTextEntry -ZipPath $HapPath -EntryName "pack.info"
 if ($packInfoText) {
@@ -391,10 +432,13 @@ if ($SkipLogs) {
 }
 
 $logResult = Invoke-Hdc -HdcPath $paths.Hdc -Target $HdcTarget -Arguments @(
-  "shell", "hilog", "-z", "$LogTail", "-v", "time", "-v", "year", "-v", "zone", "-e", (Quote-CmdArgument $logRegex)
-)
+  "shell", "hilog", "-z", "$LogTail", "-v", "time", "-v", "year", "-v", "zone"
+) -IgnoreExitCode
 
-$logLines = @($logResult.Output | Where-Object { $_ -and "$_".Trim().Length -gt 0 })
+$logLines = @(
+  $logResult.Output |
+    Where-Object { $_ -and "$_".Trim().Length -gt 0 -and "$_" -match $logRegex }
+)
 if ($logLines.Count -eq 0) {
   Write-Warning "No matching bridge logs were found in the recent hilog buffer."
   exit 0

@@ -1,12 +1,12 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-06 00:24。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-07 00:00。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最后一次增量安装启动通过，BuildInfo 编译时间 `2026-06-06 00:24`，App 显示版本 `0.6.8`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最新增量构建安装通过，BuildInfo 编译时间 `2026-06-06 22:08`，App 显示版本 `0.6.17`。
 - 最新 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
 - 当前 U 盘存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳无法可靠删除。日常构建使用 staged copy，日常全量重建清理外部 build/stage 产物并保留 `harmonyos_cache`，避免 Hvigor 内置 clean 访问这些坏目录；深度清理 cache 需显式使用 `-IncludeHvigorCache`。
 
@@ -20,18 +20,22 @@
 - Native core 已采用 `staticlib + CMake 直接链接`，HAP 内通过 `librustdesk_bridge.so` 调用 Rust C ABI。
 - 当前已验证 native core：
   - `entry/src/main/libs/arm64/librustdesk_core.a`
-  - 大小：`135,673,254` bytes
-  - SHA256: `B1224DDE1CD4ECA502D7585F3CCE2D89F41B55FF075914DE6757A2F184EB649B`
+  - 大小：`137,422,248` bytes
+  - mtime：`2026-06-07 03:01`
+  - FNV-1a 1MB：`5db8f431`
+  - SHA256: `7C10663743785D8AD04078E16274D21497D451FEAAA942D8B2882CC4A58B3A2F`
 - 当前已验证 HAP：
-  - BuildInfo 编译时间：`2026-06-06 00:24`
-  - App 显示版本：`0.6.8`
+  - BuildInfo 编译时间：`2026-06-07 03:09`
+  - App 显示版本：`0.6.17`
+  - versionCode：`1000022`
   - bundle：`com.open.rundesk`
   - 无线目标：`192.168.11.100:36169`
-  - 无线安装成功，`aa start -a EntryAbility -b com.open.rundesk` 启动成功。
-  - LAN发现正常工作，发现2个设备，无崩溃关键字。
+  - 无线安装启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
-- 最新改动已收紧重试弹窗触发条件，避免连接成功前先弹重试。
+- 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
+- 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
+- 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
 - 自定义键盘已改为会话画面顶部覆盖显示。
 
 ## 已完成
@@ -364,3 +368,121 @@
 - **发现页排序/刷新图标主题匹配修复**：`Sorting_order.svg` 从 `currentColor` 改为 `stroke="#000000"`，代码从 `fillColor` 改为 `colorFilter(createStrokeIconColorFilter())`。`refresh.svg` 确认stroke格式正确，代码使用colorFilter。两个图标暗色主题下可见性修复。
 - **构建验证**：HAP构建通过，构建时间 `2026-06-04 01:14`；无线设备 `192.168.11.100:36169` 安装成功。
 - **项目备份移动**：`backup_20260604_001655` 从项目目录移动到 `%VSCODE_ROOT%\99_Temp\backup_20260604_001655`。
+
+## 2026-06-06 远程连接画面卡住修复 + 质量菜单优化 + 帧率提升
+
+- **画面卡住不刷新修复**（核心优化）：
+  - `createPixelMapSync` 改为异步 `createPixelMap`，避免阻塞帧轮询流水线
+  - 帧轮询间隔从8ms调整为16ms（60fps上限），减少无效轮询开销
+  - stale帧检测阈值从600ms缩短到300ms，帧恢复更快
+  - videoRefresh强制刷新阈值从1500ms/1200ms缩短到800ms/600ms
+  - 非强制刷新stale阈值从5000ms/3000ms缩短到3000ms/1500ms
+  - 会话watchdog超时从12000ms缩短到5000ms，更早检测链路中断
+  - 新增 `maybeAdvanceNativeFrame()`：当帧超过200ms未更新时主动调用 `harmonyNextRgba` 推进native帧缓冲
+
+- **质量显示菜单优化**：
+  - 收发速率两行（Received/Sent）合并为一行"速度"（Speed），显示收发合计
+  - 单位统一使用MB/s（<1MB/s时显示KB/s），自动换算
+  - 新增 `computeCombinedSpeedDisplay()` 和 `parseSpeedToMbps()` 辅助方法
+  - 分辨率、FPS在无数据时显示"--"而非0×0/0
+  - I18n添加 Speed 键（中文"速度"，英文"Speed"）
+
+- **视频帧率提升**：
+  - FrameService帧队列从3增大到5，减少丢帧
+  - 去掉FrameService `isRendering` 互斥锁，改为非阻塞帧入队
+  - FPS统计历史窗口从30增大到60，计算更稳定
+  - FPS计算周期从1000ms缩短到500ms，显示响应更快
+  - 自定义FPS默认值从30提升到60
+  - staleFrames缓冲从2增大到3，减少频繁release/GC压力
+
+- **构建验证**：HAP构建通过，构建时间 `2026-06-06 01:22`，版本 `0.6.9`，签名成功。
+
+## 2026-06-06 远程连接画面不刷新二次优化
+
+- **帧递增语义收紧**：`NativeRustDeskBridge.pullLatestVideoFrame()` 只接受 `frameId > sinceFrameId` 的帧，避免旧帧被 UI 当作新帧渲染导致 frameId 回退。
+- **native帧槽推进提前**：`RemoteControl.refreshRenderedFrame()` 在完成 native frame copy 后立即调用 `harmonyNextRgba()`，不再等待异步 PixelMap 渲染完成后才推进下一帧。
+- **异步渲染防卡死**：新增 `renderGeneration` 防止旧 Promise 回写；`createPixelMap` 增加 260ms 超时，超时后释放迟到 PixelMap，避免 `frameRefreshInFlight` 长时间卡住。
+- **主动推进节流**：`maybeAdvanceNativeFrame()` 增加 48ms 最小间隔，并支持已连接但首帧未到时低频 prime native RGBA。
+- **构建与安装验证**：HAP构建通过，构建时间 `2026-06-06 07:30`，版本 `0.6.10`，versionCode `1000015`；无线目标 `192.168.11.100:36169` 安装成功并启动成功。
+- **待复测**：仍需在设备上实际发起一次远程连接，确认画面持续刷新和首帧后重试弹窗行为。
+
+## 2026-06-06 连接入口与远端断开重连对话修复
+
+- **点击连接立即进入会话页**：`Index.ets` 不再把进入 `RemoteControl` 绑定到 `sessionStage === 'connected'`；native `connectToPeer` 成功返回后立即跳转，等待远端确认、密码补交、连接错误都在远控页承接。
+- **保存密码路径统一**：保存密码连接不再在首页等待最多 12 秒；发起 native 请求成功后同样进入会话页。
+- **跳转逻辑收敛**：新增 `openRemoteControlForPendingSession()`，统一最近会话、聊天缓存、pending monitor 失效和路由跳转。
+- **远端断开不再卡旧画面**：`RemoteControl` 增加终止事件处理，收到 `session-closed` 或非密码类 `session-error` 时清理本地 connected、输入、游标和帧刷新状态，并进入重连对话。
+- **验证结果**：HAP 构建通过，构建时间 `2026-06-06 07:46`，版本 `0.6.12`，versionCode `1000017`；无线目标安装启动成功。实机日志确认 `session-closed detail=Remote session closed` 后触发 `[RemoteControl] terminal session event kind=session-closed`。
+
+## 2026-06-06 NAPI 模块加载修复（bridge_api.rs 缺失导出 + module.json5 配置）
+
+- **根因**：Rust `bridge_api.rs` 缺少 `rustdesk_bridge_send_ctrl_alt_del` 和 `rustdesk_bridge_reconnect_session` 两个 C ABI 导出函数，导致 `librustdesk_bridge.so` 运行时符号解析失败，整个 NAPI 模块无法加载。C++ `rustdesk_bridge_abi.h` 声明50个函数，Rust 之前只导出46个。
+- **关键认知**：CMake `--unresolved-symbols=ignore-all` 只影响链接阶段，HarmonyOS 运行时动态链接器严格检查所有符号，缺失符号会导致整个 SO 加载失败。
+- **修复 bridge_api.rs**：新增 `rustdesk_bridge_send_ctrl_alt_del()` 和 `rustdesk_bridge_reconnect_session()` 两个 `#[no_mangle] pub extern "C"` 函数。
+- **修复 module.json5**：设置 `compressNativeLibs: true` + `extractNativeLibs: true` + `libIsolation: true`，确保设备安装时正确解压 native SO。
+- **重编 native core**：`build_native_bridge.ps1` 成功，产物 135,670,438 bytes。
+- **构建 HAP**：成功，BuildInfo `2026-06-06 22:08`，版本 `0.6.17`，versionCode `1000022`。
+- **设备验证**：安装到无线目标 `192.168.11.100:36169`，启动成功。hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+- **待完成**：设备上实际发起一次远程连接，确认连接链路和画面刷新正常。
+
+## 2026-06-07 上游源码升级 1.4.6→1.4.7 + 连接 ECONNRESET 排查
+
+- **连接失败**：设备上发起远程连接到 peer `1283267036`，收到 `session-error: 连接错误：Connection reset by peer (os error 104)`。连接能建立（收到 `quality-status` delay=108ms），但随后被远端重置。
+- **排查结论**：本轮代码改动（新增2个ABI导出 + module.json5配置）不应导致 ECONNRESET。怀疑上游源码变化导致协议不兼容。GitHub 已发布 1.4.7（2026-06-02），当前编译基于 1.4.6。
+- **1.4.7 升级进展**：
+  - ✅ 从 GitHub clone 1.4.7 tag 源码 + 初始化 hbb_common 子模块
+  - ✅ 恢复 `harmony_bridge/` 目录（从备份）
+  - ✅ 恢复 `lib.rs` 的 OHOS `target_env` 条件修改
+  - ✅ 修改 `Cargo.toml`：`crate-type = ["rlib"]`，排除 OHOS 桌面端依赖（tray-icon/tao/keepawake/wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等）
+  - ✅ 修改 `scrap/Cargo.toml`：排除 OHOS 的 Linux 桌面依赖（dbus/gstreamer/zbus/nokhwa）
+  - ✅ 修改 `build.rs`：基于 `CARGO_CFG_TARGET_OS` 运行时检查，避免在 OHOS 交叉编译时触发 Windows 平台 C++ 编译
+  - 🔄 编译进行中（上次因超时中断，需继续）
+- **待解决问题**：
+  1. 完成 1.4.7 native core 编译
+  2. 编译成功后构建 HAP 并安装验证
+  3. 验证连接是否正常（如果 1.4.7 修复了远端重置问题）
+  4. 核心页详细信息添加兼容的官方版本号（避免版本不匹配时找不到支撑信息）
+- **备份位置**：`99_Temp/rustdesk_harmonyos_backups/harmony_bridge_backup_20260606/`
+- **1.4.7 clone 位置**：`99_Temp/rustdesk_harmonyos_build/rustdesk-1.4.7-clone/`
+## 2026-06-07 1.4.7 native core build + reconnect state fix
+
+- Built the upstream RustDesk 1.4.7 based native core for `aarch64-unknown-linux-ohos` and refreshed `entry/src/main/libs/arm64/librustdesk_core.a`.
+- Core detail info now reports native core file metadata instead of app build metadata:
+  - Size: `137,510,852` bytes (`131.14 MB`)
+  - Core compile time: `2026-06-07 01:36`
+  - SHA256: `8EF4EE215FF7DED1EA78A68BC323A4E51DA613C46DBB6EA75C972EDCC572B272`
+  - Compatible official version: `RustDesk 1.4.7`
+- Fixed `OfficialRustDeskBridge.mergeNativeStateWithCurrentState()` so native `idle` is no longer masked by a stale ArkTS `connected` state after a session was already active. This prevents the viewer from freezing on the last frame when the controlled side closes unexpectedly.
+- `RemoteControl` now clears stale rendered frames/input/cursor state before showing the reconnect dialog, keeps bridge refresh alive while the dialog is open, and falls back from `reconnectSession()` to a fresh `connectToPeer()` when the native active session handle has already gone away.
+- Connection quality details now keep a larger raw payload, show dynamic metric values across multiple lines, include `chroma`, and use translated labels for quality detail fields.
+- `run_hvigor_with_sdk_patch.js` now switches to project mode for APP tasks. `github_build_harmonyos.ps1 -ArtifactType both` uses `assembleApp`, which produces both the signed APP and the embedded/signed HAP.
+- Verification:
+  - `node scripts\run_hvigor_with_sdk_patch.js assembleHap` passed.
+  - `node scripts\run_hvigor_with_sdk_patch.js assembleApp` passed.
+  - `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed native library and signature checks.
+  - `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
+  - `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none -PreflightOnly` passed DevEco/signing/native-core preflight.
+  - Signed HAP: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap` (`18,017,442` bytes).
+  - Signed APP: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\outputs\default\11_Rustdesk_harmonyos-default-signed.app` (`16,953,287` bytes).
+
+## 2026-06-07 无密码连接密码框丢失 + 会话过早关闭 + LAN 发现失效修复
+
+- **问题1&2：无密码连接时密码输入框丢失 / 被访问端刚提示就结束会话**：
+  - 根因：`RemoteControl.ets` 的 `applyBridgeState` 中，error/idle 分支在 `shouldAutoCloseTerminalSession()` 为 true 时，会跳过密码提示直接关闭或重连。`handleTerminalBridgeEvent` 只在 `session-error` 时检查密码需求，`session-closed` 不检查。
+  - 修复：`applyBridgeState` error/idle 分支在 `shouldAutoCloseTerminalSession()` 判断之前，先检查 `shouldPromptForPassword(coreState)`，为 true 则优先显示密码对话框。`handleTerminalBridgeEvent` 将密码检查从仅 `session-error` 扩展到 `session-error` 和 `session-closed` 都检查。
+
+- **问题3：LAN 发现失效**：
+  - 根因：`rendezvous_mediator_ohos.rs` 的 `start_all()` 只执行 `std::future::pending().await`，从未启动 LAN 监听线程。OHOS 使用独立的 `rendezvous_mediator_ohos.rs`（不是 `rendezvous_mediator.rs`），其中完全没有调用 `crate::lan::start_listening()`。hilog 确认 `discoverLanPeers` 返回 true、`loadLanPeers` 返回 `[]`、`lan-discovery-done` 事件到达——UDP ping 发出但没有监听线程接收响应。
+  - 修复：在 `start_all()` 中添加 `std::thread::spawn` 启动 `crate::lan::start_listening()` LAN 监听线程。
+
+- **LanDiscoveryService.ets 诊断增强**：
+  - 所有 `console.log/error` 改为 `hilog.info/error`（domain `0xA03D00`，tag `LAN`）
+  - `loadDiscoveredPeers` 增加 `loadLanPeers` 返回值长度和前100字符预览日志
+
+- **Native core 重编**：新产物 `librustdesk_core.a` 137,422,248 bytes，SHA256 `7C10663743785D8AD04078E16274D21497D451FEAAA942D8B2882CC4A58B3A2F`
+
+- **HAP 构建成功 + 安装启动成功**
+
+- **文档更新**：`docs/CONNECTION_DEBUG_LOG.md` 新增修复记录
+
+- **待验证**：需要在设备上实际发起无密码连接确认密码框弹出；确认被访问端拒绝/超时时不再直接关闭页面；确认 LAN 监听线程日志 `lan discovery listener started` 出现

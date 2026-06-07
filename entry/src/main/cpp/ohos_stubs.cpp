@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
 
 extern "C" {
 
@@ -58,5 +59,14 @@ void *xcb_shm_get_image_unchecked(void *, unsigned int, int, unsigned int, unsig
 struct xcb_shm_query_version_reply_t {};
 void *xcb_shm_query_version(void *) { return nullptr; }
 void *xcb_shm_query_version_reply(void *, void *, int *) { return nullptr; }
+
+int OH_TimeService_GetTimeZone(char *timeZone, uint32_t len) {
+  static const char kFallbackTimeZone[] = "UTC";
+  if (timeZone == nullptr || len <= sizeof(kFallbackTimeZone) - 1) {
+    return 13000002;
+  }
+  std::memcpy(timeZone, kFallbackTimeZone, sizeof(kFallbackTimeZone));
+  return 0;
+}
 
 }

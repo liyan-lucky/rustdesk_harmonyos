@@ -9,19 +9,6 @@ message(STATUS "Bridge links Rust core staticlib directly, single .so output")
 find_library(log-lib hilog_ndk.z)
 find_library(napi-lib ace_napi.z)
 find_library(cpp_shared-lib c++_shared)
-find_library(time-lib NAMES time_service_ndk.z time_service_ndk)
-
-if(NOT time-lib AND DEFINED OHOS_SDK_NATIVE)
-  set(TIME_FALLBACK "${OHOS_SDK_NATIVE}/sysroot/usr/lib/aarch64-linux-ohos/libtime_service_ndk.so")
-  if(EXISTS ${TIME_FALLBACK})
-    set(time-lib ${TIME_FALLBACK})
-    message(STATUS "time_service_ndk found via fallback: ${time-lib}")
-  endif()
-endif()
-
-if(NOT time-lib)
-  message(WARNING "time_service_ndk not found, OH_TimeService_GetTimeZone may be undefined")
-endif()
 
 if(NOT cpp_shared-lib AND DEFINED OHOS_SDK_NATIVE AND DEFINED OHOS_TOOLCHAIN_NAME)
   set(CPP_SHARED_FALLBACK_CANDIDATES
@@ -53,24 +40,13 @@ if(EXISTS ${RUST_CORE_A})
   math(EXPR RUST_CORE_A_SIZE_MB "${RUST_CORE_A_SIZE} / 1024 / 1024")
   message(STATUS "Rust core staticlib: ${RUST_CORE_A_SIZE_MB} MB")
 
-  if(time-lib)
-    target_link_libraries(rustdesk_bridge PUBLIC
-      ${log-lib}
-      ${napi-lib}
-      ${cpp_shared-lib}
-      ${time-lib}
-      ${RUST_CORE_A}
-      m
-    )
-  else()
-    target_link_libraries(rustdesk_bridge PUBLIC
-      ${log-lib}
-      ${napi-lib}
-      ${cpp_shared-lib}
-      ${RUST_CORE_A}
-      m
-    )
-  endif()
+  target_link_libraries(rustdesk_bridge PUBLIC
+    ${log-lib}
+    ${napi-lib}
+    ${cpp_shared-lib}
+    ${RUST_CORE_A}
+    m
+  )
 
   target_link_options(rustdesk_bridge PRIVATE
     "-Wl,--unresolved-symbols=ignore-all"

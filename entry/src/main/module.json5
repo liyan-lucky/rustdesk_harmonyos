@@ -10,9 +10,9 @@
     ],
     "deliveryWithInstall": true,
     "installationFree": false,
-    "compressNativeLibs": false,
+    "compressNativeLibs": true,
     "extractNativeLibs": true,
-    "libIsolation": false,
+    "libIsolation": true,
     "pages": "$profile:main_pages",
     "abilities": [
       {

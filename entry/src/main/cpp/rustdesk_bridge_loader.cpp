@@ -833,13 +833,36 @@ static napi_module rustdeskBridgeModule = {
   .nm_flags = 0,
   .nm_filename = nullptr,
   .nm_register_func = Init,
+  .nm_modname = "librustdesk_bridge.so",
+  .nm_priv = nullptr,
+  .reserved = {0},
+};
+
+static napi_module rustdeskBridgeAliasModule = {
+  .nm_version = 1,
+  .nm_flags = 0,
+  .nm_filename = nullptr,
+  .nm_register_func = Init,
   .nm_modname = "librustdesk_bridge",
+  .nm_priv = nullptr,
+  .reserved = {0},
+};
+
+static napi_module rustdeskBridgeCanonicalModule = {
+  .nm_version = 1,
+  .nm_flags = 0,
+  .nm_filename = nullptr,
+  .nm_register_func = Init,
+  .nm_modname = "rustdesk_bridge",
   .nm_priv = nullptr,
   .reserved = {0},
 };
 
 extern "C" __attribute__((constructor)) void RegisterRustdeskBridgeModule(void) {
   napi_module_register(&rustdeskBridgeModule);
+  napi_module_register(&rustdeskBridgeAliasModule);
+  napi_module_register(&rustdeskBridgeCanonicalModule);
+  OH_LOG_INFO(LOG_APP, "RustDesk bridge NAPI modules registered: rustdesk_bridge aliases ready");
 }
 
 extern "C" __attribute__((visibility("default"))) napi_value napi_register_module_v1(

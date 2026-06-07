@@ -710,7 +710,7 @@ export class OfficialRustDeskBridge {
     if (nativeState.sessionStage !== 'idle' || currentState.sessionStage === 'idle') {
       return nativeState;
     }
-    if (currentState.sessionStage !== 'connecting' && currentState.sessionStage !== 'connected') {
+    if (currentState.sessionStage !== 'connecting') {
       return nativeState;
     }
 

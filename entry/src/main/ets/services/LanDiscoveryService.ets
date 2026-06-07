@@ -3,6 +3,7 @@ import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { AppDataService, AddressBookEntry } from './AppDataService';
 import { PreferenceStore } from './PreferenceStore';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
+import hilog from '@ohos.hilog';
 
 export interface DiscoveredPeer {
   id: string;
@@ -40,7 +41,7 @@ export class LanDiscoveryService {
     this.loadIgnoredPeerIds();
     this.isDiscovering = true;
     NativeRustDeskBridge.setLocalOption('enable-lan-discovery', 'Y');
-    console.log('[LanDiscovery] Starting periodic LAN discovery (interval=' + this.discoveryInterval + 'ms)');
+    hilog.info(0xA03D00, 'LAN', 'Starting periodic LAN discovery (interval=%{public}d ms)', this.discoveryInterval);
     this.discoverOnce();
     this.discoveryTimer = setInterval(() => {
       this.discoverOnce();
@@ -70,7 +71,7 @@ export class LanDiscoveryService {
       return;
     }
     const result = OfficialRustDeskBridge.getInstance().discoverLanPeers();
-    console.log('[LanDiscovery] refreshNow discoverLanPeers returned:', result);
+    hilog.info(0xA03D00, 'LAN', 'refreshNow discoverLanPeers returned=%{public}d', result ? 1 : 0);
     setTimeout(() => {
       this.loadDiscoveredPeers();
     }, 1500);
@@ -87,7 +88,7 @@ export class LanDiscoveryService {
 
   private discoverOnce(): void {
     const result = OfficialRustDeskBridge.getInstance().discoverLanPeers();
-    console.log('[LanDiscovery] discoverLanPeers returned:', result);
+    hilog.info(0xA03D00, 'LAN', 'discoverOnce discoverLanPeers returned=%{public}d', result ? 1 : 0);
     setTimeout(() => {
       this.loadDiscoveredPeers();
     }, 1500);
@@ -98,7 +99,7 @@ export class LanDiscoveryService {
 
   private loadDiscoveredPeers(): void {
     const jsonStr = OfficialRustDeskBridge.getInstance().loadLanPeers();
-    console.log('[LanDiscovery] loadLanPeers returned:', jsonStr.substring(0, Math.min(200, jsonStr.length)));
+    hilog.info(0xA03D00, 'LAN', 'loadLanPeers returned len=%{public}d preview=%{public}s', jsonStr.length, jsonStr.substring(0, Math.min(100, jsonStr.length)));
     if (!this.ignoredPeerIdsLoaded) {
       this.loadIgnoredPeerIds();
     }
@@ -106,7 +107,7 @@ export class LanDiscoveryService {
     if (jsonStr && jsonStr !== '[]') {
       try {
         const peers = JSON.parse(jsonStr) as Array<Record<string, string | boolean>>;
-        console.log('[LanDiscovery] Parsed peers count:', peers.length);
+        hilog.info(0xA03D00, 'LAN', 'Parsed peers count=%{public}d', peers.length);
         if (Array.isArray(peers)) {
           peers.forEach((peer: Record<string, string | boolean>) => {
             const id = (peer['id'] as string) || '';
@@ -129,7 +130,7 @@ export class LanDiscoveryService {
           });
         }
       } catch (e) {
-        console.error('[LanDiscovery] loadDiscoveredPeers parse error', e);
+        hilog.error(0xA03D00, 'LAN', 'loadDiscoveredPeers parse error %{public}s', JSON.stringify(e));
       }
     }
     let removed = false;
@@ -251,7 +252,7 @@ export class LanDiscoveryService {
       try {
         listener();
       } catch (error) {
-        console.error('[LanDiscovery] listener failed', error);
+        hilog.error(0xA03D00, 'LAN', 'listener failed %{public}s', JSON.stringify(error));
       }
     });
   }

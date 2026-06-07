@@ -2,7 +2,75 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 连接问题 (排查中)
+
+### 连接流程应采用并行密码+无密码策略 (2026-06-07用户要求, 待实现)
+
+**用户描述的完整流程**：
+1. 从任意位置发起连接
+2. **立即判断**远端是否存在密码需求（不等待远端响应）
+3. **同时执行两条路径**：
+   - **路径A**：弹出密码输入框，等待用户输入
+   - **路径B**：发起无密码连接申请（等待被访问端确认/拒绝）
+4. **竞争结果处理**：
+   - 如果路径B先成功（被访问端同意无密码申请）→ 直接建立连接，**同时关闭密码输入框**
+   - 如果路径A先完成（用户输入密码并确认）→ **切换到密码连接链路**，用密码重新建立连接
+
+**当前实现的差距**：
+- 当前 `handleConnect()` 是串行流程：先查本地保存密码 → 有密码则直接密码连接 → 无密码则发起空密码连接 → 等远端返回密码提示后才弹密码框
+- 密码框只在远端返回密码提示（`shouldPromptForPassword`）后才弹出，不是连接发起时立即弹出
+- 无密码申请和密码输入是互斥的，不是并行的
+- `submitSessionPassword()` 只是在已有连接上提交密码，不是"切换到密码连接链路"
+
+**需要修改的关键点**：
+- `Index.ets` `handleConnect()`: 无保存密码时，立即弹出密码框 + 同时发起空密码连接
+- `RemoteControl.ets` `applyBridgeState()`: 连接成功（无密码申请被同意）时关闭密码框
+- `RemoteControl.ets` `submitSessionPassword()`: 密码确认后，如果无密码申请还在进行中，需要断开当前连接并用密码重新连接
+- 密码框需要新增"跳过/等待确认"按钮，让用户选择等待无密码申请结果而非必须输入密码
+
+### 无密码连接时密码输入框丢失 + 会话过早关闭 (2026-06-07发现, 已修复, 待验证)
+
+**现象**: (1) 发起连接到设置了密码的远端时，如果本地没有保存密码，密码输入框不弹出，直接显示连接错误或关闭页面；(2) 被访问端刚弹出确认/拒绝提示时，访问端会话就已结束。
+**根因**: `RemoteControl.ets` 的 `applyBridgeState` 中，error/idle 分支在 `shouldAutoCloseTerminalSession()` 为 true 时，会跳过密码提示直接关闭或重连。`handleTerminalBridgeEvent` 只在 `session-error` 时检查密码需求，`session-closed` 不检查。
+**解决**: `applyBridgeState` error/idle 分支在 `shouldAutoCloseTerminalSession()` 判断之前，先检查 `shouldPromptForPassword(coreState)`，为 true 则优先显示密码对话框。`handleTerminalBridgeEvent` 将密码检查从仅 `session-error` 扩展到 `session-error` 和 `session-closed` 都检查。
+**待验证**: 设备上实际发起无密码连接确认密码框弹出；确认被访问端拒绝/超时时不再直接关闭页面。
+**教训**: ✅ 密码提示优先级必须高于自动关闭/重连逻辑；✅ `session-closed` 事件也需要检查密码需求，不能只在 `session-error` 检查。
+
+### LAN 发现失效：rendezvous_mediator_ohos.rs 未启动 LAN 监听线程 (2026-06-07发现, 已修复, 待验证)
+
+**现象**: LAN 发现功能完全失效——发现页手动刷新后列表为空，同网段设备不可见。hilog 确认 `discoverLanPeers` 返回 true、`loadLanPeers` 返回 `[]`、`lan-discovery-done` 事件到达——UDP ping 发出但没有监听线程接收响应。
+**根因**: `rendezvous_mediator_ohos.rs` 的 `start_all()` 只执行 `std::future::pending().await`，从未启动 LAN 监听线程。OHOS 使用独立的 `rendezvous_mediator_ohos.rs`（不是 `rendezvous_mediator.rs`），其中完全没有调用 `crate::lan::start_listening()`。而 `rendezvous_mediator.rs`（非 OHOS）在 `start_all()` 中会调用 `crate::lan::start_listening()`。此外 `platform_ohos.rs` 的 `is_installed()` 返回 false，也会阻止 LAN 监听启动，但即使修复 `is_installed()`，`rendezvous_mediator_ohos.rs` 仍不会调用 `start_listening()`。
+**解决**: 在 `rendezvous_mediator_ohos.rs` 的 `start_all()` 中添加 `std::thread::spawn` 启动 `crate::lan::start_listening()` LAN 监听线程。同时还原了误改的 `rendezvous_mediator.rs`（OHOS 编译不使用该文件）。
+**待验证**: 确认 LAN 监听线程日志 `lan discovery listener started` 出现，同网段设备可被发现。
+**教训**: ✅ OHOS 有独立的 `rendezvous_mediator_ohos.rs`，修改 LAN 逻辑时必须检查 OHOS 专用文件而非通用文件；✅ `is_installed()` 返回 false 会阻止 LAN 监听，但根因是 `start_all()` 根本没调用 `start_listening()`；✅ UDP ping 发出但无监听线程接收响应是 LAN 发现失效的典型症状。
+
+### 远程连接 ECONNRESET (os error 104) (2026-06-07发现, 排查中)
+
+**现象**: 发起远程连接到 peer 后，收到 `session-error: 连接错误：Connection reset by peer (os error 104)`。连接能建立（收到 quality-status delay=108ms），但随后被远端重置。最终停在连接错误画面。
+**可能原因**: 上游源码版本不匹配——当前编译基于 RustDesk 1.4.6，远端可能已升级到 1.4.7，协议/握手可能不兼容。
+**当前措施**: 升级上游源码到 1.4.7 并重新编译 native core。
+**待验证**: 1.4.7 编译完成后构建 HAP 安装验证连接。
+
+### 上游源码升级 1.4.6→1.4.7 编译适配 (2026-06-07进行中)
+
+**问题**: RustDesk 1.4.7 引入更多 Linux 桌面端依赖（gtk 0.18、winit 0.30 等），OHOS 交叉编译时 `target_os = "linux"` 导致这些桌面依赖全部激活，触发 pkg-config/gtk 编译失败。
+**解决进展**:
+- ✅ Cargo.toml：注释/排除 tray-icon、tao、keepawake；用 `not(target_env = "ohos")` 条件排除 wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等
+- ✅ scrap/Cargo.toml：排除 OHOS 的 dbus/gstreamer/zbus/nokhwa
+- ✅ build.rs：基于 CARGO_CFG_TARGET_OS 运行时检查，避免 OHOS 交叉编译时触发 Windows C++ 编译
+- ✅ lib.rs：恢复所有 OHOS target_env 条件修改
+- 🔄 编译进行中，需继续完成
+**教训**: ✅ OHOS 的 `target_os = "linux"`，所有 Linux 桌面端依赖必须显式排除；✅ `#[cfg(windows)]` 在 build.rs 中基于 host 平台，交叉编译时需改为 CARGO_CFG_TARGET_OS 运行时检查；✅ git 依赖（tray-icon 等）可能删除旧 tag/commit，直接注释比版本锁定更可靠。
+
 ## 核心加载问题 (已解决)
+
+### Rust C ABI 缺失导出导致 NAPI 模块无法加载 (2026-06-06发现, 已修复)
+
+**现象**: 核心页 Native Module 状态异常，连接链路无法发起会话；hilog 报 `rustdesk_bridge_reconnect_session: symbol not found`。
+**根因**: Rust `bridge_api.rs` 缺少 `rustdesk_bridge_send_ctrl_alt_del` 和 `rustdesk_bridge_reconnect_session` 两个 C ABI 导出函数。C++ `rustdesk_bridge_abi.h` 声明50个函数，Rust 之前只导出46个。HarmonyOS 运行时动态链接器严格检查所有符号，缺失符号导致整个 `librustdesk_bridge.so` 加载失败。
+**解决**: 在 `bridge_api.rs` 新增两个 `#[no_mangle] pub extern "C"` 函数；`module.json5` 设置 `compressNativeLibs: true` + `extractNativeLibs: true` + `libIsolation: true` 确保 SO 正确解压。
+**验证**: 重编 native core + 构建 HAP + 安装启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+**教训**: ✅ C++ ABI header 声明的每个函数必须在 Rust `bridge_api.rs` 有对应 `#[no_mangle] pub extern "C"` 导出；✅ `--unresolved-symbols=ignore-all` 只影响链接阶段，不影响运行时动态链接器符号检查；✅ 缺失一个符号会导致整个 SO 加载失败，NAPI 模块完全不可用。
 
 ### SO加载方案4次迭代 (2026-05-29最终解决)
 

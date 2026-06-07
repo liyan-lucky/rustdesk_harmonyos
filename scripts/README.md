@@ -4,12 +4,15 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 
 ## Daily entry points
 
-- `run_hvigor_with_sdk_patch.js`: canonical HAP build entry. It updates `BuildInfo.ets`, applies the DevEco/Hvigor SDK compatibility patches, and discovers DevEco paths from environment variables, `local.properties`, or the default install location.
+- `run_hvigor_with_sdk_patch.js`: canonical Hvigor build entry. It updates `BuildInfo.ets` and `CoreBuildInfo.ets`, applies the DevEco/Hvigor SDK compatibility patches, discovers DevEco paths from environment variables, `local.properties`, or the default install location, and switches to project mode for APP packaging tasks.
 - `build_hap.bat`: Windows incremental HAP build. It stages a clean project copy under `99_Temp/harmonyos_stage/<project name>`, sets `RUSTDESK_HARMONY_VERSION_BUMP=incremental`, increments the rightmost app version number, builds under `99_Temp/harmonyos_build/<project name>`, then syncs version files back to the real project.
 - `build_full_hap.bat`: Windows full HAP rebuild. It sets `RUSTDESK_HARMONY_VERSION_BUMP=full`, so the middle app version number is incremented and the rightmost number is reset to 0. It cleans generated project artifacts and `99_Temp/harmonyos_build/<project name>`, then runs the same staged Hvigor build path. It keeps `99_Temp/harmonyos_cache` by default to avoid DevEco/Hvigor built-in clean touching stale USB project caches.
 - `AUTO_BUILD_INSTALL.bat`: Windows build, install, and launch wrapper. It uses the staged HAP build path, then installs the signed HAP with `hdc -t <target>`. With no target or `auto`, it uses `RUSTDESK_HARMONY_USB_TARGET` when configured, then tries wireless target `192.168.11.100:36169`, then falls back to the first available HDC target.
 - `build_harmonyos_hap.ps1`: Windows HAP staging helper for signed or unsigned artifacts.
 - `verify_native_harmonyos_hap.ps1`: HAP inspection, optional install, launch, and log helper.
+- `audit_connection_chain.ps1`: 50-check connection-chain audit. It verifies native core metadata, NAPI aliases, bridge wrappers, reconnect handling, quality-status display, packaged HAP native libraries, and the absence of the unsupported `libtime_service_ndk.so` runtime dependency. It writes `reports/connection_chain_audit_latest.md`.
+- `github_build_harmonyos.ps1`: GitHub Actions/self-hosted build entry. It can build `hap`, `app`, or `both`; `both` uses the APP packaging task because it also produces the embedded/signed HAP. It has `-PreflightOnly` for DevEco SDK, signing, and native core completeness checks before packaging.
+- `.github/workflows/build-harmonyos.yml`: manual online package workflow. Configure `RUSTDESK_CORE_URL`, `RUSTDESK_CORE_SHA256`, and `RUSTDESK_SIGNING_ZIP_B64`; set `DEVECO_TOOLS_HOME`, `DEVECO_SDK_HOME`, and `DEVECO_NODE_EXE` when the runner does not use the default DevEco install paths.
 
 ## Native core helpers
 
@@ -50,3 +53,5 @@ The Windows HAP entry points set `CI=true`, `RUSTDESK_HARMONY_TEMP_ROOT`, and `B
 If install succeeds but launch returns `Error Code:10106102`, the script reports a warning and exits successfully because the device is locked and cannot be auto-unlocked by HDC in developer mode.
 
 Use `build_hap.bat` for a fast incremental build, `build_full_hap.bat` for a clean rebuild, and `AUTO_BUILD_INSTALL.bat --full auto` when the build and install flow should start from a clean generated state.
+
+Use `powershell -ExecutionPolicy Bypass -File scripts\audit_connection_chain.ps1` after connection-chain changes. A healthy local build should finish with `50 PASS, 0 FAIL, 0 SKIP`.
