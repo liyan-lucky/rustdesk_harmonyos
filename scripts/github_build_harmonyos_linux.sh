@@ -9,7 +9,6 @@ SIGNING_ZIP_B64="${RUSTDESK_SIGNING_ZIP_B64:-}"
 ARTIFACTS_DIR=""
 MIN_CORE_BYTES=52428800
 SKIP_PACKAGE_VERIFY="false"
-DISABLE_STAGE="false"
 PREFLIGHT_ONLY="false"
 
 while [[ $# -gt 0 ]]; do
@@ -20,14 +19,13 @@ while [[ $# -gt 0 ]]; do
     --core-url|-CoreUrl) CORE_URL="$2"; shift 2 ;;
     --core-sha256|-ExpectedCoreSha256) EXPECTED_CORE_SHA256="$2"; shift 2 ;;
     --skip-package-verify|-SkipPackageVerify) SKIP_PACKAGE_VERIFY="true"; shift ;;
-    --disable-stage|-DisableStage) DISABLE_STAGE="true"; shift ;;
     --preflight-only|-PreflightOnly) PREFLIGHT_ONLY="true"; shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
 
-case "$ARTIFACT_TYPE" in hap|app|both) ;; *) echo "Invalid artifact type"; exit 1 ;; esac
-case "$VERSION_BUMP" in none|incremental|full) ;; *) echo "Invalid version bump"; exit 1 ;; esac
+case "$ARTIFACT_TYPE" in hap|app|both) ;; *) echo "Invalid artifact type: $ARTIFACT_TYPE"; exit 1 ;; esac
+case "$VERSION_BUMP" in none|incremental|full) ;; *) echo "Invalid version bump: $VERSION_BUMP"; exit 1 ;; esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -52,10 +50,10 @@ echo "Version bump: $VERSION_BUMP"
 
 need_file() {
   local path="$1"
-  [[ -e "$PROJECT_ROOT/$path" ]] || {
+  if [[ ! -e "$PROJECT_ROOT/$path" ]]; then
     echo "Required repository file is missing: $path"
     exit 1
-  }
+  fi
 }
 
 need_file "build-profile.json5"
@@ -69,34 +67,40 @@ need_file "entry/src/main/module.json5"
 need_file "scripts/run_hvigor_with_sdk_patch.js"
 
 NODE_EXE="${DEVECO_NODE_EXE:-$(command -v node || true)}"
-[[ -n "$NODE_EXE" ]] || { echo "node executable was not found."; exit 1; }
-
-SDK_ROOT="${DEVECO_SDK_HOME:-${OHOS_HVIGOR_SDK_ROOT:-}}"
-if [[ -z "$SDK_ROOT" ]]; then
-  for p in \
-    "$HOME/harmonyos-sdk" \
-    "$HOME/ohos-sdk" \
-    "$HOME/.harmonyos/sdk" \
-    "$RUNNER_TOOL_CACHE" \
-    "$PROJECT_ROOT"; do
-    found="$(find "$p" -type d -path "*/openharmony/native" 2>/dev/null | head -n 1 || true)"
-    if [[ -n "$found" ]]; then
-      SDK_ROOT="$(dirname "$(dirname "$found")")"
-      break
-    fi
-  done
+if [[ -z "$NODE_EXE" ]]; then
+  echo "node executable was not found."
+  exit 1
 fi
 
-[[ -n "$SDK_ROOT" ]] || { echo "DevEco/HarmonyOS SDK was not found. Set DEVECO_SDK_HOME or OHOS_HVIGOR_SDK_ROOT."; exit 1; }
-[[ -d "$SDK_ROOT/openharmony/native" ]] || { echo "OpenHarmony native SDK component was not found: $SDK_ROOT/openharmony/native"; exit 1; }
+SDK_ROOT="${DEVECO_SDK_HOME:-${OHOS_HVIGOR_SDK_ROOT:-${HOS_SDK_HOME:-}}}"
+
+if [[ -z "$SDK_ROOT" ]]; then
+  SDK_ROOT="/home/runner/harmonyos-sdk"
+fi
+
+if [[ "$SDK_ROOT" == */command-line-tools ]]; then
+  SDK_ROOT="$(dirname "$SDK_ROOT")"
+fi
+
+if [[ ! -d "$SDK_ROOT" ]]; then
+  echo "HarmonyOS SDK root was not found: $SDK_ROOT"
+  exit 1
+fi
 
 export DEVECO_SDK_HOME="$SDK_ROOT"
 export OHOS_HVIGOR_SDK_ROOT="$SDK_ROOT"
 
 echo "Node: $NODE_EXE"
-echo "HarmonyOS SDK: $SDK_ROOT"
+echo "HarmonyOS SDK root: $SDK_ROOT"
+
+if [[ ! -d "$SDK_ROOT/openharmony/native" ]]; then
+  echo "Warning: $SDK_ROOT/openharmony/native not found."
+  echo "Current SDK content:"
+  find "$SDK_ROOT" -maxdepth 5 -type d | sort || true
+fi
 
 SIGNING_ROOT="$TEMP_ROOT/rustdesk_harmonyos_signing"
+
 if [[ -n "$SIGNING_ZIP_B64" ]]; then
   rm -rf "$SIGNING_ROOT" "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
   mkdir -p "$SIGNING_ROOT" "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
@@ -105,43 +109,74 @@ if [[ -n "$SIGNING_ZIP_B64" ]]; then
   unzip -q "$TEMP_ROOT/rustdesk_harmonyos_signing.zip" -d "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
 
   SRC_ROOT="$(find "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" -type f \( -name "*.p12" -o -name "*.cer" -o -name "*.p7b" \) -printf '%h\n' | sort | uniq | head -n 1 || true)"
-  [[ -n "$SRC_ROOT" ]] || { echo "Signing zip decoded, but no .p12/.cer/.p7b directory found."; exit 1; }
+
+  if [[ -z "$SRC_ROOT" ]]; then
+    echo "Signing zip decoded, but no .p12/.cer/.p7b directory found."
+    exit 1
+  fi
 
   cp -a "$SRC_ROOT"/. "$SIGNING_ROOT"/
 fi
 
-[[ -d "$SIGNING_ROOT" ]] || { echo "Signing material directory is missing: $SIGNING_ROOT"; exit 1; }
-find "$SIGNING_ROOT" -name "*.p12" | grep -q . || { echo "Missing .p12 signing file"; exit 1; }
-find "$SIGNING_ROOT" -name "*.cer" | grep -q . || { echo "Missing .cer signing file"; exit 1; }
-find "$SIGNING_ROOT" -name "*.p7b" | grep -q . || { echo "Missing .p7b signing file"; exit 1; }
-[[ -d "$SIGNING_ROOT/material" ]] || { echo "Missing signing material directory: $SIGNING_ROOT/material"; exit 1; }
+if [[ ! -d "$SIGNING_ROOT" ]]; then
+  echo "Signing material directory is missing: $SIGNING_ROOT"
+  echo "You need to set RUSTDESK_SIGNING_ZIP_B64 in GitHub Secrets."
+  exit 1
+fi
+
+if ! find "$SIGNING_ROOT" -name "*.p12" | grep -q .; then
+  echo "Missing .p12 signing file"
+  exit 1
+fi
+
+if ! find "$SIGNING_ROOT" -name "*.cer" | grep -q .; then
+  echo "Missing .cer signing file"
+  exit 1
+fi
+
+if ! find "$SIGNING_ROOT" -name "*.p7b" | grep -q .; then
+  echo "Missing .p7b signing file"
+  exit 1
+fi
+
+if [[ ! -d "$SIGNING_ROOT/material" ]]; then
+  echo "Warning: missing signing material directory: $SIGNING_ROOT/material"
+fi
 
 echo "Signing material: $SIGNING_ROOT"
 
 CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
+
 if [[ ! -f "$CORE_PATH" && -n "$CORE_URL" ]]; then
   echo "Native core is missing; downloading from RUSTDESK_CORE_URL."
   mkdir -p "$(dirname "$CORE_PATH")"
   curl -L --fail --retry 3 -o "$CORE_PATH" "$CORE_URL"
 fi
 
-[[ -f "$CORE_PATH" ]] || { echo "Native core staticlib is missing: $CORE_PATH"; exit 1; }
+if [[ ! -f "$CORE_PATH" ]]; then
+  echo "Native core staticlib is missing: $CORE_PATH"
+  echo "You need to set RUSTDESK_CORE_URL or commit librustdesk_core.a into the repository."
+  exit 1
+fi
 
 CORE_SIZE="$(stat -c%s "$CORE_PATH")"
+
 if (( CORE_SIZE < MIN_CORE_BYTES )); then
   echo "Native core staticlib is too small: $CORE_SIZE bytes"
   exit 1
 fi
 
 CORE_SHA256="$(sha256sum "$CORE_PATH" | awk '{print toupper($1)}')"
+
 if [[ -n "$EXPECTED_CORE_SHA256" ]]; then
   EXPECTED_UPPER="$(echo "$EXPECTED_CORE_SHA256" | tr '[:lower:]' '[:upper:]')"
-  [[ "$CORE_SHA256" == "$EXPECTED_UPPER" ]] || {
+
+  if [[ "$CORE_SHA256" != "$EXPECTED_UPPER" ]]; then
     echo "Native core SHA256 mismatch."
     echo "Expected: $EXPECTED_UPPER"
     echo "Actual:   $CORE_SHA256"
     exit 1
-  }
+  fi
 fi
 
 echo "Native core: $CORE_PATH"
@@ -160,16 +195,21 @@ else
 fi
 
 case "$ARTIFACT_TYPE" in
-  hap) TASKS=("assembleHap") ;;
-  app) TASKS=("assembleApp") ;;
-  both) TASKS=("assembleApp") ;;
+  hap)
+    TASKS=("assembleHap")
+    ;;
+  app)
+    TASKS=("assembleApp")
+    ;;
+  both)
+    TASKS=("assembleApp")
+    ;;
 esac
 
-BUILD_ROOT="$PROJECT_ROOT"
-
 echo "Running Hvigor tasks: ${TASKS[*]}"
-cd "$BUILD_ROOT"
-"$NODE_EXE" "$BUILD_ROOT/scripts/run_hvigor_with_sdk_patch.js" "${TASKS[@]}"
+
+cd "$PROJECT_ROOT"
+"$NODE_EXE" "$PROJECT_ROOT/scripts/run_hvigor_with_sdk_patch.js" "${TASKS[@]}"
 
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$ARTIFACTS_DIR"
@@ -183,32 +223,40 @@ if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-need_exts=()
 case "$ARTIFACT_TYPE" in
-  hap) need_exts=("hap") ;;
-  app) need_exts=("app") ;;
-  both) need_exts=("hap" "app") ;;
+  hap)
+    NEED_EXTS=("hap")
+    ;;
+  app)
+    NEED_EXTS=("app")
+    ;;
+  both)
+    NEED_EXTS=("hap" "app")
+    ;;
 esac
 
-for ext in "${need_exts[@]}"; do
-  found="false"
+for ext in "${NEED_EXTS[@]}"; do
+  FOUND="false"
+
   for file in "${PACKAGES[@]}"; do
     if [[ "$file" == *".$ext" ]]; then
       cp -f "$file" "$ARTIFACTS_DIR/"
-      found="true"
+      FOUND="true"
     fi
   done
-  [[ "$found" == "true" ]] || {
+
+  if [[ "$FOUND" != "true" ]]; then
     echo "Expected .$ext artifact was not produced."
     exit 1
-  }
+  fi
 done
 
 if [[ "$SKIP_PACKAGE_VERIFY" != "true" ]]; then
-  echo "Linux version currently skips native HAP verification unless you port verify_native_harmonyos_hap.ps1."
+  echo "Linux version currently skips native HAP verification."
 fi
 
 MANIFEST="$ARTIFACTS_DIR/manifest.json"
+
 cat > "$MANIFEST" <<EOF
 {
   "generatedAt": "$(date '+%Y-%m-%d %H:%M:%S')",
@@ -224,4 +272,4 @@ cat > "$MANIFEST" <<EOF
 EOF
 
 echo "Generated artifacts:"
-find "$ARTIFACTS_DIR" -type f -maxdepth 1 -print
+find "$ARTIFACTS_DIR" -maxdepth 1 -type f -print
