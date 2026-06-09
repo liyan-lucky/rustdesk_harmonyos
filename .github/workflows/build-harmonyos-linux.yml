@@ -82,23 +82,19 @@ jobs:
       - name: Locate HarmonyOS SDK
         shell: bash
         run: |
-          echo "Searching HarmonyOS SDK..."
-          find "$HOME" "$RUNNER_TOOL_CACHE" "$GITHUB_WORKSPACE" -type d -path "*/openharmony/native" 2>/dev/null | head -20 || true
+          echo "HOS_SDK_HOME=$HOS_SDK_HOME"
+          echo "Listing HarmonyOS SDK..."
+          find /home/runner/harmonyos-sdk -maxdepth 6 -type d | sort || true
 
-          NATIVE_DIR="$(find "$HOME" "$RUNNER_TOOL_CACHE" "$GITHUB_WORKSPACE" -type d -path "*/openharmony/native" 2>/dev/null | head -n 1 || true)"
+          SDK_BASE="/home/runner/harmonyos-sdk"
 
-          if [ -z "$NATIVE_DIR" ]; then
-            echo "OpenHarmony native SDK not found."
-            exit 1
-          fi
-
-          SDK_ROOT="$(dirname "$(dirname "$NATIVE_DIR")")"
-
-          echo "DEVECO_SDK_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
 
-          echo "SDK_ROOT=$SDK_ROOT"
+          echo "DEVECO_SDK_HOME=$SDK_BASE"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE"
+          echo "DEVECO_NODE_EXE=$(command -v node)"
           node -v
 
       - name: Debug env
