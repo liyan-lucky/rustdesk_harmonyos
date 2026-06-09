@@ -13,93 +13,147 @@ on:
         required: true
         default: "both"
         type: choice
-        options:
-          - both
-          - hap
-          - app
+        options: [both, hap, app]
       version_bump:
         description: "Version bump mode before packaging"
         required: true
         default: "incremental"
         type: choice
-        options:
-          - incremental
-          - full
-          - none
-      runner:
-        description: "Runner label. Use self-hosted if DevEco is preinstalled there."
-        required: true
-        default: "windows-latest"
-        type: choice
-        options:
-          - windows-latest
-          - self-hosted
+        options: [incremental, full, none]
       preflight_only:
-        description: "Run environment/core/signing checks without building"
+        description: "Run checks only"
         required: true
         default: false
         type: boolean
       skip_package_verify:
-        description: "Skip generated HAP native/signature verification"
+        description: "Skip HAP verification"
         required: true
-        default: false
+        default: true
         type: boolean
       disable_stage:
-        description: "Build directly in the checkout instead of a staged copy"
+        description: "Build in checkout directly"
         required: true
         default: false
         type: boolean
 
 jobs:
   build:
-    name: Build ${{ inputs.artifact_type }}
-    runs-on: ${{ inputs.runner || 'windows-latest' }}
-    timeout-minutes: 90
+    name: Build HarmonyOS
+    runs-on: windows-latest
+    timeout-minutes: 120
 
     env:
       CI: "true"
+      ARTIFACT_TYPE: ${{ github.event.inputs.artifact_type || 'both' }}
+      VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
+      PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
+      SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
+      DISABLE_STAGE: ${{ github.event.inputs.disable_stage || 'false' }}
+
       RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
-      DEVECO_TOOLS_HOME: ${{ secrets.DEVECO_TOOLS_HOME || vars.DEVECO_TOOLS_HOME }}
-      DEVECO_SDK_HOME: ${{ secrets.DEVECO_SDK_HOME || vars.DEVECO_SDK_HOME }}
-      DEVECO_NODE_EXE: ${{ secrets.DEVECO_NODE_EXE || vars.DEVECO_NODE_EXE }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node fallback
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "20"
+
+      - name: Setup HarmonyOS SDK
+        uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
+
+      - name: Locate HarmonyOS tools
+        shell: pwsh
+        run: |
+          Write-Host "Searching HarmonyOS SDK and tools..."
+
+          $possibleRoots = @(
+            "$env:RUNNER_TOOL_CACHE",
+            "$env:USERPROFILE",
+            "$env:LOCALAPPDATA",
+            "$env:GITHUB_WORKSPACE"
+          )
+
+          $hvigor = Get-ChildItem -Path $possibleRoots -Recurse -File -Filter "hvigorw.js" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+
+          if (-not $hvigor) {
+            throw "hvigorw.js not found after setup-harmonyos-sdk."
+          }
+
+          $toolsRoot = Split-Path -Parent (Split-Path -Parent $hvigor.FullName)
+          echo "DEVECO_TOOLS_HOME=$toolsRoot" >> $env:GITHUB_ENV
+          Write-Host "DEVECO_TOOLS_HOME=$toolsRoot"
+
+          $native = Get-ChildItem -Path $possibleRoots -Recurse -Directory -Filter "native" -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match "openharmony\\native" } |
+            Select-Object -First 1
+
+          if (-not $native) {
+            throw "openharmony native SDK not found."
+          }
+
+          $sdkRoot = Split-Path -Parent (Split-Path -Parent $native.FullName)
+          echo "DEVECO_SDK_HOME=$sdkRoot" >> $env:GITHUB_ENV
+          echo "OHOS_HVIGOR_SDK_ROOT=$sdkRoot" >> $env:GITHUB_ENV
+          Write-Host "DEVECO_SDK_HOME=$sdkRoot"
+
+          $node = Get-Command node -ErrorAction Stop
+          echo "DEVECO_NODE_EXE=$($node.Source)" >> $env:GITHUB_ENV
+          Write-Host "DEVECO_NODE_EXE=$($node.Source)"
+
+      - name: Debug environment
+        shell: pwsh
+        run: |
+          Write-Host "DEVECO_TOOLS_HOME=$env:DEVECO_TOOLS_HOME"
+          Write-Host "DEVECO_SDK_HOME=$env:DEVECO_SDK_HOME"
+          Write-Host "DEVECO_NODE_EXE=$env:DEVECO_NODE_EXE"
+          Write-Host "RUSTDESK_CORE_URL empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_CORE_URL))"
+          Write-Host "RUSTDESK_CORE_SHA256 empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_CORE_SHA256))"
+          Write-Host "RUSTDESK_SIGNING_ZIP_B64 empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_SIGNING_ZIP_B64))"
+
+          Test-Path "$env:DEVECO_TOOLS_HOME\hvigor\bin\hvigorw.js"
+          Test-Path "$env:DEVECO_SDK_HOME\openharmony\native"
 
       - name: Preflight and build
         shell: pwsh
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
-          $preflightOnly = "${{ inputs.preflight_only }}" -eq "true"
-          $args = @(
-            "-ArtifactType", "${{ inputs.artifact_type || 'both' }}",
-            "-VersionBump", "${{ inputs.version_bump || 'incremental' }}",
+          $buildArgs = @(
+            "-ArtifactType", "$env:ARTIFACT_TYPE",
+            "-VersionBump", "$env:VERSION_BUMP",
             "-ArtifactsDir", $env:HARMONY_ARTIFACTS_DIR
           )
-          if ($preflightOnly) {
-            $args += "-PreflightOnly"
+
+          if ("$env:PREFLIGHT_ONLY" -eq "true") {
+            $buildArgs += "-PreflightOnly"
           }
-          if ("${{ inputs.skip_package_verify }}" -eq "true") {
-            $args += "-SkipPackageVerify"
+
+          if ("$env:SKIP_PACKAGE_VERIFY" -eq "true") {
+            $buildArgs += "-SkipPackageVerify"
           }
-          if ("${{ inputs.disable_stage }}" -eq "true") {
-            $args += "-DisableStage"
+
+          if ("$env:DISABLE_STAGE" -eq "true") {
+            $buildArgs += "-DisableStage"
           }
-          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\github_build_harmonyos.ps1 @args
+
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\github_build_harmonyos.ps1 @buildArgs
 
       - name: Upload HarmonyOS artifacts
-        if: ${{ !inputs.preflight_only }}
+        if: ${{ github.event.inputs.preflight_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: harmonyos-${{ inputs.artifact_type || 'both' }}
+          name: harmonyos-${{ github.event.inputs.artifact_type || 'both' }}
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
           if-no-files-found: error
