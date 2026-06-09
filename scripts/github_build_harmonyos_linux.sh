@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ARTIFACT_TYPE="both"
+VERSION_BUMP="incremental"
+CORE_URL="${RUSTDESK_CORE_URL:-}"
+EXPECTED_CORE_SHA256="${RUSTDESK_CORE_SHA256:-}"
+SIGNING_ZIP_B64="${RUSTDESK_SIGNING_ZIP_B64:-}"
+ARTIFACTS_DIR=""
+MIN_CORE_BYTES=52428800
+SKIP_PACKAGE_VERIFY="false"
+DISABLE_STAGE="false"
+PREFLIGHT_ONLY="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --artifact-type|-ArtifactType) ARTIFACT_TYPE="$2"; shift 2 ;;
+    --version-bump|-VersionBump) VERSION_BUMP="$2"; shift 2 ;;
+    --artifacts-dir|-ArtifactsDir) ARTIFACTS_DIR="$2"; shift 2 ;;
+    --core-url|-CoreUrl) CORE_URL="$2"; shift 2 ;;
+    --core-sha256|-ExpectedCoreSha256) EXPECTED_CORE_SHA256="$2"; shift 2 ;;
+    --skip-package-verify|-SkipPackageVerify) SKIP_PACKAGE_VERIFY="true"; shift ;;
+    --disable-stage|-DisableStage) DISABLE_STAGE="true"; shift ;;
+    --preflight-only|-PreflightOnly) PREFLIGHT_ONLY="true"; shift ;;
+    *) echo "Unknown argument: $1"; exit 1 ;;
+  esac
+done
+
+case "$ARTIFACT_TYPE" in hap|app|both) ;; *) echo "Invalid artifact type"; exit 1 ;; esac
+case "$VERSION_BUMP" in none|incremental|full) ;; *) echo "Invalid version bump"; exit 1 ;; esac
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_NAME="$(basename "$PROJECT_ROOT")"
+TEMP_ROOT="${RUSTDESK_HARMONY_TEMP_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/99_Temp}"
+
+export CI=true
+export RUSTDESK_HARMONY_TEMP_ROOT="$TEMP_ROOT"
+export BUILD_CACHE_DIR="${BUILD_CACHE_DIR:-$TEMP_ROOT/harmonyos_cache}"
+
+if [[ -z "$ARTIFACTS_DIR" ]]; then
+  ARTIFACTS_DIR="$TEMP_ROOT/harmonyos_artifacts/$PROJECT_NAME"
+fi
+
+mkdir -p "$TEMP_ROOT" "$BUILD_CACHE_DIR"
+
+echo "HarmonyOS Linux build preflight"
+echo "Project: $PROJECT_ROOT"
+echo "Temp root: $TEMP_ROOT"
+echo "Artifact type: $ARTIFACT_TYPE"
+echo "Version bump: $VERSION_BUMP"
+
+need_file() {
+  local path="$1"
+  [[ -e "$PROJECT_ROOT/$path" ]] || {
+    echo "Required repository file is missing: $path"
+    exit 1
+  }
+}
+
+need_file "build-profile.json5"
+need_file "AppScope/app.json5"
+need_file "entry/hvigorfile.ts"
+need_file "entry/src/main/cpp/CMakeLists.txt"
+need_file "entry/src/main/cpp/rustdesk_bridge_loader.cpp"
+need_file "entry/src/main/cpp/types/librustdesk_bridge/oh-package.json5"
+need_file "entry/src/main/cpp/types/librustdesk_bridge/index.d.ts"
+need_file "entry/src/main/module.json5"
+need_file "scripts/run_hvigor_with_sdk_patch.js"
+
+NODE_EXE="${DEVECO_NODE_EXE:-$(command -v node || true)}"
+[[ -n "$NODE_EXE" ]] || { echo "node executable was not found."; exit 1; }
+
+SDK_ROOT="${DEVECO_SDK_HOME:-${OHOS_HVIGOR_SDK_ROOT:-}}"
+if [[ -z "$SDK_ROOT" ]]; then
+  for p in \
+    "$HOME/harmonyos-sdk" \
+    "$HOME/ohos-sdk" \
+    "$HOME/.harmonyos/sdk" \
+    "$RUNNER_TOOL_CACHE" \
+    "$PROJECT_ROOT"; do
+    found="$(find "$p" -type d -path "*/openharmony/native" 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$found" ]]; then
+      SDK_ROOT="$(dirname "$(dirname "$found")")"
+      break
+    fi
+  done
+fi
+
+[[ -n "$SDK_ROOT" ]] || { echo "DevEco/HarmonyOS SDK was not found. Set DEVECO_SDK_HOME or OHOS_HVIGOR_SDK_ROOT."; exit 1; }
+[[ -d "$SDK_ROOT/openharmony/native" ]] || { echo "OpenHarmony native SDK component was not found: $SDK_ROOT/openharmony/native"; exit 1; }
+
+export DEVECO_SDK_HOME="$SDK_ROOT"
+export OHOS_HVIGOR_SDK_ROOT="$SDK_ROOT"
+
+echo "Node: $NODE_EXE"
+echo "HarmonyOS SDK: $SDK_ROOT"
+
+SIGNING_ROOT="$TEMP_ROOT/rustdesk_harmonyos_signing"
+if [[ -n "$SIGNING_ZIP_B64" ]]; then
+  rm -rf "$SIGNING_ROOT" "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
+  mkdir -p "$SIGNING_ROOT" "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
+
+  echo "$SIGNING_ZIP_B64" | base64 -d > "$TEMP_ROOT/rustdesk_harmonyos_signing.zip"
+  unzip -q "$TEMP_ROOT/rustdesk_harmonyos_signing.zip" -d "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
+
+  SRC_ROOT="$(find "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" -type f \( -name "*.p12" -o -name "*.cer" -o -name "*.p7b" \) -printf '%h\n' | sort | uniq | head -n 1 || true)"
+  [[ -n "$SRC_ROOT" ]] || { echo "Signing zip decoded, but no .p12/.cer/.p7b directory found."; exit 1; }
+
+  cp -a "$SRC_ROOT"/. "$SIGNING_ROOT"/
+fi
+
+[[ -d "$SIGNING_ROOT" ]] || { echo "Signing material directory is missing: $SIGNING_ROOT"; exit 1; }
+find "$SIGNING_ROOT" -name "*.p12" | grep -q . || { echo "Missing .p12 signing file"; exit 1; }
+find "$SIGNING_ROOT" -name "*.cer" | grep -q . || { echo "Missing .cer signing file"; exit 1; }
+find "$SIGNING_ROOT" -name "*.p7b" | grep -q . || { echo "Missing .p7b signing file"; exit 1; }
+[[ -d "$SIGNING_ROOT/material" ]] || { echo "Missing signing material directory: $SIGNING_ROOT/material"; exit 1; }
+
+echo "Signing material: $SIGNING_ROOT"
+
+CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
+if [[ ! -f "$CORE_PATH" && -n "$CORE_URL" ]]; then
+  echo "Native core is missing; downloading from RUSTDESK_CORE_URL."
+  mkdir -p "$(dirname "$CORE_PATH")"
+  curl -L --fail --retry 3 -o "$CORE_PATH" "$CORE_URL"
+fi
+
+[[ -f "$CORE_PATH" ]] || { echo "Native core staticlib is missing: $CORE_PATH"; exit 1; }
+
+CORE_SIZE="$(stat -c%s "$CORE_PATH")"
+if (( CORE_SIZE < MIN_CORE_BYTES )); then
+  echo "Native core staticlib is too small: $CORE_SIZE bytes"
+  exit 1
+fi
+
+CORE_SHA256="$(sha256sum "$CORE_PATH" | awk '{print toupper($1)}')"
+if [[ -n "$EXPECTED_CORE_SHA256" ]]; then
+  EXPECTED_UPPER="$(echo "$EXPECTED_CORE_SHA256" | tr '[:lower:]' '[:upper:]')"
+  [[ "$CORE_SHA256" == "$EXPECTED_UPPER" ]] || {
+    echo "Native core SHA256 mismatch."
+    echo "Expected: $EXPECTED_UPPER"
+    echo "Actual:   $CORE_SHA256"
+    exit 1
+  }
+fi
+
+echo "Native core: $CORE_PATH"
+echo "Native core size: $CORE_SIZE"
+echo "Native core sha256: $CORE_SHA256"
+
+if [[ "$PREFLIGHT_ONLY" == "true" ]]; then
+  echo "Preflight completed; build was skipped."
+  exit 0
+fi
+
+if [[ "$VERSION_BUMP" == "none" ]]; then
+  unset RUSTDESK_HARMONY_VERSION_BUMP || true
+else
+  export RUSTDESK_HARMONY_VERSION_BUMP="$VERSION_BUMP"
+fi
+
+case "$ARTIFACT_TYPE" in
+  hap) TASKS=("assembleHap") ;;
+  app) TASKS=("assembleApp") ;;
+  both) TASKS=("assembleApp") ;;
+esac
+
+BUILD_ROOT="$PROJECT_ROOT"
+
+echo "Running Hvigor tasks: ${TASKS[*]}"
+cd "$BUILD_ROOT"
+"$NODE_EXE" "$BUILD_ROOT/scripts/run_hvigor_with_sdk_patch.js" "${TASKS[@]}"
+
+rm -rf "$ARTIFACTS_DIR"
+mkdir -p "$ARTIFACTS_DIR"
+
+mapfile -t PACKAGES < <(
+  find "$PROJECT_ROOT" "$TEMP_ROOT" -type f \( -name "*.hap" -o -name "*.app" \) 2>/dev/null | sort -u
+)
+
+if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
+  echo "No HarmonyOS package artifacts were produced."
+  exit 1
+fi
+
+need_exts=()
+case "$ARTIFACT_TYPE" in
+  hap) need_exts=("hap") ;;
+  app) need_exts=("app") ;;
+  both) need_exts=("hap" "app") ;;
+esac
+
+for ext in "${need_exts[@]}"; do
+  found="false"
+  for file in "${PACKAGES[@]}"; do
+    if [[ "$file" == *".$ext" ]]; then
+      cp -f "$file" "$ARTIFACTS_DIR/"
+      found="true"
+    fi
+  done
+  [[ "$found" == "true" ]] || {
+    echo "Expected .$ext artifact was not produced."
+    exit 1
+  }
+done
+
+if [[ "$SKIP_PACKAGE_VERIFY" != "true" ]]; then
+  echo "Linux version currently skips native HAP verification unless you port verify_native_harmonyos_hap.ps1."
+fi
+
+MANIFEST="$ARTIFACTS_DIR/manifest.json"
+cat > "$MANIFEST" <<EOF
+{
+  "generatedAt": "$(date '+%Y-%m-%d %H:%M:%S')",
+  "artifactType": "$ARTIFACT_TYPE",
+  "versionBump": "$VERSION_BUMP",
+  "project": "$PROJECT_NAME",
+  "core": {
+    "path": "$CORE_PATH",
+    "size": $CORE_SIZE,
+    "sha256": "$CORE_SHA256"
+  }
+}
+EOF
+
+echo "Generated artifacts:"
+find "$ARTIFACTS_DIR" -type f -maxdepth 1 -print
