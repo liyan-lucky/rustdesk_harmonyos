@@ -57,6 +57,12 @@ interface CoreModuleInfo {
   lastError: string;
   detailMessage: string;
   statusSummary: string;
+  bridgeFunctionCount: string;
+  napiRegisteredCount: string;
+  coreVersion: string;
+  deviceId: string;
+  fingerprint: string;
+  upstreamVersion: string;
 }
 
 interface PeerInfoCacheEntry {
@@ -401,6 +407,7 @@ struct Index {
     this.startOnlineStatusPoll();
     this.buildTime = BuildInfo.BUILD_TIME;
     this.buildVersion = BuildInfo.VERSION;
+    hilog.info(0xA03D00, 'CONN', 'onPageShow denyLanDiscovery=' + this.settings.denyLanDiscovery);
     if (!this.settings.denyLanDiscovery) {
       LanDiscoveryService.getInstance().startDiscovery();
     }
@@ -532,14 +539,14 @@ struct Index {
         .width('100%')
         .layoutWeight(1)
         .align(Alignment.TopStart)
-        .padding({ top: 80 })
+        .padding({ top: 80, bottom: 120 })
       }
       .width('100%')
       .height('100%')
 
       Column() {
         Column() {
-          if (this.hasHadSession && this.lastSessionPeerId.length > 0) {
+          if (this.hasHadSession && this.lastSessionPeerId.length > 0 && this.chatMessages.length > 0) {
             Row() {
               Image($rawfile('call-made.svg'))
                 .width(22)
@@ -1589,6 +1596,11 @@ struct Index {
     const nativeCoreLoaded = NativeRustDeskBridge.isCoreLoaded();
     const staticCorePackaged = CoreBuildInfo.FILE_SIZE.length > 0;
     const nativeCoreReady = nativeCoreLoaded || this.officialCoreState.coreReady || (nativeModuleReady && staticCorePackaged);
+    const coreVersion = nativeCoreReady ? (NativeRustDeskBridge.getVersion() || '') : '';
+    const deviceId = nativeCoreReady ? (NativeRustDeskBridge.getMyId() || '') : '';
+    const fingerprint = nativeCoreReady ? (NativeRustDeskBridge.getFingerprint() || '') : '';
+    const bridgeFnCount = nativeCoreReady ? String(NativeRustDeskBridge.getRegisteredFunctionCount()) : '0';
+    const upstreamVer = CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION;
 
     modules.push({
       kind: 'adapter',
@@ -1598,7 +1610,7 @@ struct Index {
       fileSize: '',
       fileSizeMB: '',
       hash: '',
-      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
+      compatibleOfficialVersion: upstreamVer,
       validElf: true,
       buildTime: BuildInfo.BUILD_TIME,
       statusText: this.officialCoreState.coreReady || nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
@@ -1606,7 +1618,13 @@ struct Index {
       icon: 'settings_tune.svg',
       lastError: this.officialCoreState.lastError,
       detailMessage: this.nativeBridgeSummary,
-      statusSummary: `adapter=${this.officialCoreState.adapter}; stage=${this.officialCoreState.sessionStage}; peer=${this.officialCoreState.activePeerId}`
+      statusSummary: `adapter=${this.officialCoreState.adapter}; stage=${this.officialCoreState.sessionStage}; peer=${this.officialCoreState.activePeerId}`,
+      bridgeFunctionCount: '369',
+      napiRegisteredCount: bridgeFnCount,
+      coreVersion: coreVersion,
+      deviceId: deviceId,
+      fingerprint: fingerprint,
+      upstreamVersion: upstreamVer
     });
 
     modules.push({
@@ -1617,7 +1635,7 @@ struct Index {
       fileSize: bridgeInfo.fileSize,
       fileSizeMB: bridgeInfo.fileSizeMB,
       hash: bridgeInfo.hash,
-      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
+      compatibleOfficialVersion: upstreamVer,
       validElf: bridgeInfo.validElf || nativeModuleReady,
       buildTime: bridgeInfo.buildTime.length > 0 ? bridgeInfo.buildTime : BuildInfo.BUILD_TIME,
       statusText: nativeModuleReady ? this.lt('Ready') : this.lt('Error'),
@@ -1625,7 +1643,13 @@ struct Index {
       icon: 'info_code.svg',
       lastError: nativeModuleReady ? '' : NativeRustDeskBridge.getCombinedDebugSummary(),
       detailMessage: this.nativeBridgeSummary,
-      statusSummary: nativeModuleReady ? this.lt('Native Module') : this.lt('Unrecognized')
+      statusSummary: nativeModuleReady ? this.lt('Native Module') : this.lt('Unrecognized'),
+      bridgeFunctionCount: '369',
+      napiRegisteredCount: bridgeFnCount,
+      coreVersion: coreVersion,
+      deviceId: deviceId,
+      fingerprint: fingerprint,
+      upstreamVersion: upstreamVer
     });
 
     modules.push({
@@ -1636,7 +1660,7 @@ struct Index {
       fileSize: rustInfo.fileSize,
       fileSizeMB: rustInfo.fileSizeMB,
       hash: rustInfo.hash,
-      compatibleOfficialVersion: CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION,
+      compatibleOfficialVersion: upstreamVer,
       validElf: this.officialCoreState.coreReady || nativeCoreReady,
       buildTime: rustInfo.buildTime,
       statusText: nativeCoreReady ? this.lt('Ready') : (nativeModuleReady ? this.lt('Stop') : this.lt('Error')),
@@ -1644,7 +1668,13 @@ struct Index {
       icon: 'settings_cpu.svg',
       lastError: nativeModuleReady ? this.officialCoreState.lastError : NativeRustDeskBridge.getCombinedDebugSummary(),
       detailMessage: this.officialCoreState.detailMessage.length > 0 ? this.officialCoreState.detailMessage : this.nativeBridgeSummary,
-      statusSummary: this.officialCoreState.statusSummary
+      statusSummary: this.officialCoreState.statusSummary,
+      bridgeFunctionCount: '369',
+      napiRegisteredCount: bridgeFnCount,
+      coreVersion: coreVersion,
+      deviceId: deviceId,
+      fingerprint: fingerprint,
+      upstreamVersion: upstreamVer
     });
     this.coreModules = modules;
   }
@@ -1666,7 +1696,13 @@ struct Index {
       icon: '',
       lastError: '',
       detailMessage: '',
-      statusSummary: ''
+      statusSummary: '',
+      bridgeFunctionCount: '',
+      napiRegisteredCount: '',
+      coreVersion: '',
+      deviceId: '',
+      fingerprint: '',
+      upstreamVersion: ''
     };
   }
 
@@ -1746,6 +1782,12 @@ struct Index {
           this.buildSettingsInfoSettingRow(this.lt('Valid ELF'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), 'opt_shield.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Compile Time'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), 'info_clock.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Source'), this.getSelectedCoreModuleField('source').length > 0 ? this.getSelectedCoreModuleField('source') : this.lt('Unknown'), 'info_code.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Bridge Functions'), this.getSelectedCoreModuleField('bridgeFunctionCount').length > 0 ? this.getSelectedCoreModuleField('bridgeFunctionCount') : this.lt('Unknown'), 'settings_terminal.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('NAPI Registered'), this.getSelectedCoreModuleField('napiRegisteredCount').length > 0 ? this.getSelectedCoreModuleField('napiRegisteredCount') : this.lt('Unknown'), 'settings_terminal.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Core Version'), this.getSelectedCoreModuleField('coreVersion').length > 0 ? this.getSelectedCoreModuleField('coreVersion') : this.lt('Unknown'), 'info_code.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Device ID'), this.getSelectedCoreModuleField('deviceId').length > 0 ? this.getSelectedCoreModuleField('deviceId') : this.lt('Unknown'), 'fingerprint.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Fingerprint'), this.getSelectedCoreModuleField('fingerprint').length > 0 ? this.getSelectedCoreModuleField('fingerprint') : this.lt('Unknown'), 'info_hash.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Upstream Version'), this.getSelectedCoreModuleField('upstreamVersion').length > 0 ? `RustDesk ${this.getSelectedCoreModuleField('upstreamVersion')}` : this.lt('Unknown'), 'info_code.svg', '', true)
         }
         .width('100%')
       }
@@ -1787,6 +1829,12 @@ struct Index {
       if (field === 'compatibleOfficialVersion') return mod.compatibleOfficialVersion;
       if (field === 'buildTime') return mod.buildTime;
       if (field === 'source') return mod.source;
+      if (field === 'bridgeFunctionCount') return mod.bridgeFunctionCount;
+      if (field === 'napiRegisteredCount') return mod.napiRegisteredCount;
+      if (field === 'coreVersion') return mod.coreVersion;
+      if (field === 'deviceId') return mod.deviceId;
+      if (field === 'fingerprint') return mod.fingerprint;
+      if (field === 'upstreamVersion') return mod.upstreamVersion;
     }
     return '';
   }
@@ -2630,7 +2678,7 @@ struct Index {
           Image($rawfile('scan_frame.svg'))
             .width(22)
             .height(22)
-            .fillColor(this.theme_ACCENT)
+      .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
         }
         .width(40)
         .height(40)
@@ -3192,7 +3240,7 @@ struct Index {
     Image(this.resolvePlatformIcon(platform))
       .width(size)
       .height(size)
-      .fillColor(this.theme_ACCENT)
+      .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
   }
 
   private refreshRecentSessionFromPeerInfo(peerId: string, detail: string = ''): void {
@@ -3484,22 +3532,13 @@ struct Index {
     }
 
     this.pendingPassword = '';
-    this.isConnecting = true;
+    this.showPasswordDialog = true;
+    this.pendingPasswordDialogProactive = true;
     this.setStatusMessage("connecting", targetId);
 
     hilog.info(0xA03D00, 'CONN', `[handleConnect] parallel: no saved password for ${targetId}, showing password dialog + empty-password connect`);
-    this.showConnectPasswordDialog(targetId, true);
-    hilog.info(0xA03D00, 'CONN', `[handleConnect] showPasswordDialog=${this.showPasswordDialog} pendingPeerId=${this.pendingPeerId}`);
-    const started = await this.initiateBackgroundConnection(targetId);
-    this.isConnecting = false;
-    if (started) {
-      const state = this.officialBridge.getCoreState();
-      this.openRemoteControlForPendingSession(targetId, state);
-      return;
-    }
-    this.pendingPeerId = '';
-    this.pendingConnectionRetryCount = 0;
-    this.pendingConnectionInactivePollCount = 0;
+    void this.initiateBackgroundConnection(targetId);
+    void this.monitorConnectionWhileWaiting();
   }
 
   private async initiateBackgroundConnection(peerId: string, password: string = ''): Promise<boolean> {

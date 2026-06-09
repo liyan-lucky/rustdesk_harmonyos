@@ -86,10 +86,24 @@ export class WindowChromeService {
           if (this.lockedNavigationBarHeight < 0 && bottomVp > 0) {
             this.lockedNavigationBarHeight = bottomVp;
           }
+        } else if (data.type === window.AvoidAreaType.TYPE_INPUT) {
+          const keyboardHeightVp = this.pxToVp(data.area.bottomRect.height);
+          console.info(`WindowChromeService TYPE_INPUT avoidArea: height=${keyboardHeightVp}vp`);
+          AppStorage.setOrCreate<number>('avoidKeyboardHeight', keyboardHeightVp > 0 ? keyboardHeightVp : 0);
         }
       });
       this.avoidAreaCallbackRegistered = true;
       console.info('WindowChromeService avoidAreaChange callback registered (values locked, no redraw)');
+      try {
+        mainWindow.on('keyboardHeightChange', (height: number) => {
+          const heightVp = this.pxToVp(height);
+          console.info(`WindowChromeService keyboardHeightChange: px=${height} vp=${heightVp}`);
+          AppStorage.setOrCreate<number>('avoidKeyboardHeight', heightVp > 0 ? heightVp : 0);
+        });
+        console.info('WindowChromeService keyboardHeightChange listener registered');
+      } catch (e) {
+        console.warn('WindowChromeService keyboardHeightChange failed: ' + JSON.stringify(e));
+      }
     } catch (error) {
       console.error('WindowChromeService registerAvoidAreaCallback failed: ' + JSON.stringify(error));
     }

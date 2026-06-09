@@ -49,6 +49,7 @@ if(EXISTS ${RUST_CORE_A})
   )
 
   target_link_options(rustdesk_bridge PRIVATE
+    "-Wl,--as-needed"
     "-Wl,--unresolved-symbols=ignore-all"
   )
 else()

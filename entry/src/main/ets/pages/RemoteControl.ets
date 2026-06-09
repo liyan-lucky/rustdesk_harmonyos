@@ -175,14 +175,21 @@ struct RemoteControl {
     this.captureBridgeEvent(event);
     if (event.kind === 'msgbox') {
       if (this.shouldPromptForPasswordText(event.detail)) {
-        if (!this.showPasswordDialog && !this.isConnected) {
+        if (!this.showPasswordDialog && !this.hasReceivedFrame) {
           const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : this.officialBridge.getCoreState().activePeerId.trim();
           const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
           if (savedPassword.trim().length === 0) {
             this.showPasswordDialog = true;
             this.passwordPromptProactive = false;
+            hilog.info(0xA03D00, 'RC', `bridgeListener msgbox: password prompt detected, showPasswordDialog=true`);
           }
         }
+      }
+      if (!this.sessionCloseRequestedLocally && !this.sessionExitScheduled &&
+          this.isRetryableDisconnectText(event.detail) && this.shouldShowReconnectPromptNow(event.detail)) {
+        console.warn(`[RemoteControl] msgbox with retryable disconnect: ${event.detail.substring(0, 100)}`);
+        this.showReconnectDialogFromState(this.lt('Connection Error'), event.detail);
+        return;
       }
     }
     if (this.handleTerminalBridgeEvent(event)) {
@@ -240,6 +247,7 @@ struct RemoteControl {
   @State isSubmittingPassword: boolean = false;
   @State showPasswordDialog: boolean = false;
   @State showReconnectDialog: boolean = false;
+  @StorageLink('avoidKeyboardHeight') avoidKeyboardHeight: number = 0;
   @State reconnectDialogTitle: string = '';
   @State reconnectDialogText: string = '';
   @State reconnectDialogCanRelay: boolean = false;
@@ -719,13 +727,24 @@ struct RemoteControl {
         this.buildFloatingChatPanel();
       }
 
-      this.buildImeProxyInput();
+      if (this.showPasswordDialog) {
+        this.buildPasswordDialog();
+      }
+
+      if (this.showReconnectDialog) {
+        this.buildReconnectDialog();
+      }
+
+      if (!this.showPasswordDialog) {
+        this.buildImeProxyInput();
+      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme_GRAY_BG)
     .opacity(this.i18nOpacity)
-    .animation({ duration: 400, curve: Curve.EaseInOut })
+    .translate({ y: -this.avoidKeyboardHeight })
+    .animation({ duration: 300, curve: Curve.EaseInOut })
 
     .onKeyEvent((event: KeyEvent) => {
       this.handleKeyEvent(event);
@@ -1745,8 +1764,15 @@ struct RemoteControl {
         .borderRadius(8)
         .padding({ left: 12, right: 12 })
         .type(InputType.Password)
+        .defaultFocus(true)
         .onChange((value: string) => {
           this.sessionPassword = value;
+        })
+        .onFocus(() => {
+          this.avoidKeyboardHeight = 280;
+        })
+        .onBlur(() => {
+          this.avoidKeyboardHeight = 0;
         });
 
       Row({ space: 10 }) {
@@ -1801,8 +1827,15 @@ struct RemoteControl {
           .borderRadius(8)
           .padding({ left: 12, right: 12 })
           .type(InputType.Password)
+          .defaultFocus(true)
           .onChange((value: string) => {
             this.sessionPassword = value;
+          })
+          .onFocus(() => {
+            this.avoidKeyboardHeight = 280;
+          })
+          .onBlur(() => {
+            this.avoidKeyboardHeight = 0;
           });
 
         Row({ space: 12 }) {
@@ -1927,6 +1960,7 @@ struct RemoteControl {
     this.sessionCloseRequestedLocally = true;
     this.showReconnectDialog = false;
     this.isRetryingConnection = false;
+    console.warn(`[RemoteControl] closeSession: setting sessionCloseRequestedLocally=true`);
     if (this.isConnected || this.hasReceivedFrame) {
       this.sessionBecameActive = true;
     }
@@ -1981,8 +2015,7 @@ struct RemoteControl {
       this.sendTextPayload(text);
       return;
     }
-    NativeRustDeskBridge.sendClipboardData(text, Date.now());
-    this.sendPasteShortcut();
+    NativeRustDeskBridge.sessionInputString(text);
   }
 
   private isPlainAsciiText(text: string): boolean {
@@ -2450,6 +2483,12 @@ struct RemoteControl {
         this.isConnected = false;
         return;
       }
+      if (!this.sessionCloseRequestedLocally && !this.isRetryingConnection) {
+        console.warn('[RemoteControl] keeping reconnect dialog - non-user disconnect with connected stage');
+        this.isConnected = false;
+        return;
+      }
+      console.warn('[RemoteControl] syncBridgeState: clearing reconnect dialog, isRetrying=%b closeRequested=%b', this.isRetryingConnection, this.sessionCloseRequestedLocally);
       this.showReconnectDialog = false;
       this.isConnected = true;
       this.sessionBecameActive = true;
@@ -2467,14 +2506,18 @@ struct RemoteControl {
       return;
     }
     this.applyBridgeState(coreState);
-    if (!this.showPasswordDialog && !this.isConnected && !this.hasReceivedFrame && coreState.sessionStage === 'connecting') {
+    if (!this.showPasswordDialog && !this.isConnected && !this.hasReceivedFrame) {
       const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
       if (peerId.length > 0) {
         const savedPassword = PreferenceStore.getPeerPassword(peerId) ?? '';
         if (savedPassword.trim().length === 0) {
-          this.showPasswordDialog = true;
-          this.passwordPromptProactive = true;
-          hilog.info(0xA03D00, 'RC', `syncBridgeState: no saved password, showing password dialog for ${peerId}`);
+          const shouldPrompt = coreState.sessionStage === 'connecting' ||
+            (coreState.sessionStage === 'error' && this.shouldPromptForPasswordText(coreState.lastError || coreState.detailMessage));
+          if (shouldPrompt) {
+            this.showPasswordDialog = true;
+            this.passwordPromptProactive = coreState.sessionStage === 'connecting';
+            hilog.info(0xA03D00, 'RC', `syncBridgeState: showing password dialog for ${peerId} stage=${coreState.sessionStage}`);
+          }
         }
       }
     }
@@ -2500,6 +2543,11 @@ struct RemoteControl {
         this.isConnected = false;
         return;
       }
+      if (!this.sessionCloseRequestedLocally && !this.isRetryingConnection) {
+        console.warn('[RemoteControl] applyBridgeState kept reconnect dialog - non-user disconnect');
+        this.isConnected = false;
+        return;
+      }
       this.showReconnectDialog = false;
       this.isConnected = true;
       this.sessionBecameActive = true;
@@ -2522,6 +2570,7 @@ struct RemoteControl {
 
     if (coreState.sessionStage === 'connected') {
       const keepPasswordFallback = this.passwordPromptProactive && !this.hasReceivedFrame;
+      hilog.info(0xA03D00, 'RC', `applyBridgeState connected: keepPasswordFallback=${keepPasswordFallback} passwordPromptProactive=${this.passwordPromptProactive} hasFrame=${this.hasReceivedFrame}`);
       this.sessionBecameActive = true;
       if (this.sessionBecameActiveAt <= 0) {
         this.sessionBecameActiveAt = Date.now();
@@ -2557,9 +2606,27 @@ struct RemoteControl {
 
     if (coreState.sessionStage === 'error') {
       const detail = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
+      const isPasswordPrompt = this.shouldPromptForPasswordText(detail);
+      if (isPasswordPrompt && !this.hasReceivedFrame) {
+        if (!this.showPasswordDialog) {
+          const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
+          const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
+          if (savedPassword.trim().length === 0) {
+            this.showPasswordDialog = true;
+            this.passwordPromptProactive = false;
+            hilog.info(0xA03D00, 'RC', `applyBridgeState error: password prompt, showing dialog`);
+          }
+        }
+        this.isConnected = false;
+        this.isSubmittingPassword = false;
+        if (detail.length > 0) {
+          this.videoStatus = detail;
+        }
+        return;
+      }
       const isPasswordPromptOnly = this.showPasswordDialog &&
         !this.isRetryableDisconnectText(detail) &&
-        this.shouldPromptForPasswordText(detail);
+        isPasswordPrompt;
       if (!this.sessionCloseRequestedLocally && !isPasswordPromptOnly && this.shouldShowReconnectPromptNow(detail)) {
         console.warn(`[RemoteControl] applyBridgeState terminal error -> reconnect prompt: ${detail.substring(0, 100)}`);
         this.showReconnectDialogFromState(
@@ -2622,12 +2689,21 @@ struct RemoteControl {
         return;
       }
       if (!this.sessionCloseRequestedLocally) {
-        const detail = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Session ended');
-        if (this.isRetryableDisconnectText(detail) ||
-          (this.sessionBecameActive && !this.hasReceivedFrame) ||
-          (!this.showPasswordDialog && this.shouldShowReconnectPromptNow(detail))) {
-          console.warn(`[RemoteControl] applyBridgeState idle -> reconnect prompt: ${detail.substring(0, 100)}`);
-          this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
+        const detail = coreState.detailMessage.length > 0 ? coreState.detailMessage : coreState.lastError.length > 0 ? coreState.lastError : this.lt('Session ended');
+        if (this.shouldPromptForPasswordText(detail) && !this.hasReceivedFrame) {
+          if (!this.showPasswordDialog) {
+            const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
+            const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
+            if (savedPassword.trim().length === 0) {
+              this.showPasswordDialog = true;
+              this.passwordPromptProactive = false;
+              hilog.info(0xA03D00, 'RC', `applyBridgeState idle: password prompt, showing dialog`);
+            }
+          }
+          this.isConnected = false;
+          this.isSubmittingPassword = false;
+          this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
+          this.videoStatus = this.lt('Waiting for password...');
           return;
         }
         if (this.showPasswordDialog) {
@@ -2635,6 +2711,13 @@ struct RemoteControl {
           this.isSubmittingPassword = false;
           this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
           this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Waiting for password...');
+          return;
+        }
+        if (this.isRetryableDisconnectText(detail) ||
+          (this.sessionBecameActive && !this.hasReceivedFrame) ||
+          this.shouldShowReconnectPromptNow(detail)) {
+          console.warn(`[RemoteControl] applyBridgeState idle -> reconnect prompt: ${detail.substring(0, 100)}`);
+          this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
           return;
         }
         this.finishTerminalSession(this.lt('Session closed'), detail, 420);
@@ -2966,10 +3049,14 @@ struct RemoteControl {
   }
 
   private handleTerminalBridgeEvent(event: OfficialSessionEvent): boolean {
-    if (event.kind !== 'session-error' && event.kind !== 'session-closed' && event.kind !== 'closed') {
+    if (event.kind !== 'session-error' && event.kind !== 'session-closed' && event.kind !== 'closed' && event.kind !== 'msgbox') {
+      return false;
+    }
+    if (event.kind === 'msgbox' && !this.isRetryableDisconnectText(event.detail)) {
       return false;
     }
     if (this.sessionCloseRequestedLocally || this.sessionExitScheduled) {
+      console.warn(`[RemoteControl] handleTerminalBridgeEvent: skipping due to closeRequested=${this.sessionCloseRequestedLocally} exitScheduled=${this.sessionExitScheduled}`);
       return true;
     }
     const coreState = this.officialBridge.getCoreState();
@@ -2978,14 +3065,42 @@ struct RemoteControl {
     const detail = eventDetail.length > 0
       ? eventDetail
       : (stateDetail.length > 0 ? stateDetail : this.lt('Session ended'));
-    const retryable = this.isRetryableDisconnectText(detail) || event.kind === 'session-closed' || event.kind === 'closed';
-    if (this.showPasswordDialog && !retryable && this.shouldPromptForPasswordText(detail)) {
+    const isPasswordPrompt = this.shouldPromptForPasswordText(detail);
+    if (this.showPasswordDialog) {
+      if (isPasswordPrompt) {
+        hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password dialog open + password prompt, keeping dialog`);
+        return true;
+      }
+      if (!this.hasReceivedFrame && !this.isConnected) {
+        hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password dialog open + no frame, keeping dialog kind=${event.kind}`);
+        return true;
+      }
+    }
+    if (isPasswordPrompt && !this.hasReceivedFrame) {
+      if (!this.showPasswordDialog) {
+        const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
+        const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
+        if (savedPassword.trim().length === 0) {
+          this.showPasswordDialog = true;
+          this.passwordPromptProactive = false;
+          hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password prompt from ${event.kind}, showing dialog`);
+        }
+      }
       return true;
     }
-    console.warn(`[RemoteControl] handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} detail=${detail.substring(0, 100)}`);
-    hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} detail=${detail.substring(0, 80)}`);
-    this.prepareReconnectPromptSurface();
-    this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
+    const retryable = this.isRetryableDisconnectText(detail) || event.kind === 'session-closed' || event.kind === 'closed';
+    const peerClosed = detail.toLowerCase().includes('closed manually by the peer') ||
+      detail.toLowerCase().includes('closed by the peer') ||
+      detail.toLowerCase().includes('对端关闭');
+    console.warn(`[RemoteControl] handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} retryable=${retryable} peerClosed=${peerClosed} detail=${detail.substring(0, 100)}`);
+    hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} retryable=${retryable} peerClosed=${peerClosed} detail=${detail.substring(0, 80)}`);
+    if (retryable && !peerClosed) {
+      this.showReconnectDialogFromState(this.lt('Connection lost'), detail);
+    } else if (peerClosed) {
+      this.finishTerminalSession(this.lt('Session closed'), detail, 420);
+    } else {
+      this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
+    }
     return true;
   }
 

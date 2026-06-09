@@ -42,7 +42,7 @@ export class LanDiscoveryService {
     this.loadIgnoredPeerIds();
     this.isDiscovering = true;
     NativeRustDeskBridge.setLocalOption('enable-lan-discovery', 'Y');
-    hilog.info(0xA03D00, 'LAN', 'Starting periodic LAN discovery (interval=%{public}d ms)', this.discoveryInterval);
+    hilog.info(0xA03D00, 'LAN', 'Starting periodic LAN discovery interval=' + this.discoveryInterval + 'ms');
     this.discoverOnce();
     this.discoveryTimer = setInterval(() => {
       this.discoverOnce();
@@ -72,7 +72,7 @@ export class LanDiscoveryService {
       return;
     }
     const result = OfficialRustDeskBridge.getInstance().discoverLanPeers();
-    hilog.info(0xA03D00, 'LAN', 'refreshNow discoverLanPeers returned=%{public}d', result ? 1 : 0);
+    console.error('[LanDiscovery] refreshNow discoverLanPeers returned=' + result);
     setTimeout(() => {
       this.loadDiscoveredPeers();
     }, 1500);
@@ -89,7 +89,7 @@ export class LanDiscoveryService {
 
   private discoverOnce(): void {
     const result = OfficialRustDeskBridge.getInstance().discoverLanPeers();
-    hilog.info(0xA03D00, 'LAN', 'discoverOnce discoverLanPeers returned=%{public}d', result ? 1 : 0);
+    console.error('[LanDiscovery] discoverOnce returned=' + result);
     setTimeout(() => {
       this.loadDiscoveredPeers();
     }, 1500);
@@ -100,7 +100,7 @@ export class LanDiscoveryService {
 
   private loadDiscoveredPeers(): void {
     const jsonStr = OfficialRustDeskBridge.getInstance().loadLanPeers();
-    hilog.info(0xA03D00, 'LAN', 'loadLanPeers returned len=%{public}d preview=%{public}s', jsonStr.length, jsonStr.substring(0, Math.min(100, jsonStr.length)));
+    console.error('[LanDiscovery] loadLanPeers len=' + jsonStr.length + ' preview=' + jsonStr.substring(0, Math.min(200, jsonStr.length)));
     if (!this.ignoredPeerIdsLoaded) {
       this.loadIgnoredPeerIds();
     }
@@ -108,7 +108,7 @@ export class LanDiscoveryService {
     if (jsonStr && jsonStr !== '[]') {
       try {
         const peers = JSON.parse(jsonStr) as Array<Record<string, string | boolean>>;
-        hilog.info(0xA03D00, 'LAN', 'Parsed peers count=%{public}d', peers.length);
+        console.error('[LanDiscovery] Parsed peers count=' + peers.length);
         if (Array.isArray(peers)) {
           peers.forEach((peer: Record<string, string | boolean>) => {
             const id = (peer['id'] as string) || '';
@@ -137,7 +137,7 @@ export class LanDiscoveryService {
     } else {
       this.consecutiveEmptyLoadCount += 1;
       if (this.consecutiveEmptyLoadCount < 3) {
-        hilog.info(0xA03D00, 'LAN', 'Keeping previous LAN peers after empty load count=%{public}d', this.consecutiveEmptyLoadCount);
+        console.error('[LanDiscovery] Keeping previous LAN peers after empty load count=' + this.consecutiveEmptyLoadCount);
         return;
       }
     }
@@ -222,6 +222,7 @@ export class LanDiscoveryService {
     this.ignoredPeerIds.add(normalizedId);
     this.persistIgnoredPeerIds();
     this.discoveredPeers.delete(normalizedId);
+    NativeRustDeskBridge.removeDiscoveredPeer(normalizedId);
     const appData = AppDataService.getInstance();
     appData.removeDiscoveredDevice(normalizedId);
     appData.updateOnlineStatusFromResult([], [normalizedId]);

@@ -31,6 +31,7 @@
   - bundle：`com.open.rundesk`
   - 无线目标：`192.168.11.100:36169`
   - 无线安装启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+  - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
@@ -543,3 +544,27 @@
   - 启动日志抓取受设备锁屏限制阻断，`aa start` 返回 `Error Code:10106102`；安装与包校验本身正常。
   - `scripts\audit_connection_chain.ps1` 通过：`50 PASS, 0 FAIL, 0 SKIP`。
   - `scripts\audit_full_function_rounds.ps1 -Rounds 100` 通过：100 轮均为 `96 PASS, 0 SKIP`。
+
+## 2026-06-07 中文输入法修复 + 重连对话框多层修复 + 聊天UI修复
+
+- **中文输入法无法输入**：
+  - 根因：`send_clipboard_data()` 在 Rust 侧是空壳函数直接返回 false，剪贴板内容没有同步到远端
+  - 修复：实现 `send_clipboard_data()`，构建 Clipboard protobuf 消息通过 `session.send(Data::Message(msg))` 发送到远端
+  - Clipboard 结构体使用字面量 + `..Default::default()` 模式，format 用 `ClipboardFormat::Text.into()` 转为 `EnumOrUnknown`
+  - 参考 `screenshot.rs` 中 Clipboard 的用法模式
+  - 代码位置：`99_Temp/rustdesk-master/src/harmony_bridge/core.rs:442`
+
+- **重连对话框多层修复**（ECONNRESET后无重连提示）：
+  - 根因1：`buildReconnectDialog()` 定义了但从未在 `build()` 中渲染
+  - 根因2：`syncBridgeState`/`applyBridgeState` 中错误覆盖 `showReconnectDialog=false`
+  - 根因3：msgbox事件携带104错误时不被 `handleTerminalBridgeEvent` 处理
+  - 根因4：msgbox事件"Successful: Connected"不能触发重连框
+  - 根因5：远端主动关闭应显示"会话已关闭"而非弹重连框
+
+- **聊天tab页UI修复**：
+  - 无会话数据时header显示openRustDesk logo（与其他tab页一致）
+  - 聊天内容区添加 `bottom: 120` padding，避免内容滑到tab菜单上面
+
+- **项目备份**：`99_Temp/rustdesk_harmonyos_backups/rustdesk_harmonyos_20260607_201953.zip`
+
+- **待验证**：实机构建验证中文输入、重连对话框弹出、远端关闭显示"会话已关闭"
