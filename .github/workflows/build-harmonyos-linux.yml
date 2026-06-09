@@ -1,0 +1,143 @@
+name: Build HarmonyOS Package Linux
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+  workflow_dispatch:
+    inputs:
+      artifact_type:
+        description: "Package type to build"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - hap
+          - app
+      version_bump:
+        description: "Version bump mode before packaging"
+        required: true
+        default: "incremental"
+        type: choice
+        options:
+          - incremental
+          - full
+          - none
+      preflight_only:
+        description: "Run checks only"
+        required: true
+        default: false
+        type: boolean
+      skip_package_verify:
+        description: "Skip package verification"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    name: Build HarmonyOS Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      CI: "true"
+      ARTIFACT_TYPE: ${{ github.event.inputs.artifact_type || 'both' }}
+      VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
+      PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
+      SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
+
+      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
+      RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
+      RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip zip curl jq python3 rsync
+
+      - name: Setup HarmonyOS SDK
+        uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
+        with:
+          version: 2.0.0.2
+
+      - name: Locate HarmonyOS SDK
+        shell: bash
+        run: |
+          echo "Searching HarmonyOS SDK..."
+          find "$HOME" "$RUNNER_TOOL_CACHE" "$GITHUB_WORKSPACE" -type d -path "*/openharmony/native" 2>/dev/null | head -20 || true
+
+          NATIVE_DIR="$(find "$HOME" "$RUNNER_TOOL_CACHE" "$GITHUB_WORKSPACE" -type d -path "*/openharmony/native" 2>/dev/null | head -n 1 || true)"
+
+          if [ -z "$NATIVE_DIR" ]; then
+            echo "OpenHarmony native SDK not found."
+            exit 1
+          fi
+
+          SDK_ROOT="$(dirname "$(dirname "$NATIVE_DIR")")"
+
+          echo "DEVECO_SDK_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
+
+          echo "SDK_ROOT=$SDK_ROOT"
+          node -v
+
+      - name: Debug env
+        shell: bash
+        run: |
+          echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+          echo "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"
+          echo "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"
+          echo "RUSTDESK_CORE_URL empty? $([ -z "$RUSTDESK_CORE_URL" ] && echo yes || echo no)"
+          echo "RUSTDESK_CORE_SHA256 empty? $([ -z "$RUSTDESK_CORE_SHA256" ] && echo yes || echo no)"
+          echo "RUSTDESK_SIGNING_ZIP_B64 empty? $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo yes || echo no)"
+
+      - name: Build HarmonyOS package
+        shell: bash
+        env:
+          HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
+        run: |
+          chmod +x scripts/github_build_harmonyos_linux.sh
+
+          args=(
+            "--artifact-type" "$ARTIFACT_TYPE"
+            "--version-bump" "$VERSION_BUMP"
+            "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"
+          )
+
+          if [ "$PREFLIGHT_ONLY" = "true" ]; then
+            args+=("--preflight-only")
+          fi
+
+          if [ "$SKIP_PACKAGE_VERIFY" = "true" ]; then
+            args+=("--skip-package-verify")
+          fi
+
+          scripts/github_build_harmonyos_linux.sh "${args[@]}"
+
+      - name: Upload HarmonyOS artifacts
+        if: ${{ github.event.inputs.preflight_only != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmonyos-${{ github.event.inputs.artifact_type || 'both' }}
+          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
+          if-no-files-found: error
