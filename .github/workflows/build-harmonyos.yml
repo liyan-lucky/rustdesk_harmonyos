@@ -1,11 +1,14 @@
+name: Build HarmonyOS Package
+
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    if: false
-
-name: Build HarmonyOS Package
+    if: ${{ false }}
+    runs-on: windows-latest
+    steps:
+      - run: echo "Disabled"
 
 on:
   push:
