@@ -64,7 +64,6 @@ jobs:
       DEVECO_TOOLS_HOME: ${{ secrets.DEVECO_TOOLS_HOME || vars.DEVECO_TOOLS_HOME }}
       DEVECO_SDK_HOME: ${{ secrets.DEVECO_SDK_HOME || vars.DEVECO_SDK_HOME }}
       DEVECO_NODE_EXE: ${{ secrets.DEVECO_NODE_EXE || vars.DEVECO_NODE_EXE }}
-      HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
 
     steps:
       - name: Checkout
@@ -77,6 +76,8 @@ jobs:
 
       - name: Preflight and build
         shell: pwsh
+        env:
+          HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
           $preflightOnly = "${{ inputs.preflight_only }}" -eq "true"
           $args = @(
