@@ -1,6 +1,11 @@
 name: Build HarmonyOS Package
 
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
     inputs:
       artifact_type:
@@ -48,7 +53,7 @@ on:
 jobs:
   build:
     name: Build ${{ inputs.artifact_type }}
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner || 'windows-latest' }}
     timeout-minutes: 90
 
     env:
@@ -75,8 +80,8 @@ jobs:
         run: |
           $preflightOnly = "${{ inputs.preflight_only }}" -eq "true"
           $args = @(
-            "-ArtifactType", "${{ inputs.artifact_type }}",
-            "-VersionBump", "${{ inputs.version_bump }}",
+            "-ArtifactType", "${{ inputs.artifact_type || 'both' }}",
+            "-VersionBump", "${{ inputs.version_bump || 'incremental' }}",
             "-ArtifactsDir", $env:HARMONY_ARTIFACTS_DIR
           )
           if ($preflightOnly) {
@@ -94,6 +99,6 @@ jobs:
         if: ${{ !inputs.preflight_only }}
         uses: actions/upload-artifact@v4
         with:
-          name: harmonyos-${{ inputs.artifact_type }}
+          name: harmonyos-${{ inputs.artifact_type || 'both' }}
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
           if-no-files-found: error
