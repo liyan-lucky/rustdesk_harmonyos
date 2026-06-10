@@ -1,14 +1,4 @@
-name: Build HarmonyOS Package
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    if: ${{ false }}
-    runs-on: windows-latest
-    steps:
-      - run: echo "Disabled"
+name: Build HarmonyOS Package Linux
 
 on:
   push:
@@ -16,49 +6,45 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
+
   workflow_dispatch:
     inputs:
-      artifact_type:
-        description: "Package type to build"
-        required: true
-        default: "both"
-        type: choice
-        options: [both, hap, app]
       version_bump:
         description: "Version bump mode before packaging"
         required: true
         default: "incremental"
         type: choice
-        options: [incremental, full, none]
-      preflight_only:
-        description: "Run checks only"
-        required: true
-        default: false
-        type: boolean
+        options:
+          - incremental
+          - full
+          - none
       skip_package_verify:
-        description: "Skip HAP verification"
+        description: "Skip package verification"
         required: true
         default: true
         type: boolean
-      disable_stage:
-        description: "Build in checkout directly"
+      publish_release:
+        description: "Create GitHub tag and release"
         required: true
-        default: false
+        default: true
         type: boolean
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build HarmonyOS
-    runs-on: windows-latest
+    name: Build HAP and APP
+    runs-on: ubuntu-latest
     timeout-minutes: 120
 
     env:
       CI: "true"
-      ARTIFACT_TYPE: ${{ github.event.inputs.artifact_type || 'both' }}
+      ARTIFACT_TYPE: "both"
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
-      PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
+      PREFLIGHT_ONLY: "false"
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
-      DISABLE_STAGE: ${{ github.event.inputs.disable_stage || 'false' }}
+      PUBLISH_RELEASE: ${{ github.event.inputs.publish_release || 'true' }}
 
       RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
@@ -67,6 +53,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -79,91 +67,89 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Install system tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip zip curl jq python3 rsync
+
       - name: Setup HarmonyOS SDK
         uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
+        with:
+          version: 2.0.0.2
 
-      - name: Locate HarmonyOS tools
-        shell: pwsh
+      - name: Locate HarmonyOS SDK
+        shell: bash
         run: |
-          Write-Host "Searching HarmonyOS SDK and tools..."
+          echo "HOS_SDK_HOME=$HOS_SDK_HOME"
+          find /home/runner/harmonyos-sdk -maxdepth 6 -type d | sort || true
 
-          $possibleRoots = @(
-            "$env:RUNNER_TOOL_CACHE",
-            "$env:USERPROFILE",
-            "$env:LOCALAPPDATA",
-            "$env:GITHUB_WORKSPACE"
-          )
+          SDK_BASE="/home/runner/harmonyos-sdk"
 
-          $hvigor = Get-ChildItem -Path $possibleRoots -Recurse -File -Filter "hvigorw.js" -ErrorAction SilentlyContinue |
-            Select-Object -First 1
+          echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
+          echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
 
-          if (-not $hvigor) {
-            throw "hvigorw.js not found after setup-harmonyos-sdk."
-          }
+          node -v
 
-          $toolsRoot = Split-Path -Parent (Split-Path -Parent $hvigor.FullName)
-          echo "DEVECO_TOOLS_HOME=$toolsRoot" >> $env:GITHUB_ENV
-          Write-Host "DEVECO_TOOLS_HOME=$toolsRoot"
-
-          $native = Get-ChildItem -Path $possibleRoots -Recurse -Directory -Filter "native" -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match "openharmony\\native" } |
-            Select-Object -First 1
-
-          if (-not $native) {
-            throw "openharmony native SDK not found."
-          }
-
-          $sdkRoot = Split-Path -Parent (Split-Path -Parent $native.FullName)
-          echo "DEVECO_SDK_HOME=$sdkRoot" >> $env:GITHUB_ENV
-          echo "OHOS_HVIGOR_SDK_ROOT=$sdkRoot" >> $env:GITHUB_ENV
-          Write-Host "DEVECO_SDK_HOME=$sdkRoot"
-
-          $node = Get-Command node -ErrorAction Stop
-          echo "DEVECO_NODE_EXE=$($node.Source)" >> $env:GITHUB_ENV
-          Write-Host "DEVECO_NODE_EXE=$($node.Source)"
-
-      - name: Debug environment
-        shell: pwsh
+      - name: Debug env
+        shell: bash
         run: |
-          Write-Host "DEVECO_TOOLS_HOME=$env:DEVECO_TOOLS_HOME"
-          Write-Host "DEVECO_SDK_HOME=$env:DEVECO_SDK_HOME"
-          Write-Host "DEVECO_NODE_EXE=$env:DEVECO_NODE_EXE"
-          Write-Host "RUSTDESK_CORE_URL empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_CORE_URL))"
-          Write-Host "RUSTDESK_CORE_SHA256 empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_CORE_SHA256))"
-          Write-Host "RUSTDESK_SIGNING_ZIP_B64 empty? $([string]::IsNullOrWhiteSpace($env:RUSTDESK_SIGNING_ZIP_B64))"
+          echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+          echo "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"
+          echo "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"
+          echo "RUSTDESK_CORE_URL empty? $([ -z "$RUSTDESK_CORE_URL" ] && echo yes || echo no)"
+          echo "RUSTDESK_CORE_SHA256 empty? $([ -z "$RUSTDESK_CORE_SHA256" ] && echo yes || echo no)"
+          echo "RUSTDESK_SIGNING_ZIP_B64 empty? $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo yes || echo no)"
 
-          Test-Path "$env:DEVECO_TOOLS_HOME\hvigor\bin\hvigorw.js"
-          Test-Path "$env:DEVECO_SDK_HOME\openharmony\native"
-
-      - name: Preflight and build
-        shell: pwsh
+      - name: Build HAP and APP
+        shell: bash
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
-          $buildArgs = @(
-            "-ArtifactType", "$env:ARTIFACT_TYPE",
-            "-VersionBump", "$env:VERSION_BUMP",
-            "-ArtifactsDir", $env:HARMONY_ARTIFACTS_DIR
-          )
+          chmod +x scripts/github_build_harmonyos_linux.sh
 
-          if ("$env:PREFLIGHT_ONLY" -eq "true") {
-            $buildArgs += "-PreflightOnly"
-          }
+          scripts/github_build_harmonyos_linux.sh \
+            --artifact-type both \
+            --version-bump "$VERSION_BUMP" \
+            --artifacts-dir "$HARMONY_ARTIFACTS_DIR" \
+            --skip-package-verify
 
-          if ("$env:SKIP_PACKAGE_VERIFY" -eq "true") {
-            $buildArgs += "-SkipPackageVerify"
-          }
+      - name: Prepare release files
+        if: ${{ env.PUBLISH_RELEASE == 'true' }}
+        shell: bash
+        env:
+          HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
+        run: |
+          RELEASE_TAG="harmonyos-$(date -u +'%Y%m%d-%H%M%S')"
+          RELEASE_NAME="HarmonyOS Build $RELEASE_TAG"
 
-          if ("$env:DISABLE_STAGE" -eq "true") {
-            $buildArgs += "-DisableStage"
-          }
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
-          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\github_build_harmonyos.ps1 @buildArgs
+          cd "$HARMONY_ARTIFACTS_DIR"
+
+          sha256sum * > SHA256SUMS.txt
+
+          echo "Release tag: $RELEASE_TAG"
+          echo "Release files:"
+          ls -lh
 
       - name: Upload HarmonyOS artifacts
-        if: ${{ github.event.inputs.preflight_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: harmonyos-${{ github.event.inputs.artifact_type || 'both' }}
+          name: harmonyos-both
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: ${{ env.PUBLISH_RELEASE == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          generate_release_notes: true
+          files: |
+            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
+            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.app
+            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/manifest.json
+            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/SHA256SUMS.txt
