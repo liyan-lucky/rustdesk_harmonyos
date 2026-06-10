@@ -209,6 +209,21 @@ esac
 echo "Running Hvigor tasks: ${TASKS[*]}"
 
 cd "$PROJECT_ROOT"
+
+if [[ ! -d "$SDK_ROOT/command-line-tools/hvigor/bin" ]]; then
+  echo "Installing hvigor via ohpm..."
+  OHPM_BIN="$SDK_ROOT/command-line-tools/ohpm/bin/ohpm"
+  HVIGOR_DIR="$SDK_ROOT/command-line-tools/hvigor"
+  mkdir -p "$HVIGOR_DIR"
+  cd "$HVIGOR_DIR"
+  if [[ -f "$OHPM_BIN" ]]; then
+    "$OHPM_BIN" install @ohos/hvigor@5.0.6 2>&1 || true
+    "$OHPM_BIN" install @ohos/hvigor-ohos-plugin@5.0.6 2>&1 || true
+  fi
+  cd "$PROJECT_ROOT"
+  export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
+fi
+
 "$NODE_EXE" "$PROJECT_ROOT/scripts/run_hvigor_with_sdk_patch.js" "${TASKS[@]}"
 
 rm -rf "$ARTIFACTS_DIR"
