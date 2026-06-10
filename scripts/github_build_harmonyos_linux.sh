@@ -106,7 +106,7 @@ if [[ -n "$SIGNING_ZIP_B64" ]]; then
   mkdir -p "$SIGNING_ROOT" "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
 
   echo "$SIGNING_ZIP_B64" | base64 -d > "$TEMP_ROOT/rustdesk_harmonyos_signing.zip"
-  unzip -q "$TEMP_ROOT/rustdesk_harmonyos_signing.zip" -d "$TEMP_ROOT/rustdesk_harmonyos_signing_extract"
+  unzip -o -q "$TEMP_ROOT/rustdesk_harmonyos_signing.zip" -d "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" 2>/dev/null || true
 
   SRC_ROOT="$(find "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" -type f \( -name "*.p12" -o -name "*.cer" -o -name "*.p7b" \) -printf '%h\n' | sort | uniq | head -n 1 || true)"
 
