@@ -49,6 +49,7 @@ jobs:
       RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
+      HARMONYOS_HVIGOR_URL: ${{ secrets.HARMONYOS_HVIGOR_URL || vars.HARMONYOS_HVIGOR_URL }}
 
     steps:
       - name: Checkout
@@ -77,6 +78,34 @@ jobs:
         with:
           version: 2.0.0.2
 
+      - name: Patch full hvigor
+        shell: bash
+        run: |
+          set -e
+
+          if [ -z "$HARMONYOS_HVIGOR_URL" ]; then
+            echo "HARMONYOS_HVIGOR_URL is empty"
+            exit 1
+          fi
+
+          TOOLS_DIR="/home/runner/harmonyos-sdk/command-line-tools"
+
+          cd "$TOOLS_DIR"
+
+          echo "Remove incomplete hvigor..."
+          rm -rf hvigor
+
+          echo "Download full hvigor..."
+          HVIGOR_ZIP="$RUNNER_TEMP/harmonyos-hvigor-full.zip"
+          curl -L --fail --retry 3 -o "$HVIGOR_ZIP" "$HARMONYOS_HVIGOR_URL"
+
+          echo "Unzip full hvigor..."
+          unzip -q "$HVIGOR_ZIP" -d "$TOOLS_DIR"
+
+          echo "Check patched hvigor..."
+          find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
+          find "$TOOLS_DIR/hvigor" -name "platform-sdks.js" | head -20
+
       - name: Locate HarmonyOS SDK
         shell: bash
         run: |
@@ -88,6 +117,7 @@ jobs:
 
           echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
+          echo "DEVECO_TOOLS_HOME=$TOOLS_DIR" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
           echo "PATH=$TOOLS_DIR/bin:$TOOLS_DIR/ohpm/bin:$TOOLS_DIR/hvigor/bin:$PATH" >> "$GITHUB_ENV"
 

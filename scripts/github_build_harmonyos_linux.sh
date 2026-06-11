@@ -89,9 +89,12 @@ fi
 
 export DEVECO_SDK_HOME="$SDK_ROOT"
 export OHOS_HVIGOR_SDK_ROOT="$SDK_ROOT"
+export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
+export PATH="$DEVECO_TOOLS_HOME/bin:$DEVECO_TOOLS_HOME/ohpm/bin:$DEVECO_TOOLS_HOME/hvigor/bin:$PATH"
 
 echo "Node: $NODE_EXE"
 echo "HarmonyOS SDK root: $SDK_ROOT"
+echo "DevEco tools root: $DEVECO_TOOLS_HOME"
 
 if [[ ! -d "$SDK_ROOT/openharmony/native" ]]; then
   echo "Warning: $SDK_ROOT/openharmony/native not found."

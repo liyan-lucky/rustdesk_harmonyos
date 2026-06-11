@@ -97,9 +97,23 @@ function prepareHvigorConfigForCurrentWorkspace() {
 }
 
 const defaultDevEcoToolsRoot = path.resolve('C:/Program Files/Huawei/DevEco Studio/tools');
+function sdkToolsRoot(candidate) {
+  if (!candidate) {
+    return null;
+  }
+  const resolved = path.resolve(candidate);
+  if (path.basename(resolved) === 'command-line-tools') {
+    return resolved;
+  }
+  return path.resolve(resolved, 'command-line-tools');
+}
+
 const devecoToolsRoot = firstExistingPath([
   process.env.DEVECO_TOOLS_HOME,
   process.env.DEVECO_HOME && path.resolve(process.env.DEVECO_HOME, 'tools'),
+  sdkToolsRoot(process.env.DEVECO_SDK_HOME),
+  sdkToolsRoot(process.env.OHOS_HVIGOR_SDK_ROOT),
+  sdkToolsRoot(process.env.HOS_SDK_HOME),
   process.env.DEVECO_NODE_EXE && path.resolve(path.dirname(process.env.DEVECO_NODE_EXE), '..'),
   localProperties['npm.dir'] && path.resolve(localProperties['npm.dir'], '..'),
   defaultDevEcoToolsRoot,

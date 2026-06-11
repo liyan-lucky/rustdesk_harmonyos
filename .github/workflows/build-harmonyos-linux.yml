@@ -98,10 +98,11 @@ jobs:
           rm -rf hvigor
 
           echo "Download full hvigor..."
-          curl -L --fail --retry 3 -o hvigor-full.zip "$HARMONYOS_HVIGOR_URL"
+          HVIGOR_ZIP="$RUNNER_TEMP/harmonyos-hvigor-full.zip"
+          curl -L --fail --retry 3 -o "$HVIGOR_ZIP" "$HARMONYOS_HVIGOR_URL"
 
           echo "Unzip full hvigor..."
-          unzip -q hvigor-full.zip -d "$TOOLS_DIR"
+          unzip -q "$HVIGOR_ZIP" -d "$TOOLS_DIR"
 
           echo "Check patched hvigor..."
           find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
@@ -118,10 +119,13 @@ jobs:
 
           echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
+          echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
+          echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$PATH" >> "$GITHUB_ENV"
 
           echo "DEVECO_SDK_HOME=$SDK_BASE"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE"
+          echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools"
           echo "DEVECO_NODE_EXE=$(command -v node)"
           node -v
 
