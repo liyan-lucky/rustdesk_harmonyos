@@ -53,6 +53,7 @@ jobs:
       RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
+      HARMONYOS_HVIGOR_URL: ${{ secrets.HARMONYOS_HVIGOR_URL || vars.HARMONYOS_HVIGOR_URL }}
 
     steps:
       - name: Checkout
@@ -78,6 +79,33 @@ jobs:
         uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
         with:
           version: 2.0.0.2
+
+      - name: Patch full hvigor
+        shell: bash
+        run: |
+          set -e
+
+          if [ -z "$HARMONYOS_HVIGOR_URL" ]; then
+            echo "HARMONYOS_HVIGOR_URL is empty"
+            exit 1
+          fi
+
+          TOOLS_DIR="/home/runner/harmonyos-sdk/command-line-tools"
+
+          cd "$TOOLS_DIR"
+
+          echo "Remove incomplete hvigor..."
+          rm -rf hvigor
+
+          echo "Download full hvigor..."
+          curl -L --fail --retry 3 -o hvigor-full.zip "$HARMONYOS_HVIGOR_URL"
+
+          echo "Unzip full hvigor..."
+          unzip -q hvigor-full.zip -d "$TOOLS_DIR"
+
+          echo "Check patched hvigor..."
+          find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
+          find "$TOOLS_DIR/hvigor" -name "platform-sdks.js" | head -20
 
       - name: Locate HarmonyOS SDK
         shell: bash
