@@ -102,7 +102,7 @@ jobs:
           curl -L --fail --retry 3 -o "$HVIGOR_ZIP" "$HARMONYOS_HVIGOR_URL"
 
           echo "Unzip full hvigor..."
-          unzip -q "$HVIGOR_ZIP" -d "$TOOLS_DIR"
+          unzip -oq "$HVIGOR_ZIP" -d "$TOOLS_DIR"
 
           echo "Check patched hvigor..."
           find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
