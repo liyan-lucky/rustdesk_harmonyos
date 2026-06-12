@@ -93,6 +93,7 @@ export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
 export PATH="$DEVECO_TOOLS_HOME/bin:$DEVECO_TOOLS_HOME/ohpm/bin:$DEVECO_TOOLS_HOME/hvigor/bin:$PATH"
 SDK_LIBRARY_PATHS=(
   "$SDK_ROOT/hms/toolchains/lib"
+  "$SDK_ROOT/openharmony/previewer/common/bin"
   "$SDK_ROOT/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin"
   "$SDK_ROOT/openharmony/toolchains"
   "$SDK_ROOT/openharmony/toolchains/lib"

@@ -160,6 +160,7 @@ jobs:
           chmod +x "$SDK_BASE/hms/toolchains"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/openharmony/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/openharmony/native/llvm/bin"/* 2>/dev/null || true
+          chmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true
 
@@ -170,6 +171,8 @@ jobs:
           test -f "$SDK_BASE/hms/toolchains/modulecheck/app.json"
           test -f "$SDK_BASE/hms/toolchains/lib/libimage_transcoder_shared.so"
           test -f "$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin/libsec_shared.so"
+          test -f "$SDK_BASE/openharmony/previewer/common/bin/libcjson.so"
+          test -f "$SDK_BASE/openharmony/previewer/common/bin/libsec_shared.so"
 
           ls -l "$SDK_BASE/openharmony/toolchains/restool"
           ls -ld "$SDK_BASE/openharmony/native" "$SDK_BASE/hms/toolchains/modulecheck"
@@ -216,13 +219,13 @@ jobs:
           echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
           echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$PATH" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
           echo "DEVECO_SDK_HOME=$SDK_BASE"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE"
           echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools"
           echo "DEVECO_NODE_EXE=$(command -v node)"
-          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}"
+          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}"
           node -v
 
       - name: Debug env
