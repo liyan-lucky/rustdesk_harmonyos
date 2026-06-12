@@ -309,6 +309,10 @@ jobs:
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
           cd "$HARMONY_ARTIFACTS_DIR"
+          shopt -s nullglob
+          for app_file in *.app; do
+            zip -q -9 "$app_file.zip" "$app_file"
+          done
           sha256sum * > SHA256SUMS.txt
 
           ls -lh
@@ -329,6 +333,6 @@ jobs:
           generate_release_notes: true
           files: |
             ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.app
+            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.app.zip
             ${{ runner.temp }}/rustdesk_harmonyos_artifacts/manifest.json
             ${{ runner.temp }}/rustdesk_harmonyos_artifacts/SHA256SUMS.txt
