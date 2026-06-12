@@ -86,9 +86,9 @@ export class WindowChromeService {
           if (this.lockedNavigationBarHeight < 0 && bottomVp > 0) {
             this.lockedNavigationBarHeight = bottomVp;
           }
-        } else if (data.type === window.AvoidAreaType.TYPE_INPUT) {
+        } else if (data.type === window.AvoidAreaType.TYPE_KEYBOARD) {
           const keyboardHeightVp = this.pxToVp(data.area.bottomRect.height);
-          console.info(`WindowChromeService TYPE_INPUT avoidArea: height=${keyboardHeightVp}vp`);
+          console.info(`WindowChromeService TYPE_KEYBOARD avoidArea: height=${keyboardHeightVp}vp`);
           AppStorage.setOrCreate<number>('avoidKeyboardHeight', keyboardHeightVp > 0 ? keyboardHeightVp : 0);
         }
       });
