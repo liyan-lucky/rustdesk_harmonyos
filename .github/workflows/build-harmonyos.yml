@@ -302,8 +302,8 @@ jobs:
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
-          RELEASE_TAG="harmonyos-$(date -u +'%Y%m%d-%H%M%S')"
-          RELEASE_NAME="HarmonyOS Build $RELEASE_TAG"
+          RELEASE_TAG="OpenRustdesk-$(date -u +'%Y%m%d-%H%M%S')"
+          RELEASE_NAME="OpenRustdesk Build $RELEASE_TAG"
 
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
