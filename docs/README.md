@@ -12,17 +12,22 @@
 - 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
-- 最新构建验证：
-  - BuildInfo 编译时间：`2026-06-06 22:08`
-  - App 显示版本：`0.6.17`
-  - 项目提升到根目录后，增量 HAP staging 构建、签名、安装成功；最新版本递增到 `0.6.17`。
-  - 首帧后误报 `session-closed` 的 native `close_success()` 语义已修正；核心详情改为显示 native core 文件信息，而不是 App 构建时间。
-  - 核心页状态显示已修正：`Native Module` 不再因 bundle lib stat 路径不可访问而显示异常，staticlib 已打包且 NAPI 可用时 `Native Core` 显示就绪。
-  - `0.6.17` 已安装到无线目标 `192.168.11.100:36169`，启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
-  - **连接问题**：远程连接收到 `ECONNRESET (os error 104)`，疑似上游版本不匹配。正在升级上游源码 1.4.6→1.4.7 并重编。
-  - 上游源码升级 1.4.7 状态：OHOS 排除修改已完成（Cargo.toml/lib.rs/build.rs/scrap），编译待继续。
+- 当前本地工程生成信息：
+  - BuildInfo 编译时间：`2026-06-12 02:57`
+  - App 显示版本：`0.13.30`
+  - versionCode：`1000061`
+- 最新线上 Linux 构建验证：
+  - Workflow：`.github/workflows/build-harmonyos.yml`
+  - 成功 run：`27389574480` / `27389574466`
+  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`
+  - 发布产物包含 signed/unsigned HAP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
+  - GitHub Release 不直接上传 `.app`，必须先压缩为 `.app.zip`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
-  - 最新 100 轮功能逻辑审查已完成：`docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`
+- 当前线上 SDK/Hvigor 依赖：
+  - SDK：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
+  - Hvigor/Command Line Tools 剩余文件：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
+  - SDK 包必须包含 `openharmony/previewer/common/bin/libcjson.so` 和 `libsec_shared.so`，否则 Linux CI 的 Hvigor/previewer 依赖会失败。
+- 最新 100 轮功能逻辑审查已完成：`docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`
 
 ## 便携工作区路径
 
@@ -32,8 +37,9 @@
 
 - App 项目：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 本地 Git 根：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
-- RustDesk 上游源码：`%VSCODE_ROOT%\99_Temp\rustdesk-master`
-- Native 构建工作区：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
+- RustDesk native core 独立项目：`%VSCODE_ROOT%\13_librustdesk_core`
+- RustDesk 上游源码：`%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master`
+- 历史 Native 构建工作区：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
 - HAP 输出、staging 和 Hvigor 缓存：`%VSCODE_ROOT%\99_Temp\harmonyos_build`、`%VSCODE_ROOT%\99_Temp\harmonyos_stage`、`%VSCODE_ROOT%\99_Temp\harmonyos_cache`
 - 便携签名材料：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing`
 - 备份目录：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups`
@@ -53,10 +59,11 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - 大小：`135,670,438` bytes
-  - 编译时间/mtime：`2026-06-06 22:03`
-  - FNV-1a 1MB：`45b5baa5`
-  - SHA256：`6CEDA7DB08CE3FF5BF39AC4691DED2C502F749F22D5C715166256155559E4827`
+  - 大小：`138,394,514` bytes
+  - 编译时间/mtime：`2026-06-12 02:31`
+  - FNV-1a 1MB：`11786fd9`
+  - SHA256：`A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+  - 下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`
   - `Native Module`
@@ -189,12 +196,24 @@ $hap = "$env:VSCODE_ROOT\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\bui
 & $hdc -t $target shell aa start -a EntryAbility -b com.open.rundesk
 ```
 
-重编 native core：
+重编 native core（独立核心项目）：
 
 ```powershell
 $env:VSCODE_ROOT = (Resolve-Path ..).Path
-cmd /c "$env:VSCODE_ROOT\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat"
+Set-Location "$env:VSCODE_ROOT\13_librustdesk_core"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1
 ```
+
+线上构建 HAP/APP：
+
+```text
+GitHub Actions -> Build HarmonyOS Package Linux
+version_bump: incremental
+skip_package_verify: true
+publish_release: true
+```
+
+线上 workflow 会下载 `harmonyos-sdk-full.zip`、`harmonyos-hvigor-full.zip` 和 `RUSTDESK_CORE_URL` 指向的 `librustdesk_core.a`，构建 signed/unsigned HAP 与 APP，并将 `.app` 压缩成 `.app.zip` 后发布。
 
 ## 接手规则
 
@@ -202,7 +221,7 @@ cmd /c "$env:VSCODE_ROOT\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat"
 - 每次修改代码、资源、脚本或文档，都必须同步更新相关项目文档，保持新开对话读取文档即可接手。
 - 每轮修改后必须进行构建验证；ArkTS/UI 修改至少运行 HAP 构建，涉及 native core 时先重编 native core，再构建 HAP。
 - 涉及设备行为、会话连接、共享服务、LAN 发现或输入转发时，构建后优先使用 USB 设备安装启动验证。
-- 修改核心后必须重新构建 native core，再构建 HAP，再安装验证。
+- 修改核心后必须先在 `%VSCODE_ROOT%\13_librustdesk_core` 构建并发布 `librustdesk_core.a`，再更新 11 项目的 `entry/src/main/libs/arm64/librustdesk_core.a`，随后构建 HAP/APP 并安装验证。
 - 修改 ArkTS/UI 后至少重新构建 HAP 并安装验证。
 - 多目标 HDC 环境必须显式加 `-t <target>`。
 - 当前优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标。

@@ -1,12 +1,17 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-07 00:00。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-12 03:10。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；最新增量构建安装通过，BuildInfo 编译时间 `2026-06-06 22:08`，App 显示版本 `0.6.17`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-12 02:57`，App 显示版本 `0.13.30`，versionCode `1000061`。
+- 2026-06-12 Linux 在线构建已跑通：`.github/workflows/build-harmonyos.yml` 成功生成 HAP 和 APP，并发布到 `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`。
+- 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
+  - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
+  - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
+- Linux CI 已显式检查并加载 `openharmony/previewer/common/bin/libcjson.so`、`libsec_shared.so` 和 Ark ets-loader 的 `libsec_shared.so`，避免 Hvigor/previewer 动态库缺失。
 - 最新 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
 - 当前 U 盘存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳无法可靠删除。日常构建使用 staged copy，日常全量重建清理外部 build/stage 产物并保留 `harmonyos_cache`，避免 Hvigor 内置 clean 访问这些坏目录；深度清理 cache 需显式使用 `-IncludeHvigorCache`。
 
@@ -20,17 +25,21 @@
 - Native core 已采用 `staticlib + CMake 直接链接`，HAP 内通过 `librustdesk_bridge.so` 调用 Rust C ABI。
 - 当前已验证 native core：
   - `entry/src/main/libs/arm64/librustdesk_core.a`
-  - 大小：`137,422,248` bytes
-  - mtime：`2026-06-07 03:01`
-  - FNV-1a 1MB：`5db8f431`
-  - SHA256: `7C10663743785D8AD04078E16274D21497D451FEAAA942D8B2882CC4A58B3A2F`
+  - 最新 native core 已从 GitHub Releases 下载：
+  - `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+  - 大小：`138,394,514` bytes (`131.98 MB`)
+  - mtime/compile time：`2026-06-12 02:31`
+  - FNV-1a 1MB：`11786fd9`
+  - SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
 - 当前已验证 HAP：
-  - BuildInfo 编译时间：`2026-06-07 03:09`
-  - App 显示版本：`0.6.17`
-  - versionCode：`1000022`
+  - 本地 BuildInfo 编译时间：`2026-06-12 02:57`
+  - 本地 App 显示版本：`0.13.30`
+  - 本地 versionCode：`1000061`
   - bundle：`com.open.rundesk`
-  - 无线目标：`192.168.11.100:36169`
-  - 无线安装启动成功，hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+  - 最新线上 release：`harmonyos-20260612-020111`
+  - signed HAP：`entry-default-signed.hap`，`18,280,607` bytes，SHA256 `3B35FD46E616D076DB47F98EB727341A164BEEB2EA1E88F2712CA75176A94C41`
+  - signed APP zip：`rustdesk_harmonyos-default-signed.app.zip`，`17,115,373` bytes，SHA256 `CB3FD9C525BA48F6EA03309990F8E41588DC8D6ED960694AB82DBE9DA422E75B`
+  - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
@@ -38,6 +47,19 @@
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
 - 自定义键盘已改为会话画面顶部覆盖显示。
+
+## 2026-06-12 Linux 在线构建结论
+
+- `build-harmonyos.yml` 当前 Linux 方案可行，已完成 HAP + APP 构建和 GitHub Release 发布。
+- 成功修复链路：
+  - SDK 包补齐 `openharmony/previewer/common/bin/libcjson.so`、previewer `libsec_shared.so` 和 ets-loader `libsec_shared.so`。
+  - workflow 的 `LD_LIBRARY_PATH` 加入 previewer、ets-loader、toolchains 和 hms toolchains lib。
+  - ArkTS `window.AvoidAreaType.TYPE_INPUT` 改为当前 SDK 可用的 `window.AvoidAreaType.TYPE_KEYBOARD`。
+  - GitHub Release 资产上传时将 `.app` 压缩为 `.app.zip`。
+- 当前 GitHub secrets/vars 关键值：
+  - `RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+  - `RUSTDESK_CORE_SHA256=A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+- 已删除失败草稿 release `harmonyos-20260612-015538`，当前保留成功 release `harmonyos-20260612-020111`。
 
 ## 已完成
 
@@ -437,12 +459,8 @@
   - ✅ 修改 `Cargo.toml`：`crate-type = ["rlib"]`，排除 OHOS 桌面端依赖（tray-icon/tao/keepawake/wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等）
   - ✅ 修改 `scrap/Cargo.toml`：排除 OHOS 的 Linux 桌面依赖（dbus/gstreamer/zbus/nokhwa）
   - ✅ 修改 `build.rs`：基于 `CARGO_CFG_TARGET_OS` 运行时检查，避免在 OHOS 交叉编译时触发 Windows 平台 C++ 编译
-  - 🔄 编译进行中（上次因超时中断，需继续）
-- **待解决问题**：
-  1. 完成 1.4.7 native core 编译
-  2. 编译成功后构建 HAP 并安装验证
-  3. 验证连接是否正常（如果 1.4.7 修复了远端重置问题）
-  4. 核心页详细信息添加兼容的官方版本号（避免版本不匹配时找不到支撑信息）
+  - ✅ 2026-06-12 后续已完成：13 项目发布 `v1.4.7-ohos` core，11 项目 Linux CI 使用该 core 成功构建 HAP/APP。
+- **后续结论**：本段是 2026-06-07 的排查过程，当前状态以文档顶部“2026-06-12 Linux 在线构建结论”和 `CORE.md` 的 verified current core 为准。
 - **备份位置**：`99_Temp/rustdesk_harmonyos_backups/harmony_bridge_backup_20260606/`
 - **1.4.7 clone 位置**：`99_Temp/rustdesk_harmonyos_build/rustdesk-1.4.7-clone/`
 ## 2026-06-07 1.4.7 native core build + reconnect state fix

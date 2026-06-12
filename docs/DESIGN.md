@@ -107,7 +107,7 @@
 - 文档和脚本不得写死具体盘符；使用 `%VSCODE_ROOT%` 说明工作区根，运行时从项目位置推导 `99_Temp/`，或通过 `RUSTDESK_HARMONY_TEMP_ROOT`、`RUSTDESK_HARMONY_BUILD_DIR` 覆盖。
 - 借用不同电脑时，`local.properties` 只记录当前电脑 DevEco 路径；构建脚本必须优先支持环境变量和 `local.properties`，再回退默认安装路径。
 - 构建输出默认不在项目目录内；唯一例外是HAP链接需要的 `entry/src/main/libs/arm64/librustdesk_core.a`
-- 文档只保留docs/下9个指定文件，入口为 `docs/README.md`
+- 文档入口为 `docs/README.md`；核心接手文档保持 README/CORE/PROGRESS/ISSUES/FILES/DESIGN/UI/BUILD_ARCHIVE/GIT_PUBLISH，审计报告、发布说明和专项指南可按需保留。
 - 项目备份统一放在 `99_Temp/rustdesk_harmonyos_backups/`，以后只保留最新2份；不要每次备份新建独立路径，备份入口固定为 `scripts/backup_project.ps1`
 - 清理时保留 `99_Temp/rustdesk-master/` 源码、`99_Temp/rustdesk_harmonyos_build/` 工具链/脚本/patch/外部源码/当前Rust产物、`99_Temp/rustdesk_harmonyos_backups/` 最新2份备份；删除旧归档、旧备份、下载缓存、target缓存和临时日志
 
@@ -128,10 +128,19 @@
 - `run_hvigor_with_sdk_patch.js` 必须同步写入 `AppScope/app.json5` 的 `versionName/versionCode` 和 `BuildInfo.ets` 的 `VERSION/BUILD_TIME`。
 - 增量编译可能不生效，全量重编需删除entry/build
 - 使用`node scripts/run_hvigor_with_sdk_patch.js assembleHap`构建
+- 线上 Linux 构建使用 `.github/workflows/build-harmonyos.yml`，当前固定生成 HAP + APP；发布时 HAP 直接上传，APP 必须先压缩为 `.app.zip` 再作为 GitHub Release 资产上传。
+- 线上 SDK 包拆分为 `harmonyos-sdk-full.zip` 和 `harmonyos-hvigor-full.zip`；SDK 包必须包含 previewer 的 `libcjson.so`/`libsec_shared.so` 和 ets-loader 的 `libsec_shared.so`，workflow 必须把这些目录加入 `LD_LIBRARY_PATH`。
 
-### Native Core构建（上游源码）
-- **上游源码位置**: `%VSCODE_ROOT%\99_Temp\rustdesk-master`
-- **当前兼容版本**: 1.4.6（已验证），1.4.7（升级进行中）
+### Native Core构建（独立项目）
+
+- **核心项目位置**：`%VSCODE_ROOT%\13_librustdesk_core`
+- **核心修改流程**：在 13 项目修改 → git push → GitHub Actions 在线构建 → 下载 `librustdesk_core.a` → 放入 `entry/src/main/libs/arm64/`
+- **GitHub Releases**：`https://github.com/liyan-lucky/librustdesk_core/releases`
+- **13 项目包含**：Rust 桥接层（`native_rust_core/`）、C++ 桥接层（`cpp/`）、代码生成脚本（`scripts/generate_*.js`）、上游源码（`rustdesk-master/`）、OHOS 补丁（`patches/`）、CI/CD（`.github/workflows/build-core.yml`）
+- **上游源码位置**: `%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master`
+- **当前兼容版本**: 1.4.7（已验证，release tag `v1.4.7-ohos`）
+- **当前核心下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+- **当前核心校验**：SHA256 `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
 - **OHOS 交叉编译必须排除的桌面端依赖**（`target_os = "linux"` 会命中）：
   - `Cargo.toml`: 注释 tray-icon/tao/keepawake；用 `not(target_env = "ohos")` 排除 wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等
   - `scrap/Cargo.toml`: 排除 dbus/gstreamer/zbus/nokhwa

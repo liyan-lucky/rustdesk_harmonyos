@@ -53,7 +53,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前版本：`0.6.17`，versionCode：`1000022`
+- 当前本地版本：`0.13.30`，versionCode：`1000061`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -61,7 +61,10 @@
 - 增量构建 HAP：`scripts\build_hap.bat`
 - 全量构建 HAP：`scripts\build_full_hap.bat`
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
-- 重编 native core：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
+- **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
+- **核心下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+- **核心 SHA256**：`A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+- 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
 
 ### 核心文件
@@ -70,11 +73,14 @@
 - 国际化：`entry/src/main/ets/services/I18nService.ets`
 - NAPI 桥接：`entry/src/main/ets/services/NativeRustDeskBridge.ts`
 - 数据管理：`entry/src/main/ets/services/AppDataService.ets`
-- Rust core：`99_Temp/rustdesk-master/src/harmony_bridge/core.rs`（363 pub fn）
-- Rust ABI：`native_rust_core/src/bridge_api.rs`（369 导出函数）
-- C++ 桥接：`entry/src/main/cpp/rustdesk_bridge_loader.cpp`（约400 NAPI注册）
-- C++ ABI 声明：`entry/src/main/cpp/rustdesk_bridge_abi.h`
-- TS 类型：`entry/src/main/cpp/types/librustdesk_bridge/index.d.ts`
+- **核心项目**：`%VSCODE_ROOT%\13_librustdesk_core`（所有核心函数修改在此进行）
+- Rust core：`13_librustdesk_core/rustdesk-master/src/harmony_bridge/core.rs`（363 pub fn）
+- Rust ABI：`13_librustdesk_core/native_rust_core/src/bridge_api.rs`（369 导出函数）
+- C++ 桥接：`13_librustdesk_core/cpp/rustdesk_bridge_loader.cpp`（约400 NAPI注册）
+- C++ ABI 声明：`13_librustdesk_core/cpp/rustdesk_bridge_abi.h`
+- TS 类型：`13_librustdesk_core/cpp/types/librustdesk_bridge/index.d.ts`
+- 本项目 C++ 桥接（从核心项目同步）：`entry/src/main/cpp/`
+- 本项目核心静态库（从 GitHub Releases 下载）：`entry/src/main/libs/arm64/librustdesk_core.a`
 
 ### 当前重点问题
 1. 并行密码+无密码连接流程：已修复待实机验证（2026-06-07）
@@ -86,8 +92,9 @@
 7. 桥接函数已补齐至369个（2026-06-08）：从54个扩展至369个，覆盖官方APK绝大部分wire_*函数
 
 ### 已验证状态
-- 最新 native core：`librustdesk_core.a`，138,329,746 bytes
-- 最新 HAP 构建时间：2026-06-08 21:38
+- 最新 native core：`librustdesk_core.a`，138,394,514 bytes，SHA256 `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+- 最新本地 HAP 构建时间：2026-06-12 02:57
+- 最新线上 release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`
 - coreReady=true，adapter=official-native
 - LAN 发现实机验证通过
 - 函数覆盖：core.rs 363 pub fn，bridge_api.rs 369 导出，NAPI 约400注册
@@ -201,6 +208,28 @@
 - 主题通过 AppStorage 管理颜色，不使用标准 color.json 资源文件
 - i18n 使用 I18nService.translate() + @State i18nVersion 触发重渲染
 
+### ArkTS API 兼容经验
+- **AvoidAreaType.TYPE_INPUT 在 OHOS SDK 中不存在**：应使用 `window.AvoidAreaType.TYPE_KEYBOARD` 替代；`TYPE_INPUT` 是旧 API 名称，当前 SDK 已重命名为 `TYPE_KEYBOARD`
+- 构建 ArkTS 时遇到 `Property 'XXX' does not exist on type 'typeof YYY'` 错误，通常是 API 名称变更或 SDK 版本不匹配，需查阅当前 SDK 对应的 API 文档
+
+### 核心项目迁移经验
+- **核心构建已迁移到独立项目 `13_librustdesk_core`**：所有 Rust 桥接层、C++ 桥接层、代码生成脚本均在此项目维护
+- **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions 在线构建 → 下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
+- **11 项目保留的核心相关文件**：`entry/src/main/cpp/`（C++桥接层，从13项目同步）、`entry/src/main/libs/arm64/librustdesk_core.a`（从 GitHub Releases 下载）
+- **11 项目不再保留的核心相关文件**：`native_rust_core/`（已迁移到13项目）、`scripts/generate_*.js`/`dedup_*.js`/`regenerate_all.js`/`rename_mapping.js`（已迁移到13项目）
+- **代码生成脚本路径修复**：所有硬编码的绝对路径已改为相对于 `__dirname`/`os.path` 的相对路径
+- **CMakeLists.txt 路径适配**：13项目中 `librustdesk_core.a` 路径改为 `../native_rust_core/target/aarch64-unknown-linux-ohos/release/librustdesk_harmony_bridge.a`
+
+### Linux 在线构建经验
+- **当前可用 workflow**：`.github/workflows/build-harmonyos.yml`，固定构建 HAP + APP，输入为 `version_bump`、`skip_package_verify`、`publish_release`
+- **SDK 拆包地址**：
+  - `HARMONYOS_SDK_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
+  - `HARMONYOS_HVIGOR_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
+- **SDK 包必需文件**：`openharmony/previewer/common/bin/libcjson.so`、previewer `libsec_shared.so`、ets-loader `libsec_shared.so`；缺任意一个都可能导致 Linux CI Hvigor/previewer 失败
+- **LD_LIBRARY_PATH 必须包含**：hms toolchains lib、openharmony previewer common/bin、ets-loader ark build/bin、openharmony toolchains、toolchains/lib、hms native sysroot lib
+- **GitHub Release 上传规则**：HAP 直接上传；APP 先压缩为 `.app.zip` 再上传；同时生成 `manifest.json` 和 `SHA256SUMS.txt`
+- **2026-06-12 成功 release**：`harmonyos-20260612-020111`
+
 ### 修改流程经验（本次会话最大教训）
 - **代码修改必须改项目根源文件！staging 只是构建副本，全量 robocopy 会从项目根覆盖 staging，导致修改丢失**
 - 修改后立即验证项目根源文件内容，不要只验证 staging
@@ -294,3 +323,6 @@
 | 2026-06-07 | 对比官方APK(365个wire_函数)与当前核心(48个bridge函数)，补齐6个缺失函数：getSessionStage/getActivePeerId/getConnectStatusSummary/getConnectDetailMessage/getConnectLastError/drainConnectEvents；NAPI注册升至58个(54桥接+4工具)；更新CORE.md完整函数说明 |
 | 2026-06-08 | 大规模函数补齐：从54个扩展至369个桥接函数，覆盖官方APK绝大部分wire_*函数；添加cm_*/plugin_*/install_*/is_*/session_*全系列；重命名main_use_texture_render→main_get_use_texture_render；添加main_init；修复生成脚本bug（String→const char*、read_c_string、ReadUtf8String）；全面重写CORE.md桥接函数说明（31个分类、369个函数详细描述）；更新函数名映射表 |
 | 2026-06-08 | 官方一致性验证修复：(1)abi.h删除28个旧式命名声明（set_incoming_service_enabled/connect_to_peer/send_mouse_input等），只保留新式session_*/main_*命名；(2)main_init声明从extern "C"块外移入块内，修复C++ name mangling问题；(3)添加drain_connect_events缺失声明；(4)loader.cpp中ConnectToPeer改为调用rustdesk_bridge_session_start、SetIncomingServiceEnabled改为调用rustdesk_bridge_main_start_service；(5)session_alternative_codecs→session_get_alternative_codecs与官方对齐（bridge_api.rs/core.rs/loader.cpp/index.d.ts/NativeRustDeskBridge.ts/librustdesk_bridge.d.ts全链路更新）；(6)HAP构建验证通过 |
+| 2026-06-12 | 修复AvoidAreaType.TYPE_INPUT→TYPE_KEYBOARD（OHOS SDK API重命名）；HAP构建验证通过（20.67MB）；更新AGENT_MEMORY添加ArkTS API兼容经验 |
+| 2026-06-12 | 核心项目迁移：所有核心相关文件（Rust桥接层、C++桥接层、代码生成脚本）迁移到13_librustdesk_core项目；核心构建流程改为在13项目修改→GitHub Actions在线构建→下载librustdesk_core.a→放入11项目libs；修复所有生成脚本的硬编码路径为相对路径；CMakeLists.txt路径适配13项目结构；更新README/AGENT_MEMORY/CORE文档 |
+| 2026-06-12 | Linux 在线构建跑通：拆分 SDK/Hvigor 包地址，补齐 previewer `libcjson.so`/`libsec_shared.so`，设置 `LD_LIBRARY_PATH`，使用 RustDesk 1.4.7 OHOS core A200A839...AADC8，HAP/APP 发布到 `harmonyos-20260612-020111`，APP 以 `.app.zip` 上传 |

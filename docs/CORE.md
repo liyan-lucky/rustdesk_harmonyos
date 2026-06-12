@@ -8,6 +8,10 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`。
 - `librustdesk_bridge.so` 直接链接 Rust staticlib：`entry/src/main/libs/arm64/librustdesk_core.a`。
 - 不再使用 `dlopen` 加载 Rust 核心，避免 TEXTREL 和运行时加载问题。
+- **核心构建已迁移到独立项目 `%VSCODE_ROOT%\13_librustdesk_core`**：
+  - Rust 桥接层、C++ 桥接层、代码生成脚本均在 13 项目维护
+  - 核心修改流程：13 项目修改 → git push → GitHub Actions 构建 → 下载 → 放入 11 项目
+  - GitHub Releases：`https://github.com/liyan-lucky/librustdesk_core/releases`
 - 当前页面应显示三个核心状态入口：
   - `Adapter`
   - `Native Module`
@@ -33,8 +37,9 @@ RustDesk Server / Peer
 `%VSCODE_ROOT%` 是可移动工作区根目录，不是固定盘符。当前脚本默认从项目目录向上一级匹配同级 `99_Temp`，所以 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 必须保持在同一个工作区根下。
 
 - Harmony app project: `%VSCODE_ROOT%\11_Rustdesk_harmonyos`
-- RustDesk upstream source: `%VSCODE_ROOT%\99_Temp\rustdesk-master`
-- Native build workspace: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
+- RustDesk native core project: `%VSCODE_ROOT%\13_librustdesk_core`
+- RustDesk upstream source: `%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master`
+- Historical native build workspace: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
 - Core staticlib in app: `%VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a`
 - HAP staged project copy: `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`
 - Signed HAP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
@@ -43,10 +48,11 @@ RustDesk Server / Peer
 
 | 文件 | 作用 |
 | --- | --- |
-| `native_rust_core/Cargo.toml` | Rust bridge crate 配置，输出 `staticlib` |
-| `native_rust_core/src/bridge_api.rs` | Rust C ABI 导出入口 |
-| `entry/src/main/cpp/rustdesk_bridge_abi.h` | C++ 侧 Rust ABI 声明 |
-| `entry/src/main/cpp/rustdesk_bridge_loader.cpp` | NAPI bridge loader |
+| `%VSCODE_ROOT%\13_librustdesk_core\native_rust_core/Cargo.toml` | Rust bridge crate 配置，输出 `staticlib` |
+| `%VSCODE_ROOT%\13_librustdesk_core\native_rust_core/src/bridge_api.rs` | Rust C ABI 导出入口 |
+| `%VSCODE_ROOT%\13_librustdesk_core\cpp/rustdesk_bridge_abi.h` | C++ 侧 Rust ABI 声明源文件 |
+| `%VSCODE_ROOT%\13_librustdesk_core\cpp/rustdesk_bridge_loader.cpp` | NAPI bridge loader 源文件 |
+| `entry/src/main/cpp/` | 从 13 项目同步到 App 项目的 C++ 桥接层 |
 | `entry/src/main/cpp/CMakeLists.txt` | 将 `librustdesk_core.a` 链接进 `librustdesk_bridge.so` |
 | `entry/src/main/libs/arm64/librustdesk_core.a` | 当前 HAP 链接用 Rust staticlib |
 | `entry/src/main/ets/common/CoreBuildInfo.ets` | 构建时生成的 native core 文件大小、mtime 和 hash 信息 |
@@ -56,7 +62,7 @@ RustDesk Server / Peer
 
 ## 当前核心必须保留的能力
 
-重建环境时，`%VSCODE_ROOT%\99_Temp\rustdesk-master` 中的 Harmony bridge 相关改动必须保留，尤其是：
+重建环境时，`%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master` 中的 Harmony bridge 相关改动必须保留，尤其是：
 
 - `src/harmony_bridge/core.rs`
   - `connect_to_peer()` 走官方 RustDesk session 路径，并保存 active `Session<HarmonyHandler>`。
@@ -76,11 +82,10 @@ RustDesk Server / Peer
 
 ## 上游源码版本
 
-- 当前编译基于：**RustDesk 1.4.6**（`Cargo.toml version = "1.4.6"`）
-- 升级目标：**RustDesk 1.4.7**（GitHub 2026-06-02 发布）
-- 升级状态：**进行中**——Cargo.toml/lib.rs/build.rs/scrap/Cargo.toml 的 OHOS 排除修改已完成，编译待继续
+- 当前编译基于：**RustDesk 1.4.7**（GitHub 2026-06-02 发布）
+- 升级状态：**已完成并验证**。13 项目已完成 Cargo.toml/lib.rs/build.rs/scrap 的 OHOS 条件排除和桥接适配，`v1.4.7-ohos` release 已发布。
 - 兼容说明：核心页详细信息应显示兼容的官方版本号，避免远端版本不匹配时找不到支撑信息
-- 源码位置：`%VSCODE_ROOT%\99_Temp\rustdesk-master`（当前为 1.4.7 源码 + harmony_bridge + OHOS 修改）
+- 源码位置：`%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master`
 - 备份位置：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\harmony_bridge_backup_20260606\`
 
 ## 当前验证过的产物
@@ -88,64 +93,64 @@ RustDesk Server / Peer
 Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
-- Size: `137,422,248` bytes (`131.06 MB`)
-- Build time observed: `2026-06-07 03:01`
-- FNV-1a 1MB: `5db8f431`
-- SHA256: `7C10663743785D8AD04078E16274D21497D451FEAAA942D8B2882CC4A58B3A2F`
+- Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+- Size: `138,394,514` bytes (`131.98 MB`)
+- Build time observed: `2026-06-12 02:31`
+- FNV-1a 1MB: `11786fd9`
+- SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
 
 HAP:
 
-- BuildInfo compile time: `2026-06-07 03:09`
-- App version: `0.6.17`
-- versionCode: `1000022`
+- Local BuildInfo compile time: `2026-06-12 02:57`
+- Local app version: `0.13.30`
+- Local versionCode: `1000061`
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
+- Latest online release: `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`
+- Release assets: signed/unsigned HAP, signed/unsigned `.app.zip`, `manifest.json`, `SHA256SUMS.txt`
 - USB target used for validation: configured by `RUSTDESK_HARMONY_USB_TARGET`; hardware IDs are not recorded in docs.
 - Wireless target used for validation: `192.168.11.100:36169`
-- Latest wireless validation: 2026-06-07 HAP install and launch succeeded. hilog confirmed `module registered (52 functions)`, `coreReady=true`, `adapter=official-native`, no crashes.
-- **1.4.7 升级已完成**: 上游源码已升级到 1.4.7，native core 重编成功，HAP 构建安装通过。
+- Latest online validation: 2026-06-12 Linux GitHub Actions HAP/APP build and release succeeded.
+- 2026-06-09 wireless validation: HAP install and launch succeeded. hilog confirmed `coreReady=true`, `adapter=official-native`, Bridge 在线查询正常，远控连接建立。
+- **1.4.7 升级已完成**: 上游源码已升级到 1.4.7，native core 在线构建发布成功，HAP/APP 在线构建发布通过。
 - **2026-06-07 修复**: (1) 无密码连接时密码输入框丢失——`RemoteControl.ets` applyBridgeState error/idle 分支优先检查 `shouldPromptForPassword`；(2) 无密码连接被访问端刚提示就结束会话——`handleTerminalBridgeEvent` 将密码检查扩展到 `session-closed`；(3) LAN 发现失效——`rendezvous_mediator_ohos.rs` start_all() 中启动 `crate::lan::start_listening()` 监听线程。
 
-## Windows 一键重编核心
+## Native core 构建来源
 
-前置要求：
+当前核心构建的权威来源是独立项目 `%VSCODE_ROOT%\13_librustdesk_core`，11 项目只消费构建产物。
 
-- DevEco Studio SDK: `C:\Program Files\Huawei\DevEco Studio\sdk\default`
-- DevEco Node/Hvigor: `C:\Program Files\Huawei\DevEco Studio\tools`
-- 如果借用电脑上的 DevEco 不在默认路径，优先更新 `local.properties`，或设置 `DEVECO_SDK_HOME`、`DEVECO_TOOLS_HOME`、`DEVECO_NODE_EXE`、`HDC_EXE`。
-- Rust stable toolchain
-- Rust target:
+本地重编：
 
 ```powershell
-rustup target add aarch64-unknown-linux-ohos --toolchain stable
-```
-
-- MSYS2: `C:\msys64`
-- OHOS SDK mirror: `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\ohos-sdk`
-- vcpkg/libsodium outputs under `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
-
-重编命令：
-
-```powershell
-cd $env:VSCODE_ROOT\11_Rustdesk_harmonyos
+$env:VSCODE_ROOT = (Resolve-Path ..).Path
+Set-Location "$env:VSCODE_ROOT\13_librustdesk_core"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1
 ```
 
-预期结果：
+推荐发布流程：
 
-- Cargo 为 `aarch64-unknown-linux-ohos` 构建 `rustdesk_harmony_bridge`。
-- 生成 `librustdesk_harmony_bridge.a`。
-- 脚本复制产物到：
+1. 在 `%VSCODE_ROOT%\13_librustdesk_core` 修改 Rust/C++/生成脚本。
+2. 提交并推送 13 项目，触发 GitHub Actions 构建 `librustdesk_core.a`。
+3. 发布或更新 `v1.4.7-ohos` release asset。
+4. 11 项目的 GitHub Actions 通过 `RUSTDESK_CORE_URL` 下载该 `.a`，并用 `RUSTDESK_CORE_SHA256` 校验。
+
+当前 11 项目使用：
+
+```text
+RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a
+RUSTDESK_CORE_SHA256=A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8
+```
+
+下载后放入：
 
 ```text
 %VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
 ```
-- 脚本强制使用 Rust stable toolchain，避免 nightly 与旧依赖组合触发 `rustix` 编译错误。
 
-重编后检查：
+检查：
 
 ```powershell
-$env:VSCODE_ROOT = (Resolve-Path ..\..).Path
+$env:VSCODE_ROOT = (Resolve-Path ..).Path
 Get-Item "$env:VSCODE_ROOT\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a"
 Get-FileHash "$env:VSCODE_ROOT\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a" -Algorithm SHA256
 ```
@@ -169,6 +174,25 @@ scripts\build_full_hap.bat
 ```
 
 `build_full_hap.bat` 默认保留 `%VSCODE_ROOT%\99_Temp\harmonyos_cache`，避免 Hvigor 内置 clean 触碰 U 盘上历史残留的项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 坏目录。需要深度清理 Hvigor cache 时，手动运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean_project.ps1 -IncludeExternalBuild -IncludeHvigorCache`，随后再运行 `scripts\build_hap.bat`。
+
+线上 Linux 构建：
+
+```text
+GitHub Actions -> Build HarmonyOS Package Linux
+version_bump: incremental/full/none
+skip_package_verify: true
+publish_release: true
+```
+
+当前 workflow 固定构建 `both`，会生成 HAP 和 APP。发布时 HAP 直接上传，APP 先压缩为 `.app.zip` 再上传，因为 GitHub Release 对直接 `.app` 资产处理不稳定。默认下载的线上依赖为：
+
+```text
+HARMONYOS_SDK_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip
+HARMONYOS_HVIGOR_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip
+RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a
+```
+
+SDK 包必须包含 `openharmony/previewer/common/bin/libcjson.so`、`openharmony/previewer/common/bin/libsec_shared.so` 和 `openharmony/ets/build-tools/ets-loader/bin/ark/build/bin/libsec_shared.so`；workflow 会显式检查这些文件并把对应目录加入 `LD_LIBRARY_PATH`。
 
 一键构建、安装、启动：
 
@@ -375,7 +399,7 @@ objdump -p librustdesk_bridge.so | grep NEEDED
 
 ## 历史路径说明
 
-Ubuntu 交叉编译路径曾验证通过，但当前优先使用 Windows 的 `build_bridge_now.bat`，因为它与当前 DevEco/HAP 构建环境一致。
+旧版 Ubuntu/Windows 交叉编译路径曾验证通过，但当前核心构建已迁移到 `%VSCODE_ROOT%\13_librustdesk_core`。`99_Temp\rustdesk_harmonyos_build` 只保留历史工具链和旧排查资料，不再作为 11 项目的权威核心源码。
 
 历史 Ubuntu 入口：
 
@@ -386,7 +410,7 @@ cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 ./build_native_bridge.sh aarch64-unknown-linux-ohos release
 ```
 
-如需使用 Ubuntu 路径，必须确认其源码、patch、SDK mirror、libsodium、vcpkg 与 Windows 当前环境一致。脚本目录当前只保留 arm64 有效链路，Linux 下不要再使用旧的 HAP repack/sign/install shell 链。
+如需使用历史 Ubuntu 路径，必须确认其源码、patch、SDK mirror、libsodium、vcpkg 与 13 项目当前环境一致。脚本目录当前只保留 arm64 有效链路，Linux 下不要再使用旧的 HAP repack/sign/install shell 链。
 
 ## 历史记录
 
@@ -407,6 +431,8 @@ cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 | 2026-06-07 | 成功 | 1.4.7 升级完成，native core 重编（137,422,248 bytes）；修复无密码连接密码框丢失、会话过早关闭、LAN 发现失效（start_all 未启动 lan::start_listening） |
 | 2026-06-08 | 成功 | 大规模函数补齐：54→369个桥接函数；重命名main_use_texture_render→main_get_use_texture_render；添加main_init+34个session_*函数；修复生成脚本bug；全面重写CORE.md函数说明 |
 | 2026-06-08 | 成功 | 官方一致性修复：abi.h删除28个旧式声明；main_init移入extern "C"块；loader.cpp旧名NAPI调用新名C函数；session_alternative_codecs→session_get_alternative_codecs；添加drain_connect_events声明；HAP构建通过 |
+| 2026-06-12 | 成功 | 13 项目发布 RustDesk 1.4.7 OHOS core（138,394,514 bytes，SHA256 A200A839...AADC8）；11 项目 Linux Actions 下载该 core 并成功构建 HAP/APP |
+| 2026-06-12 | 成功 | Linux CI SDK 拆包补齐 `openharmony/previewer/common/bin/libcjson.so` 和 `libsec_shared.so`；ArkTS `AvoidAreaType.TYPE_INPUT` 改为 `TYPE_KEYBOARD`；GitHub Release 将 `.app` 压缩为 `.app.zip` 上传 |
 
 ## 2026-06-03 服务器与共享核心状态
 
@@ -422,14 +448,17 @@ cd $VSCODE_ROOT_LINUX/11_Rustdesk_harmonyos/scripts
 - `get_core_snapshot_json()` 已返回 `incomingReady`、`displayId`、server 和状态摘要，避免 ArkTS 刷新时丢失共享状态。
 - 前端共享开关的多次轮询已收敛为单次延迟刷新；最新 USB 日志中 `incoming-service-requested` 只出现 1 次，App 进程保持稳定。
 - 屏幕采集仍是未完成项：系统截图 fallback 已确认会崩溃并被禁用，真实被控画面需要后续补 Harmony 可用的官方录屏/采集链路。
-## 2026-06-07 verified current core
+
+## 2026-06-12 verified current core
 
 - Upstream compatibility: `RustDesk 1.4.7`.
 - Native core archive: `entry/src/main/libs/arm64/librustdesk_core.a`.
-- Native core size: `137,510,852` bytes (`131.14 MB`).
-- Native core compile time: `2026-06-07 01:36`.
-- Native core SHA256: `8EF4EE215FF7DED1EA78A68BC323A4E51DA613C46DBB6EA75C972EDCC572B272`.
-- App build info after verification: version `0.6.17`, build time `2026-06-07 01:51`.
+- Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`.
+- Native core size: `138,394,514` bytes (`131.98 MB`).
+- Native core compile time: `2026-06-12 02:31`.
+- Native core SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`.
+- Local app build info after verification: version `0.13.30`, build time `2026-06-12 02:57`.
+- Latest online release: `harmonyos-20260612-020111`.
 - Core detail page must show the native core compile time and `Compatible Official Version: RustDesk 1.4.7`; it must not use the app build time for native core metadata.
 - Signed HAP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`.
 - Signed APP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\outputs\default\11_Rustdesk_harmonyos-default-signed.app`.

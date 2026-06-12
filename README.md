@@ -7,3 +7,5 @@ RustDesk HarmonyOS 客户端采用 `staticlib + CMake` 直接链接方案：Rust
 UI 和交互必须跟随项目现有设计：透明状态栏、顶部渐变、主题色由 `AppStorage` 管理、SVG 图标随主题着色、国际化通过 `I18nService.translate()` 与 `i18nVersion` 刷新。菜单入口必须有真实行为、失败提示或明确不可用说明。
 
 构建和发布遵守便携工作区规则：所有临时产物、staging 副本、备份、HAP 输出和缓存默认放在 `%VSCODE_ROOT%/99_Temp/`，不要在文档或脚本里写死盘符或设备硬件编号。增量构建自增 `0.x.patch` 的右侧数字；全量构建自增中间数字并将右侧数字归零。
+
+当前 native core 来自 RustDesk `1.4.7` OHOS release：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`。Linux 在线构建已跑通，最新 HAP/APP 发布见 `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`；APP 资产以 `.app.zip` 上传。

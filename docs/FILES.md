@@ -9,8 +9,9 @@
 | 工作区目录 | 匹配结果 |
 |------|------|
 | `11_Rustdesk_harmonyos/` | 当前 Git 根和 HarmonyOS App 项目根，顶层直接包含 `AppScope/`、`entry/`、`docs/`、`scripts/` |
-| `99_Temp/rustdesk-master/` | RustDesk 上游源码和 Harmony bridge patch 源 |
-| `99_Temp/rustdesk_harmonyos_build/` | Native core 构建工作区、OHOS SDK mirror、vcpkg、外部依赖 |
+| `13_librustdesk_core/` | **核心独立项目**，包含 Rust 桥接层、C++ 桥接层、代码生成脚本、上游源码、OHOS 补丁、CI/CD |
+| `99_Temp/rustdesk-master/` | （历史）RustDesk 上游源码，核心项目已自带 `rustdesk-master/` |
+| `99_Temp/rustdesk_harmonyos_build/` | （历史/辅助）旧 Native core 构建工作区、OHOS SDK mirror、vcpkg、外部依赖；当前 core 权威来源是 `13_librustdesk_core/` |
 | `99_Temp/harmonyos_build/` | HAP 构建输出 |
 | `99_Temp/harmonyos_stage/` | HAP 构建前的干净项目副本，避开本地旧生成目录权限残留 |
 | `99_Temp/harmonyos_cache/` | Hvigor 缓存 |
@@ -35,6 +36,8 @@
 
 ## C++桥接层 (entry/src/main/cpp/)
 
+> **注意**：核心相关文件已迁移到 `%VSCODE_ROOT%\13_librustdesk_core` 项目。本目录的 C++ 桥接层文件从 13 项目的 `cpp/` 目录同步。核心修改在 13 项目进行，修改后需同步到本目录并重新构建 HAP。
+
 | 文件 | 行数 | 作用 |
 |------|------|------|
 | `CMakeLists.txt` | 91 | 构建配置，STATIC LINK MODE链接librustdesk_core.a到bridge SO |
@@ -44,6 +47,8 @@
 | `types/librustdesk_bridge/oh-package.json5` | 6 | NAPI模块包配置 |
 
 ## Rust核心 (native_rust_core/)
+
+> **注意**：Rust 桥接层已迁移到 `%VSCODE_ROOT%\13_librustdesk_core\native_rust_core\`。本目录的 `native_rust_core/` 仅作为历史参考，不再用于构建。核心修改在 13 项目进行，构建产物通过 GitHub Releases 下载。
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
@@ -152,16 +157,26 @@
 
 | 目录 | 作用 |
 |------|------|
-| `rustdesk-master/` | RustDesk官方Rust源码仓库 (上游), Cargo.toml通过path引用；已加入OHOS cfg/stub/patch以支持Ubuntu与Windows交叉编译；`target/`已清理 |
-| `rustdesk_harmonyos_build/` | 保留的构建环境 (ohos-sdk/deveco-sdk/vcpkg/外部依赖源码/tools/patches/构建脚本/当前Rust产物) |
+| `../13_librustdesk_core/` | 当前 RustDesk native core 独立项目；包含上游源码、Rust/C++桥接、代码生成脚本、OHOS patch 和 core CI/CD |
+| `rustdesk-master/` | 历史 RustDesk 官方源码副本；当前 core 源码以 `../13_librustdesk_core/rustdesk-master/` 为准 |
+| `rustdesk_harmonyos_build/` | 保留的历史构建环境 (ohos-sdk/deveco-sdk/vcpkg/外部依赖源码/tools/patches/旧构建脚本/旧Rust产物) |
 | `rustdesk_harmonyos_build/ohos-sdk/` | OpenHarmony Linux Native SDK，Rust交叉编译使用 |
 | `rustdesk_harmonyos_build/deveco-sdk/` | DevEco/OpenHarmony SDK缓存，HAP构建使用 |
 | `rustdesk_harmonyos_build/external-src/` | C依赖源码 (opus/libsodium/aom/libyuv/libvpx) |
 | `rustdesk_harmonyos_build/build/libsodium/aarch64-unknown-linux-ohos/lib/liblibsodium.a` | Windows端交叉编译得到的OHOS libsodium静态库 |
-| `rustdesk_harmonyos_build/native_rust_core/target/harmony/librustdesk_harmony_bridge.a` | Windows native core构建产物；当前同步到项目libs的verified core见`CORE.md`，size `135,575,952` bytes，SHA256 `14863BC23CD2B940664CD501EE1501897E5B1E498150EAFDCFD607B78A38D0D4` |
+| `rustdesk_harmonyos_build/native_rust_core/target/harmony/librustdesk_harmony_bridge.a` | 历史 Windows native core 构建产物；当前 verified core 通过 13 项目 GitHub Releases 下载，见 `CORE.md` |
 | `rustdesk_harmonyos_build/vcpkg/` | vcpkg包管理器及已安装依赖；`downloads/buildtrees/packages`缓存已清理 |
 | `harmonyos_build/` | 当前 HAP 输出目录，项目子目录名与 `11_Rustdesk_harmonyos/` 保持一致 |
 | `harmonyos_stage/` | 临时 staged build 目录，可删除，可由脚本重新生成 |
 | `rustdesk_harmonyos_signing/` | 便携签名材料目录，包含当前 `com.open.rundesk` HAP 签名所需 `.cer`、`.p12`、`.p7b` 和 `material/`；换电脑时必须随 `99_Temp` 一起保留 |
 | `rustdesk_harmonyos_backups/` | 当前项目zip备份目录；只保留最新2份，旧备份清理时删除。备份必须统一写入此目录，不要在 `99_Temp` 下新建 `rustdesk_harmonyos_project_backup_*` 等散落目录；需要备份时运行 `scripts/backup_project.ps1`。 |
 | `rustdesk_harmonyos_test_logs/` | 真机安装/启动日志目录；历史日志仅作参考，当前验证结果以`CONNECTION_DEBUG_LOG.md`为准 |
+
+## 线上 Release 依赖
+
+| 资产 | 作用 |
+|------|------|
+| `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a` | 当前 RustDesk 1.4.7 OHOS native core，SHA256 `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8` |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111` | 当前已验证 HAP/APP 发布结果，APP 资产以 `.app.zip` 形式上传 |

@@ -13,13 +13,15 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 - `audit_connection_chain.ps1`: 50-check connection-chain audit. It verifies native core metadata, NAPI aliases, bridge wrappers, reconnect handling, quality-status display, packaged HAP native libraries, and the absence of the unsupported `libtime_service_ndk.so` runtime dependency. It writes `reports/connection_chain_audit_latest.md`.
 - `audit_full_function_rounds.ps1`: repeatable full-function static/package audit. It checks connection flow, retry/reset handling, LAN discovery, native core metadata, quality info display, service wrappers, GitHub packaging files, and optional HAP/APP artifacts. Use `-Rounds 100` after broad connection-chain changes. It writes `reports/full_function_audit_latest.md`.
 - `github_build_harmonyos.ps1`: GitHub Actions/self-hosted build entry. It can build `hap`, `app`, or `both`; `both` uses the APP packaging task because it also produces the embedded/signed HAP. It has `-PreflightOnly` for DevEco SDK, signing, native core completeness, native core size, and optional SHA256 checks before packaging. By default it builds from a staged copy under `99_Temp` and writes artifacts to `99_Temp/harmonyos_artifacts/<project name>`.
-- `.github/workflows/build-harmonyos.yml`: manual online package workflow. Configure `RUSTDESK_CORE_URL`, `RUSTDESK_CORE_SHA256`, and `RUSTDESK_SIGNING_ZIP_B64`; set `DEVECO_TOOLS_HOME`, `DEVECO_SDK_HOME`, and `DEVECO_NODE_EXE` when the runner does not use the default DevEco install paths. Workflow inputs include `artifact_type`, `version_bump`, `skip_package_verify`, and `disable_stage`.
+- `github_build_harmonyos_linux.sh`: Linux GitHub Actions build entry used by `.github/workflows/build-harmonyos.yml`. It builds from a staged copy, downloads/verifies the native core, produces HAP/APP artifacts, and writes them to the workflow artifact directory.
+- `.github/workflows/build-harmonyos.yml`: current Linux online package workflow. It builds HAP and APP together, downloads the split SDK packages (`harmonyos-sdk-full.zip` and `harmonyos-hvigor-full.zip`), downloads `RUSTDESK_CORE_URL`, verifies `RUSTDESK_CORE_SHA256`, and publishes signed/unsigned HAP plus zipped APP assets. Workflow inputs are `version_bump`, `skip_package_verify`, and `publish_release`.
 
 ## Native core helpers
 
-- `build_native_bridge.ps1`: Windows native core helper. The current project ABI is arm64 only, so the supported target is `aarch64-unknown-linux-ohos`.
-- `build_native_bridge.sh`: Linux native core helper for `aarch64-unknown-linux-ohos`.
-- `extract_linux_native_sdk.sh`: Linux SDK extraction helper used before Linux native builds.
+- Core source and build scripts now live in `%VSCODE_ROOT%/13_librustdesk_core`. Modify Rust/C++ bridge code there, publish `librustdesk_core.a` to `https://github.com/liyan-lucky/librustdesk_core/releases`, then update or download the artifact into this app project.
+- `build_native_bridge.ps1`: legacy/app-side Windows native core helper kept for reference. The current active core build path is the 13 project.
+- `build_native_bridge.sh`: legacy Linux native core helper for `aarch64-unknown-linux-ohos`.
+- `extract_linux_native_sdk.sh`: legacy Linux SDK extraction helper used before Linux native builds.
 - `_ohos-sdk-env.cmd` / `_ohos-sdk-env.sh`: shared SDK discovery helpers.
 - `aarch64-unknown-linux-ohos-clang.cmd` / `.sh`, `aarch64-unknown-linux-ohos-clang++.cmd` / `.sh`, `ohos-llvm-ar.cmd` / `.sh`: compiler and archiver wrappers used by native builds.
 
@@ -50,6 +52,14 @@ Borrowed-computer path overrides:
 - `RUSTDESK_HARMONY_BUILD_DIR` if native build files live outside `%VSCODE_ROOT%/99_Temp/rustdesk_harmonyos_build`.
 
 The Windows HAP entry points set `CI=true`, `RUSTDESK_HARMONY_TEMP_ROOT`, and `BUILD_CACHE_DIR` before Node starts, then build from a staged clean copy. This keeps Hvigor outputs, logs, and Native `.cxx` files under `99_Temp` instead of the real project tree, which is important when the workspace is carried on a USB drive between borrowed computers.
+
+The online Linux workflow uses these default artifact URLs unless secrets or repository variables override them:
+
+- `HARMONYOS_SDK_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
+- `HARMONYOS_HVIGOR_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
+- `RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+
+Release upload rule: keep HAP files as `.hap`, but zip APP bundles as `.app.zip` before uploading to GitHub Release. The workflow also writes `manifest.json` and `SHA256SUMS.txt`.
 
 If install succeeds but launch returns `Error Code:10106102`, the script reports a warning and exits successfully because the device is locked and cannot be auto-unlocked by HDC in developer mode.
 
