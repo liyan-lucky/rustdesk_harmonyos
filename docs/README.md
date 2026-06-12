@@ -157,11 +157,9 @@ UI 交互修复（2026-06-03）：
 2. `README.md`
    - 当前接手入口，说明项目状态、问题结构、文档用途。
 3. `CORE.md`
-   - 当前核心架构、可复现编译、HDC 安装启动、运行验证清单。
-3. `PROGRESS.md`
+   - 核心状态、HAP 构建安装、运行验证清单。核心架构和桥接函数详见 13 项目 `docs/CORE.md`。
+4. `PROGRESS.md`
    - 当前功能完成度、已完成事项、当前重点问题。
-4. `CONNECTION_DEBUG_LOG.md`
-   - 连接问题的逐轮排查记录，最新段落优先。
 5. `ISSUES.md`
    - 问题库和易复发坑，修改前查这里。
 6. `FILES.md`
@@ -170,10 +168,17 @@ UI 交互修复（2026-06-03）：
    - 架构、UI、构建、真机测试设计约束。
 8. `UI.md`
    - UI 布局、图标、核心页面卡片细节。
-9. `BUILD_ARCHIVE.md`
-   - 历史构建、脚本、Ubuntu 路径、早期会话归档；不作为当前产物依据。
-10. `GIT_PUBLISH.md`
+9. `GIT_PUBLISH.md`
    - GitHub 发布规则：本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。
+
+**已迁移到 13 项目的核心文档**（`%VSCODE_ROOT%\13_librustdesk_core\docs\`）：
+- `CORE.md` — 核心架构、桥接函数完整说明（369个函数）、编译问题
+- `BUILD_ARCHIVE.md` — 历史构建、脚本、Ubuntu路径归档
+- `CONNECTION_DEBUG_LOG.md` — 连接问题逐轮排查记录
+- `UBUNTU_CROSS_COMPILE_GUIDE.md` — Ubuntu 交叉编译指南
+- `FUNCTION_LOGIC_AUDIT_*.md` — 功能逻辑审计
+- `SESSION3_SUMMARY.md` — 会话3总结
+- `WINDOWS_SERVICE_OPTIMIZATION.md` — Windows 服务优化
 
 ## 当前构建命令
 

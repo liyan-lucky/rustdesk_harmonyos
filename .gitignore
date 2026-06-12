@@ -5,9 +5,7 @@
 .codeartsdoer/
 .appanalyzer/
 rustdesk_harmonyos/
-native_rust_core/target/
-**/target/
-native_rust_core/cargo-check.log
+native_rust_core/
 
 entry/build/
 **/build/
