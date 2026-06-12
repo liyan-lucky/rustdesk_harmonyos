@@ -137,7 +137,7 @@ fi
 
 if [[ ! -d "$SIGNING_ROOT" ]]; then
   echo "Signing material directory is missing: $SIGNING_ROOT"
-  echo "You need to set RUSTDESK_SIGNING_ZIP_B64 in GitHub Secrets."
+  echo "Set RUSTDESK_SIGNING_ZIP_B64 in GitHub Secrets."
   exit 1
 fi
 

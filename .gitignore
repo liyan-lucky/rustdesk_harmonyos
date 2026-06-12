@@ -26,6 +26,7 @@ local.properties
 .cxx/
 .hvigor/
 
+signing/
 backup_*/
 *.log
 *.tmp
