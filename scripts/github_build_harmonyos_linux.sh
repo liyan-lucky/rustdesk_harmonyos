@@ -91,10 +91,23 @@ export DEVECO_SDK_HOME="$SDK_ROOT"
 export OHOS_HVIGOR_SDK_ROOT="$SDK_ROOT"
 export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
 export PATH="$DEVECO_TOOLS_HOME/bin:$DEVECO_TOOLS_HOME/ohpm/bin:$DEVECO_TOOLS_HOME/hvigor/bin:$PATH"
+SDK_LIBRARY_PATHS=(
+  "$SDK_ROOT/hms/toolchains/lib"
+  "$SDK_ROOT/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin"
+  "$SDK_ROOT/openharmony/toolchains"
+  "$SDK_ROOT/openharmony/toolchains/lib"
+  "$SDK_ROOT/hms/native/sysroot/usr/lib/x86_64-linux-ohos"
+)
+for sdk_library_path in "${SDK_LIBRARY_PATHS[@]}"; do
+  if [[ -d "$sdk_library_path" ]]; then
+    export LD_LIBRARY_PATH="$sdk_library_path:${LD_LIBRARY_PATH:-}"
+  fi
+done
 
 echo "Node: $NODE_EXE"
 echo "HarmonyOS SDK root: $SDK_ROOT"
 echo "DevEco tools root: $DEVECO_TOOLS_HOME"
+echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}"
 
 if [[ ! -d "$SDK_ROOT/openharmony/native" ]]; then
   echo "Warning: $SDK_ROOT/openharmony/native not found."
