@@ -137,45 +137,44 @@ if [[ -n "$SIGNING_ZIP_B64" ]]; then
   cp -a "$SRC_ROOT"/. "$SIGNING_ROOT"/
 fi
 
-if [[ ! -d "$SIGNING_ROOT" ]]; then
-  echo "Signing material directory is missing: $SIGNING_ROOT"
-  echo "Set RUSTDESK_SIGNING_ZIP_B64 in GitHub Secrets."
-  exit 1
+if [[ -d "$SIGNING_ROOT" ]]; then
+  echo "Signing material available at: $SIGNING_ROOT"
+
+  if ! find "$SIGNING_ROOT" -name "*.p12" | grep -q .; then
+    echo "Missing .p12 signing file"
+    SIGNING_ROOT=""
+  fi
+  if ! find "$SIGNING_ROOT" -name "*.cer" | grep -q .; then
+    echo "Missing .cer signing file"
+    SIGNING_ROOT=""
+  fi
+  if ! find "$SIGNING_ROOT" -name "*.p7b" | grep -q .; then
+    echo "Missing .p7b signing file"
+    SIGNING_ROOT=""
+  fi
 fi
 
-if ! find "$SIGNING_ROOT" -name "*.p12" | grep -q .; then
-  echo "Missing .p12 signing file"
-  exit 1
-fi
-
-if ! find "$SIGNING_ROOT" -name "*.cer" | grep -q .; then
-  echo "Missing .cer signing file"
-  exit 1
-fi
-
-if ! find "$SIGNING_ROOT" -name "*.p7b" | grep -q .; then
-  echo "Missing .p7b signing file"
-  exit 1
-fi
-
-if [[ ! -d "$SIGNING_ROOT/material" ]]; then
-  echo "Warning: missing signing material directory: $SIGNING_ROOT/material"
-fi
-
-echo "Signing material: $SIGNING_ROOT"
-
-SIGNING_IN_PROJECT="$PROJECT_ROOT/signing"
-rm -rf "$SIGNING_IN_PROJECT"
-mkdir -p "$SIGNING_IN_PROJECT"
-cp -a "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
-
-if [[ -d "$SIGNING_ROOT/material" ]]; then
+if [[ -d "$SIGNING_ROOT" ]] && [[ -d "$SIGNING_ROOT/material" ]]; then
+  SIGNING_IN_PROJECT="$PROJECT_ROOT/signing"
+  rm -rf "$SIGNING_IN_PROJECT"
+  mkdir -p "$SIGNING_IN_PROJECT"
+  cp -a "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
   cp -a "$SIGNING_ROOT/material" "$SIGNING_IN_PROJECT/material"
+
+  sed -i 's|../99_Temp/rustdesk_harmonyos_signing/|./signing/|g' "$PROJECT_ROOT/build-profile.json5"
+  echo "Patched build-profile.json5 signing paths to ./signing/ (signed build)"
+else
+  echo "No valid signing material found; building unsigned HAP"
+  python3 -c "
+import json, re, sys
+with open('$PROJECT_ROOT/build-profile.json5', 'r') as f:
+    content = f.read()
+content = re.sub(r'\"signingConfig\"\s*:\s*\"default\"', '\"signingConfig\": \"\"', content)
+with open('$PROJECT_ROOT/build-profile.json5', 'w') as f:
+    f.write(content)
+print('Removed signingConfig from build-profile.json5 (unsigned build)')
+"
 fi
-
-sed -i 's|../99_Temp/rustdesk_harmonyos_signing/|./signing/|g' "$PROJECT_ROOT/build-profile.json5"
-
-echo "Patched build-profile.json5 signing paths to ./signing/"
 
 CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
 
@@ -260,7 +259,7 @@ rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$ARTIFACTS_DIR"
 
 mapfile -t PACKAGES < <(
-  find "$PROJECT_ROOT" "$TEMP_ROOT" -type f -name "*.hap" 2>/dev/null | sort -u
+  find "$PROJECT_ROOT" "$TEMP_ROOT" -type f \( -name "entry-default-signed.hap" -o -name "entry-default-unsigned.hap" \) 2>/dev/null | sort -u
 )
 
 if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
