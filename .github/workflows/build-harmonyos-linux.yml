@@ -1,4 +1,4 @@
-name: Build HarmonyOS Package Linux
+name: Build HarmonyOS HAP Linux
 
 on:
   push:
@@ -8,15 +8,6 @@ on:
       - "**.md"
   workflow_dispatch:
     inputs:
-      artifact_type:
-        description: "Package type to build"
-        required: true
-        default: "both"
-        type: choice
-        options:
-          - both
-          - hap
-          - app
       version_bump:
         description: "Version bump mode before packaging"
         required: true
@@ -39,18 +30,18 @@ on:
 
 jobs:
   build:
-    name: Build HarmonyOS Linux
+    name: Build HAP Linux
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
     env:
       CI: "true"
-      ARTIFACT_TYPE: ${{ github.event.inputs.artifact_type || 'both' }}
+      ARTIFACT_TYPE: "hap"
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
       PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
 
-      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
+      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
       HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip' }}
@@ -266,6 +257,6 @@ jobs:
         if: ${{ github.event.inputs.preflight_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: harmonyos-${{ github.event.inputs.artifact_type || 'both' }}
-          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
+          name: harmonyos-hap
+          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
           if-no-files-found: error

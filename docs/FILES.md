@@ -22,13 +22,12 @@
 
 | 文件 | 作用 |
 |------|------|
-| `README.md` | 新对话接手入口，说明当前状态、问题结构和阅读顺序 |
-| `CORE.md` | 核心架构、可复现编译、HDC安装启动、运行验证清单 |
+| `README.md` | 新对话接手入口，说明当前状态、问题结构和阅读顺序 || `CORE.md` | 核心架构、可复现编译、HDC安装启动、运行验证清单 |
 | `PROGRESS.md` | 当前功能进度、已完成事项、重点问题 |
 | `CONNECTION_DEBUG_LOG.md` | 连接问题逐轮排查记录 |
 | `ISSUES.md` | 问题库和易复发坑 |
 | `FILES.md` | 文件职责和外部依赖目录 |
-| `DESIGN.md` | 架构、UI、构建、真机测试设计约束 |
+| ~~`DESIGN.md`~~ | 已合并到项目根 `README.md` |
 | `UI.md` | UI布局、图标、核心页卡片细节 |
 | `BUILD_ARCHIVE.md` | 历史构建、脚本、Ubuntu路径和早期会话归档 |
 | `GIT_PUBLISH.md` | GitHub 发布说明。本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。 |
@@ -171,12 +170,13 @@
 | `rustdesk_harmonyos_signing/` | 便携签名材料目录，包含当前 `com.open.rundesk` HAP 签名所需 `.cer`、`.p12`、`.p7b` 和 `material/`；换电脑时必须随 `99_Temp` 一起保留 |
 | `rustdesk_harmonyos_backups/` | 当前项目zip备份目录；只保留最新2份，旧备份清理时删除。备份必须统一写入此目录，不要在 `99_Temp` 下新建 `rustdesk_harmonyos_project_backup_*` 等散落目录；需要备份时运行 `scripts/backup_project.ps1`。 |
 | `rustdesk_harmonyos_test_logs/` | 真机安装/启动日志目录；历史日志仅作参考，当前验证结果以`CONNECTION_DEBUG_LOG.md`为准 |
+| `librustdesk_core/` | 构建前下载 native core 的临时目录；`scripts/fetch_native_core.ps1` 和 Linux 构建脚本会先下载到这里再替换 `entry/src/main/libs/arm64/librustdesk_core.a` |
 
 ## 线上 Release 依赖
 
 | 资产 | 作用 |
 |------|------|
-| `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a` | 当前 RustDesk 1.4.7 OHOS native core，SHA256 `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8` |
+| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前强制刷新，当前 latest release `core-70`，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153` |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
-| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111` | 当前已验证 HAP/APP 发布结果，APP 资产以 `.app.zip` 形式上传 |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038` | 当前最新 App release；本地已验证 core-70 HAP，但线上 App workflow 需推送后重跑 |

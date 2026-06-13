@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ARTIFACT_TYPE="both"
+ARTIFACT_TYPE="hap"
 VERSION_BUMP="incremental"
-CORE_URL="${RUSTDESK_CORE_URL:-}"
+DEFAULT_CORE_URL="https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a"
+CORE_URL="${RUSTDESK_CORE_URL:-$DEFAULT_CORE_URL}"
 EXPECTED_CORE_SHA256="${RUSTDESK_CORE_SHA256:-}"
 SIGNING_ZIP_B64="${RUSTDESK_SIGNING_ZIP_B64:-}"
 ARTIFACTS_DIR=""
@@ -24,7 +25,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-case "$ARTIFACT_TYPE" in hap|app|both) ;; *) echo "Invalid artifact type: $ARTIFACT_TYPE"; exit 1 ;; esac
+case "$ARTIFACT_TYPE" in hap) ;; *) echo "Invalid artifact type: $ARTIFACT_TYPE; online builds are HAP-only"; exit 1 ;; esac
 case "$VERSION_BUMP" in none|incremental|full) ;; *) echo "Invalid version bump: $VERSION_BUMP"; exit 1 ;; esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,6 +48,7 @@ echo "Project: $PROJECT_ROOT"
 echo "Temp root: $TEMP_ROOT"
 echo "Artifact type: $ARTIFACT_TYPE"
 echo "Version bump: $VERSION_BUMP"
+echo "Native core URL: $CORE_URL"
 
 need_file() {
   local path="$1"
@@ -164,15 +166,23 @@ echo "Signing material: $SIGNING_ROOT"
 
 CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
 
-if [[ ! -f "$CORE_PATH" && -n "$CORE_URL" ]]; then
-  echo "Native core is missing; downloading from RUSTDESK_CORE_URL."
+if [[ "${RUSTDESK_CORE_SKIP_DOWNLOAD:-}" =~ ^(1|true|yes)$ ]]; then
+  echo "Native core download skipped by RUSTDESK_CORE_SKIP_DOWNLOAD."
+elif [[ -n "$CORE_URL" ]]; then
+  DOWNLOAD_DIR="$TEMP_ROOT/librustdesk_core"
+  TMP_CORE="$DOWNLOAD_DIR/librustdesk_core_$(date -u +%Y%m%d%H%M%S).a.tmp"
+  echo "Downloading native core."
+  echo "  URL: $CORE_URL"
+  echo "  To : $TMP_CORE"
   mkdir -p "$(dirname "$CORE_PATH")"
-  curl -L --fail --retry 3 -o "$CORE_PATH" "$CORE_URL"
+  mkdir -p "$DOWNLOAD_DIR"
+  curl -L --fail --retry 3 --retry-delay 5 -o "$TMP_CORE" "$CORE_URL"
+  mv -f "$TMP_CORE" "$CORE_PATH"
 fi
 
 if [[ ! -f "$CORE_PATH" ]]; then
   echo "Native core staticlib is missing: $CORE_PATH"
-  echo "You need to set RUSTDESK_CORE_URL or commit librustdesk_core.a into the repository."
+  echo "Use the default latest release asset, set RUSTDESK_CORE_URL, or set RUSTDESK_CORE_SKIP_DOWNLOAD only when a valid local core exists."
   exit 1
 fi
 
@@ -211,17 +221,7 @@ else
   export RUSTDESK_HARMONY_VERSION_BUMP="$VERSION_BUMP"
 fi
 
-case "$ARTIFACT_TYPE" in
-  hap)
-    TASKS=("assembleHap")
-    ;;
-  app)
-    TASKS=("assembleApp")
-    ;;
-  both)
-    TASKS=("assembleApp")
-    ;;
-esac
+TASKS=("assembleHap")
 
 echo "Running Hvigor tasks: ${TASKS[*]}"
 
@@ -247,7 +247,7 @@ rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$ARTIFACTS_DIR"
 
 mapfile -t PACKAGES < <(
-  find "$PROJECT_ROOT" "$TEMP_ROOT" -type f \( -name "*.hap" -o -name "*.app" \) 2>/dev/null | sort -u
+  find "$PROJECT_ROOT" "$TEMP_ROOT" -type f -name "*.hap" 2>/dev/null | sort -u
 )
 
 if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
@@ -255,17 +255,7 @@ if [[ "${#PACKAGES[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-case "$ARTIFACT_TYPE" in
-  hap)
-    NEED_EXTS=("hap")
-    ;;
-  app)
-    NEED_EXTS=("app")
-    ;;
-  both)
-    NEED_EXTS=("hap" "app")
-    ;;
-esac
+NEED_EXTS=("hap")
 
 for ext in "${NEED_EXTS[@]}"; do
   FOUND="false"
@@ -286,22 +276,6 @@ done
 if [[ "$SKIP_PACKAGE_VERIFY" != "true" ]]; then
   echo "Linux version currently skips native HAP verification."
 fi
-
-MANIFEST="$ARTIFACTS_DIR/manifest.json"
-
-cat > "$MANIFEST" <<EOF
-{
-  "generatedAt": "$(date '+%Y-%m-%d %H:%M:%S')",
-  "artifactType": "$ARTIFACT_TYPE",
-  "versionBump": "$VERSION_BUMP",
-  "project": "$PROJECT_NAME",
-  "core": {
-    "path": "$CORE_PATH",
-    "size": $CORE_SIZE,
-    "sha256": "$CORE_SHA256"
-  }
-}
-EOF
 
 echo "Generated artifacts:"
 find "$ARTIFACTS_DIR" -maxdepth 1 -type f -print

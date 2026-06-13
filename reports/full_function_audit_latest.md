@@ -1,114 +1,15 @@
 ﻿# Full Function Audit
 
-- Started: 2026-06-07 07:24:30
-- Finished: 2026-06-07 07:24:47
+- Started: 2026-06-13 00:26:42
+- Finished: 2026-06-13 00:26:44
 - Project: L:\Visual_Studio_Code\11_Rustdesk_harmonyos
-- Rounds: 100
+- Rounds: 1
 - Checks per round: 96
-- Total pass: 9600
+- Total pass: 95
 - Total fail: 0
-- Total skip: 0
-- HAP: L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos\entry-default-signed.hap
-- APP: L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos\11_Rustdesk_harmonyos-default-signed.app
+- Total skip: 1
+- HAP: L:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
+- APP: not found
 
 ## Rounds
-- Round 1: pass=96, fail=0, skip=0
-- Round 2: pass=96, fail=0, skip=0
-- Round 3: pass=96, fail=0, skip=0
-- Round 4: pass=96, fail=0, skip=0
-- Round 5: pass=96, fail=0, skip=0
-- Round 6: pass=96, fail=0, skip=0
-- Round 7: pass=96, fail=0, skip=0
-- Round 8: pass=96, fail=0, skip=0
-- Round 9: pass=96, fail=0, skip=0
-- Round 10: pass=96, fail=0, skip=0
-- Round 11: pass=96, fail=0, skip=0
-- Round 12: pass=96, fail=0, skip=0
-- Round 13: pass=96, fail=0, skip=0
-- Round 14: pass=96, fail=0, skip=0
-- Round 15: pass=96, fail=0, skip=0
-- Round 16: pass=96, fail=0, skip=0
-- Round 17: pass=96, fail=0, skip=0
-- Round 18: pass=96, fail=0, skip=0
-- Round 19: pass=96, fail=0, skip=0
-- Round 20: pass=96, fail=0, skip=0
-- Round 21: pass=96, fail=0, skip=0
-- Round 22: pass=96, fail=0, skip=0
-- Round 23: pass=96, fail=0, skip=0
-- Round 24: pass=96, fail=0, skip=0
-- Round 25: pass=96, fail=0, skip=0
-- Round 26: pass=96, fail=0, skip=0
-- Round 27: pass=96, fail=0, skip=0
-- Round 28: pass=96, fail=0, skip=0
-- Round 29: pass=96, fail=0, skip=0
-- Round 30: pass=96, fail=0, skip=0
-- Round 31: pass=96, fail=0, skip=0
-- Round 32: pass=96, fail=0, skip=0
-- Round 33: pass=96, fail=0, skip=0
-- Round 34: pass=96, fail=0, skip=0
-- Round 35: pass=96, fail=0, skip=0
-- Round 36: pass=96, fail=0, skip=0
-- Round 37: pass=96, fail=0, skip=0
-- Round 38: pass=96, fail=0, skip=0
-- Round 39: pass=96, fail=0, skip=0
-- Round 40: pass=96, fail=0, skip=0
-- Round 41: pass=96, fail=0, skip=0
-- Round 42: pass=96, fail=0, skip=0
-- Round 43: pass=96, fail=0, skip=0
-- Round 44: pass=96, fail=0, skip=0
-- Round 45: pass=96, fail=0, skip=0
-- Round 46: pass=96, fail=0, skip=0
-- Round 47: pass=96, fail=0, skip=0
-- Round 48: pass=96, fail=0, skip=0
-- Round 49: pass=96, fail=0, skip=0
-- Round 50: pass=96, fail=0, skip=0
-- Round 51: pass=96, fail=0, skip=0
-- Round 52: pass=96, fail=0, skip=0
-- Round 53: pass=96, fail=0, skip=0
-- Round 54: pass=96, fail=0, skip=0
-- Round 55: pass=96, fail=0, skip=0
-- Round 56: pass=96, fail=0, skip=0
-- Round 57: pass=96, fail=0, skip=0
-- Round 58: pass=96, fail=0, skip=0
-- Round 59: pass=96, fail=0, skip=0
-- Round 60: pass=96, fail=0, skip=0
-- Round 61: pass=96, fail=0, skip=0
-- Round 62: pass=96, fail=0, skip=0
-- Round 63: pass=96, fail=0, skip=0
-- Round 64: pass=96, fail=0, skip=0
-- Round 65: pass=96, fail=0, skip=0
-- Round 66: pass=96, fail=0, skip=0
-- Round 67: pass=96, fail=0, skip=0
-- Round 68: pass=96, fail=0, skip=0
-- Round 69: pass=96, fail=0, skip=0
-- Round 70: pass=96, fail=0, skip=0
-- Round 71: pass=96, fail=0, skip=0
-- Round 72: pass=96, fail=0, skip=0
-- Round 73: pass=96, fail=0, skip=0
-- Round 74: pass=96, fail=0, skip=0
-- Round 75: pass=96, fail=0, skip=0
-- Round 76: pass=96, fail=0, skip=0
-- Round 77: pass=96, fail=0, skip=0
-- Round 78: pass=96, fail=0, skip=0
-- Round 79: pass=96, fail=0, skip=0
-- Round 80: pass=96, fail=0, skip=0
-- Round 81: pass=96, fail=0, skip=0
-- Round 82: pass=96, fail=0, skip=0
-- Round 83: pass=96, fail=0, skip=0
-- Round 84: pass=96, fail=0, skip=0
-- Round 85: pass=96, fail=0, skip=0
-- Round 86: pass=96, fail=0, skip=0
-- Round 87: pass=96, fail=0, skip=0
-- Round 88: pass=96, fail=0, skip=0
-- Round 89: pass=96, fail=0, skip=0
-- Round 90: pass=96, fail=0, skip=0
-- Round 91: pass=96, fail=0, skip=0
-- Round 92: pass=96, fail=0, skip=0
-- Round 93: pass=96, fail=0, skip=0
-- Round 94: pass=96, fail=0, skip=0
-- Round 95: pass=96, fail=0, skip=0
-- Round 96: pass=96, fail=0, skip=0
-- Round 97: pass=96, fail=0, skip=0
-- Round 98: pass=96, fail=0, skip=0
-- Round 99: pass=96, fail=0, skip=0
-- Round 100: pass=96, fail=0, skip=0
+- Round 1: pass=95, fail=0, skip=1

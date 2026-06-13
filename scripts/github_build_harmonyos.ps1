@@ -1,6 +1,6 @@
 param(
-  [ValidateSet("hap", "app", "both")]
-  [string]$ArtifactType = "both",
+  [ValidateSet("hap")]
+  [string]$ArtifactType = "hap",
   [ValidateSet("none", "incremental", "full")]
   [string]$VersionBump = "incremental",
   [string]$CoreUrl = $env:RUSTDESK_CORE_URL,
@@ -18,6 +18,10 @@ $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
 $projectRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $scriptDir))
 $projectName = Split-Path -Leaf $projectRoot
+$defaultCoreUrl = "https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a"
+if ([string]::IsNullOrWhiteSpace($CoreUrl)) {
+  $CoreUrl = $defaultCoreUrl
+}
 $tempRoot = if ($env:RUSTDESK_HARMONY_TEMP_ROOT) {
   [System.IO.Path]::GetFullPath($env:RUSTDESK_HARMONY_TEMP_ROOT)
 } else {
@@ -213,14 +217,26 @@ function Get-CoreBuildInfoSha256 {
 
 function Confirm-NativeCore {
   $corePath = Join-Path $projectRoot "entry\src\main\libs\arm64\librustdesk_core.a"
-  if (-not (Test-Path -LiteralPath $corePath) -and -not [string]::IsNullOrWhiteSpace($CoreUrl)) {
-    Write-Host "Native core is missing; downloading from RUSTDESK_CORE_URL."
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $corePath) | Out-Null
-    Invoke-WebRequest -Uri $CoreUrl -OutFile $corePath
+  $fetchCoreScript = Join-Path $scriptDir "fetch_native_core.ps1"
+  if (-not (Test-Path -LiteralPath $fetchCoreScript)) {
+    throw "Native core fetch script was not found: $fetchCoreScript"
+  }
+
+  $global:LASTEXITCODE = 0
+  & $fetchCoreScript `
+    -ProjectRoot $projectRoot `
+    -CoreUrl $CoreUrl `
+    -ExpectedSha256 $ExpectedCoreSha256 `
+    -MinCoreBytes $MinCoreBytes `
+    -Force
+  $fetchSucceeded = $?
+  $fetchExitCode = $LASTEXITCODE
+  if (-not $fetchSucceeded -or $fetchExitCode -ne 0) {
+    throw "Native core download failed with exit code $fetchExitCode."
   }
 
   if (-not (Test-Path -LiteralPath $corePath)) {
-    throw "Native core staticlib is missing: $corePath. Provide RUSTDESK_CORE_URL or commit a valid local core outside CI."
+    throw "Native core staticlib is missing: $corePath."
   }
 
   $coreItem = Get-Item -LiteralPath $corePath
@@ -229,7 +245,7 @@ function Confirm-NativeCore {
   }
 
   $sha256 = (Get-FileHash -LiteralPath $corePath -Algorithm SHA256).Hash.ToUpperInvariant()
-  $expected = $ExpectedCoreSha256.Trim().ToUpperInvariant()
+  $expected = if ($ExpectedCoreSha256) { $ExpectedCoreSha256.Trim().ToUpperInvariant() } else { "" }
   if (-not [string]::IsNullOrWhiteSpace($expected) -and $sha256 -ne $expected) {
     throw "Native core SHA256 mismatch. Expected $expected but got $sha256"
   }
@@ -335,6 +351,7 @@ function Confirm-RequiredRepoFiles {
     "entry\src\main\cpp\types\librustdesk_bridge\index.d.ts",
     "entry\src\main\module.json5",
     "scripts\run_hvigor_with_sdk_patch.js",
+    "scripts\fetch_native_core.ps1",
     "scripts\stage_project_for_build.ps1",
     "scripts\sync_build_version_from_stage.ps1"
   )
@@ -348,13 +365,7 @@ function Confirm-RequiredRepoFiles {
 }
 
 function Get-HvigorTasks {
-  if ($ArtifactType -eq "hap") {
-    return @("assembleHap")
-  }
-  if ($ArtifactType -eq "app") {
-    return @("assembleApp")
-  }
-  return @("assembleApp")
+  return @("assembleHap")
 }
 
 function Get-PackageSearchRoots {
@@ -447,13 +458,7 @@ function Copy-BuildArtifacts {
     $projectRoot
   }
   $artifactRoot = Reset-Directory -Path $ArtifactsDir -SafeParent $artifactSafeParent -Label "Artifacts directory"
-  $expectedExtensions = if ($ArtifactType -eq "both") {
-    @(".hap", ".app")
-  } elseif ($ArtifactType -eq "hap") {
-    @(".hap")
-  } else {
-    @(".app")
-  }
+  $expectedExtensions = @(".hap")
 
   $searchRoots = Get-PackageSearchRoots
 
@@ -464,7 +469,7 @@ function Copy-BuildArtifacts {
   $allPackageFiles = New-Object System.Collections.Generic.List[System.IO.FileInfo]
   foreach ($root in $searchRoots) {
     Get-ChildItem -LiteralPath $root -Recurse -File -ErrorAction SilentlyContinue |
-      Where-Object { $_.Extension -in @(".hap", ".app") } |
+      Where-Object { $_.Extension -eq ".hap" } |
       ForEach-Object { $allPackageFiles.Add($_) | Out-Null }
   }
 
@@ -500,13 +505,6 @@ function Copy-BuildArtifacts {
         Source = $file.FullName
       }) | Out-Null
     }
-  }
-
-  $packInfo = $allPackageFiles |
-    Select-Object -First 1 |
-    ForEach-Object { Join-Path $_.DirectoryName "pack.info" }
-  if ($packInfo -and (Test-Path -LiteralPath $packInfo)) {
-    Copy-Item -LiteralPath $packInfo -Destination (Join-Path $artifactRoot "pack.info") -Force
   }
 
   return $copied
@@ -559,27 +557,6 @@ function Invoke-PackageVerification {
   }
 }
 
-function Write-Manifest {
-  param(
-    [Parameter(Mandatory = $true)]
-    [object]$CoreInfo,
-    [Parameter(Mandatory = $true)]
-    [object[]]$Artifacts
-  )
-
-  $manifest = [ordered]@{
-    generatedAt = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-    artifactType = $ArtifactType
-    versionBump = $VersionBump
-    project = $projectName
-    core = $CoreInfo
-    artifacts = $Artifacts
-  }
-  $manifestPath = Join-Path $ArtifactsDir "manifest.json"
-  $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-  Write-Host "Artifact manifest: $manifestPath"
-}
-
 Write-Host "HarmonyOS GitHub build preflight"
 Write-Host "Project: $projectRoot"
 Write-Host "Temp root: $tempRoot"
@@ -612,7 +589,6 @@ Invoke-HarmonyBuild -NodeExe $nodeExe -Tasks $tasks -BuildRoot $buildRoot
 Sync-BuildStage -BuildRoot $buildRoot
 $artifacts = Copy-BuildArtifacts
 Invoke-PackageVerification
-Write-Manifest -CoreInfo $coreInfo -Artifacts @($artifacts)
 
 Write-Host "Generated artifacts:"
 foreach ($artifact in @($artifacts)) {

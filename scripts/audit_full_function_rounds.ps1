@@ -316,13 +316,13 @@ Add-PatternCheck "native TS wrapper declares core loaded" "entry\src\main\ets\se
 Add-PatternCheck "native TS wrapper declares debug summary" "entry\src\main\ets\services\NativeRustDeskBridge.ts" "getCombinedDebugSummary"
 
 Add-PatternCheck "github build checks native core" "scripts\github_build_harmonyos.ps1" "Confirm-NativeCore"
-Add-PatternCheck "github build can build hap/app/both" "scripts\github_build_harmonyos.ps1" 'ValidateSet\("hap",\s*"app",\s*"both"\)'
+Add-PatternCheck "github build script is HAP-only" "scripts\github_build_harmonyos.ps1" 'ValidateSet\("hap"\)'
 Add-PatternCheck "github build verifies package" "scripts\github_build_harmonyos.ps1" "Invoke-PackageVerification"
 Add-PatternCheck "github build uses staged project" "scripts\github_build_harmonyos.ps1" "New-BuildStage"
 Add-PatternCheck "github build syncs staged metadata" "scripts\github_build_harmonyos.ps1" "Sync-BuildStage"
-Add-PatternCheck "github workflow exposes HAP and APP choice" ".github\workflows\build-harmonyos.yml" "artifact_type"
+Add-PatternCheck "github workflow builds HAP only" ".github\workflows\build-harmonyos.yml" 'ARTIFACT_TYPE:\s*"hap"'
 Add-PatternCheck "github workflow exposes package verify switch" ".github\workflows\build-harmonyos.yml" "skip_package_verify"
-Add-PatternCheck "github workflow exposes stage switch" ".github\workflows\build-harmonyos.yml" "disable_stage"
+Add-NotPatternCheck "github workflow avoids APP and extra release assets" ".github\workflows\build-harmonyos.yml" "\.app\.zip|manifest\.json|SHA256SUMS\.txt"
 
 Add-NotPatternCheck "CMake avoids unsupported time_service_ndk" "entry\src\main\cpp\CMakeLists.txt" "time_service_ndk"
 Add-NotPatternCheck "native wrapper avoids fake module fallback for loaded core" "entry\src\main\ets\services\NativeRustDeskBridge.ts" "Module:\s*FAILED"

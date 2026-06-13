@@ -3531,14 +3531,9 @@ struct Index {
       return;
     }
 
-    this.pendingPassword = '';
-    this.showPasswordDialog = true;
-    this.pendingPasswordDialogProactive = true;
-    this.setStatusMessage("connecting", targetId);
-
     hilog.info(0xA03D00, 'CONN', `[handleConnect] parallel: no saved password for ${targetId}, showing password dialog + empty-password connect`);
+    this.showConnectPasswordDialog(targetId, true);
     void this.initiateBackgroundConnection(targetId);
-    void this.monitorConnectionWhileWaiting();
   }
 
   private async initiateBackgroundConnection(peerId: string, password: string = ''): Promise<boolean> {
@@ -3652,6 +3647,22 @@ struct Index {
       ScreenCaptureService.getInstance().stopCapture();
       NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
     }
+    if (enabled && !captureReady) {
+      this.settings = this.appData.updateSettings({
+        serviceEnabled: false,
+        allowRemoteControl: false
+      });
+      this.localDevice = this.appData.setServiceEnabled(false);
+      this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(false, this.settings);
+      this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
+      this.oneTimePassword = this.appData.getPassword();
+      this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();
+      this.setStatusMessageRaw(this.lt('Screen capture unavailable, share service not started'));
+      setTimeout(() => {
+        void this.refreshState();
+      }, 500);
+      return;
+    }
     this.settings = this.appData.updateSettings({
       serviceEnabled: enabled,
       allowRemoteControl: enabled
@@ -3664,9 +3675,6 @@ struct Index {
     this.oneTimePassword = this.appData.getPassword();
     this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();
     this.setStatusMessage(enabled ? "share_requested" : "share_stopped");
-    if (enabled && !captureReady) {
-      this.setStatusMessageRaw(this.lt('Screen capture unavailable, incoming service requested'));
-    }
     setTimeout(() => {
       void this.refreshState();
     }, 500);

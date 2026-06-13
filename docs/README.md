@@ -13,15 +13,15 @@
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-12 02:57`
-  - App 显示版本：`0.13.30`
-  - versionCode：`1000061`
+  - BuildInfo 编译时间：`2026-06-13 08:18`
+  - App 显示版本：`0.13.40`
+  - versionCode：`1000071`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
-  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`
-  - 发布产物包含 signed/unsigned HAP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
-  - GitHub Release 不直接上传 `.app`，必须先压缩为 `.app.zip`
+  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
+  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-70/HAP-only 修正）
+  - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：
   - SDK：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
@@ -59,11 +59,12 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - 大小：`138,394,514` bytes
-  - 编译时间/mtime：`2026-06-12 02:31`
-  - FNV-1a 1MB：`11786fd9`
-  - SHA256：`A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
-  - 下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
+  - release：`core-70`
+  - 大小：`131,263,476` bytes
+  - 编译时间/mtime：`2026-06-13 08:18`
+  - FNV-1a 1MB：`317b77b6`
+  - SHA256：`3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+  - 默认下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`
   - `Native Module`
@@ -77,6 +78,7 @@
 
 - **ScreenCaptureService 当前SDK下screen capture API不可用**（2026-06-03）。`@ohos.avScreenCapture` 无类型声明不可编译，`@ohos.screenshot.capture()` 会触发signal:6崩溃。真实屏幕采集需后续接入Harmony可用的官方录屏/采集链路。
 - Toggle 回弹、ForEach key、startCapture throw 等问题已修复（2026-06-03）。
+- 2026-06-12 起，录屏不可用时共享服务不能显示为运行中：ArkTS 回滚 `serviceEnabled/allowRemoteControl`，native core 返回 `incomingReady=false`，避免其他设备连接后一直等待视频流。
 
 LAN 发现（2026-06-03）：
 
@@ -164,8 +166,8 @@ UI 交互修复（2026-06-03）：
    - 问题库和易复发坑，修改前查这里。
 6. `FILES.md`
    - 文件职责和外部依赖目录说明。
-7. `DESIGN.md`
-   - 架构、UI、构建、真机测试设计约束。
+7. `README.md`（项目根，设计要求）
+   - 架构、UI、构建、真机测试设计约束。原 `docs/DESIGN.md` 已合并到项目根 `README.md`。
 8. `UI.md`
    - UI 布局、图标、核心页面卡片细节。
 9. `GIT_PUBLISH.md`
@@ -209,16 +211,18 @@ Set-Location "$env:VSCODE_ROOT\13_librustdesk_core"
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1
 ```
 
-线上构建 HAP/APP：
+线上构建 HAP：
 
 ```text
-GitHub Actions -> Build HarmonyOS Package Linux
+GitHub Actions -> Build HarmonyOS HAP Linux
 version_bump: incremental
 skip_package_verify: true
 publish_release: true
 ```
 
-线上 workflow 会下载 `harmonyos-sdk-full.zip`、`harmonyos-hvigor-full.zip` 和 `RUSTDESK_CORE_URL` 指向的 `librustdesk_core.a`，构建 signed/unsigned HAP 与 APP，并将 `.app` 压缩成 `.app.zip` 后发布。
+线上 workflow 会下载 `harmonyos-sdk-full.zip`、`harmonyos-hvigor-full.zip` 和 `RUSTDESK_CORE_URL` 指向的 `librustdesk_core.a`；未设置 `RUSTDESK_CORE_URL` 时默认跟随 `librustdesk_core` 仓库 latest release 的 `librustdesk_core.a`。线上脚本只构建和上传 HAP。
+
+2026-06-13 本地 core-70 验证：`librustdesk_core.a` 从 `core-70` release 下载，HAP 构建为 `0.13.40`，signed HAP `18,746,449` bytes / SHA256 `A927DA8F54806F0AA53AEAD16575016AE6F535B8AED5FCA537AD7F219E35F070`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，无线设备安装成功，但锁屏导致 `aa start` 返回 `Error Code:10106102`，视频流需解锁后复测。
 
 ## 接手规则
 
@@ -226,7 +230,7 @@ publish_release: true
 - 每次修改代码、资源、脚本或文档，都必须同步更新相关项目文档，保持新开对话读取文档即可接手。
 - 每轮修改后必须进行构建验证；ArkTS/UI 修改至少运行 HAP 构建，涉及 native core 时先重编 native core，再构建 HAP。
 - 涉及设备行为、会话连接、共享服务、LAN 发现或输入转发时，构建后优先使用 USB 设备安装启动验证。
-- 修改核心后必须先在 `%VSCODE_ROOT%\13_librustdesk_core` 构建并发布 `librustdesk_core.a`，再更新 11 项目的 `entry/src/main/libs/arm64/librustdesk_core.a`，随后构建 HAP/APP 并安装验证。
+- 修改核心后必须先在 `%VSCODE_ROOT%\13_librustdesk_core` 构建并发布 `librustdesk_core.a`，再由 11 项目构建脚本从 latest release 或 `RUSTDESK_CORE_URL` 下载到 `entry/src/main/libs/arm64/librustdesk_core.a`，随后构建 HAP 并安装验证。
 - 修改 ArkTS/UI 后至少重新构建 HAP 并安装验证。
 - 多目标 HDC 环境必须显式加 `-t <target>`。
 - 当前优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标。
@@ -237,13 +241,13 @@ publish_release: true
 
 - 服务器配置默认值已改为“官方默认但不显示”：设置中空 ID/Relay/API 会在运行时回落到官方 `rs-ny.rustdesk.com`、`rs-ny.rustdesk.com`、`https://admin.rustdesk.com`，UI 只显示“官方默认”。
 - 扫码页已改为相机扫码页，支持相册图片二维码识别；扫到服务器配置导入文本时会直接写入服务器配置并保存，扫到普通设备 ID 时继续写入最近会话和通讯录。
-- 共享服务 native incoming 入口已从空 `{}` 返回修正为请求启动 official server；最新 HAP 已安装到 USB 设备，但设备锁屏导致启动复测暂时阻塞。
+- 共享服务 native incoming 入口在未接入真实屏幕采集/desktop server 时返回 `incomingReady=false`，不能再用 incoming requested 假运行状态对外宣称可被控；真实被控画面仍需后续接入 Harmony 可用录屏/采集链路。
 
 ## 2026-06-05 当前补充
 
 - `scripts\build_hap.bat` 标记为增量构建，每次构建将版本号右侧数字自增 1。
 - `scripts\build_full_hap.bat` 标记为全量构建，每次构建将版本号中间数字自增 1，并把右侧数字归零。
 - `run_hvigor_with_sdk_patch.js` 会同步更新 `AppScope/app.json5` 的 `versionName/versionCode` 和 `BuildInfo.ets` 的 `BUILD_TIME/VERSION`。
-- 项目根目录新增 `README.md`，线上仓库默认介绍以 `DESIGN` 为入口，并指向 `docs/DESIGN.md`。
+- 项目根目录新增 `README.md`，线上仓库默认介绍为完整项目设计要求（原 `docs/DESIGN.md` 已合并到根 README.md）。
 - 聊天Tab用于显示当前/最近一次会话中的聊天内容；会话结束返回主页后会刷新同一会话历史，peer信息只替换聊天Tab头部区域，并保留右侧 `group.svg` 图标。远控会话中的聊天浮窗在打开、发送和收到消息后都会滚动到最新消息。
 - 已移除固定测试聊天消息和本地模拟自动回复，聊天记录只来自真实会话收发或持久化历史。

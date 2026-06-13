@@ -58,10 +58,25 @@ if ($robocopyExit -gt 7) {
 
 $buildProfilePath = Join-Path $stageRootFull "build-profile.json5"
 if (Test-Path -LiteralPath $buildProfilePath) {
-  $signingRoot = (Join-Path $tempRoot "rustdesk_harmonyos_signing").Replace("\", "/")
+  $sourceSigningRoot = Join-Path $tempRoot "rustdesk_harmonyos_signing"
+  $stageSigningRoot = Join-Path $stageRootFull "signing"
+  if (-not (Test-Path -LiteralPath $sourceSigningRoot)) {
+    throw "Signing material directory is missing: $sourceSigningRoot"
+  }
+  if (Test-Path -LiteralPath $stageSigningRoot) {
+    Remove-Item -LiteralPath $stageSigningRoot -Recurse -Force
+  }
+  New-Item -ItemType Directory -Force -Path $stageSigningRoot | Out-Null
+  Get-ChildItem -LiteralPath $sourceSigningRoot -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $stageSigningRoot -Recurse -Force
+  }
+
+  $signingRoot = $sourceSigningRoot.Replace("\", "/").TrimEnd("/") + "/"
+  $stageSigningRelative = "./signing/"
   $buildProfile = Get-Content -LiteralPath $buildProfilePath -Raw
-  $buildProfile = $buildProfile.Replace("../99_Temp/rustdesk_harmonyos_signing/", "$signingRoot/")
-  $buildProfile = $buildProfile.Replace("..\\99_Temp\\rustdesk_harmonyos_signing\\", "$signingRoot/")
+  $buildProfile = $buildProfile.Replace("../99_Temp/rustdesk_harmonyos_signing/", $stageSigningRelative)
+  $buildProfile = $buildProfile.Replace("..\\99_Temp\\rustdesk_harmonyos_signing\\", $stageSigningRelative)
+  $buildProfile = $buildProfile.Replace($signingRoot, $stageSigningRelative)
   Set-Content -LiteralPath $buildProfilePath -Value $buildProfile -Encoding UTF8 -NoNewline
 }
 

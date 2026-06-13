@@ -1,4 +1,4 @@
-name: Build HarmonyOS Package Linux
+name: Build HarmonyOS HAP Linux
 
 on:
   push:
@@ -34,19 +34,19 @@ permissions:
 
 jobs:
   build:
-    name: Build HAP and APP
+    name: Build HAP
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
     env:
       CI: "true"
-      ARTIFACT_TYPE: "both"
+      ARTIFACT_TYPE: "hap"
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
       PREFLIGHT_ONLY: "false"
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
       PUBLISH_RELEASE: ${{ github.event.inputs.publish_release || 'true' }}
 
-      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL }}
+      RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
       HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip' }}
@@ -283,7 +283,7 @@ jobs:
           echo "RUSTDESK_CORE_SHA256 empty? $([ -z "$RUSTDESK_CORE_SHA256" ] && echo yes || echo no)"
           echo "RUSTDESK_SIGNING_ZIP_B64 empty? $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo yes || echo no)"
 
-      - name: Build HAP and APP
+      - name: Build HAP
         shell: bash
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
@@ -291,7 +291,7 @@ jobs:
           chmod +x scripts/github_build_harmonyos_linux.sh
 
           scripts/github_build_harmonyos_linux.sh \
-            --artifact-type both \
+            --artifact-type "$ARTIFACT_TYPE" \
             --version-bump "$VERSION_BUMP" \
             --artifacts-dir "$HARMONY_ARTIFACTS_DIR" \
             --skip-package-verify
@@ -309,19 +309,13 @@ jobs:
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
           cd "$HARMONY_ARTIFACTS_DIR"
-          shopt -s nullglob
-          for app_file in *.app; do
-            zip -q -9 "$app_file.zip" "$app_file"
-          done
-          sha256sum * > SHA256SUMS.txt
-
           ls -lh
 
       - name: Upload HarmonyOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: harmonyos-both
-          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/**
+          name: harmonyos-hap
+          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -333,6 +327,3 @@ jobs:
           generate_release_notes: true
           files: |
             ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.app.zip
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/manifest.json
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/SHA256SUMS.txt

@@ -692,7 +692,7 @@ export class I18nService {
     this.translations.set('server_config_imported', '服务器配置已导入');
     this.translations.set('invalid_server_config', '无效的服务器配置格式');
     this.translations.set('Blank server fields use the official default configuration.', '服务器字段留空时使用官方默认配置。');
-    this.translations.set('Screen capture unavailable, incoming service requested', '屏幕采集不可用，已请求启动共享服务');
+    this.translations.set('Screen capture unavailable, share service not started', '屏幕采集不可用，共享服务未启动');
     this.translations.set('Not configured', '未配置');
     this.translations.set('Socks5/Http(s) Proxy', 'Socks5/Http(s) 代理');
     this.translations.set('Configured', '已配置');
@@ -1195,7 +1195,7 @@ export class I18nService {
     this.translations.set('server_config_imported', 'Server config imported');
     this.translations.set('invalid_server_config', 'Invalid server config format');
     this.translations.set('Blank server fields use the official default configuration.', 'Blank server fields use the official default configuration.');
-    this.translations.set('Screen capture unavailable, incoming service requested', 'Screen capture unavailable, incoming service requested');
+    this.translations.set('Screen capture unavailable, share service not started', 'Screen capture unavailable, share service not started');
     this.translations.set('Not configured', 'Not configured');
     this.translations.set('Socks5/Http(s) Proxy', 'Socks5/Http(s) Proxy');
     this.translations.set('Configured', 'Configured');

@@ -29,6 +29,9 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
+call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1" -Force
+if errorlevel 1 exit /b 1
+
 echo Full HAP rebuild for %PROJECT_ROOT%
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\clean_project.ps1" -IncludeExternalBuild
 if errorlevel 1 exit /b 1
@@ -40,10 +43,15 @@ if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
   set "BUILD_PROJECT_ROOT=%STAGE_ROOT%"
 )
 set "RUSTDESK_HARMONY_VERSION_BUMP=full"
+set "HVIGOR_LOG=%TEMP%\rustdesk_harmonyos_hvigor_%RANDOM%_%RANDOM%.log"
 pushd "!BUILD_PROJECT_ROOT!" >nul || exit /b 1
-"%NODE_EXE%" scripts\run_hvigor_with_sdk_patch.js assembleHap
+"%NODE_EXE%" scripts\run_hvigor_with_sdk_patch.js assembleHap > "%HVIGOR_LOG%" 2>&1
 set "BUILD_EXIT=!ERRORLEVEL!"
 popd >nul
+type "%HVIGOR_LOG%"
+findstr /c:"ERROR: BUILD FAILED" /c:"ERROR: Failed" /c:"Configuration Error" "%HVIGOR_LOG%" >nul 2>nul
+if not errorlevel 1 set "BUILD_EXIT=1"
+del "%HVIGOR_LOG%" >nul 2>nul
 if not "!BUILD_EXIT!"=="0" exit /b !BUILD_EXIT!
 if /I not "!BUILD_PROJECT_ROOT!"=="%PROJECT_ROOT%" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\sync_build_version_from_stage.ps1" -StageRoot "!BUILD_PROJECT_ROOT!"

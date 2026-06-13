@@ -60,16 +60,16 @@ RustDesk Server / Peer
 Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
-- Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
-- Size: `138,394,514` bytes (`131.98 MB`)
-- SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+- Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+- Size: `131,263,476` bytes (`125.18 MB`)
+- SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
 
 HAP:
 
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
 - Wireless target: `192.168.11.100:36169`
-- Latest validation: 2026-06-12 WiFi 安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`、`module registered (400 functions)`
+- Latest validation: 2026-06-13 本地 HAP 构建通过（版本 `0.13.40`，signed HAP `18,746,430` bytes）；无线目标 `192.168.11.100:36169` 安装成功，但 `aa start` 被锁屏阻止（`Error Code:10106102`），未能继续验证视频流。
 
 ## Native core 构建来源
 
@@ -81,12 +81,14 @@ HAP:
 %VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a
 ```
 
-当前 11 项目 CI 使用：
+当前 11 项目构建脚本默认使用：
 
 ```text
-RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a
-RUSTDESK_CORE_SHA256=A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8
+RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a
+RUSTDESK_CORE_SHA256=
 ```
+
+默认不设置 `RUSTDESK_CORE_SHA256`，这样 13 项目自动发布新 tag 并更新 latest release 后，11 项目的本地和线上构建都会在构建前下载最新 `librustdesk_core.a`。如果需要固定某一次核心产物，再显式设置 `RUSTDESK_CORE_URL` 和 `RUSTDESK_CORE_SHA256`。
 
 ## 构建和安装 HAP
 
@@ -140,6 +142,7 @@ Pop-Location
 - 停止状态下不显示设备 ID 和密码
 - 启动服务后显示设备 ID 和一次性密码
 - **当前未解决**：Screen Capture API 在当前 SDK 下不可用
+- 2026-06-12 起，录屏不可用时共享服务不得进入假运行状态：App 侧回滚 `serviceEnabled/allowRemoteControl`，native core `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
 
 远程连接：
 
@@ -160,18 +163,22 @@ Pop-Location
 | 2026-06-07 | 成功 | 1.4.7 升级完成；修复密码框丢失、LAN发现失效 |
 | 2026-06-08 | 成功 | 大规模函数补齐：54→369个桥接函数；官方一致性修复 |
 | 2026-06-12 | 成功 | 核心项目迁移到 13_librustdesk_core；AvoidAreaType.TYPE_INPUT→TYPE_KEYBOARD 修复；WiFi 安装验证通过 |
+| 2026-06-13 | 部分成功 | `core-70` 下载并构建 HAP 成功；HAP native/signature 校验和 WiFi 安装通过；设备锁屏阻断启动，视频流待解锁后复测 |
 
 ## 2026-06-03 服务器与共享核心状态
 
 - 服务器配置有效值统一由 `AppDataService.resolveServerConfig()` 解析
 - `OfficialRustDeskBridge` 的刷新、连接、共享服务启动均使用解析后的有效服务器配置
-- Harmony bridge 采用安全 incoming requested 路径：写入官方 server option、设置 `stop-service=N`、更新 incoming 状态并刷新 rendezvous
+- Harmony bridge 在未接入真实屏幕采集/desktop server 时不能标记 incoming ready；`main_start_service(true)` 返回 `incomingReady=false`，防止被控端无视频源却让远端等待视频流。
 - 屏幕采集仍是未完成项：系统截图 fallback 已确认会崩溃并被禁用
 
-## 2026-06-12 verified current core
+## 2026-06-13 verified current core
 
 - Upstream compatibility: `RustDesk 1.4.7`
-- Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
-- Native core size: `138,394,514` bytes (`131.98 MB`)
-- Native core SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
-- WiFi install verified: `coreReady=true`, `adapter=official-native`, `module registered (400 functions)`
+- Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-70`
+- Native core size: `131,263,476` bytes (`125.18 MB`)
+- Native core SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+- HAP build verified: version `0.13.40`, signed HAP `18,746,430` bytes
+- Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
+- WiFi install verified: `192.168.11.100:36169` install bundle successfully; launch blocked by lock screen (`Error Code:10106102`), so runtime `coreReady` and `video-frame` are still pending

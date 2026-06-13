@@ -1,13 +1,13 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-12 03:10。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-13 08:45。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-12 02:57`，App 显示版本 `0.13.30`，versionCode `1000061`。
-- 2026-06-12 Linux 在线构建已跑通：`.github/workflows/build-harmonyos.yml` 成功生成 HAP 和 APP，并发布到 `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-13 08:18`，App 显示版本 `0.13.40`，versionCode `1000071`。
+- 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
@@ -20,29 +20,31 @@
 - 构建脚本版本逻辑已调整：增量构建自增版本号右侧数字，全量构建自增中间数字并重置右侧数字，`AppScope/app.json5` 与 `BuildInfo.ets` 同步更新。
 - 聊天Tab已按会话内容显示：优先当前会话，返回主页或会话结束后回退最近一次会话；peer 信息只替换聊天Tab头部区域，不再替换连接Tab，并保留右侧 `group.svg` 图标。远控会话聊天浮窗绑定 Scroller，并在打开、发送、接收消息后自动滚动到新消息。
 - 固定测试聊天消息和本地模拟自动回复已移除，持久化聊天消息加载时会重建 `ChatSession` 摘要。
-- 项目根 `README.md` 已作为线上默认介绍，标题为 `DESIGN`，指向 `docs/DESIGN.md`。
+- 项目根 `README.md` 已作为线上默认介绍，标题为 `项目设计要求`，内容为完整设计要求（原 `docs/DESIGN.md` 已合并到根 README.md）。
 
 - Native core 已采用 `staticlib + CMake 直接链接`，HAP 内通过 `librustdesk_bridge.so` 调用 Rust C ABI。
 - 当前已验证 native core：
   - `entry/src/main/libs/arm64/librustdesk_core.a`
   - 最新 native core 已从 GitHub Releases 下载：
-  - `https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
-  - 大小：`138,394,514` bytes (`131.98 MB`)
-  - mtime/compile time：`2026-06-12 02:31`
-  - FNV-1a 1MB：`11786fd9`
-  - SHA256: `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+  - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+  - release：`core-70`
+  - 大小：`131,263,476` bytes (`125.18 MB`)
+  - mtime/compile time：`2026-06-13 08:18`
+  - FNV-1a 1MB：`317b77b6`
+  - SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
 - 当前已验证 HAP：
-  - 本地 BuildInfo 编译时间：`2026-06-12 02:57`
-  - 本地 App 显示版本：`0.13.30`
-  - 本地 versionCode：`1000061`
+  - 本地 BuildInfo 编译时间：`2026-06-13 08:18`
+  - 本地 App 显示版本：`0.13.40`
+  - 本地 versionCode：`1000071`
   - bundle：`com.open.rundesk`
-  - 最新线上 release：`harmonyos-20260612-020111`
-  - signed HAP：`entry-default-signed.hap`，`18,280,607` bytes，SHA256 `3B35FD46E616D076DB47F98EB727341A164BEEB2EA1E88F2712CA75176A94C41`
-  - signed APP zip：`rustdesk_harmonyos-default-signed.app.zip`，`17,115,373` bytes，SHA256 `CB3FD9C525BA48F6EA03309990F8E41588DC8D6ED960694AB82DBE9DA422E75B`
+  - 最新线上 release：`harmonyos-20260612-065038`
+  - signed HAP：`entry-default-signed.hap`，`18,746,430` bytes
   - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
+- 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
+- 2026-06-13 core-70 复测：13 项目 run `27459455573` 成功发布 `core-70`；11 项目下载后 HAP 构建、native/signature 校验和无线安装通过。设备锁屏导致 `aa start` 返回 `Error Code:10106102`，App 未运行，本轮抓到的 hilog 没有 `coreReady`/`video-frame` 证据；视频流需解锁后继续复测。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
@@ -50,16 +52,17 @@
 
 ## 2026-06-12 Linux 在线构建结论
 
-- `build-harmonyos.yml` 当前 Linux 方案可行，已完成 HAP + APP 构建和 GitHub Release 发布。
+- `build-harmonyos.yml` 当前 Linux 方案可行；按新要求已改为 HAP-only，线上脚本和 release 只保留 `.hap`。
 - 成功修复链路：
   - SDK 包补齐 `openharmony/previewer/common/bin/libcjson.so`、previewer `libsec_shared.so` 和 ets-loader `libsec_shared.so`。
   - workflow 的 `LD_LIBRARY_PATH` 加入 previewer、ets-loader、toolchains 和 hms toolchains lib。
   - ArkTS `window.AvoidAreaType.TYPE_INPUT` 改为当前 SDK 可用的 `window.AvoidAreaType.TYPE_KEYBOARD`。
-  - GitHub Release 资产上传时将 `.app` 压缩为 `.app.zip`。
+  - 新规则：不再生成 APP，不再生成 `.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 当前 GitHub secrets/vars 关键值：
-  - `RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
-  - `RUSTDESK_CORE_SHA256=A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
-- 已删除失败草稿 release `harmonyos-20260612-015538`，当前保留成功 release `harmonyos-20260612-020111`。
+  - `RUSTDESK_CORE_URL` 可留空，默认使用 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+  - `RUSTDESK_CORE_SHA256` 默认留空以跟随 latest；需要固定核心时再设置。
+- 已删除失败草稿 release `harmonyos-20260612-015538`；当前最新 App release 为 `harmonyos-20260612-065038`，`harmonyos-20260612-020111` 仅作为历史成功 release 保留。
+- 2026-06-13 线上 App 状态：最新 release 是 `harmonyos-20260612-065038`；最新 workflow run `27443845710` 是旧提交 `0000da6` 的失败 run，尚未包含本地已验证的 core-70/HAP-only/staged signing 修正。发布前需推送并重跑 workflow。
 
 ## 已完成
 
@@ -459,7 +462,7 @@
   - ✅ 修改 `Cargo.toml`：`crate-type = ["rlib"]`，排除 OHOS 桌面端依赖（tray-icon/tao/keepawake/wallpaper/gtk/libxdo/pulse/dbus/evdev/pam 等）
   - ✅ 修改 `scrap/Cargo.toml`：排除 OHOS 的 Linux 桌面依赖（dbus/gstreamer/zbus/nokhwa）
   - ✅ 修改 `build.rs`：基于 `CARGO_CFG_TARGET_OS` 运行时检查，避免在 OHOS 交叉编译时触发 Windows 平台 C++ 编译
-  - ✅ 2026-06-12 后续已完成：13 项目发布 `v1.4.7-ohos` core，11 项目 Linux CI 使用该 core 成功构建 HAP/APP。
+  - ✅ 2026-06-12 后续已完成：13 项目曾发布 `v1.4.7-ohos` core，11 项目 Linux CI 曾使用该 core 成功构建 HAP/APP；当前构建规则已改为跟随 latest core 且线上只生成 HAP。
 - **后续结论**：本段是 2026-06-07 的排查过程，当前状态以文档顶部“2026-06-12 Linux 在线构建结论”和 `CORE.md` 的 verified current core 为准。
 - **备份位置**：`99_Temp/rustdesk_harmonyos_backups/harmony_bridge_backup_20260606/`
 - **1.4.7 clone 位置**：`99_Temp/rustdesk_harmonyos_build/rustdesk-1.4.7-clone/`
@@ -474,15 +477,14 @@
 - Fixed `OfficialRustDeskBridge.mergeNativeStateWithCurrentState()` so native `idle` is no longer masked by a stale ArkTS `connected` state after a session was already active. This prevents the viewer from freezing on the last frame when the controlled side closes unexpectedly.
 - `RemoteControl` now clears stale rendered frames/input/cursor state before showing the reconnect dialog, keeps bridge refresh alive while the dialog is open, and falls back from `reconnectSession()` to a fresh `connectToPeer()` when the native active session handle has already gone away.
 - Connection quality details now keep a larger raw payload, show dynamic metric values across multiple lines, include `chroma`, and use translated labels for quality detail fields.
-- `run_hvigor_with_sdk_patch.js` now switches to project mode for APP tasks. `github_build_harmonyos.ps1 -ArtifactType both` uses `assembleApp`, which produces both the signed APP and the embedded/signed HAP.
+- Historical APP packaging note: `run_hvigor_with_sdk_patch.js` once supported APP tasks. Current online build scripts are HAP-only and run `assembleHap`.
 - Verification:
   - `node scripts\run_hvigor_with_sdk_patch.js assembleHap` passed.
-  - `node scripts\run_hvigor_with_sdk_patch.js assembleApp` passed.
   - `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed native library and signature checks.
   - `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
-  - `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none -PreflightOnly` passed DevEco/signing/native-core preflight.
+  - Historical `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none -PreflightOnly` passed DevEco/signing/native-core preflight before the HAP-only rule.
   - Signed HAP: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap` (`18,017,442` bytes).
-  - Signed APP: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\outputs\default\11_Rustdesk_harmonyos-default-signed.app` (`16,953,287` bytes).
+  - Signed APP was a historical artifact from the old packaging path and is not generated by current online scripts.
 
 ## 2026-06-07 无密码连接密码框丢失 + 会话过早关闭 + LAN 发现失效修复
 
@@ -550,13 +552,12 @@
   - SHA256：`00B1735321D83C23F68DCDA4058ADA879729055AC88BD9D2D8AB574CE0CE6E7C`
   - 兼容官方版本：`1.4.7`
 - 线上生成包功能已完善：
-  - `.github/workflows/build-harmonyos.yml` 支持手动选择 `hap`、`app`、`both`。
+  - `.github/workflows/build-harmonyos.yml` 当前固定 HAP-only；旧的 `app/both` 选择已下线。
   - `scripts/github_build_harmonyos.ps1` 构建前检查 DevEco SDK、签名配置、native 核心是否存在、核心大小和可选 SHA256。
   - 构建从 `99_Temp` 下的干净 staged copy 执行，产物写到 `L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos`，避免污染源码目录。
   - 本轮 signed HAP：`entry-default-signed.hap`，`18020747` bytes，SHA256 `93554B4C39F42330625C7B3B66D451F4BC751E2533F0489F297A3228BF91CC0F`。
-  - 本轮 signed APP：`11_Rustdesk_harmonyos-default-signed.app`，`16953810` bytes，SHA256 `5FC0F5478E48A07259AA06505A3BAFB683D90213B70FDDCA387120A8B9346C27`。
 - 验证结果：
-  - `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none` 通过，HAP 和 APP 均生成成功。
+  - 旧规则下 `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none` 曾通过；当前线上脚本仅允许 `-ArtifactType hap`。
   - HAP native 校验通过：`librustdesk_bridge.so`、`libc++_shared.so` 均存在，运行时依赖和签名校验通过。
   - 设备 `192.168.11.100:36169` 安装成功。
   - 启动日志抓取受设备锁屏限制阻断，`aa start` 返回 `Error Code:10106102`；安装与包校验本身正常。

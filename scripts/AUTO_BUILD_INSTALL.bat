@@ -27,6 +27,11 @@ if /I "%TARGET%"=="--full" (
   set "TARGET=%~2"
 )
 if /I "%TARGET%"=="auto" set "TARGET="
+if /I "%TARGET%"=="[Empty]" set "TARGET="
+if defined TARGET (
+  echo(!TARGET! | findstr /i /l /c:"[Empty]" >nul 2>nul
+  if not errorlevel 1 set "TARGET="
+)
 
 set "NODE_EXE="
 if defined DEVECO_NODE_EXE if exist "%DEVECO_NODE_EXE%" set "NODE_EXE=%DEVECO_NODE_EXE%"
@@ -65,8 +70,19 @@ if not defined HDC (
 set "USB_TARGET=%RUSTDESK_HARMONY_USB_TARGET%"
 set "WIRELESS_TARGET=%RUSTDESK_HARMONY_WIRELESS_TARGET%"
 if not defined WIRELESS_TARGET set "WIRELESS_TARGET=192.168.11.100:36169"
+if /I "%USB_TARGET%"=="[Empty]" set "USB_TARGET="
+if /I "%WIRELESS_TARGET%"=="[Empty]" set "WIRELESS_TARGET="
+if defined USB_TARGET (
+  echo(!USB_TARGET! | findstr /i /l /c:"[Empty]" >nul 2>nul
+  if not errorlevel 1 set "USB_TARGET="
+)
+if defined WIRELESS_TARGET (
+  echo(!WIRELESS_TARGET! | findstr /i /l /c:"[Empty]" >nul 2>nul
+  if not errorlevel 1 set "WIRELESS_TARGET="
+)
 set "HDC_LOG=%TEMP%\rustdesk_harmonyos_hdc_%RANDOM%_%RANDOM%.log"
 set "TARGETS_LOG=%TEMP%\rustdesk_harmonyos_targets_%RANDOM%_%RANDOM%.log"
+set "HVIGOR_LOG=%TEMP%\rustdesk_harmonyos_hvigor_%RANDOM%_%RANDOM%.log"
 
 "%HDC%" start >nul 2>nul
 
@@ -90,6 +106,7 @@ if not defined TARGET (
     "%HDC%" list targets > "%TARGETS_LOG%" 2>&1
     findstr /x /c:"%USB_TARGET%" "%TARGETS_LOG%" >nul 2>nul
     if not errorlevel 1 set "TARGET=%USB_TARGET%"
+    if /I "!TARGET!"=="[Empty]" set "TARGET="
   )
 )
 
@@ -98,12 +115,21 @@ if not defined TARGET (
   "%HDC%" list targets > "%TARGETS_LOG%" 2>&1
   findstr /x /c:"%WIRELESS_TARGET%" "%TARGETS_LOG%" >nul 2>nul
   if not errorlevel 1 set "TARGET=%WIRELESS_TARGET%"
+  if /I "!TARGET!"=="[Empty]" set "TARGET="
 )
 
 if not defined TARGET (
   for /f "usebackq delims=" %%T in ("%TARGETS_LOG%") do (
-    if not defined TARGET if not "%%T"=="" set "TARGET=%%T"
+    if not defined TARGET if not "%%T"=="" (
+      echo(%%T | findstr /i /l /c:"[Empty]" >nul 2>nul
+      if errorlevel 1 set "TARGET=%%T"
+    )
   )
+)
+
+if defined TARGET (
+  echo(!TARGET! | findstr /i /l /c:"[Empty]" >nul 2>nul
+  if not errorlevel 1 set "TARGET="
 )
 
 if not defined TARGET (
@@ -121,6 +147,8 @@ echo Project: %PROJECT_ROOT%
 echo Target : %TARGET%
 
 if not defined SKIP_BUILD (
+  call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1" -Force
+  if errorlevel 1 exit /b 1
   set "BUILD_PROJECT_ROOT=%PROJECT_ROOT%"
   if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\stage_project_for_build.ps1" -StageRoot "%STAGE_ROOT%"
@@ -135,9 +163,13 @@ if not defined SKIP_BUILD (
     set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
   )
   pushd "!BUILD_PROJECT_ROOT!" >nul || exit /b 1
-  "%NODE_EXE%" scripts\run_hvigor_with_sdk_patch.js assembleHap
+  "%NODE_EXE%" scripts\run_hvigor_with_sdk_patch.js assembleHap > "%HVIGOR_LOG%" 2>&1
   set "BUILD_EXIT=!ERRORLEVEL!"
   popd >nul
+  type "%HVIGOR_LOG%"
+  findstr /c:"ERROR: BUILD FAILED" /c:"ERROR: Failed" /c:"Configuration Error" "%HVIGOR_LOG%" >nul 2>nul
+  if not errorlevel 1 set "BUILD_EXIT=1"
+  del "%HVIGOR_LOG%" >nul 2>nul
   if not "!BUILD_EXIT!"=="0" exit /b !BUILD_EXIT!
   if /I not "!BUILD_PROJECT_ROOT!"=="%PROJECT_ROOT%" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\sync_build_version_from_stage.ps1" -StageRoot "!BUILD_PROJECT_ROOT!"

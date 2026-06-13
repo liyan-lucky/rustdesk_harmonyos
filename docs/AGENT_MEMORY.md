@@ -8,7 +8,7 @@
 - 每次处理问题前，先回顾 docs/ 下的经验文档，检查是否有相关经验存在
 - 如果经验不存在，处理完问题后将经验保留到对应文档中
 - 每次修改代码/资源/脚本/文档后，必须同步更新所有相关项目文档
-- 文档阅读顺序：本文 → README.md → CORE.md → PROGRESS.md → ISSUES.md → DESIGN.md → UI.md → FILES.md
+- 文档阅读顺序：本文 → README.md → CORE.md → PROGRESS.md → ISSUES.md → UI.md → FILES.md
 - **新对话启动规则**：用户发送"读取文档"时，AI 必须按文档阅读顺序读取所有文档，了解项目详细信息、要求、偏好和习惯，然后按工作规则执行后续任务
 
 ### 2. 构建验证
@@ -23,7 +23,7 @@
 - 解决新问题后，将根因、解决方案和教训记录到 ISSUES.md
 - 功能进度更新到 PROGRESS.md
 - 核心架构变更更新到 CORE.md
-- UI/设计变更更新到 DESIGN.md / UI.md
+- UI/设计变更更新到项目根 README.md（设计要求） / UI.md
 - 文件结构变更更新到 FILES.md
 
 ### 4. 修改原则
@@ -53,7 +53,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.13.30`，versionCode：`1000061`
+- 当前本地版本：`0.13.40`，versionCode：`1000071`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -62,8 +62,8 @@
 - 全量构建 HAP：`scripts\build_full_hap.bat`
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
-- **核心下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/download/v1.4.7-ohos/librustdesk_core.a`
-- **核心 SHA256**：`A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
+- **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+- **当前核心 SHA256**：`3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
 
@@ -88,13 +88,15 @@
 3. LAN 发现不了设备：已修复并实机验证通过（2026-06-07）
 4. 远端主动关闭会话：已修复（2026-06-07）
 5. 中文输入法无法输入：已修复（2026-06-07）
-6. 共享服务 ScreenCaptureService 当前 SDK 下不可用
+6. 共享服务 ScreenCaptureService 当前 SDK 下不可用；录屏/desktop server 未接入时不得标记 `incomingReady=true`
 7. 桥接函数已补齐至369个（2026-06-08）：从54个扩展至369个，覆盖官方APK绝大部分wire_*函数
 
 ### 已验证状态
-- 最新 native core：`librustdesk_core.a`，138,394,514 bytes，SHA256 `A200A839F2B361C512A94CE5E2A7081F442438FF62239C90CFFAD90FA98AADC8`
-- 最新本地 HAP 构建时间：2026-06-12 02:57
-- 最新线上 release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-020111`
+- 最新 native core：`librustdesk_core.a`，131,263,476 bytes，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+- 最新 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-70`
+- 最新本地 HAP 构建时间：2026-06-13 09:34，版本 `0.13.40`，signed HAP `18,746,430` bytes
+- 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
+- 最新线上 App workflow：run `27443845710` 失败，未包含本轮本地已验证的 core-70/HAP-only 更新，需要推送后重跑
 - coreReady=true，adapter=official-native
 - LAN 发现实机验证通过
 - 函数覆盖：core.rs 363 pub fn，bridge_api.rs 369 导出，NAPI 约400注册
@@ -128,6 +130,7 @@
 ### 连接/会话经验
 - 密码提示优先级必须高于自动关闭/重连逻辑
 - session-closed 事件也需要检查密码需求，不能只在 session-error 检查
+- 等待视频流要先区分方向：出站控制端看 `session-connected`/`peer-info`/`video-frame`，入站被控端看 `ScreenCaptureService` 和 native incoming 是否真的有视频源。没有真实 Harmony 录屏/desktop server 时，必须返回 `incomingReady=false` 并回滚共享开关，不能用 ready 状态让远端无限等待。
 - 连接成功前不弹重试，非人为断开才弹重试
 - OHOS 有独立的 rendezvous_mediator_ohos.rs，修改 LAN 逻辑时必须检查 OHOS 专用文件
 - UDP ping 发出但无监听线程接收响应是 LAN 发现失效的典型症状
@@ -189,6 +192,10 @@
 - CMakeLists.txt 添加 `-Wl,--as-needed` 可移除未使用的动态库依赖，但 wayland 符号引用仍在，必须从 Rust 侧排除
 - 密码输入框 TextInput 需要添加 `.defaultFocus(true)` 才能自动唤醒输入法
 - staging 的 material 目录不能混入项目根的旧 material 文件，签名会失败
+- **99_Temp 签名文件名与 build-profile.json5 引用名不匹配**：99_Temp 下实际文件名为 `default_rustdesk_harmonyos_XXX=.cer/p12/p7b`，但 build-profile.json5 引用 `debug_hos.cer/p12/p7b`。需手动复制/重命名为 debug_hos.*，否则 SignHap 报 "Invalid storeFile value"
+- **直接在项目根构建（RUSTDESK_HARMONY_DISABLE_STAGE=1）时签名路径 `../99_Temp/` 可正确解析**，但前提是签名文件名必须匹配
+- **Staged build 签名路径必须在 staged 项目内**：`stage_project_for_build.ps1` 需要把 `99_Temp/rustdesk_harmonyos_signing` 复制到 staged `signing/`，并把 staged `build-profile.json5` 的签名路径改为 `./signing/`；不要把项目根配置永久改成绝对路径。
+- **HDC `[Empty]` 不是设备**：`hdc list targets` 无设备时输出 `[Empty]`，脚本必须过滤入参、`RUSTDESK_HARMONY_USB_TARGET`、无线目标和 fallback 列表中的 `[Empty]`。
 
 ### 编译经验
 - OHOS 的 target_os = "linux"，所有 Linux 桌面端依赖必须显式排除
@@ -214,21 +221,24 @@
 
 ### 核心项目迁移经验
 - **核心构建已迁移到独立项目 `13_librustdesk_core`**：所有 Rust 桥接层、C++ 桥接层、代码生成脚本均在此项目维护
-- **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions 在线构建 → 下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
+- **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions 在线构建并发布 latest → 11 项目构建脚本自动下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
+- **当前核心下载规则**：11 项目构建前默认强制刷新 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`；只有需要固定版本时才设置 `RUSTDESK_CORE_URL` 和 `RUSTDESK_CORE_SHA256`
 - **11 项目保留的核心相关文件**：`entry/src/main/cpp/`（C++桥接层，从13项目同步）、`entry/src/main/libs/arm64/librustdesk_core.a`（从 GitHub Releases 下载）
 - **11 项目不再保留的核心相关文件**：`native_rust_core/`（已迁移到13项目）、`scripts/generate_*.js`/`dedup_*.js`/`regenerate_all.js`/`rename_mapping.js`（已迁移到13项目）
 - **代码生成脚本路径修复**：所有硬编码的绝对路径已改为相对于 `__dirname`/`os.path` 的相对路径
 - **CMakeLists.txt 路径适配**：13项目中 `librustdesk_core.a` 路径改为 `../native_rust_core/target/aarch64-unknown-linux-ohos/release/librustdesk_harmony_bridge.a`
 
 ### Linux 在线构建经验
-- **当前可用 workflow**：`.github/workflows/build-harmonyos.yml`，固定构建 HAP + APP，输入为 `version_bump`、`skip_package_verify`、`publish_release`
+- **当前可用 workflow**：`.github/workflows/build-harmonyos.yml`，固定构建 HAP-only，输入为 `version_bump`、`skip_package_verify`、`publish_release`
 - **SDK 拆包地址**：
   - `HARMONYOS_SDK_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
   - `HARMONYOS_HVIGOR_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
 - **SDK 包必需文件**：`openharmony/previewer/common/bin/libcjson.so`、previewer `libsec_shared.so`、ets-loader `libsec_shared.so`；缺任意一个都可能导致 Linux CI Hvigor/previewer 失败
 - **LD_LIBRARY_PATH 必须包含**：hms toolchains lib、openharmony previewer common/bin、ets-loader ark build/bin、openharmony toolchains、toolchains/lib、hms native sysroot lib
-- **GitHub Release 上传规则**：HAP 直接上传；APP 先压缩为 `.app.zip` 再上传；同时生成 `manifest.json` 和 `SHA256SUMS.txt`
-- **2026-06-12 成功 release**：`harmonyos-20260612-020111`
+- **GitHub Release 上传规则**：当前线上脚本 HAP-only，只上传 `.hap`；不要再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
+- **2026-06-12 历史成功 release**：`harmonyos-20260612-020111`
+- **2026-06-13 core release**：13 项目 run `27459455573` 成功，发布 `core-70`，asset `librustdesk_core.a` 为 131,263,476 bytes，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+- **2026-06-13 设备验证状态**：core-70 构建 HAP 通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.100:36169` 安装成功；但 `aa start` 被锁屏阻止，`Error Code:10106102`，应用未运行，本轮无法验证 `coreReady`/`video-frame`
 
 ### 修改流程经验（本次会话最大教训）
 - **代码修改必须改项目根源文件！staging 只是构建副本，全量 robocopy 会从项目根覆盖 staging，导致修改丢失**
@@ -325,4 +335,10 @@
 | 2026-06-08 | 官方一致性验证修复：(1)abi.h删除28个旧式命名声明（set_incoming_service_enabled/connect_to_peer/send_mouse_input等），只保留新式session_*/main_*命名；(2)main_init声明从extern "C"块外移入块内，修复C++ name mangling问题；(3)添加drain_connect_events缺失声明；(4)loader.cpp中ConnectToPeer改为调用rustdesk_bridge_session_start、SetIncomingServiceEnabled改为调用rustdesk_bridge_main_start_service；(5)session_alternative_codecs→session_get_alternative_codecs与官方对齐（bridge_api.rs/core.rs/loader.cpp/index.d.ts/NativeRustDeskBridge.ts/librustdesk_bridge.d.ts全链路更新）；(6)HAP构建验证通过 |
 | 2026-06-12 | 修复AvoidAreaType.TYPE_INPUT→TYPE_KEYBOARD（OHOS SDK API重命名）；HAP构建验证通过（20.67MB）；更新AGENT_MEMORY添加ArkTS API兼容经验 |
 | 2026-06-12 | 核心项目迁移：所有核心相关文件（Rust桥接层、C++桥接层、代码生成脚本）迁移到13_librustdesk_core项目；核心构建流程改为在13项目修改→GitHub Actions在线构建→下载librustdesk_core.a→放入11项目libs；修复所有生成脚本的硬编码路径为相对路径；CMakeLists.txt路径适配13项目结构；更新README/AGENT_MEMORY/CORE文档 |
-| 2026-06-12 | Linux 在线构建跑通：拆分 SDK/Hvigor 包地址，补齐 previewer `libcjson.so`/`libsec_shared.so`，设置 `LD_LIBRARY_PATH`，使用 RustDesk 1.4.7 OHOS core A200A839...AADC8，HAP/APP 发布到 `harmonyos-20260612-020111`，APP 以 `.app.zip` 上传 |
+| 2026-06-12 | Linux 在线构建跑通（历史规则）：拆分 SDK/Hvigor 包地址，补齐 previewer `libcjson.so`/`libsec_shared.so`，设置 `LD_LIBRARY_PATH`，使用 RustDesk 1.4.7 OHOS core A200A839...AADC8，HAP/APP 发布到 `harmonyos-20260612-020111`，APP 以 `.app.zip` 上传；当前规则已改为 HAP-only |
+| 2026-06-12 | 新对话读取全部文档，构建验证通过（版本0.13.32，HAP 20.68MB）；修复签名文件名不匹配问题（default_rustdesk_harmonyos_XXX= → debug_hos.*）；更新AGENT_MEMORY版本和签名经验 |
+| 2026-06-12 | 按新要求改为构建前自动下载 latest native core：默认 `releases/latest/download/librustdesk_core.a`；当日验证 core 127,130,498 bytes / SHA256 `AA9C1A2D...1C17FCB5`；线上脚本 HAP-only，不再生成 APP/manifest/SHA；修复 staged 签名路径和 HDC `[Empty]` 目标过滤；无线 `192.168.11.100:36169` 安装启动成功（版本0.13.37，signed HAP 17,432,287 bytes） |
+| 2026-06-12 | 等待视频流复查：出站控制端真实帧路径仍是 `on_rgba -> video-frame`；入站被控端没有 Harmony 录屏/desktop server 时不能标记 `incomingReady=true`。11端共享开关录屏失败即回滚并关闭 incoming，13端 `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免远端无限等待视频流。 |
+| 2026-06-13 | 13 native core 本地构建脚本修复：解析到 OHOS SDK 后必须同步设置 `RUSTDESK_HARMONY_HOST_SDK`/`OHOS_SDK_HOME`/`OHOS_NDK_HOME`，并在 libsodium MSYS bash 脚本中 export；否则 Windows `.cmd` clang wrapper 在 configure 中报 `OHOS SDK not found`。 |
+| 2026-06-13 | 完成 core-70 闭环：13 项目修复 libvpx RTC C++ CI 构建失败并推送 `d61ceca`；GitHub Actions run `27459455573` 成功发布 `core-70`；11 项目下载新核心（131,263,476 bytes / SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`），HAP 构建、native/signature 校验和真机安装通过；设备锁屏导致启动/视频流日志未能继续验证。 |
+| 2026-06-13 | 新对话读取全部文档，HAP 构建验证通过（版本 0.13.40，signed HAP 18,746,430 bytes，构建时间 2026-06-13 09:34）；确认项目状态与文档一致。 |

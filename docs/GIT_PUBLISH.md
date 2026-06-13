@@ -9,7 +9,7 @@
 - 本地工作目录：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 本地 Git 根目录：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - GitHub 仓库顶层直接显示 `AppScope/`、`docs/`、`entry/`、`scripts/` 等目录。
-- 线上仓库默认介绍使用根目录 `README.md`，标题固定为 `DESIGN`，内容指向 `docs/DESIGN.md`。
+- 线上仓库默认介绍使用根目录 `README.md`，标题为 `项目设计要求`，内容为完整设计要求。
 - `99_Temp/` 与项目目录保持同级；构建、签名、缓存和备份默认从项目根的上一层查找 `99_Temp`。
 
 ## 禁止项
