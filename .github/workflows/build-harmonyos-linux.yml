@@ -1,6 +1,11 @@
-name: Build HarmonyOS HAP Windows
+name: Build HarmonyOS HAP Linux
 
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
   workflow_dispatch:
     inputs:
       version_bump:
@@ -12,23 +17,20 @@ on:
           - incremental
           - full
           - none
+      preflight_only:
+        description: "Run checks only"
+        required: true
+        default: false
+        type: boolean
       skip_package_verify:
         description: "Skip package verification"
         required: true
         default: true
         type: boolean
-      publish_release:
-        description: "Create GitHub tag and release"
-        required: true
-        default: true
-        type: boolean
-
-permissions:
-  contents: write
 
 jobs:
   build:
-    name: Build HAP
+    name: Build HAP Linux
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -36,9 +38,8 @@ jobs:
       CI: "true"
       ARTIFACT_TYPE: "hap"
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
-      PREFLIGHT_ONLY: "false"
+      PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
-      PUBLISH_RELEASE: ${{ github.event.inputs.publish_release || 'true' }}
 
       RUSTDESK_CORE_URL: ${{ secrets.RUSTDESK_CORE_URL || vars.RUSTDESK_CORE_URL || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
       RUSTDESK_CORE_SHA256: ${{ secrets.RUSTDESK_CORE_SHA256 || vars.RUSTDESK_CORE_SHA256 }}
@@ -49,8 +50,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -201,70 +200,24 @@ jobs:
         shell: bash
         run: |
           echo "HOS_SDK_HOME=$HOS_SDK_HOME"
+          echo "Listing HarmonyOS SDK..."
           find /home/runner/harmonyos-sdk -maxdepth 6 -type d | sort || true
 
           SDK_BASE="/home/runner/harmonyos-sdk"
-          TOOLS_DIR="$SDK_BASE/command-line-tools"
 
           echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
-          echo "DEVECO_TOOLS_HOME=$TOOLS_DIR" >> "$GITHUB_ENV"
+          echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
-          echo "PATH=$TOOLS_DIR/bin:$TOOLS_DIR/ohpm/bin:$TOOLS_DIR/hvigor/bin:$PATH" >> "$GITHUB_ENV"
+          echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$PATH" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
+          echo "DEVECO_SDK_HOME=$SDK_BASE"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE"
+          echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools"
+          echo "DEVECO_NODE_EXE=$(command -v node)"
+          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}"
           node -v
-
-      - name: Init ohpm and hvigor
-        shell: bash
-        run: |
-          set -e
-
-          SDK_BASE="/home/runner/harmonyos-sdk"
-          TOOLS_DIR="$SDK_BASE/command-line-tools"
-
-          export PATH="$TOOLS_DIR/bin:$TOOLS_DIR/ohpm/bin:$TOOLS_DIR/hvigor/bin:$PATH"
-
-          echo "TOOLS_DIR=$TOOLS_DIR"
-
-          echo "Listing tool files:"
-          find "$TOOLS_DIR" -maxdepth 4 -type f \( -name "init" -o -name "init.sh" -o -name "ohpm" -o -name "hvigorw.js" \) | sort || true
-
-          if [ -f "$TOOLS_DIR/ohpm/bin/init" ]; then
-            chmod +x "$TOOLS_DIR/ohpm/bin/init"
-            "$TOOLS_DIR/ohpm/bin/init" || true
-          fi
-
-          if [ -f "$TOOLS_DIR/ohpm/bin/init.sh" ]; then
-            chmod +x "$TOOLS_DIR/ohpm/bin/init.sh"
-            "$TOOLS_DIR/ohpm/bin/init.sh" || true
-          fi
-
-          if [ -f "$TOOLS_DIR/hvigor/bin/init" ]; then
-            chmod +x "$TOOLS_DIR/hvigor/bin/init"
-            "$TOOLS_DIR/hvigor/bin/init" || true
-          fi
-
-          if [ -f "$TOOLS_DIR/hvigor/bin/init.sh" ]; then
-            chmod +x "$TOOLS_DIR/hvigor/bin/init.sh"
-            "$TOOLS_DIR/hvigor/bin/init.sh" || true
-          fi
-
-          echo "Check ohpm:"
-          if [ -f "$TOOLS_DIR/ohpm/bin/ohpm" ]; then
-            chmod +x "$TOOLS_DIR/ohpm/bin/ohpm"
-            "$TOOLS_DIR/ohpm/bin/ohpm" -v || true
-          fi
-
-          echo "Check hvigor:"
-          if [ -f "$TOOLS_DIR/hvigor/bin/hvigorw.js" ]; then
-            node "$TOOLS_DIR/hvigor/bin/hvigorw.js" --version || true
-          fi
-
-          echo "Try install project ohpm dependencies:"
-          if [ -f "oh-package.json5" ]; then
-            "$TOOLS_DIR/ohpm/bin/ohpm" install || true
-          fi
 
       - name: Debug env
         shell: bash
@@ -277,48 +230,33 @@ jobs:
           echo "RUSTDESK_CORE_SHA256 empty? $([ -z "$RUSTDESK_CORE_SHA256" ] && echo yes || echo no)"
           echo "RUSTDESK_SIGNING_ZIP_B64 empty? $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo yes || echo no)"
 
-      - name: Build HAP
+      - name: Build HarmonyOS package
         shell: bash
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
           chmod +x scripts/github_build_harmonyos_linux.sh
 
-          scripts/github_build_harmonyos_linux.sh \
-            --artifact-type "$ARTIFACT_TYPE" \
-            --version-bump "$VERSION_BUMP" \
-            --artifacts-dir "$HARMONY_ARTIFACTS_DIR" \
-            --skip-package-verify
+          args=(
+            "--artifact-type" "$ARTIFACT_TYPE"
+            "--version-bump" "$VERSION_BUMP"
+            "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"
+          )
 
-      - name: Prepare release files
-        if: ${{ env.PUBLISH_RELEASE == 'true' }}
-        shell: bash
-        env:
-          HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
-        run: |
-          APP_VERSION=$(grep -oP '"versionName"\s*:\s*"\K[^"]+' AppScope/app.json5 | head -1)
-          RELEASE_TAG="OpenRustdesk-Build-v${APP_VERSION:-0.0.0}"
-          RELEASE_NAME="OpenRustdesk Build v${APP_VERSION:-0.0.0}"
+          if [ "$PREFLIGHT_ONLY" = "true" ]; then
+            args+=("--preflight-only")
+          fi
 
-          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
+          if [ "$SKIP_PACKAGE_VERIFY" = "true" ]; then
+            args+=("--skip-package-verify")
+          fi
 
-          cd "$HARMONY_ARTIFACTS_DIR"
-          ls -lh
+          scripts/github_build_harmonyos_linux.sh "${args[@]}"
 
       - name: Upload HarmonyOS artifacts
+        if: ${{ github.event.inputs.preflight_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: harmonyos-hap
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
           if-no-files-found: error
-
-      - name: Create GitHub Release
-        if: ${{ env.PUBLISH_RELEASE == 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_NAME }}
-          generate_release_notes: true
-          files: |
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
