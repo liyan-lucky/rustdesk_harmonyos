@@ -164,6 +164,19 @@ fi
 
 echo "Signing material: $SIGNING_ROOT"
 
+SIGNING_IN_PROJECT="$PROJECT_ROOT/signing"
+rm -rf "$SIGNING_IN_PROJECT"
+mkdir -p "$SIGNING_IN_PROJECT"
+cp -a "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
+
+if [[ -d "$SIGNING_ROOT/material" ]]; then
+  cp -a "$SIGNING_ROOT/material" "$SIGNING_IN_PROJECT/material"
+fi
+
+sed -i 's|../99_Temp/rustdesk_harmonyos_signing/|./signing/|g' "$PROJECT_ROOT/build-profile.json5"
+
+echo "Patched build-profile.json5 signing paths to ./signing/"
+
 CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
 
 if [[ "${RUSTDESK_CORE_SKIP_DOWNLOAD:-}" =~ ^(1|true|yes)$ ]]; then
