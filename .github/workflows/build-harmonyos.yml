@@ -302,8 +302,9 @@ jobs:
         env:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
-          RELEASE_TAG="OpenRustdesk-$(date -u +'%Y%m%d-%H%M%S')"
-          RELEASE_NAME="OpenRustdesk Build $RELEASE_TAG"
+          APP_VERSION=$(node -e "const p=require('./AppScope/app.json5'.replace(/\.json5$/,'.json'));console.log(p.versionName||'0.0.0')" 2>/dev/null || grep -oP '"versionName"\s*:\s*"\K[^"]+' AppScope/app.json5 | head -1)
+          RELEASE_TAG="OpenRustdesk-Build-v${APP_VERSION:-0.0.0}"
+          RELEASE_NAME="OpenRustdesk Build v${APP_VERSION:-0.0.0}"
 
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
