@@ -155,11 +155,31 @@ if [[ -d "$SIGNING_ROOT" ]]; then
 fi
 
 if [[ -d "$SIGNING_ROOT" ]] && [[ -d "$SIGNING_ROOT/material" ]]; then
+  echo "Signing files in $SIGNING_ROOT:"
+  find "$SIGNING_ROOT" -maxdepth 2 -type f \( -name "*.p12" -o -name "*.cer" -o -name "*.p7b" \) | sort
+
   SIGNING_IN_PROJECT="$PROJECT_ROOT/signing"
   rm -rf "$SIGNING_IN_PROJECT"
   mkdir -p "$SIGNING_IN_PROJECT"
   cp -a "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
   cp -a "$SIGNING_ROOT/material" "$SIGNING_IN_PROJECT/material"
+
+  ACTUAL_P12="$(find "$SIGNING_IN_PROJECT" -maxdepth 1 -name "*.p12" -type f | head -n 1)"
+  ACTUAL_CER="$(find "$SIGNING_IN_PROJECT" -maxdepth 1 -name "*.cer" -type f | head -n 1)"
+  ACTUAL_P7B="$(find "$SIGNING_IN_PROJECT" -maxdepth 1 -name "*.p7b" -type f | head -n 1)"
+
+  if [[ -n "$ACTUAL_P12" ]] && [[ "$(basename "$ACTUAL_P12")" != "debug_hos.p12" ]]; then
+    mv "$ACTUAL_P12" "$SIGNING_IN_PROJECT/debug_hos.p12"
+    echo "Renamed $(basename "$ACTUAL_P12") -> debug_hos.p12"
+  fi
+  if [[ -n "$ACTUAL_CER" ]] && [[ "$(basename "$ACTUAL_CER")" != "debug_hos.cer" ]]; then
+    mv "$ACTUAL_CER" "$SIGNING_IN_PROJECT/debug_hos.cer"
+    echo "Renamed $(basename "$ACTUAL_CER") -> debug_hos.cer"
+  fi
+  if [[ -n "$ACTUAL_P7B" ]] && [[ "$(basename "$ACTUAL_P7B")" != "debug_hos.p7b" ]]; then
+    mv "$ACTUAL_P7B" "$SIGNING_IN_PROJECT/debug_hos.p7b"
+    echo "Renamed $(basename "$ACTUAL_P7B") -> debug_hos.p7b"
+  fi
 
   sed -i 's|../99_Temp/rustdesk_harmonyos_signing/|./signing/|g' "$PROJECT_ROOT/build-profile.json5"
   echo "Patched build-profile.json5 signing paths to ./signing/ (signed build)"
