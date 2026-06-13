@@ -126,6 +126,7 @@ if [[ -n "$SIGNING_ZIP_B64" ]]; then
 
   echo "$SIGNING_ZIP_B64" | base64 -d > "$TEMP_ROOT/rustdesk_harmonyos_signing.zip"
   unzip -o -q "$TEMP_ROOT/rustdesk_harmonyos_signing.zip" -d "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" 2>/dev/null || true
+  chmod -R u+rwX "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" 2>/dev/null || true
 
   SRC_ROOT="$(find "$TEMP_ROOT/rustdesk_harmonyos_signing_extract" -type f \( -name "*.p12" -o -name "*.cer" -o -name "*.p7b" \) -printf '%h\n' | sort | uniq | head -n 1 || true)"
 
@@ -134,7 +135,7 @@ if [[ -n "$SIGNING_ZIP_B64" ]]; then
     exit 1
   fi
 
-  cp -a "$SRC_ROOT"/. "$SIGNING_ROOT"/
+  cp -r "$SRC_ROOT"/. "$SIGNING_ROOT"/
 fi
 
 if [[ -d "$SIGNING_ROOT" ]]; then
@@ -161,8 +162,8 @@ if [[ -d "$SIGNING_ROOT" ]] && [[ -d "$SIGNING_ROOT/material" ]]; then
   SIGNING_IN_PROJECT="$PROJECT_ROOT/signing"
   rm -rf "$SIGNING_IN_PROJECT"
   mkdir -p "$SIGNING_IN_PROJECT"
-  cp -a "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
-  cp -a "$SIGNING_ROOT/material" "$SIGNING_IN_PROJECT/material"
+  cp -r "$SIGNING_ROOT"/. "$SIGNING_IN_PROJECT"/
+  cp -r "$SIGNING_ROOT/material" "$SIGNING_IN_PROJECT/material"
 
   ACTUAL_P12="$(find "$SIGNING_IN_PROJECT" -maxdepth 1 -name "*.p12" -type f | head -n 1)"
   ACTUAL_CER="$(find "$SIGNING_IN_PROJECT" -maxdepth 1 -name "*.cer" -type f | head -n 1)"
