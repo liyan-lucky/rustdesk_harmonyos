@@ -18,8 +18,48 @@ if (-not $stageRootFull.StartsWith($tempRoot, [System.StringComparison]::Ordinal
   throw "Refusing to stage outside 99_Temp: $stageRootFull"
 }
 
+function ConvertTo-LongPath([string]$Path) {
+  if ($Path.StartsWith("\\?\")) {
+    return $Path
+  }
+  if ($Path.StartsWith("\\")) {
+    return "\\?\UNC\" + $Path.Substring(2)
+  }
+  return "\\?\" + $Path
+}
+
+function Remove-StageTree([string]$Path) {
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return
+  }
+
+  try {
+    Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+  } catch {
+    $longPath = ConvertTo-LongPath $Path
+    Get-ChildItem -LiteralPath $longPath -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object {
+      try {
+        $_.Attributes = $_.Attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
+      } catch {
+      }
+    }
+    try {
+      (Get-Item -LiteralPath $longPath -Force).Attributes =
+        (Get-Item -LiteralPath $longPath -Force).Attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
+    } catch {
+    }
+
+    Start-Sleep -Milliseconds 250
+    try {
+      Remove-Item -LiteralPath $longPath -Recurse -Force -ErrorAction Stop
+    } catch {
+      [System.IO.Directory]::Delete($longPath, $true)
+    }
+  }
+}
+
 if (Test-Path -LiteralPath $stageRootFull) {
-  Remove-Item -LiteralPath $stageRootFull -Recurse -Force
+  Remove-StageTree $stageRootFull
 }
 
 $excludeDirs = @(
@@ -31,6 +71,7 @@ $excludeDirs = @(
   (Join-Path $projectRoot ".vscode"),
   (Join-Path $projectRoot ".appanalyzer"),
   (Join-Path $projectRoot ".local_sdk"),
+  (Join-Path $projectRoot "13_librustdesk_core"),
   (Join-Path $projectRoot "github_artifacts"),
   (Join-Path $projectRoot "rustdesk_harmonyos"),
   (Join-Path $projectRoot "node_modules"),
@@ -49,7 +90,7 @@ $excludeFiles = @(
 )
 
 New-Item -ItemType Directory -Force -Path $stageRootFull | Out-Null
-$robocopyArgs = @($projectRoot, $stageRootFull, "/E", "/R:2", "/W:1", "/XD") + $excludeDirs + @("/XF") + $excludeFiles
+$robocopyArgs = @($projectRoot, $stageRootFull, "/E", "/XJ", "/R:2", "/W:1", "/XD") + $excludeDirs + @("/XF") + $excludeFiles
 & robocopy @robocopyArgs | Out-Host
 $robocopyExit = $LASTEXITCODE
 if ($robocopyExit -gt 7) {

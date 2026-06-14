@@ -10,6 +10,7 @@
 |------|------|
 | `11_Rustdesk_harmonyos/` | 当前 Git 根和 HarmonyOS App 项目根，顶层直接包含 `AppScope/`、`entry/`、`docs/`、`scripts/` |
 | `13_librustdesk_core/` | **核心独立项目**，包含 Rust 桥接层、C++ 桥接层、代码生成脚本、上游源码、OHOS 补丁、CI/CD |
+| `11_Rustdesk_harmonyos/13_librustdesk_core/` | 本地 NTFS Junction，指向同级 `%VSCODE_ROOT%\13_librustdesk_core`，便于从 App 项目内直接进入核心项目；该链接已加入 `.git/info/exclude`，不作为仓库内容提交 |
 | `99_Temp/rustdesk-master/` | （历史）RustDesk 上游源码，核心项目已自带 `rustdesk-master/` |
 | `99_Temp/rustdesk_harmonyos_build/` | （历史/辅助）旧 Native core 构建工作区、OHOS SDK mirror、vcpkg、外部依赖；当前 core 权威来源是 `13_librustdesk_core/` |
 | `99_Temp/harmonyos_build/` | HAP 构建输出 |
@@ -40,9 +41,9 @@
 | 文件 | 行数 | 作用 |
 |------|------|------|
 | `CMakeLists.txt` | 91 | 构建配置，STATIC LINK MODE链接librustdesk_core.a到bridge SO |
-| `rustdesk_bridge_loader.cpp` | 828 | C++ NAPI桥接层，当前注册50个NAPI函数，IsCoreLoaded()=true，直接调用extern "C"函数，包含qsort_r stub实现 |
-| `rustdesk_bridge_abi.h` | 102 | 当前声明46个Rust extern "C"函数；与Rust侧`bridge_api.rs`导出的46个函数完全对齐 |
-| `types/librustdesk_bridge/index.d.ts` | 52 | NAPI模块TypeScript类型声明，与C++ NAPI签名对齐 |
+| `rustdesk_bridge_loader.cpp` | 3721 | C++ NAPI桥接层，当前约400个NAPI注册，staticlib模式直接调用Rust C ABI；聊天四参调用需读`args[2]`内容参数，服务器 key 需随 start/connect 透传 |
+| `rustdesk_bridge_abi.h` | 405 | 当前声明369个Rust extern "C"函数；需与13项目`native_rust_core/src/bridge_api.rs`完全对齐 |
+| `types/librustdesk_bridge/index.d.ts` | 399 | NAPI模块TypeScript类型声明，与C++ NAPI签名对齐 |
 | `types/librustdesk_bridge/oh-package.json5` | 6 | NAPI模块包配置 |
 
 ## Rust核心 (native_rust_core/)
@@ -61,16 +62,16 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `Index.ets` | 5027 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
-| `RemoteControl.ets` | 3884 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息 |
+| `Index.ets` | 5529 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享录屏授权，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
+| `RemoteControl.ets` | 4778 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息；聊天按钮弹出语音/文字模式；本地音频上传当前提示不可用，避免metadata-only接口假启动 |
 | ~~`Settings.ets`~~ | - | 已删除，设置功能合并到Index.ets设置tab |
-| `FileTransfer.ets` | 635 | 文件传输页面 |
-| `LoginPage.ets` | 393 | 登录页面(OAuth+密码，统一走AccountService) |
+| `FileTransfer.ets` | 635 | 文件传输页面，加载本地下载目录和远端目录，创建/删除/上传/下载队列入口 |
+| `LoginPage.ets` | 436 | 登录页面(OAuth+密码，统一走AccountService)，提供统一搜索入口过滤登录 provider |
 | `Terminal.ets` | 470 | 终端页面(多会话) |
 | `AddressBook.ets` | 487 | 地址簿页面 |
-| `Chat.ets` | 412 | 聊天页面，移除固定示例回复和种子消息 |
+| `Chat.ets` | 432 | 聊天页面，移除固定示例回复和种子消息；发送失败恢复草稿，不把 failed 文本写入消息 |
 | `MyDevice.ets` | 364 | 我的设备页面 |
-| `ViewCamera.ets` | 323 | 摄像头页面 |
+| `ViewCamera.ets` | 323 | 摄像头页面；当前 official view-camera session 未接入，入口显示不可用，不能假连接 |
 | `WebLoginPage.ets` | 232 | Web登录页面 |
 | `Scan.ets` | 410 | 扫描页面，相机/相册二维码识别，服务器配置扫码直存 |
 
@@ -78,30 +79,31 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `NativeRustDeskBridge.ts` | 1653 | **NAPI底层桥接**，ArkTS封装C++ SO；getPeerInfo()/getPeerOption优先解析NAPI函数，未注册时回退读取PeerConfig文件 |
-| `I18nService.ets` | 1956 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染 |
-| `OfficialRustDeskBridge.ets` | 772 | 官方桥接高层封装，统一调用NativeRustDeskBridge |
-| `AppDataService.ets` | 1053 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31)，不再返回固定测试聊天消息 |
+| `NativeRustDeskBridge.ts` | 4913 | **NAPI底层桥接**，ArkTS封装C++ SO；369 ABI/约400 NAPI surface 的安全包装与fallback，连接/共享服务透传自建服务器 key |
+| `I18nService.ets` | 2040 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染；核心停止态中文统一为“停止” |
+| `OfficialRustDeskBridge.ets` | 803 | 官方桥接高层封装，统一调用NativeRustDeskBridge |
+| `AppDataService.ets` | 1019 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31)，不再返回固定测试聊天消息，保存调试常亮偏好；旧演示别名/分组自动翻译已清理 |
 | `ServerConfigCodec.ets` | 66 | 服务器配置导入导出编解码，复用官方 JSON→Base64→反转格式 |
-| `ChatService.ets` | 544 | 聊天服务，持久化消息加载时重建会话摘要 |
+| `ChatService.ets` | 637 | 聊天服务，持久化消息加载时重建会话摘要；发送成功后才落本地消息，过滤旧 `failed=`/`error=` 事件和本地 echo，按跨天/5分钟间隔显示时间 |
 | `AccountService.ets` | 515 | 账户服务(token持久化/登录登出/PasswordLoginResult) |
-| `FileTransferService.ets` | 537 | 文件传输服务 |
-| `CoreLoaderService.ts` | 443 | 核心SO加载服务(staticlib方案下仅做初始化检查) |
+| `FileTransferService.ets` | 537 | 文件传输服务；本地侧通过 `@ohos.file.fs` 读取真实下载目录/新建/删除，远端侧消费 official session 文件事件和 job 进度 |
+| `CoreLoaderService.ts` | 373 | 核心SO加载服务(staticlib方案下仅做初始化检查)，文件选择授权走 TS 层 `FileAuthorizationService` |
 | `AudioService.ets` | 344 | 音频服务(AudioRenderer, 48kHz mono S16LE) |
 | `AppState.ets` | 330 | 应用状态管理 |
 | `OfficialSessionTextFormatter.ets` | 346 | 会话文本格式化 |
 | `InputService.ets` | 353 | 输入服务(鼠标/键盘/触摸) |
 | `HttpClient.ets` | 415 | HTTP客户端 |
 | `ClipboardService.ets` | 246 | 剪贴板服务(双向同步) |
-| `PermissionService.ets` | 255 | 权限服务 |
-| `ScreenCaptureService.ets` | 238 | 屏幕捕获服务 |
-| `TerminalService.ets` | 227 | 终端服务 |
-| `WindowChromeService.ets` | 221 | 窗口管理(状态栏透明/全屏/系统栏颜色) |
+| `PermissionService.ets` | 319 | 权限服务；统一请求录屏/麦克风/输入/悬浮窗/文件授权，文件授权委托 TS 层服务 |
+| `FileAuthorizationService.ts` | 96 | 文件授权服务；请求 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST` 并唤起 `DocumentViewPicker` 返回 URI |
+| `ScreenCaptureService.ets` | 264 | 屏幕捕获服务；使用 `AVScreenCaptureRecorder` 触发录屏授权并写临时 mp4 做录制状态探测，禁止截图 fallback |
+| `TerminalService.ets` | 246 | 终端服务，打开/输入/resize/关闭走official Session，终端输出事件从`dataBase64`解码 |
+| `WindowChromeService.ets` | 247 | 窗口管理(状态栏透明/全屏/系统栏颜色/保持屏幕常亮) |
 | `EventBus.ets` | 171 | 事件总线 |
 | `FrameService.ets` | 225 | 视频帧服务 |
 | `PreferenceStore.ts` | 160 | 偏好存储(轻量KV) |
 | `LanDiscoveryService.ets` | 121 | LAN发现服务(启动一次发现，后续手动刷新) |
-| `OfficialSessionTransport.ets` | 94 | 会话传输层 |
+| `OfficialSessionTransport.ets` | 81 | 会话传输层，聊天发送优先走 `sessionSendChat` |
 | `librustdesk_bridge.d.ts` | 65 | NAPI模块类型声明 |
 | `OfficialSessionTypes.ets` | 63 | 会话类型定义 |
 | `AppContextService.ts` | 17 | 应用上下文服务 |
@@ -146,8 +148,8 @@
 ## 修改注意事项
 
 - **设置Tab**: 所有UI代码在Index.ets中，不在Settings.ets
-- **Index.ets**: 5027行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console
-- **RemoteControl.ets**: 3884行，视频帧性能敏感，避免ForEach
+- **Index.ets**: 5529行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console；搜索浮层和 ID 输入焦点不要互相抢焦点
+- **RemoteControl.ets**: 4778行，视频帧性能敏感，避免ForEach；聊天浮窗尺寸和模式菜单要同时检查
 - **I18nService.ets**: 所有翻译文本在此，新增语言需添加
 - **ThemeConfig.ets**: 颜色通过AppStorage管理，不是color.json
 - **BuildInfo.ets**: 每次构建前脚本自动更新BUILD_TIME
@@ -176,7 +178,7 @@
 
 | 资产 | 作用 |
 |------|------|
-| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前强制刷新，当前 latest release `core-70`，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153` |
+| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前智能刷新，当前 latest release `core-76`，SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F` |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
-| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038` | 当前最新 App release；本地已验证 core-70 HAP，但线上 App workflow 需推送后重跑 |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038` | 当前最新线上 App release；本地已验证 core-76 HAP 构建、验包和无线安装，但设备锁屏导致运行态 hilog 待手动解锁后复测；线上 App workflow 需推送后重跑 |

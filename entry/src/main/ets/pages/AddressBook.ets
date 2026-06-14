@@ -1,4 +1,5 @@
 import { AddressBookEntry, AppDataService } from '../services/AppDataService';
+import { AbPeer } from '../services/HttpClient';
 import { createStrokeIconColorFilter } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { CardContainer, EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
@@ -142,7 +143,7 @@ struct AddressBook {
           Image($rawfile('search.svg'))
             .width(18)
             .height(18)
-            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .fillColor(this.theme_TEXT_TERTIARY)
             .margin({ right: 8 })
           TextInput({ placeholder: this.lt('Search device name, ID or group'), text: this.query })
             .layoutWeight(1)
@@ -328,6 +329,9 @@ struct AddressBook {
         })
         this.buildSecondaryAction($rawfile('trash.svg'), this.lt('Delete Action'), () => {
           this.appData.removeAddressBookEntry(entry.id);
+          if (this.accountState.isLoggedIn) {
+            void this.accountService.deletePeerFromAddressBook(entry.id);
+          }
           this.reloadEntries();
         })
       }
@@ -430,15 +434,25 @@ struct AddressBook {
     if (id.length === 0) {
       return;
     }
+    const alias = this.draftAlias.trim().length > 0 ? this.draftAlias.trim() : `${this.lt('Remote Device')} ${DeviceIdFormatter.format(id)}`;
+    const group = this.draftGroup.trim().length > 0 ? this.draftGroup.trim() : this.lt('Ungrouped');
     this.appData.addAddressBookEntry({
       id: id,
-      alias: this.draftAlias.trim().length > 0 ? this.draftAlias.trim() : `${this.lt('Remote Device')} ${DeviceIdFormatter.format(id)}`,
+      alias: alias,
       note: this.draftNote.trim(),
-      group: this.draftGroup.trim().length > 0 ? this.draftGroup.trim() : this.lt('Ungrouped'),
+      group: group,
       online: true,
       favorite: false,
       platform: ''
     });
+    if (this.accountState.isLoggedIn) {
+      const peer: AbPeer = {
+        id: id,
+        alias: alias,
+        tags: [group]
+      };
+      void this.accountService.addPeerToAddressBook(peer);
+    }
     this.resetDraft();
     this.showAddPanel = false;
     this.reloadEntries();

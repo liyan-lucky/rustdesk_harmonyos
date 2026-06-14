@@ -2,6 +2,38 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.20.0 (2026-06-14)
+
+### 新增
+
+- **术语约定**：TAB=底部主菜单4项（连接/聊天/共享/设置），选项卡=ID输入框下方子选项（历史/收藏/发现/通讯录/登录/核心）
+- **核心/App功能对接**：终端stub、终端dataBase64事件、音频空队列处理、本地音频上传、核心C++聊天四参、文件传输事件、switch-sides option路由、自定义服务器key透传、聊天语义（chat-error/chat-sent/chat-message）
+- **文件授权API**：统一请求下载目录/持久访问并唤起DocumentViewPicker
+- **调试常亮开关**：设置页关于区新增Debug Keep Screen Awake开关，WindowChromeService.setKeepScreenOn改为3次重试循环
+- **聊天模式选择**：远控聊天按钮弹出语音/文字模式选择
+- **搜索浮层**：登录/历史/收藏/发现/通讯录/核心搜索入口改为从图标向左悬浮展开
+
+### 修复
+
+- **TAB连接页返回时自动聚焦ID输入框**：底部tab按钮添加id，焦点请求到connect-bottom-tab-btn，onPageShow和aboutToAppear中均请求焦点到TAB按钮
+- **搜索失焦**：onBlur只关闭输入框不清空搜索文本，搜索图标点击时如有搜索文本则清空重开
+- **核心按钮逻辑**：主按钮Restart时stopCoreRuntime后重设coreLoadBusy=true防止按钮闪烁，副按钮在staticlib模式下只显示Stop且核心未运行时disabled
+- **设置页与会话显示设置状态同步**：打开显示设置对话框时先递增settingsOptionVersion强制重新读取native option值
+- **ID输入框X/→按钮点击无反应**：Stack中左侧Column加right:60 padding留出按钮空间，右侧Row加zIndex(20)，按钮加hitTestBehavior(Block)
+- **ID输入框悬浮匹配框**：只在输入法激活时显示（deviceIdInputFocused），左右居中显示
+- **ID输入框状态提示**：所有提示文本不超过8个字（连接中、输入ID、ID格式错误、连接失败、需要密码等），setStatusMessageRaw自动截断超过8字的文本
+- **聊天对话框大小**：默认尺寸144x187，最小尺寸同步调整
+- **旋转画面修复**：新增isLandscapeMode状态替代viewRotation=90，transformPreviewPointToImageSpace横屏时交换xy坐标
+- **底部tab栏修复**：buildFillTabItem中width('100%')改为layoutWeight(1)，buildOfficialConnectPanel外层从Stack还原为Column
+- **剪贴板/命令假成功收敛**：Send Clipboard Keys检查native返回值，一次性远控命令未被core处理时提示Command unavailable
+- **摄像头查看入口收敛**：Recent菜单View Camera改为不可用提示，等待后续真实official view-camera session接入
+
+### 构建/部署
+
+- 核心构建：core-71至core-76多轮发布验证
+- HAP构建：0.19.0→0.20.0，签名验证通过，无线安装验证通过
+- 构建脚本：13_librustdesk_core junction排除，核心构建cwd必须使用真实路径
+
 ## v0.6.3 (2026-06-05)
 
 ### 修复

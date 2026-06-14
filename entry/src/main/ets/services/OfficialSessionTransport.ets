@@ -6,6 +6,7 @@ import {
   SessionMouseInput,
   SessionVideoFrame
 } from './OfficialSessionTypes';
+import hilog from '@ohos.hilog';
 
 export class OfficialSessionTransport {
   static closeSession(): boolean {
@@ -47,7 +48,15 @@ export class OfficialSessionTransport {
   }
 
   static sendChatMessage(peerId: string, messageType: string, content: string, timestamp: number): boolean {
-    return NativeRustDeskBridge.sendChatMessage(peerId, messageType, content, timestamp);
+    hilog.error(0xA03D00, 'Transport', 'sendChatMessage: peerId=' + peerId + ' type=' + messageType + ' contentLen=' + content.length + ' content=[' + content.substring(0, 30) + ']');
+    const sessionResult = NativeRustDeskBridge.sessionSendChat(content);
+    hilog.error(0xA03D00, 'Transport', 'sessionSendChat returned: ' + sessionResult);
+    if (sessionResult) {
+      return true;
+    }
+    const fallbackResult = NativeRustDeskBridge.sendChatMessage(peerId, messageType, content, timestamp);
+    hilog.error(0xA03D00, 'Transport', 'sendChatMessage fallback returned: ' + fallbackResult);
+    return fallbackResult;
   }
 
   static sendFileTransferRequest(

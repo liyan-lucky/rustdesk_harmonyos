@@ -196,33 +196,17 @@ struct Scan {
         .fontColor('#FFFFFFFF')
         .textAlign(TextAlign.Center)
 
-      Row({ space: 12 }) {
-        Button(this.lt('Rescan'))
-          .layoutWeight(1)
-          .height(46)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#FFFFFF')
-          .backgroundColor('#0071FF')
-          .borderRadius(8)
-          .onClick(() => {
-            void this.rescan();
-          })
-
-        Button(this.lt('Copy scanned content'))
-          .layoutWeight(1)
-          .height(46)
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#FFFFFF')
-          .backgroundColor('#4DFFFFFF')
-          .borderRadius(8)
-          .enabled(this.scanResult.length > 0)
-          .onClick(() => {
-            void this.copyScanResult();
-          })
-      }
-      .width('100%')
+      Button(this.lt('Rescan'))
+        .width('100%')
+        .height(46)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .backgroundColor('#0071FF')
+        .borderRadius(8)
+        .onClick(() => {
+          void this.rescan();
+        })
     }
     .width('100%')
     .padding({ left: 20, right: 20 })
@@ -369,12 +353,15 @@ struct Scan {
   }
 
   private applyScanResult(value: string): void {
+    void this.clipboardService.copyText(value);
     if (this.applyServerConfig(value)) {
+      setTimeout(() => { this.goBack(); }, 1200);
       return;
     }
 
     const deviceId = this.extractDeviceId(value);
     if (!this.isPlausibleDeviceId(deviceId)) {
+      setTimeout(() => { this.goBack(); }, 1200);
       return;
     }
 
@@ -388,6 +375,7 @@ struct Scan {
       favorite: false,
       platform: ''
     });
+    setTimeout(() => { this.goBack(); }, 1200);
   }
 
   private applyServerConfig(value: string): boolean {

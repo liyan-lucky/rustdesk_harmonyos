@@ -1,5 +1,6 @@
 import window from '@ohos.window';
 import display from '@ohos.display';
+import hilog from '@ohos.hilog';
 import { ThemeConfig, ThemeManager } from '../common/ThemeConfig';
 
 export class WindowChromeService {
@@ -40,6 +41,47 @@ export class WindowChromeService {
 
   exitImmersiveMode(): void {
     this.applyWindowMode(false);
+  }
+
+  setLandscape(landscape: boolean): void {
+    if (!this.windowStage) {
+      return;
+    }
+    try {
+      const mainWindow = this.windowStage.getMainWindowSync();
+      if (landscape) {
+        mainWindow.setPreferredOrientation(window.Orientation.LANDSCAPE);
+      } else {
+        mainWindow.setPreferredOrientation(window.Orientation.PORTRAIT);
+      }
+    } catch (e) {
+      console.warn(`WindowChromeService setLandscape failed: ${JSON.stringify(e)}`);
+    }
+  }
+
+  async setKeepScreenOn(enabled: boolean): Promise<void> {
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (!this.windowStage) {
+        hilog.error(0xA03D00, 'WindowChrome', `setKeepScreenOn: windowStage is null, retry ${attempt + 1}/${maxRetries} enabled=${enabled}`);
+        await new Promise<void>(resolve => setTimeout(resolve, 500));
+        continue;
+      }
+      try {
+        const mainWindow = this.windowStage.getMainWindowSync();
+        hilog.error(0xA03D00, 'WindowChrome', `setKeepScreenOn: calling setWindowKeepScreenOn(${enabled}) attempt=${attempt + 1}`);
+        await mainWindow.setWindowKeepScreenOn(enabled);
+        hilog.error(0xA03D00, 'WindowChrome', `setKeepScreenOn: success enabled=${enabled}`);
+        AppStorage.setOrCreate<boolean>('debugKeepScreenAwakeActive', enabled);
+        return;
+      } catch (error) {
+        hilog.error(0xA03D00, 'WindowChrome', `setKeepScreenOn attempt ${attempt + 1} failed: ${JSON.stringify(error)}`);
+        if (attempt < maxRetries - 1) {
+          await new Promise<void>(resolve => setTimeout(resolve, 300));
+        }
+      }
+    }
+    hilog.error(0xA03D00, 'WindowChrome', `setKeepScreenOn: all retries exhausted enabled=${enabled}`);
   }
 
   private pxToVp(px: number): number {

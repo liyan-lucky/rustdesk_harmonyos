@@ -1,5 +1,6 @@
 ﻿import rustdeskBridgeLibrary from 'librustdesk_bridge.so';
 import { AppContextService } from './AppContextService';
+import hilog from '@ohos.hilog';
 
 export interface NativeBridgeSnapshot {
   adapter?: string;
@@ -96,7 +97,7 @@ export interface NativeBridgeModule {
   copyLatestVideoFrame?: (frameId: number, expectedBytes: number) => ArrayBuffer | null;
   refreshSessionVideo?: (display: number) => boolean;
   harmonyNextRgba?: (display: number) => void;
-  connectToPeer?: (peerId: string, password: string, server: string, relayServer: string, apiServer: string) => void;
+  connectToPeer?: (peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void;
   accountAuth?: (op: string, rememberMe: boolean, server: string, relayServer: string, apiServer: string) => void;
   accountAuthCancel?: () => void;
   accountAuthResult?: () => string;
@@ -109,7 +110,7 @@ export interface NativeBridgeModule {
   restartRemoteDevice?: () => boolean;
   lockRemoteScreen?: () => boolean;
   submitSessionPassword?: (password: string, remember: boolean) => boolean;
-  setIncomingServiceEnabled?: (enabled: boolean, server: string, relayServer: string, apiServer: string) => string;
+  setIncomingServiceEnabled?: (enabled: boolean, server: string, relayServer: string, apiServer: string, key: string) => string;
   bootstrapCoreSnapshot?: (displayId: string, fingerprint: string, directAddress: string, server: string) => string;
   sendMouseInput?: (mask: number, x: number, y: number) => boolean;
   sendKeyboardInput?: (keyCode: number, isPressed: boolean, modifiers: number) => boolean;
@@ -560,7 +561,7 @@ export class NativeRustDeskBridge {
     }
   }
 
-  static connectToPeer(peerId: string, password: string, server: string, relayServer: string, apiServer: string): boolean {
+  static connectToPeer(peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string = ''): boolean {
     console.info(`[NativeBridge] connectToPeer START: peerId=${peerId}, server=${server}`);
 
     const nativeModule = NativeRustDeskBridge.getModule();
@@ -575,9 +576,9 @@ export class NativeRustDeskBridge {
 
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
 
-    let connectFn: ((peerId: string, password: string, server: string, relayServer: string, apiServer: string) => void) | null = null;
+    let connectFn: ((peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void) | null = null;
 
-    const resolvedFn = NativeRustDeskBridge.resolveFunction<[string, string, string, string, string], void>(
+    const resolvedFn = NativeRustDeskBridge.resolveFunction<[string, string, string, string, string, string], void>(
       nativeModule,
       ['connectToPeer', 'connect_to_peer', 'rustdesk_bridge_connect_to_peer']
     );
@@ -588,7 +589,7 @@ export class NativeRustDeskBridge {
     if (!connectFn) {
       const directAccess = (nativeModule as Record<string, Object | undefined>)['connectToPeer'];
       if (typeof directAccess === 'function') {
-        connectFn = directAccess as (peerId: string, password: string, server: string, relayServer: string, apiServer: string) => void;
+        connectFn = directAccess as (peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void;
         console.info('[NativeBridge] connectToPeer resolved via direct property access');
       }
     }
@@ -598,7 +599,7 @@ export class NativeRustDeskBridge {
       if (defaultRecord && typeof defaultRecord === 'object') {
         const defaultFn = (defaultRecord as Record<string, Object | undefined>)['connectToPeer'];
         if (typeof defaultFn === 'function') {
-          connectFn = defaultFn as (peerId: string, password: string, server: string, relayServer: string, apiServer: string) => void;
+          connectFn = defaultFn as (peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void;
           console.info('[NativeBridge] connectToPeer resolved via module.default.connectToPeer');
         }
       }
@@ -620,7 +621,7 @@ export class NativeRustDeskBridge {
     }
     try {
       console.info(`[NativeBridge] Calling native connect function...`);
-      connectFn(peerId, password, server, relayServer, apiServer);
+      connectFn(peerId, password, server, relayServer, apiServer, key);
       console.info(`[NativeBridge] Native connect returned SUCCESS`);
       NativeRustDeskBridge.setDebugSummary(
         `connectToPeer invoked; peerId=${NativeRustDeskBridge.sanitizeValue(peerId)}`
@@ -1321,10 +1322,10 @@ export class NativeRustDeskBridge {
     }
   }
 
-  static setIncomingServiceEnabled(enabled: boolean, server: string, relayServer: string, apiServer: string): NativeBridgeSnapshot | null {
+  static setIncomingServiceEnabled(enabled: boolean, server: string, relayServer: string, apiServer: string, key: string = ''): NativeBridgeSnapshot | null {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    const setIncomingServiceEnabledFn = NativeRustDeskBridge.resolveFunction<[boolean, string, string, string], NativePayload>(
+    const setIncomingServiceEnabledFn = NativeRustDeskBridge.resolveFunction<[boolean, string, string, string, string], NativePayload>(
       nativeModule,
       ['setIncomingServiceEnabled', 'set_incoming_service_enabled', 'rustdesk_bridge_set_incoming_service_enabled']
     );
@@ -1332,7 +1333,7 @@ export class NativeRustDeskBridge {
       return null;
     }
     try {
-      const raw = setIncomingServiceEnabledFn(enabled, server, relayServer, apiServer);
+      const raw = setIncomingServiceEnabledFn(enabled, server, relayServer, apiServer, key);
       return NativeRustDeskBridge.parseJsonPayload<NativeBridgeSnapshot>(raw, 'setIncomingServiceEnabled');
     } catch (error) {
       console.error('NativeRustDeskBridge setIncomingServiceEnabled failed', JSON.stringify(error));
@@ -1448,9 +1449,12 @@ export class NativeRustDeskBridge {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     if (!nativeModule?.sendChatMessage) {
+      hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: nativeModule.sendChatMessage is null');
       return false;
     }
-    return nativeModule.sendChatMessage(peerId, messageType, content, timestamp) === true;
+    const result = nativeModule.sendChatMessage(peerId, messageType, content, timestamp) === true;
+    hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: returned ' + result + ' contentLen=' + content.length);
+    return result;
   }
 
   static sendFileTransferRequest(
@@ -1956,14 +1960,14 @@ export class NativeRustDeskBridge {
     try { return fn(frame_id, buffer) || 0; } catch { return 0; }
   }
 
-  static mainStartService(enabled: boolean, server: string, relay_server: string, api_server: string): string {
+  static mainStartService(enabled: boolean, server: string, relay_server: string, api_server: string, key: string = ''): string {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[enabled: boolean, server: string, relay_server: string, api_server: string], string>(
+    const fn = NativeRustDeskBridge.resolveFunction<[enabled: boolean, server: string, relay_server: string, api_server: string, key: string], string>(
       nativeModule,
       ['mainStartService', 'main_start_service', 'rustdesk_bridge_main_start_service']
     );
     if (!fn) return '';
-    try { return fn(enabled, server, relay_server, api_server) || ''; } catch { return ''; }
+    try { return fn(enabled, server, relay_server, api_server, key) || ''; } catch { return ''; }
   }
 
   static sessionSendMouse(mask: number, x: number, y: number): boolean {
@@ -2002,18 +2006,28 @@ export class NativeRustDeskBridge {
       nativeModule,
       ['sessionSendChat', 'session_send_chat', 'rustdesk_bridge_session_send_chat']
     );
-    if (!fn) return false;
-    try { return fn(content) || false; } catch { return false; }
+    if (!fn) {
+      hilog.error(0xA03D00, 'NativeBridge', 'sessionSendChat: resolveFunction returned null, module=' + (nativeModule ? 'exists' : 'null'));
+      return false;
+    }
+    try {
+      const result = fn(content);
+      hilog.error(0xA03D00, 'NativeBridge', 'sessionSendChat: fn returned ' + result + ' contentLen=' + content.length);
+      return result || false;
+    } catch (e) {
+      hilog.error(0xA03D00, 'NativeBridge', 'sessionSendChat: exception ' + JSON.stringify(e));
+      return false;
+    }
   }
 
-  static sessionStart(peer_id: string, password: string, server: string, relay_server: string, api_server: string): void {
+  static sessionStart(peer_id: string, password: string, server: string, relay_server: string, api_server: string, key: string = ''): void {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[peer_id: string, password: string, server: string, relay_server: string, api_server: string], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[peer_id: string, password: string, server: string, relay_server: string, api_server: string, key: string], void>(
       nativeModule,
       ['sessionStart', 'session_start', 'rustdesk_bridge_session_start']
     );
     if (!fn) return;
-    try { fn(peer_id, password, server, relay_server, api_server); } catch { /* ignore */ }
+    try { fn(peer_id, password, server, relay_server, api_server, key); } catch { /* ignore */ }
   }
 
   static mainAccountAuth(op: string, remember_me: boolean, server: string, relay_server: string, api_server: string): void {

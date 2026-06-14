@@ -1,5 +1,6 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
+import util from '@ohos.util';
 
 export interface TerminalSession {
   id: number;
@@ -22,6 +23,8 @@ interface TerminalPayload {
   terminal_id?: number;
   id?: number;
   data?: string;
+  dataBase64?: string;
+  data_base64?: string;
   type?: string;
 }
 
@@ -167,7 +170,7 @@ export class TerminalService {
     try {
       const payload: TerminalPayload = JSON.parse(event.detail || '{}') as TerminalPayload;
       const terminalId = payload.terminal_id ?? payload.id ?? 0;
-      const data = payload.data ?? '';
+      const data = this.decodeTerminalData(payload);
       const type = payload.type ?? 'stdout';
       if (terminalId === 0 || data.length === 0) {
         return;
@@ -207,6 +210,22 @@ export class TerminalService {
     } catch (error) {
       console.warn('[TerminalService] Failed to parse terminal closed event:', error);
     }
+  }
+
+  private decodeTerminalData(payload: TerminalPayload): string {
+    const dataBase64 = payload.dataBase64 ?? payload.data_base64 ?? '';
+    if (dataBase64.trim().length > 0) {
+      try {
+        const base64 = new util.Base64Helper();
+        const decodedBytes = base64.decodeSync(dataBase64);
+        const textDecoder = util.TextDecoder.create('utf-8');
+        return textDecoder.decodeToString(decodedBytes);
+      } catch (error) {
+        console.warn('[TerminalService] Failed to decode terminal base64 output:', error);
+        return '';
+      }
+    }
+    return payload.data ?? '';
   }
 
   private dispatchOutputEvent(event: TerminalOutputEvent): void {

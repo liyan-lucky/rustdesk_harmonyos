@@ -56,6 +56,7 @@ export interface SettingsState {
   autoCloseInactiveSessions: boolean;
   checkUpdatesOnStartup: boolean;
   keepScreenOnWhenControlled: boolean;
+  debugKeepScreenAwake: boolean;
   quality: number;
   keepScreenOn: 'never' | 'session' | 'service';
   approvalMode: 'password' | 'click' | 'both';
@@ -202,6 +203,7 @@ export class AppDataService {
     if (settings.autoCloseInactiveSessions !== undefined) next.autoCloseInactiveSessions = settings.autoCloseInactiveSessions;
     if (settings.checkUpdatesOnStartup !== undefined) next.checkUpdatesOnStartup = settings.checkUpdatesOnStartup;
     if (settings.keepScreenOnWhenControlled !== undefined) next.keepScreenOnWhenControlled = settings.keepScreenOnWhenControlled;
+    if (settings.debugKeepScreenAwake !== undefined) next.debugKeepScreenAwake = settings.debugKeepScreenAwake;
     if (settings.quality !== undefined) next.quality = settings.quality;
     if (settings.keepScreenOn !== undefined) next.keepScreenOn = settings.keepScreenOn;
     if (settings.approvalMode !== undefined) next.approvalMode = settings.approvalMode;
@@ -916,6 +918,7 @@ export class AppDataService {
       autoCloseInactiveSessions: source.autoCloseInactiveSessions,
       checkUpdatesOnStartup: source.checkUpdatesOnStartup,
       keepScreenOnWhenControlled: source.keepScreenOnWhenControlled,
+      debugKeepScreenAwake: source.debugKeepScreenAwake,
       quality: source.quality,
       keepScreenOn: source.keepScreenOn,
       approvalMode: source.approvalMode,
@@ -962,22 +965,21 @@ export class AppDataService {
   }
 
   private normalizeRecentSessionName(name: string): string {
-    if (name.startsWith('远程 ')) {
+    if (this.isGeneratedRemoteName(name, '远程 ')) {
       return '';
     }
-    if (name.startsWith('Remote ')) {
+    if (this.isGeneratedRemoteName(name, 'Remote ')) {
       return '';
-    }
-    if (name === 'Office Mac mini') {
-      return '办公室 Mac mini';
-    }
-    if (name === 'Design Workstation') {
-      return '设计工作站';
-    }
-    if (name === 'Warehouse Tablet') {
-      return '仓库平板';
     }
     return name;
+  }
+
+  private isGeneratedRemoteName(name: string, prefix: string): boolean {
+    if (!name.startsWith(prefix)) {
+      return false;
+    }
+    const normalizedId = DeviceIdFormatter.parse(name.substring(prefix.length));
+    return normalizedId.length >= 6 && normalizedId.length <= 18;
   }
 
   private static formatPeerDisplayName(hostname: string, username: string): string {
@@ -1012,34 +1014,10 @@ export class AppDataService {
   }
 
   private normalizeAddressBookAlias(alias: string): string {
-    if (alias === 'Office Mac mini') {
-      return '办公室 Mac mini';
-    }
-    if (alias === 'Design Workstation') {
-      return '设计工作站';
-    }
-    if (alias === 'Android Test Phone') {
-      return 'Android 测试手机';
-    }
-    if (alias === 'Store Kiosk') {
-      return '门店展示终端';
-    }
-    return alias;
+    return alias.trim();
   }
 
   private normalizeAddressBookNote(note: string): string {
-    if (note === 'Main release and maintenance device.') {
-      return '主发布与维护设备。';
-    }
-    if (note === 'Graphics design and CAD environment.') {
-      return '图形设计与 CAD 工作环境。';
-    }
-    if (note === 'Regression testing device.') {
-      return '回归测试设备。';
-    }
-    if (note === 'Locked-down demo environment.') {
-      return '受限的演示环境。';
-    }
     return note.trim();
   }
 
@@ -1047,18 +1025,6 @@ export class AppDataService {
     const normalizedGroup = group.trim();
     if (normalizedGroup.length === 0) {
       return '未分组';
-    }
-    if (normalizedGroup === 'Ops') {
-      return '运维';
-    }
-    if (normalizedGroup === 'Design') {
-      return '设计';
-    }
-    if (normalizedGroup === 'QA') {
-      return '测试';
-    }
-    if (normalizedGroup === 'Retail') {
-      return '零售';
     }
     return normalizedGroup;
   }
@@ -1098,6 +1064,7 @@ export class AppDataService {
       autoCloseInactiveSessions: false,
       checkUpdatesOnStartup: true,
       keepScreenOnWhenControlled: false,
+      debugKeepScreenAwake: false,
       quality: 80,
       keepScreenOn: 'session',
       approvalMode: 'password',

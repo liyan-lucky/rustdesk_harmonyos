@@ -2,17 +2,130 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-14 聊天发送失败根因修复
+
+### C++ 调用 rustdesk_bridge_session_send_chat 参数数量不匹配
+
+**现象**：聊天发送消息时，核心返回 `chat-error: failed=empty-content`，App 提示"聊天发送失败"。
+
+**根因**：C++ 层 `SessionSendChat` 和 `SendChatMessage` 调用 `rustdesk_bridge_session_send_chat(content.c_str())` 只传1个参数，但 Rust bridge_api.rs 的 ABI 签名是4个参数：`rustdesk_bridge_session_send_chat(_peer_id, _message_type, content, _timestamp)`。C++ 只传1个参数时，content 字符串被映射到 `_peer_id` 位置，而真正的 `content` 参数位置是未初始化的垃圾值，核心读到空内容。同时本地头文件 `rustdesk_bridge_abi.h` 声明也是1个参数 `int rustdesk_bridge_session_send_chat(const char * content)`，与实际 ABI 不匹配。
+
+**修复**：
+1. `rustdesk_bridge_abi.h` 声明改为4参数：`int rustdesk_bridge_session_send_chat(const char * peer_id, const char * message_type, const char * content, long long timestamp);`
+2. `rustdesk_bridge_loader.cpp` 中 `SessionSendChat` 和 `SendChatMessage` 改为读取所有4个参数并传给 ABI 函数
+3. TS 层 `NativeRustDeskBridge.ts` 的 `sessionSendChat` 和 `sendChatMessage` 添加 hilog 诊断日志
+
+**教训**：C++ ABI 声明必须与 Rust `#[no_mangle] pub extern "C"` 导出签名完全一致；参数数量不匹配在 C 调用约定下是未定义行为，不会编译报错但运行时参数错位。核心项目修改 ABI 签名后，App 项目的头文件和 C++ 调用必须同步更新。
+
+## 2026-06-14 staging/core 构建路径问题
+
+## 2026-06-14 文件传输对接问题
+
+### 文件传输页面不能使用本地模拟文件
+
+**现象**：文件传输页本地列表来自 `FileTransferService.seedLocalFiles()` 的固定示例数据，例如 `demo.hap`、`rustdesk-log.txt`。UI 可以排队上传，但路径在设备上不一定存在，最终会把假路径交给 native/core。
+
+**根因**：早期为了完成 UI 闭环使用虚拟文件模型；后续核心已接入 official `send_files()`，但 app 本地列表没有随之切到真实文件系统。
+
+**解决**：`FileTransferService.ets` 改为通过 `@ohos.file.fs.listFileSync/statSync` 读取真实 `/storage/Users/currentUser/Download`；本地新建目录走 `mkdirSync`，本地删除走 `unlinkSync/rmdirSync`，上传前用 `statSync` 检查源路径存在。
+
+**教训**：文件传输不能只看远端 official Session API 是否接通；app 侧展示的本地路径也必须是真实可读文件，否则 UI 成功和核心失败会脱节。`DocumentViewPicker` 可以作为授权入口，但若没有把选中 URI 转成 native 可读路径，就不能用示例数据冒充本地文件列表。
+
+### 摄像头查看入口不能假连接
+
+**现象**：`ViewCamera.ets` 的 `startCameraStream()` 没有调用 official view-camera session，却直接把 `isConnected=true`、状态设成 `Camera connected`；Recent 菜单也会进入该页面。
+
+**根因**：页面复用了通用视频帧渲染路径，但没有建立摄像头查看会话；`session_is_view_camera` 也不能代表 app 已能打开远端摄像头。
+
+**解决**：Recent 菜单 `View Camera` 改为灰色不可用提示，不再导航；`ViewCamera.ets` 自身也只显示 `Camera entry unavailable`，不再假设连接成功。
+
+**教训**：有页面和 wrapper 不等于功能完成。未接通 official session 的功能必须禁用或明确提示不可用，不能用本地状态把 UI 伪装成 connected。
+
+### 剪贴板和一次性远控命令不能假成功
+
+**现象**：远控菜单 `Send Clipboard Keys` 读取本机剪贴板后直接调用 `NativeRustDeskBridge.sendClipboardData()`，但没有检查返回值；无 active session 或 native/core 返回 `false` 时仍提示 `Clipboard sent to remote`。`sendSessionAction()` / `sendOptionCommand()` 在 core 不支持命令时写入本地 option，并提示 `Command queued locally`，但实际没有队列会继续发送。
+
+**根因**：早期 UI 把“已点击命令”和“native/core 已接收命令”混在一起；本地 option 只适合持久化会话选项，不适合作为截图、录制、关机、切换方向这类一次性命令的假队列。
+
+**解决**：剪贴板发送检查 native 返回值，失败时提示 `Failed to send clipboard`；一次性命令未被 native/core 处理时提示 `Command unavailable`，不再写入本地 option 伪装排队。
+
+**教训**：菜单命令必须根据 native/core 返回值决定提示文案；能保存本地偏好的开关和必须立刻被 session 处理的一次性命令要分开。
+
+### App staging 不能跟随 `13_librustdesk_core` junction
+
+**现象**：下载 `core-71` 后执行 `scripts\build_hap.bat`，staging 清理阶段报错，路径落在 `99_Temp\harmonyos_stage\11_Rustdesk_harmonyos\13_librustdesk_core\.git\refs\codex\...`。
+
+**根因**：App 根目录里的 `13_librustdesk_core` 是 NTFS junction。旧 `stage_project_for_build.ps1` 没有显式排除该 junction，也没有给 robocopy 加 `/XJ`，导致 staging 复制了整个核心项目和 `.git` 深路径；后续清理旧 staging 时又遇到深路径/只读 Git object。
+
+**修复**：`stage_project_for_build.ps1` 显式排除 `13_librustdesk_core`，robocopy 增加 `/XJ`；旧 staging 删除增加只读属性清理和 `\\?\` 长路径兜底。
+
+**教训**：staged build 只能复制 app 工程自身；项目根下用于开发便利的 junction/symlink 必须排除，且 robocopy 必须使用 `/XJ`。
+
+### 核心构建不能从 app 内 junction 路径启动
+
+**现象**：从 `11_Rustdesk_harmonyos\13_librustdesk_core` 执行 `scripts\build_native_bridge.ps1 -Profile release` 时，脚本寻找 `F:\Visual_Studio_Code\11_Rustdesk_harmonyos\99_Temp\rustdesk_harmonyos_build\vcpkg\installed` 并失败。
+
+**根因**：核心脚本按当前项目路径向上推导 workspace/build root；从 app 内 junction 启动会把 app 项目当作根的一部分，导致 `99_Temp` 推导到错误位置。
+
+**修复**：从真实路径 `%VSCODE_ROOT%\13_librustdesk_core` 运行核心构建；本轮真实路径 release 构建成功，并已连续发布 `core-71`、`core-73`、`core-74`。
+
+**教训**：app 内 `13_librustdesk_core` junction 只用于浏览源码，不作为核心构建 cwd；构建/提交/推送核心时都切到真实 `%VSCODE_ROOT%\13_librustdesk_core`。
+
+## 2026-06-14 core/app 对接复查：终端 stub、音频空队列和聊天参数
+
+### 终端页面存在不等于核心已接通
+
+**现象**：App 有 `Terminal.ets`、`TerminalService.ets` 和 NAPI 声明，但核心 `session_open_terminal()`、`session_send_terminal_input()`、`session_resize_terminal()`、`session_close_terminal()` 仍返回 `false`，终端页只能显示入口不可用。
+
+**根因**：旧审计只确认了 ArkTS/NAPI 函数名存在，没有继续检查 13 项目 `rustdesk-master/src/harmony_bridge/core.rs` 是否调用 official `Session`。
+
+**修复**：13 项目外层和旧副本 `harmony_bridge/core.rs` 均改为调用 `Session::open_terminal/send_terminal_input/resize_terminal/close_terminal`；`HarmonyHandler.handle_terminal_response()` 将 official `TerminalResponse` 转成 `terminal-response`、`terminal-output`、`terminal-closed` 事件。
+
+**教训**：核心功能对接必须按 ArkTS → NAPI → C ABI → Rust bridge → official Session → 事件回流全链路检查。
+
+### 终端输出不能直接写入事件 JSON
+
+**现象**：终端输出可能含 ANSI/control bytes，如果直接放入 session event 的 `detail` 字符串，JSON 可能不可解析或页面输出乱码。
+
+**根因**：`queue_event()` 只适合普通文本详情；终端字节流不是普通 JSON 字符串。
+
+**修复**：核心将终端 data response 解压后 base64 到 `dataBase64`；App `TerminalService` 用 `util.Base64Helper` 和 `TextDecoder` 解码。`Terminal.ets` 不再消费 `terminal-response:data` 追加输出，只处理 opened/error/closed，避免和 `terminal-output` 重复。
+
+**教训**：二进制或控制字符数据必须编码穿过事件总线；页面层不要同时订阅两个数据入口。
+
+### 音频空队列和本地音频上传不能伪装成功
+
+**现象**：核心 `pull_audio_frames_json()` 返回 `{}`，App 远端音频轮询按数组解析会反复异常；本地“Send Local Audio”会启动麦克风并提示成功，但核心 `send_audio_frame_metadata()` 没有采样数据 payload，实际没有向远端发送音频。
+
+**根因**：音频接收空队列返回值不符合 App 约定；音频上传 ABI 只有 metadata 参数，缺少音频数据参数或 official voice-call 采集链路。
+
+**修复**：核心空音频队列返回 `[]`；App 本地音频上传入口改为提示 `Audio upload unavailable`，不再启动采集假成功。
+
+**教训**：只有 metadata 的接口不能当作媒体上传能力；UI 有入口时必须要么真实 native 调用成功，要么明确不可用。
+
+### 聊天 NAPI 四参调用要读 content 参数
+
+**现象**：App 侧聊天调用形如 `sendChatMessage(peerId, messageType, content, timestamp)`，如果 C++ bridge 只读 `args[0]`，会把 peerId 当作消息内容。
+
+**根因**：13 项目 C++ bridge 仍是旧的一参实现，11 项目已修但核心项目未同步。
+
+**修复**：13 项目 `cpp/rustdesk_bridge_loader.cpp` 中 `SendChatMessage` 和 `SessionSendChat` 改为四参兼容：优先读 `args[2]`，旧一参调用 fallback 读 `args[0]`。
+
+**教训**：C++ bridge 的修复必须同时落到 13 核心项目，否则后续从核心同步会覆盖 11 项目的已修行为。
+
 ## 2026-06-13 core-70 / 设备验证 / 线上状态
 
 ### 设备锁屏会让安装成功后的启动和视频流验证被阻断
 
-**现象**：`scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169` 安装 HAP 成功，但 `aa start` 返回 `Error Code:10106102`，随后 `pidof com.open.rundesk` 无进程，hilog 中没有 `coreReady`、`session-connected` 或 `video-frame`。
+**现象**：`scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169` 安装 HAP 成功，但 `aa start` 返回 `Error Code:10106102`，随后 `pidof com.open.rundesk` 无进程，hilog 中没有 `coreReady`、`session-connected` 或 `video-frame`。2026-06-14 core-73 和 core-74 复测时，`power-shell wakeup`、`uitest uiInput swipe` 和 `aa start -N` 都不能绕过锁屏，WindowManager 仍显示 `SCBScreenLock` 处于顶层。
 
 **根因**：设备处于锁屏状态，系统阻止应用启动；这不是 HAP 构建、签名、安装或 native core 链接失败。
 
-**解决**：先解锁设备，再重新执行安装/启动或单独执行 `hdc -t 192.168.11.100:36169 shell aa start -a EntryAbility -b com.open.rundesk`，随后重新抓取 hilog 验证 `coreReady=true`、`session-connected`、`peer-info`、`video-refresh-requested`、`video-frame`。
+**解决**：先手动解锁设备，再重新执行安装/启动或单独执行 `hdc -t 192.168.11.100:36169 shell aa start -a EntryAbility -b com.open.rundesk`，随后重新抓取 hilog 验证 `coreReady=true`、`session-connected`、`peer-info`、`video-refresh-requested`、`video-frame`。不要把锁屏导致的无进程误判为 HAP、签名或 native core 链接失败。
 
 **教训**：安装成功和启动成功必须分开记录；遇到 `10106102` 时不要继续分析视频流缺失，先处理设备解锁。
+
+**2026-06-14 复核**：手机手动解锁后，`scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169` 可同时完成安装和 `aa start`；本轮复核进程 `12565` 存活，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次，app fatal/panic/signal 为 0。
 
 ### App 线上最新 run 可能不是本地最新验证状态
 
@@ -743,18 +856,18 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 ### official set_incoming_service_enabled 返回空导致共享服务无法确认 (2026-06-03发现, 已修复崩溃与状态确认)
 **现象**: 共享页启动服务后 native 返回 `{}`，ArkTS 只能判断 incoming 未确认，服务显示无法启动。
 **根因**: 上游 Harmony bridge 中 `set_incoming_service_enabled()` 仍是 stub。
-**解决**: native bridge 已改为写入 server option、`stop-service`，并请求 `start_server(true, false)`；ArkTS `ScreenCaptureService` 当前改用 `@ohos.screenshot.capture()` 作为 SDK 可编译的屏幕捕获探测/截图路径。
+**解决**: native bridge 已改为写入 server option、`stop-service`，并请求 `start_server(true, false)`；历史 `@ohos.screenshot.capture()` 屏幕捕获探测/截图路径已废弃，当前 App 侧使用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 做录屏授权/录制探测。
 **剩余风险**: 最新 HAP 已安装到 USB 设备，但设备锁屏导致 `aa start` 失败，仍需解锁后通过共享 Tab 和 hilog 验证服务是否真正监听并可被其他设备访问。
 
 **2026-06-03 10:53 更新**: 已完成 USB 复测。直接启动桌面端 `start_server(true, false)` 会在 Harmony appspawn 环境触发 `exit(-1)` / `signal:6`，因此 native Harmony bridge 已改为安全 incoming requested 路径，不再启动该桌面 server 线程。`get_core_snapshot_json()` 已返回当前 `incomingReady`，前端轮询重试已收敛为单次延迟刷新。最新装机日志中 `incoming-service-requested` 只出现 1 次，App 进程稳定，无 `signal:6`。
 
-**剩余风险**: 当前只是修复“共享开关无法稳定开启/启动即崩溃/状态反复重试”。真实屏幕采集仍未接入，`ScreenCaptureService` 在当前 SDK/runtime 下明确标记 screen capture API 不可用；后续需要接入 Harmony 可用的官方录屏/采集链路后，才能验证被控端画面输出。
+**剩余风险**: 当前只是修复“共享开关无法稳定开启/启动即崩溃/状态反复重试”和录屏授权路径。真实被控画面仍需要把 Harmony 录屏帧接入 RustDesk desktop server/live frame 桥后才能完整验证。
 
 ### 文件访问权限只请求权限位、不唤起授权选择器 (2026-06-03发现，已修复)
 **现象**: 共享页 `File transfer` 开关和远控页文件传输入口只请求 `READ_WRITE_DOWNLOAD_DIRECTORY` / `FILE_ACCESS_PERSIST`，用户不会看到系统文件访问授权流程。
 **根因**: 文件访问授权与普通权限请求混在一起，缺少 `DocumentViewPicker` 授权入口。
 **解决**: `PermissionService` 新增 `requestFileAccessAuthorization()`，在权限位通过后调用 `DocumentViewPicker.select()`；共享页和远控页统一使用该入口。
-**剩余风险**: 当前只补齐授权入口；文件传输页本地文件列表仍是虚拟/固定路径模型，真实本地文件选择、URI 到 native 传输路径的落地需要在文件传输轮次继续完善。
+**2026-06-14 更新**: `FileAuthorizationService.ts` 作为 TS 层统一文件授权入口，先请求 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST`，再唤起 `DocumentViewPicker` 返回 URI。TS 文件不能 import ETS，因此 `CoreLoaderService.ts` 等 TS 服务必须调用 TS 授权服务，不能直接引用 `PermissionService.ets`。文件传输页本地列表已从虚拟/固定路径模型改为读取真实下载目录；任意外部 URI 选择后直接加入传输队列仍属于后续平台扩展，不再影响下载目录路径的真实传输。
 
 ### 悬浮窗设置只持久化、不申请系统授权 (2026-06-03发现，已修复)
 **现象**: `Enable floating window` 在主设置页和旧设置页中只修改 `enableFloatingWindow`，没有触发 `SYSTEM_FLOAT_WINDOW` 授权；用户可能以为功能已开启。
@@ -801,8 +914,8 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 ### 屏幕采集使用截图API导致崩溃 (2026-06-03发现, 已处理)
 **现象**: 共享服务使用 `@ohos.screenshot.capture()` 作为 fallback，实机触发 signal:6 崩溃。
 **根因**: 截图API不适合作为持续录屏方案，高频调用导致系统压力过大或权限不匹配。`@ohos.avScreenCapture` 在当前SDK中无类型声明，编译不可用。
-**解决**: `ScreenCaptureService.startScreenCaptureSession()` 明确 throw 标记当前SDK/runtime下screen capture API不可用，不调用任何截图或录屏API。真实屏幕采集需后续接入Harmony可用的官方录屏/采集链路。
-**教训**: ✅录屏和截图是不同API，不能用截图 fallback 替代录屏；✅`@ohos.avScreenCapture` 是官方录屏链路但当前SDK未提供类型声明，不可编译；✅应按文档记录的当前状态处理，不做超出SDK能力的修改。
+**解决**: 历史阶段 `ScreenCaptureService.startScreenCaptureSession()` 明确禁用截图 fallback；2026-06-14 起改为使用当前 SDK 可用的 `@ohos.multimedia.media` / `AVScreenCaptureRecorder` 触发系统录屏授权并写临时录制文件做状态探测。真实屏幕采集仍需把录屏帧接入 RustDesk 被控视频源。
+**教训**: ✅录屏和截图是不同API，不能用截图 fallback 替代录屏；✅发现 SDK 新增/可用媒体录屏 API 后要更新文档和实现，不要继续沿用旧“不可用”结论；✅未接通 live frame 前不得把 incoming 状态伪装成已就绪。
 
 ### 入站被控无视频源却标记 incomingReady 导致远端等待视频流 (2026-06-12发现, 已修复状态)
 **现象**: 其他设备连接 Harmony 端时可能一直显示等待视频流。
@@ -858,6 +971,36 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **解决**: Index.ets新增当前/最近会话peer解析与 `refreshCurrentSessionChat()`，`onPageShow()`和会话事件都会刷新最近会话聊天；RemoteControl聊天浮窗绑定 `chatPanelScroller` 并在打开、发送、接收时滚到底部；AppDataService不再返回固定测试消息，Chat.ets移除模拟自动回复；ChatService从持久化消息恢复会话摘要。
 **教训**: ✅Chat tab是会话聊天记录视图，不是独立测试聊天页；✅会话结束后仍要保留最近会话peer作为读取目标；✅示例/模拟消息不能进入真实聊天服务。
 
+### 聊天发送失败文本被当成消息显示 (2026-06-14发现, 已修复)
+**现象**: 会话聊天发送失败时，聊天窗口里出现 `failed` 文本，用户看起来像真正发出了一条失败内容。
+**根因**: core outgoing 失败/成功事件和 remote incoming 聊天事件都复用了 `chat-message` 语义，App 侧也会先写入本地消息，导致失败详情被当成消息持久化。
+**解决**: 13 核心将发送失败改为 `chat-error`、发送成功改为 `chat-sent`，只有远端实际消息继续使用 `chat-message`；11 App 发送时先调用 official session bridge，成功后才保存本地消息，并过滤 `failed=`/`error=` 旧事件和本地 echo。
+**教训**: ✅事件名必须表达方向和语义，发送结果不能冒充远端消息；✅聊天 UI 不能先乐观写入再把 native 失败文本混进消息历史。
+
+### 自建服务器 key 未传入核心导致同服设备无法连接 (2026-06-14发现, 已修复)
+**现象**: 设置自建服务器后，同一服务器下的设备无法稳定连接。
+**根因**: App 到 C++/Rust bridge 的 start service/connect 参数只传 server/relay/api，遗漏 key；旧 server option 也可能在切回官方默认或空值时残留。
+**解决**: `connectToPeer()` 与 `setIncomingServiceEnabled()` 全链路增加 key 参数；13 核心 `apply_server_options(server, relay, api, key)` 写入或清空 custom-rendezvous-server、relay-server、api-server、key，避免旧配置残留。
+**教训**: ✅服务器配置字段必须全链路透传，尤其 key 不能只存在 UI/设置页；✅空字符串代表官方默认时要清理旧 option，不是保持旧值。
+
+### 搜索框挤压 tab 与返回连接页自动弹键盘 (2026-06-14发现, 已修复)
+**现象**: 从其他 tab 返回连接 tab 时 ID 输入框自动聚焦并弹出输入法；搜索框出现在 tab 容器内会挤压布局。
+**根因**: ID TextInput 的 `onChange` 中主动 `requestFocus()`；搜索输入框作为普通布局子项参与容器排版。
+**解决**: 连接页默认焦点回到底部 tab 按钮，ID 输入变更不再主动聚焦；搜索入口统一改为图标触发的悬浮输入框，从图标向左展开并用 blur 只关闭搜索浮层，不丢失匹配逻辑。
+**教训**: ✅用户切 tab 返回时不应假设要继续输入 ID；✅搜索浮层属于 overlay/Stack 定位，不应挤压 tab 或列表容器。
+
+### 设置页和会话菜单同功能状态割裂 (2026-06-14发现, 已修复)
+**现象**: 会话菜单中勾选显示连接质量后，设置页“显示质量监测”开关状态不同步；图像默认质量在设置页只能显示不能调。
+**根因**: 设置页和会话页分别维护本地 option 状态，UI 控件样式不同但没有共享同一状态来源。
+**解决**: 新增会话+本地 option 统一读写 helper，显示连接质量、显示远程鼠标、图像质量等同功能只保留一套状态，设置页用开关/选择器，会话菜单用勾选图标。
+**教训**: ✅同一功能只能有一个状态源；✅不同页面的控件形态可以不同，但读写必须走同一 option/key。
+
+### 演示设备名称/分组自动翻译污染真实数据 (2026-06-14发现, 已修复)
+**现象**: 地址簿或历史中的真实用户字段如果刚好是 `Design Workstation`、`QA`、`Retail` 等，会被旧 demo 清理逻辑自动翻译成中文。
+**根因**: 早期示例数据迁移逻辑没有只限定在 seed ID 上，而是在 normalize 阶段对通用 alias/group/note 做硬编码转换。
+**解决**: 删除演示别名、备注、分组的自动翻译映射；只保留可明确识别的旧自动名 `远程/Remote + 数字ID` 清理，以及旧 seed ID 列表整体清理。
+**教训**: ✅旧数据清理必须有强识别条件，不能按普通文本值改写用户数据；✅demo 字段不能进入 normalize 通用路径。
+
 ### 无密码连接密码框、对端重置重试、LAN发现与线上生成包 (2026-06-07补充, 已修复)
 **现象**: 升级核心后，无保存密码发起连接不会先弹密码框；对端 reset/closed 后远控页停在最后画面且不弹重试；LAN 发现列表会被一次空结果刷空；旧线上构建需要同时生成 HAP 和 APP，并在构建前确认 native 核心完整。
 **根因**: `Index.ets` 和 `RemoteControl.ets` 对“无密码授权等待”和“输入密码切换连接”没有作为并行流程处理；`RemoteControl.ets` 的 connected 快照会在首帧前关闭对话框并掩盖刚关闭的 native 会话；retry 判断没有覆盖 `closed`、`session-closed` 和 `Connection reset by peer (os error 104)` 这类实际错误；`LanDiscoveryService.ets` 对 native 短暂空列表没有容错；旧线上构建脚本缺少 staged 产物校验和双格式收集。
@@ -890,3 +1033,58 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **现象**: 无会话数据时聊天tab header显示不一致；聊天内容滑到tab菜单上面。
 **根因**: header缺少无会话时的logo显示逻辑；内容区缺少底部padding避让tab菜单。
 **修复**: 无会话时显示openRustDesk logo（与其他tab页一致）；聊天内容区添加 `bottom: 120` padding。
+
+### 键盘避让画面平移方向反转 (2026-06-13发现, 已修复)
+
+**现象**: 键盘弹出时画面向下平移而非向上，导致画面被推到更下方。
+**根因**: computeKeyboardOffset中maxShift=imageTop，当imageTop为负值（画面被向上平移过）时，Math.min(overlap, maxShift)取到负值，-offset变为正值（向下平移）。
+**修复**: 最终方案为删除computeKeyboardOffset()，改为修改panOffsetY模拟双指平移，避免叠加计算问题。
+
+### 键盘避让画面不平移 (2026-06-14发现, 已修复)
+
+**现象**: 键盘弹出时画面完全不移动。
+**根因**: clampPanOffset限制了Y方向平移范围（竖屏画面比容器矮时Y只能向下偏移几像素），键盘弹出需要向上平移100+px被截断为0。
+**修复**: 键盘平移时不走clampPanOffset，直接设置panOffsetY。
+
+### 键盘避让100%缩放时误平移 (2026-06-14发现, 已修复)
+
+**现象**: 画面100%缩放时（上下有大空白），键盘弹出仍然平移画面。
+**根因**: previewHeight只到工具栏上方，distanceFromBottom计算的是画面底部到工具栏上方的距离，而非到屏幕底部的距离。工具栏占据的空间导致distanceFromBottom偏小。
+**修复**: 工具栏从Column流中移出改为Stack悬浮(zIndex=5)，预览区铺满到屏幕底部，previewHeight=到屏幕底部的真实距离。
+
+### ID匹配悬浮窗挤在输入卡片容器中 (2026-06-14发现, 已修复)
+
+**现象**: ID输入框匹配建议列表显示在输入框下方，挤占容器空间而非悬浮在上方。
+**根因**: 悬浮窗作为Column子元素渲染，占据流式布局空间。
+**修复**: buildOfficialConnectPanel外层改为Stack，悬浮窗用.position()绝对定位+.zIndex(10)悬浮在所有画面上方，宽度70%。
+
+### 旋转画面转180度 (2026-06-14发现, 已修复)
+
+**现象**: 会话菜单中旋转画面按钮点击后画面旋转180度而非90度。
+**根因**: setLandscape()已让系统旋转屏幕90度，viewRotation=90又让画面.rotate({angle:90})再旋转90度，叠加为180度。
+**修复**: 新增isLandscapeMode状态替代viewRotation=90，viewRotation保持0不再额外旋转画面。isQuarterTurn()和transformPreviewPointToImageSpace()改用isLandscapeMode。
+
+### 横屏结束会话未恢复竖屏 (2026-06-14发现, 已修复)
+
+**现象**: 横屏模式下直接结束会话，返回连接页面后屏幕仍为横屏。
+**根因**: closeSession()和goBack()中缺少横屏恢复逻辑。
+**修复**: closeSession()和goBack()中检查isLandscapeMode并恢复竖屏。
+
+### Tab切换只显示连接菜单 (2026-06-14发现, 已修复)
+
+**现象**: 从连接tab切换到聊天/共享/设置tab时，页面内容不更新，仍显示连接页面。
+**根因**: ForEach([this.i18nVersion],...)的key不随currentTab变化，ForEach不重建组件。改为直接if-else也不生效（ArkTS条件渲染在Column内可能不触发重建）。
+**修复**: ForEach改用[currentTab]作为数组和key，tab切换时key变化强制重建组件。
+
+### ID输入框自动激活输入法 (2026-06-14发现, 已修复)
+
+**现象**: 打开app或从其他tab切回连接tab时，ID输入框自动获取焦点弹出系统输入法。
+**根因**: TextInput作为页面第一个可聚焦元素，系统自动分配焦点。
+**修复**: 给底部连接tab图标添加id('connect-tab-btn')，aboutToAppear中focusControl.requestFocus('connect-tab-btn')将默认焦点放到tab图标上。
+
+### 底部tab栏只显示一个连接按钮 (2026-06-14发现, 已修复)
+
+**现象**: 底部tab栏只显示一个"连接"按钮居中，其他3个tab（聊天/共享/设置）不可见。
+**根因**: (1)buildFillTabItem中.layoutWeight(1)被误改为.width('100%')，Row中多个width('100%')子项只有第一个可见；(2)buildOfficialConnectPanel外层从Column改为Stack导致面板高度异常。
+**修复**: (1)buildFillTabItem还原为.layoutWeight(1)；(2)buildOfficialConnectPanel外层还原为Column，悬浮窗改用.overlay()属性实现（不影响流式布局）。
+**教训**: ✅Row中多个子项应该用layoutWeight(1)平分宽度，不能用width('100%')；✅悬浮窗用.overlay()比Stack+position更安全，不影响父容器布局。

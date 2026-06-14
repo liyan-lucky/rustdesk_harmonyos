@@ -171,6 +171,23 @@ Column() { /* TextInput... */ }
 - 更多菜单项目多，必须使用垂直滚动，不能让聊天、文件传输、截图、录制、重启、锁屏等后半段入口被屏幕裁掉。
 - 连接质量浮层由顶部工具栏显示按钮直接开关；浮层至少显示分辨率、FPS、延迟、接收速率、发送速率、连接线路、缩放比例。
 - 菜单入口必须带完整行为：跳转类入口传递当前 `deviceId`，命令类入口调用 native 或给出本地排队提示，不能静默失败。
+- 未接通 official session 的菜单入口必须灰显并明确提示不可用，不能跳转到会把本地状态伪装成 connected 的页面；当前 `View Camera` 入口采用此规则。
+- 一次性远控命令必须按 native/core 返回值显示结果；未被处理时显示 `Command unavailable`，不能用“本地排队”或成功提示替代真实发送。
+- 聊天工具栏按钮不直接打开唯一聊天框，先弹出“语音聊天 / 文字聊天”两个模式；语音模式匹配音频采集可用性，文字模式打开聊天浮窗。
+- 聊天浮窗默认尺寸 `144x187`，最小尺寸 `144x187`，最大 `420x640`；聊天消息时间按跨天或 5 分钟以上间隔显示，不要每条都显示。
+
+---
+
+## 搜索浮层规范
+
+- 历史、收藏、发现、通讯录、登录、核心页面的搜索入口使用同一视觉：`search.svg` 图标按钮 + 悬浮 TextInput。
+- 搜索框从搜索图标向左展开，使用 overlay/Stack 绝对定位和 zIndex，不参与 tab 或列表容器排版，不能把标签挤开。
+- 搜索框失焦（onBlur）只关闭输入框，不清空搜索文本，保持过滤结果可见；再次点击搜索图标时如果有搜索文本则清空重新开始。
+- 从其他 TAB 返回连接 TAB 时，默认焦点回到底部 TAB 按钮（`connect-bottom-tab-btn`）；ID TextInput 不得自动获取焦点。
+- ID输入框悬浮匹配框只在输入法激活时显示（`deviceIdInputFocused`），输入法关闭时自动隐藏；`onChange` 中检查 `deviceIdInputFocused && raw.length >= 3` 才显示匹配。
+- 悬浮匹配框左右居中显示，overlay使用 `Alignment.Top`。
+- ID输入框右侧X（清除）和→（连接）按钮必须始终可点击：Stack中左侧Column需留出right padding（60）给按钮空间，右侧Row设zIndex(20)高于overlay，按钮加hitTestBehavior(Block)扩大点击区域。
+- ID输入框连接状态提示文本不超过8个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码等；`setStatusMessageRaw` 自动截断超过8字的文本。
 
 ---
 
@@ -183,6 +200,8 @@ Column() { /* TextInput... */ }
 - 卡片间距: `SPACING_LG` (16)
 - 核心卡片: `Adapter`、`Native Module`、`Native Core` 三行都可点击(带箭头图标)，点击弹出各自详情弹窗
 - 详情弹窗: 与Language/Server弹窗样式一致(半透明遮罩+圆角卡片+关闭按钮)
+- 核心页状态文案停止态统一显示“停止”，不要再显示“已停止”。
+- 主按钮有“开始 / 重启”两态，负责启动或重启所有核心；副按钮有“加载 / 停止”两态，负责加载核心文件或停止并分离运行状态。按钮状态必须跟 Adapter、Native Module、Native Core 的实际 snapshot 同步。
 
 ### 核心卡片内容
 
@@ -192,7 +211,7 @@ Column() { /* TextInput... */ }
 | Native Module | NAPI bridge module状态 | 点击弹出Native Module详情 |
 | Native Core | Rust staticlib/核心状态 | 点击弹出Native Core详情 |
 
-按钮: Start(核心未就绪时) / Reset(核心已就绪时) + Stop(始终显示，核心未就绪时disabled)
+按钮: Start(核心未就绪时) / Restart(核心已就绪时) + Stop(核心运行时可点击，未运行时disabled)
 
 核心页固定展示三类状态入口，详情菜单内容应与上方入口一一对应。
 
@@ -218,30 +237,47 @@ Column() { /* TextInput... */ }
 
 ### 详情弹窗内容
 
-弹窗标题为当前入口名称或核心模块文件名，内容为该模块的所有信息：
+弹窗标题为当前入口名称或核心模块文件名，内容精简为8行：
 
 | 行 | 内容 |
 |----|------|
-| 状态 | 核心状态(statusSummary或Loaded/Stopped/Unrecognized) |
-| 错误 | 错误信息或“无” |
-| 详情 | 详细消息或“无” |
+| 类型 | 核心模块类型(kind) |
+| 运行 | 合并状态+运行摘要+异常+详情，以 ` | ` 分隔 |
+| 兼容 | 兼容官方版本(如 RustDesk 1.4.7) |
 | 文件 | 核心文件名(从路径提取) |
-| 文件大小 | MB |
+| 大小 | 文件大小(MB + bytes) |
 | 哈希(FNV-1a) | 文件哈希 |
-| 有效ELF | 是/否 |
-| 构建时间 | 构建时间 |
-| 来源 | 加载来源(bundle/filesdir/download/import/none) |
+| 编译 | 核心编译时间(来自librustdesk_core.a的mtime) |
+| 有效 | 有效ELF(是/否) |
 
 ---
 
 ## SVG图标主题适配
 
-### 方案
+### 图标格式原则
 
-| 图标类型 | 方法 | 原因 |
-|---------|------|------|
-| **fill格式**(填充图形) | fillColor | 性能最优，直接替换填充色 |
-| **stroke格式**(线条图形) | colorFilter | fillColor对开放图形支持有问题 |
+**不要重绘SVG图标**，重绘容易丢失图形标识。根据图标自身格式选择着色方法：
+
+| 图标格式 | 着色方法 | SVG要求 |
+|---------|---------|---------|
+| **fill格式**（填充图形） | fillColor | path必须有`fill="#000000"`属性 |
+| **stroke格式**（线条图形） | colorFilter(BlendMode.SRC_IN) | path必须有`stroke="#000000"`属性，每个path显式`fill="none"` |
+
+判断图标格式的规则：
+- SVG根元素或path有`fill`属性且无`stroke`→ fill格式，用fillColor
+- SVG根元素或path有`stroke`属性且`fill="none"`→ stroke格式，用colorFilter
+- 不确定时打开SVG源文件检查，不要猜测
+
+### 平台图标着色
+
+| 图标 | 格式 | 着色方法 |
+|------|------|---------|
+| win.svg | stroke | colorFilter(createStrokeIconColorFilter(theme_ACCENT)) |
+| mac.svg | stroke | colorFilter(createStrokeIconColorFilter(theme_ACCENT)) |
+| android.svg | fill | fillColor(theme_ACCENT) |
+| linux.svg | fill | fillColor(theme_ACCENT) |
+
+`buildThemedPlatformIcon` 内部通过 `isFillPlatformIcon()` 自动判断平台对应的图标格式，fill格式平台(android/harmony/linux/ubuntu)用fillColor，stroke格式平台(win/mac/ios)用colorFilter。
 
 ### 核心机制
 
@@ -310,7 +346,8 @@ export function createStrokeIconColorFilter(color: string): drawing.ColorFilter 
 | refresh.svg | 刷新(静态+动态旋转) |
 | Sorting_order.svg | 排序 |
 | mac.svg | macOS平台 |
-| linux.svg | Linux平台 |
+| linux.svg | Linux平台 | fill | fillColor |
+| scan_frame.svg | 扫码入口 | fill | fillColor | 内空半透描边圆形按钮，背景透明+1.5px描边 |
 | settings_person.svg | 设置-账户(分组标签) |
 | settings_server.svg | 设置-服务器(分组标签+行图标) |
 | settings_proxy.svg | 设置-代理(行图标) |
@@ -404,6 +441,75 @@ this.refreshAngle = 0;
 
 关键位置: Tab菜单图标 / ConnectPeerTab图标 / 远程控制工具栏 / 返回箭头 / 搜索/排序 / 三点菜单 / 扫描/指纹 / 账户页InfoRow图标
 
+### 菜单图标位置要求
+
+会话菜单布局规则：**图标在左，选项（Radio圆圈/Checkbox）在右，文字在中间**。
+- `buildMenuRow`：图标左 → 文字中间(layoutWeight(1)) → 箭头右
+- `buildToggleMenuRow`：图标左 → 文字中间(layoutWeight(1)) → Radio右
+- `RadioOptionItem`：图标左 → 文字中间(layoutWeight(1)) → Radio右
+- `CheckboxOptionItem`：图标左 → 文字中间(layoutWeight(1)) → Checkbox右
+
+### 会话菜单关闭方式
+
+- 无关闭按钮(×图标)，点击菜单区域外任意位置关闭
+- 菜单宽度210，内边距12，标题高度40
+
+### 设置页与会话页开关同步
+
+设置页显示设置开关和会话页菜单开关使用同一套逻辑：`applySessionOption` + `setLocalOption` / `applySessionAndLocalOption`，确保状态一致。同一功能只允许一份状态源：会话页可以显示勾选图标，设置页可以显示 Switch 或选择器，但“显示连接质量 / 显示远程鼠标 / 图像质量 / 会话录制”等同功能必须读写同一个 option/key。
+
+### 画面平移边界限制
+
+- `clampPanOffset` 方法限制画面偏移范围
+- 横向：左右最多到屏幕边缘一条缝（gap=4px）
+- 竖向显示时：左右可缩小到屏幕边缘（gap=0）
+- 横竖屏切换时自动重新计算边界
+
+### 显示设置菜单标题操作按钮
+
+- `buildSessionPanelHeader` 支持可选的 `headerAction` 参数（`PanelHeaderAction` 接口：icon/isStroke/action）
+- 显示设置面板标题右侧有旋转方向按钮（`opt_rotate.svg`，stroke格式），点击切换竖屏/横屏显示
+- 旋转时重置 panOffset 为 (0,0)，避免越界
+
+### 质量监控面板
+
+- 7行：分辨率/FPS/延迟/速度/编码/连接/缩放
+- 编码行：从quality-status的codec_format提取，转大写显示（VP9/H265等）
+- 连接行：标签为"连接"（非"连接类型"），显示直连/中继/加密等
+- 面板140宽全透背景，字号11
+
+### 键盘避让
+
+- 只平移画面（Image），不平移容器
+- `computeKeyboardOffset()` 计算画面下边缘与键盘区域重叠量
+- 只有重叠 > 0 时才向上平移重叠量，且不超过画面顶部位置
+- 键盘弹出不自动收起工具栏（已取消 toolbarHiddenByKeyboard 关联）
+
+### 缩放限制
+
+- pinchScale 最小值为 1（最小 100% 缩放，不能缩小）
+- 竖屏时画面比容器窄：左右到屏幕边缘（minX=0, maxX=pw-renderedW）
+- 横屏时画面比容器矮：上下到屏幕边缘（minY=0, maxY=ph-renderedH）
+
+### 工具栏底部避让
+
+- 展开时：`margin({ bottom: avoidNavigationBarHeight })`
+- 收起时：`padding({ bottom: avoidNavigationBarHeight })`
+- 菜单面板：`padding({ bottom: 56 + avoidNavigationBarHeight })`，底部贴着展开工具栏顶部
+
+### 关于页
+
+- "启动检查更新"开关为禁用状态（disabled=true，灰色不可操作）
+- 指纹行：整行可点击复制完整指纹，右侧显示指纹前12字符
+- `buildSettingsToggleSettingRow` 支持 `disabled` 参数
+
+### ID卡片连接模式
+
+- Per-card 存储：PreferenceStore `peer_connect_modes`，`getPeerConnectMode(peerId)` / `setPeerConnectMode(peerId, mode)`
+- 菜单中直连/中继选项从 per-peer 存储读取选中状态
+- 中继重连后自动更新 per-peer 模式为 relay
+- 菜单其他功能（收藏/删除/重命名/文件传输/终端/摄像头）已确认 per-card
+
 ---
 
 ## 账户页登录后图标 (2026-06-05)
@@ -419,7 +525,8 @@ this.refreshAngle = 0;
 | 文件 | 修改内容 |
 |------|----------|
 | `entry/src/main/ets/pages/Index.ets` | 渐变背景、Tab栏、Tab图标fillColor/colorFilter、搜索、ID输入框 |
-| `entry/src/main/ets/pages/RemoteControl.ets` | 工具栏图标fillColor、箭头图标、buildToolBtnStroke |
+| `entry/src/main/ets/pages/RemoteControl.ets` | 工具栏图标fillColor、箭头图标、buildToolBtnStroke、聊天模式菜单 |
+| `entry/src/main/ets/pages/LoginPage.ets` | 登录页搜索入口和 provider 过滤 |
 | `entry/src/main/ets/pages/AddressBook.ets` | 登录提示图标 |
 | `entry/src/main/ets/common/CommonComponents.ets` | PageHeader返回箭头fillColor、createStrokeIconColorFilter |
 | `entry/src/main/ets/common/ThemeConfig.ets` | 主题颜色配置(AppStorage) |

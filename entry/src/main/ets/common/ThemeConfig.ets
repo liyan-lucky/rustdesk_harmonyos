@@ -43,6 +43,7 @@ interface ThemeColors {
   DISABLED_TEXT: string;
   INACTIVE_BG: string;
   PANEL_BG: string;
+  MENU_BG: string;
   TOOLBAR_BG: string;
   OVERLAY_SEMI: string;
   OVERLAY_LIGHT: string;
@@ -94,6 +95,7 @@ const DARK_COLORS: ThemeColors = {
   DISABLED_TEXT: '#AAAAAA',
   INACTIVE_BG: '#3A4355',
   PANEL_BG: '#1F1F1F',
+  MENU_BG: '#D01E232F',
   TOOLBAR_BG: '#2A2A2A',
   OVERLAY_SEMI: '#CC1F1F1F',
   OVERLAY_LIGHT: '#8A2A2A2A',
@@ -145,6 +147,7 @@ const LIGHT_COLORS: ThemeColors = {
   DISABLED_TEXT: '#AAAAAA',
   INACTIVE_BG: '#E5E7EB',
   PANEL_BG: '#FFFFFF',
+  MENU_BG: '#D0FFFFFF',
   TOOLBAR_BG: '#F3F4F6',
   OVERLAY_SEMI: '#CCF8FAFC',
   OVERLAY_LIGHT: '#8AF8FAFC',
@@ -200,6 +203,7 @@ function pushColorsToAppStorage(colors: ThemeColors): void {
   AppStorage.setOrCreate<string>('theme_DISABLED_TEXT', colors.DISABLED_TEXT);
   AppStorage.setOrCreate<string>('theme_INACTIVE_BG', colors.INACTIVE_BG);
   AppStorage.setOrCreate<string>('theme_PANEL_BG', colors.PANEL_BG);
+  AppStorage.setOrCreate<string>('theme_MENU_BG', colors.MENU_BG);
   AppStorage.setOrCreate<string>('theme_TOOLBAR_BG', colors.TOOLBAR_BG);
   AppStorage.setOrCreate<string>('theme_OVERLAY_SEMI', colors.OVERLAY_SEMI);
   AppStorage.setOrCreate<string>('theme_OVERLAY_LIGHT', colors.OVERLAY_LIGHT);
@@ -317,6 +321,7 @@ export class ThemeConfig {
   static get DISABLED_TEXT(): string { return ThemeConfig.colors().DISABLED_TEXT; }
   static get INACTIVE_BG(): string { return ThemeConfig.colors().INACTIVE_BG; }
   static get PANEL_BG(): string { return ThemeConfig.colors().PANEL_BG; }
+  static get MENU_BG(): string { return ThemeConfig.colors().MENU_BG; }
   static get TOOLBAR_BG(): string { return ThemeConfig.colors().TOOLBAR_BG; }
   static get OVERLAY_SEMI(): string { return ThemeConfig.colors().OVERLAY_SEMI; }
   static get OVERLAY_LIGHT(): string { return ThemeConfig.colors().OVERLAY_LIGHT; }

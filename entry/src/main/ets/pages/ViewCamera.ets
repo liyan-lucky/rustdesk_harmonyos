@@ -111,7 +111,7 @@ struct ViewCamera {
             Image($rawfile('rec.svg'))
               .width(64)
               .height(64)
-              .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              .fillColor(this.theme_TEXT_TERTIARY)
             Text(this.lt('Waiting for camera...'))
               .fontSize(ThemeConfig.FONT_SIZE_MD)
               .fontColor(this.theme_TEXT_SECONDARY)
@@ -185,9 +185,8 @@ struct ViewCamera {
       this.cameraStatus = this.lt('Device ID invalid');
       return;
     }
-    this.cameraStatus = this.lt('Connecting camera...');
-    this.isConnected = true;
-    this.cameraStatus = this.lt('Camera connected');
+    this.isConnected = false;
+    this.cameraStatus = this.lt('Camera entry unavailable');
   }
 
   private stopCameraStream(): void {

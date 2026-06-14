@@ -1,6 +1,7 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
 import { PreferenceStore } from './PreferenceStore';
+import hilog from '@ohos.hilog';
 
 /**
  * 聊天服务
@@ -58,6 +59,7 @@ export class ChatService {
   private officialBridge: OfficialRustDeskBridge = OfficialRustDeskBridge.getInstance();
   private sessions: Map<string, ChatSession> = new Map();
   private messages: Map<string, ChatMessage[]> = new Map(); // deviceId -> messages
+  private recentLocalEchoes: Map<string, number> = new Map();
   private eventListeners: Array<(event: ChatEvent) => void> = [];
   private maxMessageHistory: number = 1000;
 
@@ -134,14 +136,27 @@ export class ChatService {
   async sendTextMessage(deviceId: string, content: string): Promise<ChatMessage> {
     try {
       const session = this.getOrCreateSession(deviceId, 'Unknown Device');
+      const normalized = content.trim();
+      const timestamp = Date.now();
+      hilog.error(0xA03D00, 'Chat', 'sendTextMessage: deviceId=' + deviceId + ' contentLen=' + normalized.length + ' content=[' + normalized.substring(0, 30) + ']');
+      const sent = OfficialSessionTransport.sendChatMessage(deviceId, ChatMessageType.TEXT, normalized, timestamp);
+      hilog.error(0xA03D00, 'Chat', 'sendChatMessage returned: ' + (sent ? 'true' : 'false'));
+      if (!sent) {
+        this.dispatchEvent({
+          type: 'error',
+          session,
+          error: 'Chat send failed'
+        });
+        throw new Error('Chat send failed');
+      }
 
       // 创建消息
       const message: ChatMessage = {
         id: this.generateMessageId(),
         type: ChatMessageType.TEXT,
-        content,
+        content: normalized,
         sender: 'local',
-        timestamp: Date.now(),
+        timestamp,
         isRead: true
       };
 
@@ -166,7 +181,7 @@ export class ChatService {
         session
       });
 
-      OfficialSessionTransport.sendChatMessage(deviceId, message.type, message.content, message.timestamp);
+      this.rememberLocalEcho(deviceId, message.content);
       return message;
     } catch (error) {
       console.error('Send text message failed:', error);
@@ -219,12 +234,24 @@ export class ChatService {
       const session = this.getOrCreateSession(deviceId, 'Unknown Device');
 
       // 创建消息
+      const timestamp = Date.now();
+      const outboundContent = fileName.length > 0 ? fileName : filePath;
+      const sent = OfficialSessionTransport.sendChatMessage(deviceId, ChatMessageType.FILE, outboundContent, timestamp);
+      if (!sent) {
+        this.dispatchEvent({
+          type: 'error',
+          session,
+          error: 'Chat send failed'
+        });
+        throw new Error('Chat send failed');
+      }
+
       const message: ChatMessage = {
         id: this.generateMessageId(),
         type: ChatMessageType.FILE,
         content: filePath,
         sender: 'local',
-        timestamp: Date.now(),
+        timestamp,
         isRead: true,
         fileName,
         fileSize
@@ -251,7 +278,7 @@ export class ChatService {
         session
       });
 
-      OfficialSessionTransport.sendChatMessage(deviceId, message.type, message.fileName || message.content, message.timestamp);
+      this.rememberLocalEcho(deviceId, outboundContent);
       return message;
     } catch (error) {
       console.error('Send file message failed:', error);
@@ -567,6 +594,24 @@ export class ChatService {
     });
   }
 
+  static shouldShowTimestamp(messages: ChatMessage[], index: number): boolean {
+    if (index >= messages.length) {
+      return true;
+    }
+    const current = messages[index];
+    if (index <= 0) {
+      return true;
+    }
+    const previous = messages[index - 1];
+    if (new Date(current.timestamp).toDateString() !== new Date(previous.timestamp).toDateString()) {
+      return true;
+    }
+    if (current.timestamp - previous.timestamp > 300000) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * 格式化文件大小
    */
@@ -628,14 +673,72 @@ export class ChatService {
   }
 
   private handleOfficialEvent(event: OfficialSessionEvent): void {
+    if (event.kind === 'chat-error') {
+      hilog.warn(0xA03D00, 'Chat', 'chat-error: ' + event.detail);
+      this.dispatchEvent({
+        type: 'error',
+        error: event.detail
+      });
+      return;
+    }
+    if (event.kind === 'chat-sent') {
+      hilog.info(0xA03D00, 'Chat', 'chat-sent: peerId=' + event.peerId + ' content=' + event.detail.substring(0, 50));
+      return;
+    }
     if (event.kind !== 'chat-message') {
       return;
     }
     const deviceId = event.peerId.trim();
     const content = event.detail.trim();
+    hilog.info(0xA03D00, 'Chat', 'chat-message: peerId=' + deviceId + ' contentLen=' + content.length);
     if (deviceId.length === 0 || content.length === 0) {
+      hilog.warn(0xA03D00, 'Chat', 'chat-message dropped: empty peerId or content');
+      return;
+    }
+    if (this.isBridgeFailureDetail(content)) {
+      this.dispatchEvent({
+        type: 'error',
+        error: content
+      });
+      return;
+    }
+    if (this.consumeLocalEcho(deviceId, content)) {
+      hilog.info(0xA03D00, 'Chat', 'chat-message consumed as local echo');
       return;
     }
     this.receiveTextMessage(deviceId, content);
+  }
+
+  private rememberLocalEcho(deviceId: string, content: string): void {
+    this.pruneLocalEchoes();
+    this.recentLocalEchoes.set(this.buildLocalEchoKey(deviceId, content), Date.now() + 5000);
+  }
+
+  private consumeLocalEcho(deviceId: string, content: string): boolean {
+    this.pruneLocalEchoes();
+    const key = this.buildLocalEchoKey(deviceId, content);
+    if (!this.recentLocalEchoes.has(key)) {
+      return false;
+    }
+    this.recentLocalEchoes.delete(key);
+    return true;
+  }
+
+  private pruneLocalEchoes(): void {
+    const now = Date.now();
+    this.recentLocalEchoes.forEach((expiresAt: number, key: string) => {
+      if (expiresAt <= now) {
+        this.recentLocalEchoes.delete(key);
+      }
+    });
+  }
+
+  private buildLocalEchoKey(deviceId: string, content: string): string {
+    return `${deviceId.trim()}::${content.trim()}`;
+  }
+
+  private isBridgeFailureDetail(content: string): boolean {
+    const lower = content.trim().toLowerCase();
+    return lower.startsWith('failed=') || lower.startsWith('error=');
   }
 }

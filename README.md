@@ -60,7 +60,7 @@ RustDesk Server / Peer
 ### 分层原则
 
 - **保留Rust**: 协议层(relay/rendezvous/NAT/protobuf)、加密、会话管理、文件传输
-- **HarmonyOS重写**: 录屏(AVScreenCapture)、音频(AudioRenderer)、输入(InputManager)、UI(ArkTS)、文件(@ohos.file.fs)
+- **HarmonyOS重写**: 录屏(AVScreenCaptureRecorder)、音频(AudioRenderer)、输入(InputManager)、UI(ArkTS)、文件(@ohos.file.fs/DocumentViewPicker)
 - **裁剪**: flutter/scrap/cpal/dxgi/x11/pipewire/ffmpeg/system-tray
 
 ### 主题管理
@@ -245,16 +245,17 @@ RustDesk Server / Peer
 - LAN发现：30秒周期轮询+手动刷新，Config::path() OHOS条件修复
 - 服务器配置：官方样式对话框，导入/导出兼容官方JSON→Base64→反转格式
 - 扫码：相机扫码+相册图片二维码识别，服务器配置扫码直存
-- 聊天：当前/最近会话聊天内容，持久化消息，浮窗自动滚动
-- 地址簿/通讯录：登录后可添加设备，在线状态同步
+- 聊天：当前/最近会话聊天内容，持久化消息，浮窗自动滚动，发送失败走错误提示而不是写入 failed 文本；远控聊天入口弹出语音/文字两个模式
+- 地址簿/通讯录：登录后可添加设备，在线状态同步，登录成功和刷新按钮都会触发服务器同步
+- 搜索：历史、收藏、发现、通讯录、登录、核心页面使用统一搜索入口，搜索框从图标向左悬浮展开，不挤压 tab 容器
 - 设置：官方分组顺序，Lucide stroke SVG图标，权限开关先同步再异步
 - 函数补齐：从54个扩展至369个桥接函数，覆盖官方APK绝大部分wire_*函数
 
 ### 当前限制
 
-- **共享服务不可用**：Screen Capture API在当前SDK下不可用，录屏/desktop server未接入时不得标记`incomingReady=true`
-- 全屏会话输入法弹出时画面不挤压/平移（未解决）
-- `switch-sides`和`session-action=shutdown`无官方协议支持
+- **共享/被控链路限制**：App 侧已改用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 录屏授权/录制探测，不再使用截图 API；真实被控视频帧进入 RustDesk desktop server 仍需要核心/平台采集桥继续接入，未确认视频源前不得标记 `incomingReady=true`
+- 全屏会话输入法弹出时通过画面平移避让，不再挤压布局
+- `switch-sides` 已接入 official `Session::switch_sides()`；`session-action=shutdown` 仍没有官方协议字段
 
 ## 连接稳定性要求
 

@@ -85,6 +85,12 @@ interface QualityMetricItem {
   priority: number;
 }
 
+interface PanelHeaderAction {
+  icon: string;
+  isStroke: boolean;
+  action: () => void;
+}
+
 function base64ToArrayBuffer(base64Str: string): ArrayBuffer {
   const base64Helper = new util.Base64Helper();
   const uint8Arr: Uint8Array = base64Helper.decodeSync(base64Str);
@@ -239,15 +245,18 @@ struct RemoteControl {
   @State isConnected: boolean = false;
   @State frameVersion: number = 0;
   @State showToolbar: boolean = true;
-  @State showKeyboard: boolean = false;
+  @State @Watch('onShowKeyboardChange') showKeyboard: boolean = false;
   @State imeProxyText: string = '';
   @State imeProxyFocused: boolean = false;
+  private imeProxyDismissRequested: boolean = false;
   @State hasReceivedFrame: boolean = false;
   @State sessionPassword: string = '';
   @State isSubmittingPassword: boolean = false;
   @State showPasswordDialog: boolean = false;
   @State showReconnectDialog: boolean = false;
-  @StorageLink('avoidKeyboardHeight') avoidKeyboardHeight: number = 0;
+  @StorageLink('avoidKeyboardHeight') @Watch('onAvoidKeyboardHeightChange') avoidKeyboardHeight: number = 0;
+  @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
+  @State remoteInputActive: boolean = false;
   @State reconnectDialogTitle: string = '';
   @State reconnectDialogText: string = '';
   @State reconnectDialogCanRelay: boolean = false;
@@ -255,11 +264,13 @@ struct RemoteControl {
   @State previewWidth: number = 0;
   @State previewHeight: number = 0;
   @State viewRotation: number = 0;
+  @State isLandscapeMode: boolean = false;
   @State zoomLevelIndex: number = 0;
   @State pinchScale: number = 1;
   private lastPinchScale: number = 1;
   @State panOffsetX: number = 0;
   @State panOffsetY: number = 0;
+  private preKeyboardPanOffsetY: number = 0;
   @State showConnectionInfo: boolean = false;
   @State connectionLatency: number = 0;
   @State connectionFps: number = 0;
@@ -267,12 +278,14 @@ struct RemoteControl {
   @State connectionSendSpeed: string = '--';
   @State connectionSpeedDisplay: string = '--';
   @State connectionType: string = '';
+  @State connectionCodec: string = '';
   @State qualityMetricItems: QualityMetricItem[] = [];
   @State qualityDetailText: string = '';
   @State qualityUpdatedAtText: string = '';
   @State showDisplayMenu: boolean = false;
   @State showMoreMenu: boolean = false;
   @State showMouseModeMenu: boolean = false;
+  @State showChatModeMenu: boolean = false;
   @State showChatPanel: boolean = false;
   @State chatDraft: string = '';
   @State chatMessages: ChatMessage[] = [];
@@ -283,6 +296,12 @@ struct RemoteControl {
   private chatPanelDragStartY: number = 0;
   private chatPanelDragStartOffsetX: number = 0;
   private chatPanelDragStartOffsetY: number = 0;
+  @State chatPanelWidth: number = 144;
+  @State chatPanelHeight: number = 187;
+  private chatPanelResizeStartX: number = 0;
+  private chatPanelResizeStartY: number = 0;
+  private chatPanelResizeStartWidth: number = 0;
+  private chatPanelResizeStartHeight: number = 0;
   @State blockInputOn: boolean = false;
   @State displayScaleMode: number = 1;
   @State imageQualityMode: number = 1;
@@ -396,8 +415,14 @@ struct RemoteControl {
     this.showDisplayMenu = false;
     this.showMouseModeMenu = false;
     this.showMoreMenu = false;
+    this.showChatModeMenu = false;
+    this.chatPanelWidth = this.resolveDefaultChatPanelWidth();
+    this.chatPanelHeight = this.resolveDefaultChatPanelHeight();
     this.showChatPanel = true;
     this.chatDraft = '';
+    const viewportWidth = this.previewWidth > 0 ? this.previewWidth : 360;
+    this.chatPanelOffsetX = Math.max(8, (viewportWidth - this.chatPanelWidth) / 2);
+    this.chatPanelOffsetY = 60;
     this.chatMessages = this.chatService.getMessages(this.deviceId);
     this.chatService.updateSessionDeviceName(this.deviceId, this.deviceName);
     this.scheduleChatPanelScroll(100);
@@ -409,9 +434,33 @@ struct RemoteControl {
       return;
     }
     this.chatDraft = '';
-    await this.chatService.sendTextMessage(this.deviceId, text);
-    this.chatMessages = this.chatService.getMessages(this.deviceId);
-    this.scheduleChatPanelScroll(50);
+    try {
+      await this.chatService.sendTextMessage(this.deviceId, text);
+      this.chatMessages = this.chatService.getMessages(this.deviceId);
+      this.scheduleChatPanelScroll(50);
+    } catch (_error) {
+      this.chatDraft = text;
+      void this.showToast(this.lt('Chat send failed'));
+    }
+  }
+
+  private resolveDefaultChatPanelWidth(): number {
+    return 144;
+  }
+
+  private resolveDefaultChatPanelHeight(): number {
+    return 187;
+  }
+
+  private async openVoiceChatMode(): Promise<void> {
+    this.showChatModeMenu = false;
+    this.showChatPanel = false;
+    if (this.audioService.isCapturingActive()) {
+      await this.audioService.stopCapture();
+      void this.showToast(this.lt('Local Audio Stopped'));
+      return;
+    }
+    await this.toggleLocalAudioCapture();
   }
 
   private scheduleChatPanelScroll(delayMs: number): void {
@@ -472,6 +521,7 @@ struct RemoteControl {
     this.connectionSendSpeed = '--';
     this.connectionSpeedDisplay = '--';
     this.connectionType = '';
+    this.connectionCodec = '';
     this.clearConnectionQualityState();
     this.fpsCalcLastTime = 0;
     this.fpsCalcFrameCount = 0;
@@ -494,6 +544,9 @@ struct RemoteControl {
     this.lastWheelGestureAt = 0;
     this.remotePeerFingerprint = '';
     this.loadSessionMenuState();
+    if (this.showQualityMonitor) {
+      this.setConnectionInfoVisible(true);
+    }
     this.clearLongPressTimer();
     this.officialBridge.addEventListener(this.bridgeListener);
     this.chatService.addEventListener(this.chatListener);
@@ -502,6 +555,9 @@ struct RemoteControl {
     this.startBridgeRefresh();
     this.startFrameRefresh();
     WindowChromeService.getInstance().enterImmersiveMode();
+    if (this.settings.keepScreenOn === 'session' || this.settings.keepScreenOn === 'service') {
+      void WindowChromeService.getInstance().setKeepScreenOn(true);
+    }
     this.initAudioPlayback();
     this.startAudioFrameRefresh();
   }
@@ -513,6 +569,7 @@ struct RemoteControl {
     this.stopFrameRefresh();
     this.disposeRenderedFrame();
     WindowChromeService.getInstance().exitImmersiveMode();
+    void WindowChromeService.getInstance().setKeepScreenOn(false);
     this.stopAudioFrameRefresh();
     this.cleanupAudioResources();
   }
@@ -521,6 +578,7 @@ struct RemoteControl {
   @StorageProp('theme_BORDER_SOFT') theme_BORDER_SOFT: string = '#3A4355';
   @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2C3343';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
+  @StorageProp('theme_MENU_BG') theme_MENU_BG: string = '#D01E232F';
   @StorageProp('theme_CARET_HIDDEN') theme_CARET_HIDDEN: string = '#00000000';
   @StorageProp('theme_CONTRAST_TEXT') theme_CONTRAST_TEXT: string = '#F8FAFC';
   @StorageProp('theme_DIALOG_OVERLAY') theme_DIALOG_OVERLAY: string = '#80000000';
@@ -603,7 +661,7 @@ struct RemoteControl {
                   Image($rawfile('display.svg'))
                     .width(64)
                     .height(64)
-                    .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
+                    .fillColor(this.theme_TEXT_TERTIARY);
                   Text(this.videoStatus)
                     .fontSize(16)
                     .fontColor(this.theme_TEXT_SECONDARY)
@@ -626,6 +684,7 @@ struct RemoteControl {
             .width('100%')
             .layoutWeight(1)
             .backgroundColor(this.theme_GRAY_BG)
+            .animation({ duration: 300, curve: Curve.EaseInOut })
             .onAreaChange((_oldValue, newValue) => {
               const nextWidth = Number(newValue.width);
               const nextHeight = Number(newValue.height);
@@ -643,7 +702,7 @@ struct RemoteControl {
                   })
                   .onActionUpdate((event: PinchGestureEvent) => {
                     const newScale = this.lastPinchScale * event.scale;
-                    this.pinchScale = Math.max(0.5, Math.min(this.maxPinchScale, newScale));
+                    this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, newScale));
                   })
                   .onActionEnd(() => {
                     this.lastPinchScale = this.pinchScale;
@@ -654,15 +713,15 @@ struct RemoteControl {
             if (this.shouldShowPasswordAssist()) {
               this.buildPasswordAssist();
             }
-
-            if (this.showToolbar) {
-              this.buildBottomToolbar();
-            } else {
-              this.buildToolbarExpandHandle();
-            }
           }
           .width('100%')
           .layoutWeight(1);
+
+          if (this.showToolbar) {
+            this.buildBottomToolbar();
+          } else {
+            this.buildToolbarExpandHandle();
+          }
         }
         .width('100%')
         .layoutWeight(1);
@@ -691,8 +750,11 @@ struct RemoteControl {
         }
         .width('100%')
         .height('100%')
-        .padding({ bottom: 56 })
+        .padding({ bottom: 56 + this.avoidNavigationBarHeight })
         .zIndex(110)
+        .onClick(() => {
+          this.showDisplayMenu = false;
+        })
       }
 
       if (this.showMouseModeMenu) {
@@ -705,8 +767,28 @@ struct RemoteControl {
         }
         .width('100%')
         .height('100%')
-        .padding({ bottom: 56 })
+        .padding({ bottom: 56 + this.avoidNavigationBarHeight })
         .zIndex(110)
+        .onClick(() => {
+          this.showMouseModeMenu = false;
+        })
+      }
+
+      if (this.showChatModeMenu) {
+        Column() {
+          Blank()
+          Column() {
+            this.buildChatModeMenuPanel();
+          }
+          .alignItems(HorizontalAlign.Center)
+        }
+        .width('100%')
+        .height('100%')
+        .padding({ bottom: 56 + this.avoidNavigationBarHeight })
+        .zIndex(110)
+        .onClick(() => {
+          this.showChatModeMenu = false;
+        })
       }
 
       if (this.showMoreMenu) {
@@ -719,8 +801,11 @@ struct RemoteControl {
         }
         .width('100%')
         .height('100%')
-        .padding({ bottom: 56 })
+        .padding({ bottom: 56 + this.avoidNavigationBarHeight })
         .zIndex(110)
+        .onClick(() => {
+          this.showMoreMenu = false;
+        })
       }
 
       if (this.showChatPanel) {
@@ -743,8 +828,6 @@ struct RemoteControl {
     .height('100%')
     .backgroundColor(this.theme_GRAY_BG)
     .opacity(this.i18nOpacity)
-    .translate({ y: -this.avoidKeyboardHeight })
-    .animation({ duration: 300, curve: Curve.EaseInOut })
 
     .onKeyEvent((event: KeyEvent) => {
       this.handleKeyEvent(event);
@@ -799,41 +882,58 @@ struct RemoteControl {
       });
 
       this.buildToolBtnSvg($rawfile('display.svg'), () => {
-        this.showDisplayMenu = !this.showDisplayMenu;
+        const wasOpen = this.showDisplayMenu;
+        this.showDisplayMenu = !wasOpen;
         this.showMouseModeMenu = false;
+        this.showChatModeMenu = false;
         this.showMoreMenu = false;
       }, this.showDisplayMenu);
 
       this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), () => {
-        if (this.showKeyboard) {
+        if (this.showKeyboard || this.imeProxyFocused) {
           this.showKeyboard = false;
-          this.releaseImeProxyFocus();
+          this.imeProxyFocused = false;
+          this.imeProxyDismissRequested = true;
+          try {
+            const focusController = this.getUIContext().getFocusController();
+            focusController.clearFocus();
+          } catch (_e) {}
         } else {
+          this.preKeyboardPanOffsetY = this.panOffsetY;
           this.showKeyboard = true;
           this.openSystemKeyboardFromCustomPanel();
         }
         this.showDisplayMenu = false;
         this.showMouseModeMenu = false;
+        this.showChatModeMenu = false;
         this.showMoreMenu = false;
       }, this.showKeyboard);
 
       this.buildToolBtnStroke($rawfile('actions.svg'), () => {
-        this.showMouseModeMenu = !this.showMouseModeMenu;
+        const wasOpen = this.showMouseModeMenu;
+        this.showMouseModeMenu = !wasOpen;
         this.showDisplayMenu = false;
+        this.showChatModeMenu = false;
         this.showMoreMenu = false;
       }, this.showMouseModeMenu);
 
       this.buildToolBtnSvg($rawfile('chat.svg'), () => {
-        this.openSessionChatPanel();
-      }, this.showChatPanel);
+        const wasOpen = this.showChatModeMenu;
+        this.showChatModeMenu = !wasOpen;
+        this.showDisplayMenu = false;
+        this.showMouseModeMenu = false;
+        this.showMoreMenu = false;
+      }, this.showChatPanel || this.showChatModeMenu);
 
       this.buildToolBtnSvg($rawfile('dots_vertical.svg'), () => {
-        this.showMoreMenu = !this.showMoreMenu;
+        const wasOpen = this.showMoreMenu;
+        this.showMoreMenu = !wasOpen;
         if (this.showMoreMenu) {
           this.blockInputOn = NativeRustDeskBridge.getSessionToggleOption('block-input');
         }
         this.showDisplayMenu = false;
         this.showMouseModeMenu = false;
+        this.showChatModeMenu = false;
       }, this.showMoreMenu);
 
       Blank().layoutWeight(1);
@@ -849,7 +949,9 @@ struct RemoteControl {
     .width('100%')
     .height(56)
     .padding({ left: 8, right: 8 })
-    .backgroundColor('#B3222222');
+    .backgroundColor('#B3222222')
+    .margin({ bottom: this.avoidNavigationBarHeight })
+    .zIndex(5)
   }
 
   @Builder
@@ -907,11 +1009,15 @@ struct RemoteControl {
       Blank().layoutWeight(1);
     }
     .width('100%')
-    .padding({ left: 0, right: 12, bottom: 20 });
+    .padding({ left: 0, right: 12, bottom: this.avoidNavigationBarHeight })
+    .zIndex(5)
   }
 
   private toggleRotation(): void {
-    this.viewRotation = this.normalizeRotation(this.viewRotation === 90 ? 0 : 90);
+    this.isLandscapeMode = !this.isLandscapeMode;
+    this.panOffsetX = 0;
+    this.panOffsetY = 0;
+    WindowChromeService.getInstance().setLandscape(this.isLandscapeMode);
   }
 
   private toggleZoomLevel(): void {
@@ -923,132 +1029,90 @@ struct RemoteControl {
 
   @Builder
   private buildConnectionInfoPanel() {
-    Column({ space: 12 }) {
+    Column({ space: 6 }) {
       Row() {
-        Text(this.lt('Connection Info'))
-          .fontSize(14)
-          .fontColor(this.theme_CONTRAST_TEXT)
-          .fontWeight(FontWeight.Medium);
+        Text(this.lt('Resolution'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
         Blank();
-        Image($rawfile('close.svg'))
-          .width(20)
-          .height(20)
-          .fillColor(this.theme_CONTRAST_TEXT)
-          .onClick(() => {
-            this.setConnectionInfoVisible(false);
-          });
+        Text(this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--')
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
       }
       .width('100%');
 
-      Scroll() {
-        Column({ space: 8 }) {
-        Row() {
-          Text(this.lt('Resolution'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth} × ${this.frameHeight}` : '--')
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('FPS'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.connectionFps > 0 ? `${this.connectionFps}` : '--')
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('Latency'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--')
-            .fontSize(12)
-            .fontColor(this.getLatencyColor());
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('Speed'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.connectionSpeedDisplay)
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('Connection Type'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(this.connectionType.length > 0 ? this.connectionType : '--')
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-        Row() {
-          Text(this.lt('Zoom'))
-            .fontSize(12)
-            .fontColor(this.theme_DISABLED_TEXT);
-          Blank();
-          Text(`${Math.round(this.getCurrentZoom() * 100)}%`)
-            .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT);
-        }
-        .width('100%');
-
-          if (this.qualityUpdatedAtText.length > 0) {
-            this.buildConnectionInfoRow(this.lt('Updated'), this.qualityUpdatedAtText, this.theme_DISABLED_TEXT);
-          }
-          if (this.qualityMetricItems.length > 0) {
-            Text(this.lt('Quality Details'))
-              .fontSize(11)
-              .fontColor(this.theme_DISABLED_TEXT)
-              .fontWeight(FontWeight.Medium)
-              .margin({ top: 6 });
-            ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
-              this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT);
-            }, (item: QualityMetricItem) => `${item.priority}-${item.label}`);
-          }
-          if (this.qualityDetailText.length > 0) {
-            Text(this.lt('Raw Quality Status'))
-              .fontSize(11)
-              .fontColor(this.theme_DISABLED_TEXT)
-              .fontWeight(FontWeight.Medium)
-              .margin({ top: 6 });
-            Text(this.qualityDetailText)
-              .fontSize(10)
-              .fontColor(this.theme_CONTRAST_TEXT)
-              .lineHeight(14)
-              .width('100%')
-              .maxLines(40)
-              .textOverflow({ overflow: TextOverflow.Ellipsis });
-          }
+      Row() {
+        Text(this.lt('FPS'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(this.connectionFps > 0 ? `${this.connectionFps}` : '--')
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
       }
-      .width('100%')
+      .width('100%');
+
+      Row() {
+        Text(this.lt('Latency'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--')
+          .fontSize(11)
+          .fontColor(this.getLatencyColor());
+      }
+      .width('100%');
+
+      Row() {
+        Text(this.lt('Speed'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(this.connectionSpeedDisplay)
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
+      }
+      .width('100%');
+
+      Row() {
+        Text(this.lt('Codec'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(this.connectionCodec.length > 0 ? this.connectionCodec : '--')
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
+      }
+      .width('100%');
+
+      Row() {
+        Text(this.lt('Connection'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(this.connectionType.length > 0 ? this.connectionType : '--')
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
+      }
+      .width('100%');
+
+      Row() {
+        Text(this.lt('Zoom'))
+          .fontSize(11)
+          .fontColor(this.theme_DISABLED_TEXT);
+        Blank();
+        Text(`${Math.round(this.getCurrentZoom() * 100)}%`)
+          .fontSize(11)
+          .fontColor(this.theme_CONTRAST_TEXT);
+      }
+      .width('100%');
     }
-    .height(460)
-    .scrollBar(BarState.Auto)
-    .width('100%');
-    }
-    .width(340)
-    .constraintSize({ maxWidth: '92%', maxHeight: '78%' })
-    .padding(16)
-    .backgroundColor(this.theme_OVERLAY_FULL)
-    .borderRadius(12)
+    .width(140)
+    .padding(10)
+    .backgroundColor(Color.Transparent)
+    .borderRadius(8)
     .position({ x: '100%', y: 60 })
-    .translate({ x: -312 })
+    .translate({ x: -148 })
   }
 
   @Builder
@@ -1118,6 +1182,7 @@ struct RemoteControl {
   private toggleKeyboardInputMode(): void {
     if (this.showKeyboard) {
       this.showKeyboard = false;
+      this.releaseImeProxyFocus();
       return;
     }
     this.activateCustomKeyboard();
@@ -1130,13 +1195,14 @@ struct RemoteControl {
   }
 
   private releaseImeProxyFocus(): void {
+    this.imeProxyDismissRequested = true;
+    this.imeProxyFocused = false;
     try {
       const focusController = this.getUIContext().getFocusController();
       focusController.clearFocus();
     } catch (error) {
       console.warn(`[RemoteControl] releaseImeProxyFocus fallback: ${JSON.stringify(error)}`);
     }
-    this.imeProxyFocused = false;
   }
 
   private openSystemKeyboardFromCustomPanel(): void {
@@ -1231,10 +1297,16 @@ struct RemoteControl {
       })
       .onFocus(() => {
         this.imeProxyFocused = true;
+        this.remoteInputActive = true;
       })
       .onBlur(() => {
         this.imeProxyFocused = false;
-        this.showKeyboard = false;
+        this.remoteInputActive = false;
+        setTimeout(() => {
+          if (!this.imeProxyFocused) {
+            this.showKeyboard = false;
+          }
+        }, 300);
       });
   }
 
@@ -1346,7 +1418,7 @@ struct RemoteControl {
   @Builder
   private buildDisplayMenuPanel() {
     Column() {
-      this.buildSessionPanelHeader(this.lt('Display Settings'), 'display');
+      this.buildSessionPanelHeader(this.lt('Display Settings'), 'display', { icon: 'opt_rotate.svg', isStroke: true, action: () => { this.toggleRotation(); } });
 
       Scroll() {
         Column({ space: 0 }) {
@@ -1478,16 +1550,16 @@ struct RemoteControl {
           CheckboxOptionItem({ label: this.lt('View Mode'), icon: 'opt_view.svg', checked: this.viewMode, onToggle: () => { this.viewMode = !this.viewMode; this.applyToggleOption('view-only', this.viewMode); } })
           CheckboxOptionItem({ label: this.lt('Privacy Mode'), icon: 'opt_shield.svg', checked: this.privacyMode, onToggle: () => { this.privacyMode = !this.privacyMode; this.applyToggleOption('privacy-mode', this.privacyMode); } })
         }
-        .padding({ left: 20, right: 20, bottom: 20 });
+        .padding({ left: 12, right: 12, bottom: 12 });
       }
       .scrollable(ScrollDirection.Vertical)
       .scrollBar(BarState.Off)
       .width('100%')
       .constraintSize({ maxHeight: 520 });
     }
-    .width(280)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .backgroundColor(this.theme_CARD_BG)
+    .width(210)
+    .borderRadius(16)
+    .backgroundColor(this.theme_MENU_BG)
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
@@ -1509,15 +1581,38 @@ struct RemoteControl {
         .fontSize(13)
         .fontColor(this.theme_TEXT_TERTIARY)
         .width('100%')
-        .padding({ bottom: 6, left: 20, right: 20 });
+        .padding({ bottom: 6, left: 12, right: 12 });
 
       RadioOptionItem({ label: this.lt('Two-finger Zoom/Scroll'), icon: 'opt_zoom.svg', selected: this.multiTouchFingers === 2, onSelected: () => { this.multiTouchFingers = 2; } })
       RadioOptionItem({ label: this.lt('Three-finger Drag'), icon: 'opt_grip.svg', selected: this.multiTouchFingers === 3, onSelected: () => { this.multiTouchFingers = 3; } })
       RadioOptionItem({ label: this.lt('Four-finger Gesture'), icon: 'opt_touch.svg', selected: this.multiTouchFingers === 4, onSelected: () => { this.multiTouchFingers = 4; } })
     }
-    .width(280)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .backgroundColor(this.theme_CARD_BG)
+    .width(210)
+    .borderRadius(16)
+    .backgroundColor(this.theme_MENU_BG)
+    .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
+  }
+
+  @Builder
+  private buildChatModeMenuPanel() {
+    Column() {
+      this.buildSessionPanelHeader(this.lt('Chat'), 'chat-mode');
+      this.buildMenuRow(
+        this.audioService.isCapturingActive() ? this.lt('Stop Voice Chat') : this.lt('Voice Chat'),
+        () => { void this.openVoiceChatMode(); },
+        false,
+        'opt_mic.svg'
+      );
+      this.buildMenuRow(
+        this.lt('Text Chat'),
+        () => { this.openSessionChatPanel(); },
+        false,
+        'chat.svg'
+      );
+    }
+    .width(210)
+    .borderRadius(16)
+    .backgroundColor(this.theme_MENU_BG)
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
@@ -1548,73 +1643,117 @@ struct RemoteControl {
       .width('100%')
       .constraintSize({ maxHeight: 520 });
     }
-    .width(280)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .backgroundColor(this.theme_CARD_BG)
+    .width(210)
+    .borderRadius(16)
+    .backgroundColor(this.theme_MENU_BG)
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
   @Builder
   private buildFloatingChatPanel() {
-    Column() {
-      this.buildSessionPanelHeader(this.deviceName.length > 0 ? this.deviceName : this.lt('Chat'), 'chat');
-
-      Scroll(this.chatPanelScroller) {
-        Column({ space: 10 }) {
-          if (this.chatMessages.length === 0) {
-            EmptyState($rawfile('chat.svg'), this.lt('No messages yet.'))
-          } else {
-            ForEach(this.chatMessages, (message: ChatMessage) => {
-              Row() {
-                if (message.sender === 'remote') {
-                  this.buildChatMessageBubble(message, false)
-                  Blank().layoutWeight(1)
-                } else {
-                  Blank().layoutWeight(1)
-                  this.buildChatMessageBubble(message, true)
-                }
-              }
-              .width('100%')
-            }, (message: ChatMessage) => message.id)
-          }
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      Column() {
+        Row() {
+          Text(this.deviceName.length > 0 ? this.deviceName : this.lt('Chat'))
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .layoutWeight(1);
+          Image($rawfile('close.svg'))
+            .width(18)
+            .height(18)
+            .fillColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => {
+              this.showChatPanel = false;
+            });
         }
         .width('100%')
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-      }
-      .height(260)
-      .scrollBar(BarState.Off)
+        .height(36)
+        .padding({ left: 12, right: 12 });
 
-      Row({ space: 8 }) {
-        TextInput({ placeholder: this.lt('Input message'), text: this.chatDraft })
-          .layoutWeight(1)
-          .height(42)
-          .fontSize(14)
-          .fontColor(this.theme_TEXT_PRIMARY)
-          .placeholderColor(this.theme_TEXT_TERTIARY)
-          .backgroundColor(this.theme_PANEL_BG)
-          .borderRadius(10)
-          .padding({ left: 12, right: 12 })
-          .onChange((value: string) => {
-            this.chatDraft = value;
-          })
-        Button(this.lt('Send'))
-          .width(72)
-          .height(42)
-          .fontSize(13)
-          .backgroundColor(this.theme_ACCENT)
-          .fontColor(this.theme_ACCENT_TEXT)
-          .borderRadius(10)
-          .onClick(() => {
-            void this.sendSessionChatMessage();
-          })
+        Scroll(this.chatPanelScroller) {
+          Column({ space: 10 }) {
+            if (this.chatMessages.length === 0) {
+              EmptyState($rawfile('chat.svg'), this.lt('No messages yet.'))
+            } else {
+              ForEach(this.chatMessages, (message: ChatMessage, index?: number) => {
+                Row() {
+                  if (message.sender === 'remote') {
+                    this.buildChatMessageBubble(message, false, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
+                    Blank().layoutWeight(1)
+                  } else {
+                    Blank().layoutWeight(1)
+                    this.buildChatMessageBubble(message, true, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
+                  }
+                }
+                .width('100%')
+              }, (message: ChatMessage) => message.id)
+            }
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
+
+        Row({ space: 8 }) {
+          TextInput({ placeholder: this.lt('Input message'), text: this.chatDraft })
+            .layoutWeight(1)
+            .height(40)
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .placeholderColor(this.theme_TEXT_TERTIARY)
+            .backgroundColor(this.theme_PANEL_BG)
+            .borderRadius(10)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string) => {
+              this.chatDraft = value;
+            })
+          Button(this.lt('Send'))
+            .width(72)
+            .height(40)
+            .fontSize(14)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .borderRadius(10)
+            .onClick(() => {
+              void this.sendSessionChatMessage();
+            })
+        }
+        .width('100%')
+        .padding({ left: 12, right: 12, top: 8, bottom: 12 })
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 8, bottom: 12 })
+      .height('100%')
+      .backgroundColor('#B0000000')
+      .borderRadius(14)
+
+      Row() {
+        Column()
+      }
+      .width(20)
+      .height(20)
+      .justifyContent(FlexAlign.End)
+      .alignItems(VerticalAlign.Bottom)
+      .hitTestBehavior(HitTestMode.Transparent)
+      .gesture(
+        PanGesture()
+          .onActionStart((event: GestureEvent) => {
+            this.chatPanelResizeStartX = event.offsetX;
+            this.chatPanelResizeStartY = event.offsetY;
+            this.chatPanelResizeStartWidth = this.chatPanelWidth;
+            this.chatPanelResizeStartHeight = this.chatPanelHeight;
+          })
+          .onActionUpdate((event: GestureEvent) => {
+            const dx = event.offsetX - this.chatPanelResizeStartX;
+            const dy = event.offsetY - this.chatPanelResizeStartY;
+            this.chatPanelWidth = Math.max(144, Math.min(420, this.chatPanelResizeStartWidth + dx));
+            this.chatPanelHeight = Math.max(187, Math.min(640, this.chatPanelResizeStartHeight + dy));
+          })
+      )
     }
-    .width(272)
-    .constraintSize({ maxWidth: 340 })
-    .backgroundColor('#B0000000')
-    .borderRadius(14)
+    .width(this.chatPanelWidth)
+    .height(this.chatPanelHeight)
     .shadow({ radius: 18, color: '#50000000', offsetY: 4 })
     .gesture(
       PanGesture()
@@ -1633,15 +1772,17 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildChatMessageBubble(message: ChatMessage, isLocal: boolean) {
+  private buildChatMessageBubble(message: ChatMessage, isLocal: boolean, showTime: boolean) {
     Column({ space: 4 }) {
       Text(this.getChatMessageBody(message))
         .fontSize(14)
         .fontColor(isLocal ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      Text(ChatService.formatTimestamp(message.timestamp))
-        .fontSize(10)
-        .fontColor(isLocal ? this.theme_ACCENT_TEXT : this.theme_TEXT_TERTIARY)
-        .opacity(0.72)
+      if (showTime) {
+        Text(ChatService.formatTimestamp(message.timestamp))
+          .fontSize(10)
+          .fontColor(isLocal ? this.theme_ACCENT_TEXT : this.theme_TEXT_TERTIARY)
+          .opacity(0.72)
+      }
     }
     .alignItems(HorizontalAlign.Start)
     .padding({ left: 12, right: 12, top: 9, bottom: 9 })
@@ -1651,24 +1792,32 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildSessionPanelHeader(title: string, panel: string) {
+  private buildSessionPanelHeader(title: string, panel: string, headerAction?: PanelHeaderAction) {
     Row() {
       Text(title)
-        .fontSize(16)
+        .fontSize(14)
         .fontWeight(FontWeight.Bold)
         .fontColor(this.theme_TEXT_PRIMARY)
         .layoutWeight(1);
-      Image($rawfile('close.svg'))
-        .width(20)
-        .height(20)
-        .fillColor(this.theme_TEXT_PRIMARY)
-        .onClick(() => {
-          this.closeSessionPanel(panel);
-        });
+      if (headerAction) {
+        if (headerAction.isStroke) {
+          Image($rawfile(headerAction.icon))
+            .width(18)
+            .height(18)
+            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .onClick(() => headerAction.action());
+        } else {
+          Image($rawfile(headerAction.icon))
+            .width(18)
+            .height(18)
+            .fillColor(this.theme_TEXT_TERTIARY)
+            .onClick(() => headerAction.action());
+        }
+      }
     }
     .width('100%')
-    .height(48)
-    .padding({ left: 20, right: 16 });
+    .height(40)
+    .padding({ left: 16, right: 16 });
   }
 
   private closeSessionPanel(panel: string): void {
@@ -1678,6 +1827,8 @@ struct RemoteControl {
       this.showMouseModeMenu = false;
     } else if (panel === 'more') {
       this.showMoreMenu = false;
+    } else if (panel === 'chat-mode') {
+      this.showChatModeMenu = false;
     } else if (panel === 'chat') {
       this.showChatPanel = false;
     }
@@ -1692,21 +1843,23 @@ struct RemoteControl {
           .height(18)
           .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
       }
+
       Text(label)
         .fontSize(14)
         .fontColor(this.theme_TEXT_PRIMARY)
-        .layoutWeight(1);
+        .layoutWeight(1)
+
       if (showArrow) {
         Image($rawfile('arrow.svg'))
           .width(14)
           .height(14)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
-          .rotate({ angle: 180 });
+          .fillColor(this.theme_TEXT_TERTIARY)
+          .rotate({ angle: 180 })
       }
     }
     .width('100%')
     .height(48)
-    .padding({ left: 20, right: 20 })
+    .padding({ left: 12, right: 12 })
     .onClick(action);
   }
 
@@ -1719,6 +1872,11 @@ struct RemoteControl {
           .height(18)
           .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
       }
+
+      Text(label)
+        .fontSize(14)
+        .fontColor(isOn ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
 
       Stack() {
         Circle()
@@ -1737,15 +1895,10 @@ struct RemoteControl {
       }
       .width(20)
       .height(20)
-
-      Text(label)
-        .fontSize(14)
-        .fontColor(isOn ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
-        .layoutWeight(1)
     }
     .width('100%')
     .height(48)
-    .padding({ left: 20, right: 20 })
+    .padding({ left: 16, right: 16 })
     .onClick(action);
   }
 
@@ -1768,12 +1921,7 @@ struct RemoteControl {
         .onChange((value: string) => {
           this.sessionPassword = value;
         })
-        .onFocus(() => {
-          this.avoidKeyboardHeight = 280;
-        })
-        .onBlur(() => {
-          this.avoidKeyboardHeight = 0;
-        });
+
 
       Row({ space: 10 }) {
         Button(this.lt('Save password'))
@@ -1831,12 +1979,6 @@ struct RemoteControl {
           .onChange((value: string) => {
             this.sessionPassword = value;
           })
-          .onFocus(() => {
-            this.avoidKeyboardHeight = 280;
-          })
-          .onBlur(() => {
-            this.avoidKeyboardHeight = 0;
-          });
 
         Row({ space: 12 }) {
           Button(this.lt('Wait for confirmation'))
@@ -1970,6 +2112,13 @@ struct RemoteControl {
     this.passwordPromptProactive = false;
     this.statusText = this.lt('Session closed');
     this.videoStatus = this.lt('Disconnecting...');
+    if (this.isLandscapeMode) {
+      this.isLandscapeMode = false;
+      WindowChromeService.getInstance().setLandscape(false);
+    }
+    if (this.lockAfterSession && (this.isConnected || this.sessionBecameActive || this.hasReceivedFrame)) {
+      NativeRustDeskBridge.lockRemoteScreen();
+    }
     this.officialBridge.requestSessionClose();
     this.scheduleSessionExit(160);
   }
@@ -2011,17 +2160,17 @@ struct RemoteControl {
   }
 
   private sendImeCommittedText(text: string): void {
-    if (this.isPlainAsciiText(text)) {
+    if (this.isAlphanumericText(text)) {
       this.sendTextPayload(text);
       return;
     }
     NativeRustDeskBridge.sessionInputString(text);
   }
 
-  private isPlainAsciiText(text: string): boolean {
+  private isAlphanumericText(text: string): boolean {
     for (let index = 0; index < text.length; index += 1) {
       const code = text.charCodeAt(index);
-      if (code < 32 || code > 126) {
+      if (!((code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122))) {
         return false;
       }
     }
@@ -2205,20 +2354,14 @@ struct RemoteControl {
     }
     if (!handled) {
       handled = NativeRustDeskBridge.applySessionOption('session-action', action);
-      if (!handled) {
-        NativeRustDeskBridge.setLocalOption('session-action', action);
-      }
     }
-    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command queued locally'));
+    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command unavailable'));
     this.maybeRequestVideoRefresh(true);
   }
 
   private sendOptionCommand(key: string, value: string): void {
     const handled = NativeRustDeskBridge.applySessionOption(key, value);
-    if (!handled) {
-      NativeRustDeskBridge.setLocalOption(key, value);
-    }
-    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command queued locally'));
+    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command unavailable'));
     this.maybeRequestVideoRefresh(true);
   }
 
@@ -2267,9 +2410,13 @@ struct RemoteControl {
       const clipboard = ClipboardService.getInstance();
       void clipboard.getClipboardContent().then((content: string) => {
         if (content.length > 0) {
-          NativeRustDeskBridge.sendClipboardData(content, Date.now());
-          this.maybeRequestVideoRefresh(true);
-          void this.showToast(this.lt('Clipboard sent to remote'));
+          const sent = NativeRustDeskBridge.sendClipboardData(content, Date.now());
+          if (sent) {
+            this.maybeRequestVideoRefresh(true);
+            void this.showToast(this.lt('Clipboard sent to remote'));
+            return;
+          }
+          void this.showToast(this.lt('Failed to send clipboard'));
           return;
         }
         void this.showToast(this.lt('Local clipboard is empty'));
@@ -2449,8 +2596,7 @@ struct RemoteControl {
         await this.audioService.stopCapture();
         void this.showToast(this.lt('Local Audio Stopped'));
       } else {
-        await this.audioService.startCapture();
-        void this.showToast(this.lt('Local Audio Started'));
+        void this.showToast(this.lt('Audio upload unavailable'));
       }
     } catch (error) {
       console.error('[RemoteControl] Toggle audio capture failed:', error);
@@ -3227,6 +3373,12 @@ struct RemoteControl {
     this.disposeRenderedFrame();
     this.statusText = this.lt('Connecting...');
     this.videoStatus = forceRelay ? this.lt('Reconnecting through relay') : this.lt('Retrying connection');
+    if (forceRelay) {
+      const peerId = this.resolveReconnectPeerId();
+      if (peerId.length > 0) {
+        PreferenceStore.setPeerConnectMode(peerId, 'relay');
+      }
+    }
     const reconnected = this.officialBridge.reconnectSession(forceRelay);
     if (!reconnected) {
       const peerId = this.resolveReconnectPeerId();
@@ -3478,6 +3630,14 @@ struct RemoteControl {
       this.connectionSpeedDisplay = combinedSpeedDisplay !== '--'
         ? combinedSpeedDisplay
         : (targetBitrateDisplay.length > 0 ? targetBitrateDisplay : '--');
+
+      const codecValue = payload['codec_format'];
+      if (codecValue !== undefined && codecValue !== null) {
+        const codecStr = typeof codecValue === 'string' ? codecValue.trim() : String(codecValue);
+        if (codecStr.length > 0 && codecStr !== 'null' && codecStr !== 'undefined') {
+          this.connectionCodec = codecStr.toUpperCase();
+        }
+      }
 
       const fpsValue = payload['fps'];
       let parsedFps = Number.NaN;
@@ -3882,6 +4042,78 @@ struct RemoteControl {
     return this.frameHeight > 0 ? this.frameHeight : 1;
   }
 
+  private onShowKeyboardChange(): void {
+    if (!this.showKeyboard) {
+      this.panOffsetY = this.preKeyboardPanOffsetY;
+    }
+  }
+
+  private onAvoidKeyboardHeightChange(): void {
+    if (!this.showKeyboard) {
+      return;
+    }
+    const kbH = this.avoidKeyboardHeight;
+    if (kbH <= 0) {
+      this.panOffsetY = this.preKeyboardPanOffsetY;
+      return;
+    }
+    const renderedH = this.resolveRenderedImageHeight();
+    const ph = this.previewHeight;
+    if (ph <= 0 || renderedH <= 0) {
+      return;
+    }
+    const imageBottom = (ph - renderedH) / 2 + this.preKeyboardPanOffsetY + renderedH;
+    const distanceFromBottom = ph - imageBottom;
+    let shift: number;
+    if (distanceFromBottom <= 0) {
+      shift = kbH;
+    } else if (distanceFromBottom >= kbH) {
+      return;
+    } else {
+      shift = kbH - distanceFromBottom;
+    }
+    this.panOffsetY = this.preKeyboardPanOffsetY - shift;
+  }
+
+  private clampPanOffset(x: number, y: number): number[] {
+    const gap = 4;
+    const renderedW = this.resolveRenderedImageWidth();
+    const renderedH = this.resolveRenderedImageHeight();
+    const pw = this.previewWidth;
+    const ph = this.previewHeight;
+    if (pw <= 0 || ph <= 0) return [x, y];
+
+    const isPortrait = ph > pw;
+    let minX: number, maxX: number, minY: number, maxY: number;
+
+    if (renderedW > pw) {
+      minX = pw - renderedW + gap;
+      maxX = -gap;
+    } else if (isPortrait) {
+      minX = 0;
+      maxX = pw - renderedW;
+    } else {
+      minX = -gap;
+      maxX = renderedW - pw + gap;
+    }
+
+    if (renderedH > ph) {
+      minY = ph - renderedH + gap;
+      maxY = -gap;
+    } else if (!isPortrait) {
+      minY = 0;
+      maxY = ph - renderedH;
+    } else {
+      minY = -gap;
+      maxY = renderedH - ph + gap;
+    }
+
+    return [
+      Math.max(minX, Math.min(maxX, x)),
+      Math.max(minY, Math.min(maxY, y))
+    ];
+  }
+
   private resolveDisplayScale(): number {
     const width = this.resolveInteractiveWidth();
     const height = this.resolveInteractiveHeight();
@@ -3904,8 +4136,7 @@ struct RemoteControl {
   }
 
   private isQuarterTurn(): boolean {
-    const normalized = this.normalizeRotation(this.viewRotation);
-    return normalized === 90 || normalized === 270;
+    return this.isLandscapeMode;
   }
 
   private normalizeRotation(rotation: number): number {
@@ -3968,19 +4199,12 @@ struct RemoteControl {
   private transformPreviewPointToImageSpace(x: number, y: number): RemoteTouchPoint {
     let translatedX = x - this.panOffsetX;
     let translatedY = y - this.panOffsetY;
-    const normalizedRotation = this.normalizeRotation(this.viewRotation);
-    if (normalizedRotation === 0) {
+    if (!this.isLandscapeMode) {
       return { x: translatedX, y: translatedY };
     }
-    const centerX = this.previewWidth / 2;
-    const centerY = this.previewHeight / 2;
-    const radians = -normalizedRotation * Math.PI / 180;
-    const cosValue = Math.cos(radians);
-    const sinValue = Math.sin(radians);
-    const relativeX = translatedX - centerX;
-    const relativeY = translatedY - centerY;
-    translatedX = relativeX * cosValue - relativeY * sinValue + centerX;
-    translatedY = relativeX * sinValue + relativeY * cosValue + centerY;
+    const temp = translatedX;
+    translatedX = translatedY;
+    translatedY = -temp;
     return { x: translatedX, y: translatedY };
   }
 
@@ -4332,8 +4556,12 @@ struct RemoteControl {
         return true;
       }
       if (event.type === TouchType.Move) {
-        this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
-        this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+        const clamped = this.clampPanOffset(
+          this.gestureStartPanX + (center.x - this.gestureStartCenterX),
+          this.gestureStartPanY + (center.y - this.gestureStartCenterY)
+        );
+        this.panOffsetX = clamped[0];
+        this.panOffsetY = clamped[1];
         this.lastGestureCenterX = center.x;
         this.lastGestureCenterY = center.y;
         return true;
@@ -4365,16 +4593,24 @@ struct RemoteControl {
       }
       if (event.type === TouchType.Move) {
         if (this.mouseControlMode === 0) {
-          this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
-          this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+          const clamped = this.clampPanOffset(
+            this.gestureStartPanX + (center.x - this.gestureStartCenterX),
+            this.gestureStartPanY + (center.y - this.gestureStartCenterY)
+          );
+          this.panOffsetX = clamped[0];
+          this.panOffsetY = clamped[1];
         } else {
           const scaleRatio = distance / Math.max(this.gestureStartDistance, 1);
           const distanceDelta = Math.abs(distance - this.gestureStartDistance);
           if (distanceDelta >= 8) {
             this.displayScaleMode = 2;
             this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, this.gestureStartScale * scaleRatio));
-            this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
-            this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+            const clamped = this.clampPanOffset(
+              this.gestureStartPanX + (center.x - this.gestureStartCenterX),
+              this.gestureStartPanY + (center.y - this.gestureStartCenterY)
+            );
+            this.panOffsetX = clamped[0];
+            this.panOffsetY = clamped[1];
           } else if (this.hasPointerPosition && Math.abs(center.y - this.lastGestureCenterY) >= 16) {
             const scrollDown = center.y > this.lastGestureCenterY;
             const wheelMask = scrollDown
@@ -4549,15 +4785,12 @@ struct RemoteControl {
         }
         if (this.directTouchScrollMode) {
           const scrollDeltaY = touch.y - this.directTouchLastY;
-          if (Math.abs(scrollDeltaY) >= 4) {
-            const steps = Math.floor(Math.abs(scrollDeltaY) / 4);
+          if (Math.abs(scrollDeltaY) >= 20) {
             const scrollDown = scrollDeltaY > 0;
             const wheelMask = scrollDown
               ? (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN)
               : (this.reverseScroll ? MOUSE_MASK.WHEEL_DOWN : MOUSE_MASK.WHEEL_UP);
-            for (let i = 0; i < steps; i++) {
-              this.sendRemoteMouseMask(wheelMask, this.lastPointerRemoteX, this.lastPointerRemoteY, event.type);
-            }
+            this.sendRemoteMouseMask(wheelMask, this.lastPointerRemoteX, this.lastPointerRemoteY, event.type);
             this.directTouchLastY = touch.y;
             this.maybeRequestVideoRefresh(true);
           }
@@ -4637,6 +4870,10 @@ struct RemoteControl {
     this.pointerActive = false;
     this.statusText = statusText;
     this.videoStatus = videoStatus;
+    if (this.isLandscapeMode) {
+      this.isLandscapeMode = false;
+      WindowChromeService.getInstance().setLandscape(false);
+    }
     this.scheduleSessionExit(delayMs);
   }
 
@@ -4697,6 +4934,7 @@ struct RemoteControl {
     this.connectionSendSpeed = '--';
     this.connectionSpeedDisplay = '--';
     this.connectionType = '';
+    this.connectionCodec = '';
     this.clearConnectionQualityState();
     this.fpsCalcLastTime = 0;
     this.fpsCalcFrameCount = 0;
@@ -4731,6 +4969,10 @@ struct RemoteControl {
   }
 
   private goBack(): void {
+    if (this.isLandscapeMode) {
+      this.isLandscapeMode = false;
+      WindowChromeService.getInstance().setLandscape(false);
+    }
     try {
       this.getUIContext().getRouter().back();
     } catch (error) {
@@ -4810,7 +5052,7 @@ struct RadioOptionItem {
     }
     .width('100%')
     .height(44)
-    .padding({ left: 20, right: 20 })
+    .padding({ left: 12, right: 12 })
     .onClick(() => { this.onSelected(); })
     ;
   }
@@ -4861,7 +5103,7 @@ struct CheckboxOptionItem {
     }
     .width('100%')
     .height(44)
-    .padding({ left: 20, right: 20 })
+    .padding({ left: 12, right: 12 })
     .onClick(() => { this.onToggle(); })
     ;
   }

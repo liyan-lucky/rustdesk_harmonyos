@@ -1,18 +1,23 @@
 # 功能进度与优化方向
 
-> 更新时间：2026-06-13 08:45。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+> 更新时间：2026-06-14 已验证。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
+
+## 术语约定
+
+- **TAB** = 底部主菜单4项（连接/聊天/共享/设置），对应 `currentTab: HomeTab`
+- **选项卡** = ID输入框下方的子选项（历史/收藏/发现/通讯录/登录/核心），对应 `currentConnectTab: ConnectTab`
 
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-13 08:18`，App 显示版本 `0.13.40`，versionCode `1000071`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-14 18:24`，App 显示版本 `0.20.0`，versionCode `1000096`。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
 - Linux CI 已显式检查并加载 `openharmony/previewer/common/bin/libcjson.so`、`libsec_shared.so` 和 Ark ets-loader 的 `libsec_shared.so`，避免 Hvigor/previewer 动态库缺失。
-- 最新 100 轮功能逻辑审查已完成，审查明细见 `docs/FUNCTION_LOGIC_AUDIT_2026-06-06.md`；当前结论为出站远控链路最成熟，入站被控、文件传输、终端、音频发送和远端剪贴板仍需补齐 native 回调或隐藏未实现入口。
+- 最新 100 轮功能逻辑审查已完成，审查明细见历史审计文档；当前结论为出站远控链路最成熟，终端和文件传输核心事件已接入 core-73，core-74 补齐旧 Harmony source mirror 剪贴板防回归，core-75 补齐自定义服务器 key 透传，core-76 修正聊天事件语义；App 侧本轮补齐共享录屏授权、文件授权 API、搜索/设置/会话菜单状态同步。入站被控 live frame、音频真实 payload 和远端剪贴板仍需继续补齐 native 回调或隐藏未实现入口。
 - 当前 U 盘存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳无法可靠删除。日常构建使用 staged copy，日常全量重建清理外部 build/stage 产物并保留 `harmonyos_cache`，避免 Hvigor 内置 clean 访问这些坏目录；深度清理 cache 需显式使用 `-IncludeHvigorCache`。
 
 - 扫码页已新增相册图片二维码识别入口，使用 `photo.svg` 图标；相机扫码和相册识别共用同一结果处理路径。
@@ -27,24 +32,39 @@
   - `entry/src/main/libs/arm64/librustdesk_core.a`
   - 最新 native core 已从 GitHub Releases 下载：
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-  - release：`core-70`
-  - 大小：`131,263,476` bytes (`125.18 MB`)
-  - mtime/compile time：`2026-06-13 08:18`
-  - FNV-1a 1MB：`317b77b6`
-  - SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+  - release：`core-76`
+  - 大小：`131,470,712` bytes (`125.38 MB`)
+  - mtime/compile time：`2026-06-14 18:24`
+  - FNV-1a 1MB：`da7131f6`
+  - SHA256: `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
 - 当前已验证 HAP：
-  - 本地 BuildInfo 编译时间：`2026-06-13 08:18`
-  - 本地 App 显示版本：`0.13.40`
-  - 本地 versionCode：`1000071`
+  - 本地 BuildInfo 编译时间：`2026-06-14 18:24`
+  - 本地 App 显示版本：`0.20.0`
+  - 本地 versionCode：`1000096`
   - bundle：`com.open.rundesk`
   - 最新线上 release：`harmonyos-20260612-065038`
-  - signed HAP：`entry-default-signed.hap`，`18,746,430` bytes
+  - signed HAP：`entry-default-signed.hap`，`18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`
   - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
 - 2026-06-13 core-70 复测：13 项目 run `27459455573` 成功发布 `core-70`；11 项目下载后 HAP 构建、native/signature 校验和无线安装通过。设备锁屏导致 `aa start` 返回 `Error Code:10106102`，App 未运行，本轮抓到的 hilog 没有 `coreReady`/`video-frame` 证据；视频流需解锁后继续复测。
+- 2026-06-13 UI/UX优化轮：核心详情弹窗精简(18→8行)、聊天浮窗优化(宽度/位置/可调整大小)、构建脚本智能核心检测(HTTP HEAD比对)、全量图标主题匹配(10处colorFilter→fillColor)、scan_frame主题匹配、账户菜单修正(登录提供方图标)、会话菜单布局统一(图标左/文字中/选项右)、菜单面板优化(无关闭按钮/四角圆角/半透背景)、显示质量面板精简(7项/140宽/全透)、键盘输入优化(仅远程输入时画面平移/computeKeyboardOffset重叠量计算)、质量监控连接后不显示修复、工具栏底部安全区避让(margin+avoidNavigationBarHeight)、聊天按钮可关闭面板、设置页开关统一逻辑(applySessionOption+setLocalOption)、画面平移边界限制(clampPanOffset/gap=4px/竖向左右可到屏幕边缘)、显示设置标题旋转按钮(opt_rotate.svg/PanelHeaderAction)、质量面板新增编码行/连接标签改为"连接"、关于页检查更新禁用/指纹行点击复制、ID卡片连接模式per-card化(PreferenceStore peer_connect_modes)。版本0.16.4，HAP构建验证通过。
+- 2026-06-13 15项问题清单修复轮：1.输入法特殊符号(isAlphanumericText/sessionInputString)；2.中键滚动速度(步长20px)；3.横向显示切换系统屏幕方向(setLandscape)；4.聊天功能链路(C++ SendChatMessage读args[2]/ChatService匹配chat_client_mode)；5.聊天输入区高度(Chat.ets 36→22/RemoteControl 34→20)；6.扫描优化(成功自动复制+导入+退出)；7.核心按钮改为启动/停止2个；8.核心详情弹窗运行行拆分(Status/Summary/Error/Detail)；9.ID输入框自动激活修复；10.ID卡片搜索确认已有；11.通讯录同步添加服务器API调用；12.ID输入悬浮匹配建议；13.平台图标修复(resolvePlatformForDevice)；14.共享页启动服务修复(startCapture异常后仍启动incoming)；15.聊天消息时间优化(shouldShowTimestamp 5分钟内同发送者只显示最后一条)。额外修复：scan_frame.svg替换、输入法关闭修复(onBlur延迟300ms+键盘按钮状态同步)、computeKeyboardOffset方向反转修复(maxShift取Math.max(0,imageTop))、调试日志清理(3条[IME])。版本0.16.4，HAP构建验证通过，无线安装验证通过。
+- 2026-06-14 键盘避让重构：删除computeKeyboardOffset()，改为修改panOffsetY模拟双指平移(preKeyboardPanOffsetY保存/恢复)；@Watch监听showKeyboard和avoidKeyboardHeight；工具栏从Column流移出改为Stack悬浮(zIndex=5)，预览区铺满到屏幕底部(previewHeight=到屏幕底部的真实距离)；distanceFromBottom<=0推kbH，0<x<kbH推kbH-x，>=kbH不平移；ID匹配悬浮窗改为Stack绝对定位(position+zIndex=10)宽度70%。HAP构建验证通过，无线安装验证通过。
+- 2026-06-14 旋转画面修复：新增isLandscapeMode替代viewRotation=90(setLandscape+rotate叠加导致180度)；isQuarterTurn/transformPreviewPointToImageSpace改用isLandscapeMode；closeSession/goBack恢复横屏；ID输入框默认焦点放到connect-tab-btn。HAP构建验证通过，无线安装验证通过。
+- 2026-06-14 底部tab栏修复：buildFillTabItem中width('100%')还原为layoutWeight(1)(Row中多个100%宽度子项只有第一个可见)；buildOfficialConnectPanel外层从Stack还原为Column(悬浮窗改用.overlay()属性)；ForEach还原为i18nVersion作key。HAP构建验证通过，干净卸载重装验证通过。
+- 2026-06-14 核心/App 对接复查已闭环：13 项目外层与旧副本 `harmony_bridge/core.rs` 已把 terminal open/input/resize/close 从 `false` stub 改为调用 official `Session`，并把 `TerminalResponse` 转成 `terminal-response`、`terminal-output`、`terminal-closed` 事件；终端数据使用 base64 穿过事件 JSON，11 项目 `TerminalService` 负责解码，`Terminal.ets` 只处理 opened/error/closed 状态，避免重复输出。核心 `pull_audio_frames_json()` 空队列改为 `[]`；本地音频上传因 ABI 只有 metadata、无采样 payload，远控菜单改为明确提示 `Audio upload unavailable`，不再假启动麦克风。13 项目 C++ `SendChatMessage`/`SessionSendChat` 同步 11 项目四参兼容读 `args[2]` 的修复。核心 commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送，GitHub Actions run `27483922931` 成功发布 `core-71`；11 项目已下载 core-71，增量和全量 HAP 构建通过，HAP native/signature 校验通过，无线安装启动通过，hilog 确认 `coreReady= true`、`query-onlines-result` 正常且 app fatal/panic/signal 为 0。
+- 2026-06-14 文件传输对接追加：13 项目已补齐 `HarmonyHandler` 文件传输回调事件（`folder-files`、`file-transfer-start`、`job-progress`、`job-done`、`job-error`、`create-remote-dir`、`delete-remote-path`）并让 `switch-sides` option 路径调用 official `Session::switch_sides()`；核心 commits `9c6ad4d`、`275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已推送，run `27485061967` 成功发布 `core-73`。11 项目 `FileTransferService.ets` 已去掉本地示例种子文件，改为用 `@ohos.file.fs` 读取真实 `/storage/Users/currentUser/Download`，本地新建/删除也走文件系统，上传前检查源路径存在；core-73 下载后全量 HAP 构建、验包和无线安装通过，设备锁屏导致启动运行态待复测。
+- 2026-06-14 摄像头查看入口收敛：`ViewCamera.ets` 原先 `startCameraStream()` 会直接显示已连接但没有 official view-camera session；近期菜单中的 `View Camera` 已改成灰色不可用提示，页面自身也只显示 `Camera entry unavailable`，避免假连接。
+- 2026-06-14 剪贴板和一次性命令提示收敛：远控 `Send Clipboard Keys` 现在检查 `NativeRustDeskBridge.sendClipboardData()` 返回值，native/core 未接收时提示 `Failed to send clipboard`，不再显示成功；`sendSessionAction()` 和 `sendOptionCommand()` 未被 native/core 处理时提示 `Command unavailable`，不再写本地 option 并显示“本地排队”。
+- 2026-06-14 core-74 验证：13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，run `27486100946` 成功发布 `core-74`。11 项目下载 latest core 后全量 HAP 构建为 `0.19.0` / versionCode `1000090`，验包、无线安装、解锁后启动和 hilog `coreReady=true` 运行态验证通过。
+- 2026-06-14 core-74 最终复核：文档更新后再次在已解锁手机上执行 skip-build 安装启动，`install bundle successfully`、`start ability successfully`；进程 `12565` 存活，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次，app fatal/panic/signal 为 0。
+- 2026-06-14 构建脚本修复：`stage_project_for_build.ps1` 增加 `/XJ` 并显式排除 app 根下的 `13_librustdesk_core` junction，避免 staged copy 跟随核心项目和 `.git/refs/codex/...` 深路径；旧坏 staging 清理增加只读属性清理和长路径兜底删除。核心构建必须从真实 `%VSCODE_ROOT%\13_librustdesk_core` 执行，不能从 11 项目内 junction 路径执行，否则 build root 会错误落到 `%VSCODE_ROOT%\11_Rustdesk_harmonyos\99_Temp` 并找不到 vcpkg installed root。
+- 2026-06-14 本轮功能缺失复查：连接 tab 返回不再聚焦 ID 输入框；登录/历史/收藏/发现/通讯录/核心搜索入口统一为从搜索图标向左悬浮展开；通讯录登录成功和刷新按钮触发服务器同步且刷新按钮旋转；核心页按钮拆成开始/重启与加载/停止双状态；共享页启动先申请真实录屏授权并启动 `AVScreenCaptureRecorder` 探测，密码刷新立即更新；自建服务器连接把 key 传到 start/connect bridge 并清理旧 server option；设置页与会话菜单共用同一 option 状态，图像质量可调；关闭会话可触发锁屏，被控保持亮屏和关于页调试常亮已接入窗口 keep-screen-on；文件授权 API 统一请求 `READ_WRITE_DOWNLOAD_DIRECTORY`、`FILE_ACCESS_PERSIST` 并唤起 `DocumentViewPicker`；聊天发送失败不再写入 failed 文本，时间按 5 分钟/跨天间隔显示，远控聊天按钮弹出语音/文字模式。增量 HAP 构建已通过，等待最新 core 发布后做全量构建和实机验证。
+- 2026-06-14 旧逻辑清理：`AppDataService` 清掉早期演示设备别名、备注和分组的自动翻译映射，避免用户真实的 `Design Workstation`、`QA`、`Retail` 等字段被误改；只保留明确旧自动名 `远程/Remote + 数字ID` 的清理逻辑。增量 HAP 构建 `0.19.5` / versionCode `1000095` 通过。
+- 2026-06-14 core-76 全量验证：13 核心 `core-75`（自建服务器 key 透传）和 `core-76`（聊天 `chat-error/chat-sent/chat-message` 语义）均发布成功；11 项目下载 latest core 后全量 HAP 构建为 `0.20.0` / versionCode `1000096`，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP `18,909,325` bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；无线安装成功且 `bm dump` 已显示 `0.20.0`，但设备当前密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续复测。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
@@ -62,7 +82,7 @@
   - `RUSTDESK_CORE_URL` 可留空，默认使用 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
   - `RUSTDESK_CORE_SHA256` 默认留空以跟随 latest；需要固定核心时再设置。
 - 已删除失败草稿 release `harmonyos-20260612-015538`；当前最新 App release 为 `harmonyos-20260612-065038`，`harmonyos-20260612-020111` 仅作为历史成功 release 保留。
-- 2026-06-13 线上 App 状态：最新 release 是 `harmonyos-20260612-065038`；最新 workflow run `27443845710` 是旧提交 `0000da6` 的失败 run，尚未包含本地已验证的 core-70/HAP-only/staged signing 修正。发布前需推送并重跑 workflow。
+- 2026-06-14 线上 App 状态：最新 release 仍是 `harmonyos-20260612-065038`；最新 workflow run `27443845710` 是旧提交 `0000da6` 的失败 run，尚未包含本地已验证的 core-76/HAP-only/staged signing/staging junction 修正。发布前需推送并重跑 workflow。
 
 ## 已完成
 
@@ -105,7 +125,7 @@
 - 已添加发现页手动刷新入口。
 - LAN 发现保持 30 秒周期轮询，手动刷新时重置 UI 状态并立即触发一次发现。
 - 通讯录添加现在要求登录。
-- 文件传输权限申请已补齐 `FILE_ACCESS_PERSIST`。
+- 文件传输权限申请已补齐 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST`，并通过 `FileAuthorizationService.ts` 唤起 `DocumentViewPicker` 获取文件/目录 URI 授权；TS 服务不能 import ETS，供 `CoreLoaderService.ts` 等 TS 调用的授权逻辑必须放在 TS 文件中。
 - 控制端等待首帧时的 `refresh_session_video()` 强制刷新间隔已从 900ms 收紧到 450ms。
 
 权限管理（2026-06-03 本轮修复）：
@@ -124,7 +144,7 @@
 ## 当前重点问题
 
 - **设置页已按官方分组重排（2026-06-03）**：`Settings` Tab 对齐官方菜单顺序：账户、设置、硬件编解码、录屏、2FA、共享屏幕、显示设置、增强功能、关于。设置页 `Share Screen` 分组只保留长期偏好（LAN 发现、白名单 IP、自适应码率、允许录制会话、IP 直接访问、自动关闭不活跃会话），不再放与共享页重复的录屏/输入/文件/剪贴板运行时授权入口。
-- **共享服务仍无法启动**：Screen Capture 开关点击后能弹出截屏权限对话框，授权后 `toggleIncomingService(true)` 仍失败。`startCapture()` 调用 `avScreenCapture.createAVScreenCapture()` 可能因配置或权限问题失败。需要通过 hilog 确认具体失败原因。
+- **共享服务启动**：Screen Capture 开关现在应触发系统“录制/投射屏幕”授权，`ScreenCaptureService` 使用 `AVScreenCaptureRecorder` 做录屏状态探测；若录屏或 native incoming 未就绪必须回滚状态并记录 hilog，不能显示假运行。
 - 连接过程中需要继续确认：是否还会在成功前先弹重试对话框。
 - 连接成功后需要确认：访问端是否稳定持续显示远程画面。
 - ID 卡片第二行需要继续确认：所有来源都显示官方格式 `用户名@设备名`。
@@ -143,7 +163,7 @@
 
 ## 后续优化方向
 
-- **共享服务启动**：排查 `avScreenCapture.createAVScreenCapture()` 失败原因，可能需要调整 capture config 或确认录屏权限在 HarmonyOS 商业设备上的可用性。
+- **共享服务启动**：当前 App 侧已改用 `@ohos.multimedia.media` / `AVScreenCaptureRecorder` 做录屏授权和录制探测，禁止回退截图 API；后续重点是把 recorder/live frame 与 RustDesk desktop server 的被控视频源桥接起来，并在无视频源时继续保持 `incomingReady=false`。
 - HAP 体积优化：strip、LTO、减少未用 crate feature，目标 < 25MB。
 - 构建流程自动化：串联 native core 构建、HAP 构建、安装、启动、日志采集。
 - 音频功能验证：确认 opus/staticlib 状态后再启用远程音频。
@@ -153,12 +173,12 @@
 ## 2026-06-03 最新追加
 
 - 扫码页已改为相机扫码路径：`Scan.ets` 使用 HMS `customScan` + `XComponent` 相机预览，页面仅保留返回、重扫、复制扫到的内容。扫码结果会写入最近会话和通讯录，复制走 `ClipboardService`。
-- 共享服务已完成两处修复并重新构建：ArkTS `ScreenCaptureService` 从缺失的 `avScreenCapture` 临时路径改为当前 SDK 可编译的 `@ohos.screenshot.capture()` 探测/截图；native `set_incoming_service_enabled()` 不再返回空 `{}`，会写入官方 server option 并请求 `start_server(true, false)`。
+- 共享服务已多轮修复：历史 `@ohos.screenshot.capture()` 探测/截图 fallback 已废弃；当前 `ScreenCaptureService` 使用 `AVScreenCaptureRecorder` 触发系统录屏授权并写临时录制文件做状态探测；native `set_incoming_service_enabled()` 会写入官方 server option 并返回明确状态。
 - 最新 HAP 已安装到 USB 设备 `%RUSTDESK_HARMONY_USB_TARGET%`，但 `aa start` 被设备锁屏阻止：`Error Code:10106102`。需要设备手动解锁后继续复测共享 Tab 启动服务和 hilog。
 - 服务器配置已调整为官方默认隐含配置：`AppDataService` 默认存储空字符串，运行时通过 `resolveServerConfig()` 将空 ID/Relay/API 分别回落到官方 `rs-ny.rustdesk.com`、`rs-ny.rustdesk.com`、`https://admin.rustdesk.com`。设置页不再显示官方服务器明文，显示为“官方默认”。
 - 后续 10 轮全功能覆盖检查待共享启动复测后执行，范围包括连接、共享、权限、扫码、登录、通讯录、聊天、文件、显示/输入、会话命令（含发送重启/关机）等细小功能；每轮修改后立即更新文档并构建验证。
-- 共享截图 fallback 已限速：`ScreenCaptureService` 默认帧率从 30fps 降到 2fps，interval 下限 500ms，避免当前 `@ohos.screenshot.capture()` 临时方案在启动恢复服务时高频调用系统截图导致页面退出或系统压力过高。
-- USB 实机复测确认 `@ohos.screenshot.capture()` 会触发 `signal:6` 退出，不能作为共享截图 fallback。`ScreenCaptureService` 已改为不再调用系统截图 API，当前屏幕采集标记为不可用；共享服务启动继续走 native incoming，后续需要接入真正可用的官方录屏/被控端采集链路。
+- 历史共享截图 fallback 已彻底废弃：USB 实机确认 `@ohos.screenshot.capture()` 会触发 `signal:6` 退出，不能作为持续录屏方案。后续任何共享/被控改动都必须使用录屏 API 或明确不可用，不得重新引入截图轮询。
+- 2026-06-14 更新：当前 SDK 可用的路径是 `AVScreenCaptureRecorder`；App 侧可完成授权弹窗和录制探测，但真实被控视频流仍要继续接入 Harmony 录屏帧到 RustDesk desktop server 的桥。
 
 ## 2026-06-03 10:53 共享服务 USB 复测结论
 
@@ -167,7 +187,7 @@
 - native `set_incoming_service_enabled()` 已调整为 Harmony 安全路径：不再调用会触发 appspawn 退出的桌面端 `start_server(true, false)`，而是写入 server option、`stop-service=N`、标记 incoming requested 并刷新 rendezvous 状态。
 - native `get_core_snapshot_json()` 已补齐 `incomingReady` 快照，前端共享状态不会再因刷新快照丢失 incoming 状态。
 - `Index.toggleIncomingService()` 的 15 次轮询重试已改为单次延迟刷新；USB 日志中 `incoming-service-requested` 计数从多次重复降为 `1`。
-- 当前仍未接入真实屏幕采集：`ScreenCaptureService` 明确返回当前 SDK/runtime 下 screen capture API 不可用，避免再次调用会崩溃的截图 fallback。后续真正远程被控画面仍需要接入 Harmony 可用的官方录屏/采集链路。
+- 当前 App 侧已改用 `AVScreenCaptureRecorder` 录屏授权/录制探测，截图 fallback 继续禁止；后续真正远程被控画面仍需要把 Harmony 录屏帧接入 RustDesk desktop server/live frame 链路。
 
 ## 2026-06-03 全功能检查第 1 轮
 
@@ -182,7 +202,7 @@
 - 已修复：`send_keyboard_input()` 现在通过 active session 的 official `Session::input_key()` 转发；新增 keyCode 到官方 `VK_*`/`Meta`/`Apps` 名称映射，并按现有 UI modifier mask 转换 Ctrl/Alt/Shift/Command。
 - 远控设置链路发现断点：`applySessionOption()` 原先直接返回 `false`，导致图像质量、自定义码率/FPS、录制、截图、block-input、view-only 等 UI 操作只会落到本地缓存或排队提示。
 - 已修复：`apply_session_option()` 现在将 `image-quality`、`custom-image-quality`、`custom-fps`、`record-session`、`take-screenshot` 和普通 session option 转发到 official active session，并写入 `session-option` 事件。
-- 明确未伪装实现：`switch-sides` 在当前 OHOS 编译路径没有可用 official 实现；`session-action=shutdown` 没有官方协议字段。两者继续作为后续协议/平台扩展缺口记录。
+- 明确未伪装实现：`switch-sides` 已在 core-73 的 `apply_session_option()` 路径调用 official `Session::switch_sides()`；`session-action=shutdown` 仍没有官方协议字段，继续作为后续协议/平台扩展缺口记录。
 
 ## 2026-06-03 全功能检查第 3 轮
 
@@ -232,7 +252,7 @@
 - 账号 2FA 复查：密码登录链路已支持 `email_check` 与 `tfa_check`，`LoginPage` 会显示验证码输入并调用 `AccountService.verifyEmail()` / `verifyTfa()`；账号登录 2FA 可用。
 - 会话级 2FA 缺口：官方 `ui_session_interface.rs` 存在 `send2fa(code, trust_this_device)`，但 HarmonyOS 外壳目前没有远控会话级 2FA 输入 UI/bridge 调用；`OfficialSessionTextFormatter` 仍提示远端要求 2FA 时无法输入。该项列为后续会话认证完善项。
 - 音频链路复查：`AudioService` 能请求麦克风并采集 PCM，但当前 ArkTS 只向 native 发送 `SessionAudioFrame` 元数据，真实音频 payload 没有跨 NAPI 传入；native `send_audio_frame_metadata()` 仍未转发官方音频流。音频开关目前不应视为完整远程音频。
-- 录屏/共享链路复查：为避免 USB 实机 `signal:6`，`ScreenCaptureService` 仍明确禁用当前 SDK 下不可用/会崩溃的截图 fallback；共享服务可稳定进入 incoming requested 状态，但真实被控画面仍依赖后续官方 Harmony 录屏/采集链路。
+- 录屏/共享链路复查：为避免 USB 实机 `signal:6`，`ScreenCaptureService` 继续禁止截图 fallback；2026-06-14 已改用 `AVScreenCaptureRecorder` 录屏授权/录制探测，共享服务可进入 recording/incoming requested 状态，但真实被控画面仍依赖后续 Harmony 录屏帧到 RustDesk desktop server 的桥。
 - 开机启动、启动检查更新、被控保持亮屏复查：相关设置当前仅持久化偏好，未发现 boot extension、真实更新检查请求或窗口 keep-screen-on 调用链路。已记录为平台集成缺口，避免误判为已实现功能。
 - 构建验证：`node scripts\run_hvigor_with_sdk_patch.js assembleHap` 已通过，构建时间 `2026-06-03 11:34`。
 
@@ -315,7 +335,7 @@
 - **自定义键盘样式修复**：`buildKeyboardPanel` 背景从全透明 `#00000000` 改为半透明 `#80000000`；`buildKeyBtn` 和 `buildStickyKeyBtn` 按钮背景从 `theme_TOOLBAR_BG` 改为半透明 `#66333333`；键盘面板位置从中间改为屏幕顶部（`position({ x: 0, y: 0 })`）。
 - **ID卡片复制不激活输入法**：新增 `deviceIdInputFromCard` 标志，ID卡片点击复制到输入框时设为 true，TextInput 的 onChange 中检测到此标志时跳过 `focusControl.requestFocus` 和 `caretPosition`，避免激活输入法。只有用户直接点击输入框时才激活输入法。
 - **ID输入框光标位置记忆**：删除数字时光标不再自动跳到结尾。新增 `estimateCaretInRaw` 和 `rawPosToFormattedPos` 方法，删除操作时通过差异位置估算raw中光标位置，再映射到格式化后位置设置光标。
-- **屏幕采集状态确认**：`ScreenCaptureService.startScreenCaptureSession` 保持明确 throw 标记当前SDK/runtime下screen capture API不可用。`@ohos.avScreenCapture` 在当前SDK中无类型声明不可编译，`@ohos.screenshot.capture()` 会触发signal:6崩溃。真实屏幕采集需后续接入Harmony可用的官方录屏/采集链路。
+- **屏幕采集状态确认**：历史 `@ohos.screenshot.capture()` fallback 已确认会触发 signal:6 并禁止使用；2026-06-14 起 `ScreenCaptureService` 使用 `@ohos.multimedia.media` / `AVScreenCaptureRecorder` 做录屏授权和临时录制探测。真实屏幕采集需继续接入 Harmony 录屏帧到 RustDesk 被控视频源。
 
 ## 2026-06-03 UI交互修复第2轮
 

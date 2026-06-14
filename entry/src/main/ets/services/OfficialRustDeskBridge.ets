@@ -178,7 +178,8 @@ export class OfficialRustDeskBridge {
       _password,
       serverConfig.idServer,
       serverConfig.relayServer,
-      serverConfig.apiServer
+      serverConfig.apiServer,
+      serverConfig.key
     );
     if (!invoked) {
       NativeRustDeskBridge.resetForRetry();
@@ -187,7 +188,8 @@ export class OfficialRustDeskBridge {
         _password,
         serverConfig.idServer,
         serverConfig.relayServer,
-        serverConfig.apiServer
+        serverConfig.apiServer,
+        serverConfig.key
       );
     }
     if (!invoked) {
@@ -276,7 +278,8 @@ export class OfficialRustDeskBridge {
       enabled,
       serverConfig.idServer,
       serverConfig.relayServer,
-      serverConfig.apiServer
+      serverConfig.apiServer,
+      serverConfig.key
     );
     if (!nativeSnapshot) {
       NativeRustDeskBridge.resetForRetry();
@@ -284,7 +287,8 @@ export class OfficialRustDeskBridge {
         enabled,
         serverConfig.idServer,
         serverConfig.relayServer,
-        serverConfig.apiServer
+        serverConfig.apiServer,
+        serverConfig.key
       );
     }
     if (nativeSnapshot) {

@@ -17,6 +17,7 @@ export class PreferenceStore {
   private static readonly LOCAL_FAVORITES_KEY: string = 'local_favorites';
   private static readonly IGNORED_DISCOVERED_PEERS_KEY: string = 'ignored_discovered_peers';
   private static readonly INCOMING_SERVICE_DEFAULT_OFF_MIGRATION_KEY: string = 'incoming_service_default_off_migration_20260602';
+  private static readonly PEER_CONNECT_MODES_KEY: string = 'peer_connect_modes';
 
   private static getStore(): preferences.Preferences | undefined {
     const context = AppContextService.getContext();
@@ -165,6 +166,34 @@ export class PreferenceStore {
 
   public static setMigratedIncomingServiceDefaultOff(): void {
     PreferenceStore.setString(PreferenceStore.INCOMING_SERVICE_DEFAULT_OFF_MIGRATION_KEY, 'Y');
+  }
+
+  public static getPeerConnectMode(peerId: string): 'direct' | 'relay' {
+    const raw = PreferenceStore.getString(PreferenceStore.PEER_CONNECT_MODES_KEY);
+    if (!raw) {
+      return 'direct';
+    }
+    try {
+      const map = JSON.parse(raw) as Record<string, string>;
+      const value = map[peerId];
+      return value === 'relay' ? 'relay' : 'direct';
+    } catch (error) {
+      return 'direct';
+    }
+  }
+
+  public static setPeerConnectMode(peerId: string, mode: 'direct' | 'relay'): void {
+    const raw = PreferenceStore.getString(PreferenceStore.PEER_CONNECT_MODES_KEY);
+    let map: Record<string, string> = {};
+    if (raw) {
+      try {
+        map = JSON.parse(raw) as Record<string, string>;
+      } catch (error) {
+        map = {};
+      }
+    }
+    map[peerId] = mode;
+    PreferenceStore.setString(PreferenceStore.PEER_CONNECT_MODES_KEY, JSON.stringify(map));
   }
 
   private static getString(key: string): string | undefined {

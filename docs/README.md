@@ -11,16 +11,20 @@
 - 包名：`com.open.rundesk`
 - 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
+- 2026-06-14 13 项目源码已补齐终端 official Session 调用和终端事件回流，修正音频空队列返回 `[]`，并同步 C++ 聊天四参 content 参数读取；commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并发布 `core-71`，11 项目已下载后完成 HAP 全量构建、验包、安装启动和 hilog 验证。
+- 2026-06-14 13 项目继续补齐文件传输事件回流和 `switch-sides` option 路由；commit `275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已由 run `27485061967` 发布 `core-73`。11 项目已下载 core-73 并完成全量 HAP 构建、验包和无线安装；设备当前锁屏导致 `aa start` 被系统拒绝，运行态 hilog 待解锁后继续复测。
+- 2026-06-14 13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 已由 run `27486100946` 发布 `core-74`。11 项目已下载 core-74，并完成全量 HAP 构建、验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证。
+- 2026-06-14 本轮 App 侧补齐连接页焦点、统一搜索、登录后通讯录同步、共享录屏授权、核心页启动/重启/加载/停止状态、会话/设置同源选项、文件授权 API、聊天发送/时间/窗口/模式菜单等逻辑；13 核心已发布自定义服务器 key 透传 `core-75` 与聊天事件语义修复 `core-76`。11 项目已下载 `core-76` 并全量构建 `0.20.0` / versionCode `1000096`，验包和无线安装通过；当前设备锁屏导致 `aa start` 被系统拒绝，运行态 hilog 等待手动解锁后继续复测。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-13 08:18`
-  - App 显示版本：`0.13.40`
-  - versionCode：`1000071`
+  - BuildInfo 编译时间：`2026-06-14 18:24`
+  - App 显示版本：`0.20.0`
+  - versionCode：`1000096`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
   - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-70/HAP-only 修正）
+  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-76/HAP-only/staging 修正）
   - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：
@@ -38,6 +42,7 @@
 - App 项目：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 本地 Git 根：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - RustDesk native core 独立项目：`%VSCODE_ROOT%\13_librustdesk_core`
+- App 项目内核心链接：`%VSCODE_ROOT%\11_Rustdesk_harmonyos\13_librustdesk_core` 是本地 NTFS Junction，指向 `%VSCODE_ROOT%\13_librustdesk_core`；只作为本机开发便利，不提交到 Git
 - RustDesk 上游源码：`%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master`
 - 历史 Native 构建工作区：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build`
 - HAP 输出、staging 和 Hvigor 缓存：`%VSCODE_ROOT%\99_Temp\harmonyos_build`、`%VSCODE_ROOT%\99_Temp\harmonyos_stage`、`%VSCODE_ROOT%\99_Temp\harmonyos_cache`
@@ -59,11 +64,11 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - release：`core-70`
-  - 大小：`131,263,476` bytes
-  - 编译时间/mtime：`2026-06-13 08:18`
-  - FNV-1a 1MB：`317b77b6`
-  - SHA256：`3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+  - release：`core-76`
+  - 大小：`131,470,712` bytes
+  - 编译时间/mtime：`2026-06-14 18:24`
+  - FNV-1a 1MB：`da7131f6`
+  - SHA256：`AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
   - 默认下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`
@@ -76,9 +81,9 @@
 
 共享服务启动：
 
-- **ScreenCaptureService 当前SDK下screen capture API不可用**（2026-06-03）。`@ohos.avScreenCapture` 无类型声明不可编译，`@ohos.screenshot.capture()` 会触发signal:6崩溃。真实屏幕采集需后续接入Harmony可用的官方录屏/采集链路。
-- Toggle 回弹、ForEach key、startCapture throw 等问题已修复（2026-06-03）。
-- 2026-06-12 起，录屏不可用时共享服务不能显示为运行中：ArkTS 回滚 `serviceEnabled/allowRemoteControl`，native core 返回 `incomingReady=false`，避免其他设备连接后一直等待视频流。
+- **ScreenCaptureService 当前走录屏授权/录制探测**（2026-06-14）：`@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 可触发系统“录制/投射屏幕”授权并写入临时 mp4 探测文件；禁止再用 `@ohos.screenshot.capture()` 作为 fallback。
+- Toggle 回弹、ForEach key、startCapture throw、录屏失败后仍启动 incoming 等问题已修复；启动服务必须先确认录屏授权/录制状态，再请求 native incoming。
+- 录屏 recorder 与 RustDesk desktop server/live frame 桥仍需继续对接；没有真实视频源时不得标记 `incomingReady=true`，避免其他设备连接后一直等待视频流。
 
 LAN 发现（2026-06-03）：
 
@@ -222,7 +227,11 @@ publish_release: true
 
 线上 workflow 会下载 `harmonyos-sdk-full.zip`、`harmonyos-hvigor-full.zip` 和 `RUSTDESK_CORE_URL` 指向的 `librustdesk_core.a`；未设置 `RUSTDESK_CORE_URL` 时默认跟随 `librustdesk_core` 仓库 latest release 的 `librustdesk_core.a`。线上脚本只构建和上传 HAP。
 
-2026-06-13 本地 core-70 验证：`librustdesk_core.a` 从 `core-70` release 下载，HAP 构建为 `0.13.40`，signed HAP `18,746,449` bytes / SHA256 `A927DA8F54806F0AA53AEAD16575016AE6F535B8AED5FCA537AD7F219E35F070`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，无线设备安装成功，但锁屏导致 `aa start` 返回 `Error Code:10106102`，视频流需解锁后复测。
+2026-06-14 本地 core-74 验证：`librustdesk_core.a` 从 `core-74` release 下载，HAP 全量构建为 `0.19.0` / versionCode `1000090`，signed HAP `18,828,000` bytes / SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，无线设备安装成功；`bm dump` 显示 `versionName=0.19.0`。手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活；hilog `coreReady= true` 5 次、`query-onlines-result` 6 次，app fatal/panic/signal 为 0。
+
+2026-06-14 追加复核：文档更新后手机再次解锁，执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169` 复装并启动成功；`pidof com.open.rundesk` 返回 `12565`。`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
+
+2026-06-14 core-76 本地验证：`librustdesk_core.a` 从 `core-76` release 下载，HAP 全量构建为 `0.20.0` / versionCode `1000096`，signed HAP `18,909,325` bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，无线设备安装成功，`bm dump` 显示 `versionName=0.20.0`、`versionCode=1000096`；当前设备锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续复测。
 
 ## 接手规则
 

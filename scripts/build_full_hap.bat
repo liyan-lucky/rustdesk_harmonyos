@@ -29,7 +29,7 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
-call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1" -Force
+call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1"
 if errorlevel 1 exit /b 1
 
 echo Full HAP rebuild for %PROJECT_ROOT%

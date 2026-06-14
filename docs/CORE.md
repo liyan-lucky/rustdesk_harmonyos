@@ -14,6 +14,10 @@
   - GitHub Releases：`https://github.com/liyan-lucky/librustdesk_core/releases`
 - 当前页面应显示三个核心状态入口：`Adapter`、`Native Module`、`Native Core`
 - 当前核心已经接入真实 RustDesk 会话路径
+- 2026-06-14 13 项目源码已补齐终端 official Session 调用、终端响应事件、音频空队列 `[]` 和 C++ 聊天四参兼容；核心 commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并由 GitHub Actions run `27483922931` 发布 `core-71`，11 项目已下载、全量构建、验包并安装验证。
+- 2026-06-14 13 项目源码已继续补齐文件传输回调事件和 `switch-sides` option 路由，提交 `9c6ad4d`、`275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已推送，GitHub Actions run `27485061967` 成功发布 `core-73`；11 项目已下载 core-73 并完成全量构建、验包和无线安装。设备当前锁屏导致 `aa start` 被系统拒绝，运行态 `coreReady` 待解锁后继续复测。
+- 2026-06-14 13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 已由 GitHub Actions run `27486100946` 发布 `core-74`；11 项目已下载 core-74 并完成全量 HAP 构建、验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证。
+- 2026-06-14 13 项目已发布自定义服务器 key 透传 `core-75` 和聊天事件语义修复 `core-76`：`start_service/session_start` 新增 key 参数，空服务器配置会清理旧 option；聊天失败为 `chat-error`、发送成功为 `chat-sent`、远端消息才是 `chat-message`。11 项目已下载 `core-76` 并完成全量构建、验包和无线安装；设备当前锁屏导致运行态 `coreReady` 待解锁后继续复测。
 
 ## 架构总览
 
@@ -61,15 +65,16 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Size: `131,263,476` bytes (`125.18 MB`)
-- SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+- Release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-76`
+- Size: `131,470,712` bytes (`125.38 MB`)
+- SHA256: `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
 
 HAP:
 
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
 - Wireless target: `192.168.11.100:36169`
-- Latest validation: 2026-06-13 本地 HAP 构建通过（版本 `0.13.40`，signed HAP `18,746,430` bytes）；无线目标 `192.168.11.100:36169` 安装成功，但 `aa start` 被锁屏阻止（`Error Code:10106102`），未能继续验证视频流。
+- Latest validation: 2026-06-14 下载 `core-76` 后，全量 HAP 构建通过；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验；无线目标 `192.168.11.100:36169` 安装成功，设备上 `versionName=0.20.0`、`versionCode=1000096`。当前设备锁屏导致 `aa start` 返回 `Error Code:10106102`；运行态 `coreReady=true` hilog 等待手动解锁后继续复测。
 
 ## Native core 构建来源
 
@@ -141,8 +146,8 @@ Pop-Location
 - 共享服务默认停止
 - 停止状态下不显示设备 ID 和密码
 - 启动服务后显示设备 ID 和一次性密码
-- **当前未解决**：Screen Capture API 在当前 SDK 下不可用
-- 2026-06-12 起，录屏不可用时共享服务不得进入假运行状态：App 侧回滚 `serviceEnabled/allowRemoteControl`，native core `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
+- **当前限制**：App 侧已可用 `AVScreenCaptureRecorder` 触发录屏授权/录制探测，但录屏 live frame 到 RustDesk desktop server 的桥仍需继续接入。
+- 2026-06-12 起，录屏/被控视频源不可用时共享服务不得进入假运行状态：App 侧回滚 `serviceEnabled/allowRemoteControl`，native core `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
 
 远程连接：
 
@@ -164,15 +169,33 @@ Pop-Location
 | 2026-06-08 | 成功 | 大规模函数补齐：54→369个桥接函数；官方一致性修复 |
 | 2026-06-12 | 成功 | 核心项目迁移到 13_librustdesk_core；AvoidAreaType.TYPE_INPUT→TYPE_KEYBOARD 修复；WiFi 安装验证通过 |
 | 2026-06-13 | 部分成功 | `core-70` 下载并构建 HAP 成功；HAP native/signature 校验和 WiFi 安装通过；设备锁屏阻断启动，视频流待解锁后复测 |
+| 2026-06-14 | 成功 | `core-71` 下载并全量构建 HAP 成功；native/signature 校验、WiFi 安装启动和 hilog `coreReady=true` 验证通过；终端 bridge、音频空队列、聊天四参和 staging junction 排除已完成 |
+| 2026-06-14 | 部分成功 | `core-73` 下载并全量构建 HAP 成功；native/signature 校验和 WiFi 安装通过；设备锁屏阻断启动，文件传输事件和 `switch-sides` 运行态待解锁后复测 |
+| 2026-06-14 | 成功 | `core-74` 下载并全量构建 HAP 成功；native/signature 校验、WiFi 安装启动和 hilog `coreReady=true` 验证通过；旧 Harmony source mirror 剪贴板同步防回归已发布 |
+| 2026-06-14 | 部分成功 | `core-76` 下载并全量构建 HAP 成功；native/signature 校验和 WiFi 安装通过；设备锁屏阻断启动，聊天语义和自建服务器 key 运行态待解锁后复测 |
 
 ## 2026-06-03 服务器与共享核心状态
 
 - 服务器配置有效值统一由 `AppDataService.resolveServerConfig()` 解析
-- `OfficialRustDeskBridge` 的刷新、连接、共享服务启动均使用解析后的有效服务器配置
+- `OfficialRustDeskBridge` 的刷新、连接、共享服务启动均使用解析后的有效服务器配置；自建服务器的 key 必须和 server/relay/api 一起传入 `start_service` 与 `session_start`
 - Harmony bridge 在未接入真实屏幕采集/desktop server 时不能标记 incoming ready；`main_start_service(true)` 返回 `incomingReady=false`，防止被控端无视频源却让远端等待视频流。
-- 屏幕采集仍是未完成项：系统截图 fallback 已确认会崩溃并被禁用
+- 系统截图 fallback 已确认会崩溃并被禁用；当前 App 侧使用 `AVScreenCaptureRecorder` 录屏授权/录制探测，后续仍需接入 live frame/desktop server。
 
-## 2026-06-13 verified current core
+## 2026-06-14 verified current core
+
+- Upstream compatibility: `RustDesk 1.4.7`
+- Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-76`
+- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27505721889`
+- Native core commit: `1f474fc` (`Fix Harmony chat event semantics`)
+- Native core size: `131,470,712` bytes (`125.38 MB`)
+- Native core SHA256: `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
+- HAP build verified: version `0.20.0`, versionCode `1000096`, signed HAP `18,909,325` bytes, SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`
+- Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
+- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.20.0`, `versionCode=1000096`, native library path `entry/libs/arm64`
+- Launch/runtime status: blocked by device password lock, `aa start` returned `Error Code:10106102`; `power-shell wakeup`, `uitest uiInput swipe`, and `aa start -N` did not bypass lock. Runtime hilog remains pending until manual unlock.
+
+## 2026-06-13 verified previous core
 
 - Upstream compatibility: `RustDesk 1.4.7`
 - Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`

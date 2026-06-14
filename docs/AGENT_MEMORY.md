@@ -53,7 +53,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.13.40`，versionCode：`1000071`
+- 当前本地版本：`0.20.2`，versionCode：`1000098`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -63,7 +63,7 @@
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- **当前核心 SHA256**：`3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
+- **当前核心 SHA256**：`AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`（core-76）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
 
@@ -88,28 +88,42 @@
 3. LAN 发现不了设备：已修复并实机验证通过（2026-06-07）
 4. 远端主动关闭会话：已修复（2026-06-07）
 5. 中文输入法无法输入：已修复（2026-06-07）
-6. 共享服务 ScreenCaptureService 当前 SDK 下不可用；录屏/desktop server 未接入时不得标记 `incomingReady=true`
+6. 共享服务 App 侧已改为 `AVScreenCaptureRecorder` 录屏授权/录制探测；录屏 live frame/desktop server 未接入时不得标记 `incomingReady=true`，禁止回退截图 API
 7. 桥接函数已补齐至369个（2026-06-08）：从54个扩展至369个，覆盖官方APK绝大部分wire_*函数
 
 ### 已验证状态
-- 最新 native core：`librustdesk_core.a`，131,263,476 bytes，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
-- 最新 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-70`
-- 最新本地 HAP 构建时间：2026-06-13 09:34，版本 `0.13.40`，signed HAP `18,746,430` bytes
+- 最新 native core：`librustdesk_core.a`，131,470,712 bytes，SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
+- 最新 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-76`
+- 最新全量构建版本：`0.20.0`，versionCode `1000096`，构建时间 `2026-06-14 18:24`
+- 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
+- 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
+- 2026-06-14 core-76 全量构建和安装验证：`scripts\build_full_hap.bat` 下载 latest core-76 并构建 `0.20.0` / versionCode `1000096`；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；验包通过，`192.168.11.100:36169` 安装成功且 `bm dump` 显示 `0.20.0`。当前设备密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续。
 - 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-- 最新线上 App workflow：run `27443845710` 失败，未包含本轮本地已验证的 core-70/HAP-only 更新，需要推送后重跑
+- 最新线上 App workflow：run `27443845710` 失败，未包含本轮本地已验证的 core-76/HAP-only/staging 更新，需要推送后重跑
 - coreReady=true，adapter=official-native
 - LAN 发现实机验证通过
 - 函数覆盖：core.rs 363 pub fn，bridge_api.rs 369 导出，NAPI 约400注册
 
 ## 经验库（按类别）
 
+### 术语约定
+- **TAB** = 底部主菜单4项（连接/聊天/共享/设置），对应 `currentTab: HomeTab`
+- **选项卡** = ID输入框下方的子选项（历史/收藏/发现/通讯录/登录/核心），对应 `currentConnectTab: ConnectTab`
+- 两处经常混淆，必须严格区分
+
 ### ArkTS 开发经验
 - Toggle isOn 值绑定导致异步权限请求期间回弹：onChange 中必须先同步 updateSettings 更新状态，再执行异步操作
 - ForEach key 不应包含频繁变化的状态变量（如 accountRefreshTick），否则导致组件销毁重建
 - HarmonyOS 调试日志必须用 hilog API，console.info 在设备上不输出
+- hilog.info/hilog.warn 在设备上也不输出（OHOS 5/6 隐私过滤），只有 hilog.error 和 console.error 能输出
+- hilog %{public} 格式在 OHOS 5/6 上可能被隐私过滤不输出，用字符串拼接代替
+- OHOS SDK 中 Window 对象没有 `getWindowClassType()` 和 `isWindowKeepScreenOn()` 方法，不要在诊断代码中使用不存在的 API
 - ArkTS 一个花括号错误可导致数千级联语法错误，先看第一个错误位置
 - animateTo({ iterations: -1 }) 在 ArkTS 中不生效，必须用 setInterval 驱动动画
 - @State 角度变量绑定 rotate 始终绑定（角度0=不旋转），不要用条件判断
+- **@Builder 方法中不能有 const/let 声明**（arkts-no-obj-literals-as-types），必须内联调用或用接口类型
+- **对象字面量不能作为类型声明**（arkts-no-obj-literals-as-types），必须定义 interface
+- **遇到用户描述不清晰时必须先提问确认再动手**，避免理解偏差导致错误修改
 
 ### Native 桥接经验
 - C++ ABI header 声明的每个函数必须在 Rust bridge_api.rs 有对应 #[no_mangle] pub extern "C" 导出
@@ -118,6 +132,18 @@
 - TEXTREL 是 Rust/lld bug，无法从 Rust 侧修复
 - HarmonyOS dlopen 只能从 /data/storage/el1/bundle/libs/arm64/ 加载
 - close_success() 只能表示"连接成功提示关闭"，不能映射成 session-closed
+- 终端入口必须全链路确认，不能只看 ArkTS 页面存在：13 项目 `session_open_terminal/session_send_terminal_input/session_resize_terminal/session_close_terminal` 曾仍是 `false` stub，已改为 official `Session` 调用。
+- 终端输出包含 ANSI/control bytes，不能直接塞进 session event JSON；核心应 base64 编码为 `dataBase64`，App 侧用 `util.Base64Helper + TextDecoder` 解码。
+- 同时发 `terminal-response` 和 `terminal-output` 时，`TerminalService` 作为唯一数据入口，页面只处理 opened/error/closed，避免重复输出。
+- 空音频队列必须返回 `[]`，不要返回 `{}`；否则 App 远端音频轮询按数组解析时会反复异常。
+- 本地音频上传当前没有采样数据 ABI（只有 metadata），UI 不能显示“已开启”或启动麦克风假成功；应提示 `Audio upload unavailable`。
+- `SendChatMessage`/`SessionSendChat` 对四参调用应读 `args[2]` 作为 content，并保留一参旧调用 fallback；13 核心项目和 11 App 项目的 C++ bridge 要保持一致。
+- **C++ ABI 声明必须与 Rust `#[no_mangle] pub extern "C"` 导出签名完全一致**：参数数量不匹配在 C 调用约定下是未定义行为，不会编译报错但运行时参数错位。`rustdesk_bridge_session_send_chat` 的 Rust ABI 是4参数（peer_id, message_type, content, timestamp），但 App 的 C++ 头文件声明和调用只有1参数，导致 content 参数错位到 _peer_id 位置，核心读到空内容。
+- App 根目录下的 `13_librustdesk_core` 是 NTFS junction，只用于浏览源码；核心构建必须从真实 `%VSCODE_ROOT%\13_librustdesk_core` 路径启动，否则脚本会把 build root 推导到 `11_Rustdesk_harmonyos\99_Temp` 并找不到 vcpkg installed root。
+- `stage_project_for_build.ps1` 必须排除 `13_librustdesk_core` 并使用 robocopy `/XJ`，否则 staging 会复制核心项目 `.git/refs/codex/...` 深路径，后续清理可能因长路径/只读 Git object 失败。
+- 文件传输对接要同时审计调用方向和回调方向：核心 `InvokeUiSession` 必须发 app 监听的 `folder-files/job-progress/job-done/job-error` 等事件；app 本地文件列表不能使用示例种子数据，必须来自真实文件系统路径。
+- 未接通 official session 的页面入口必须禁用或提示不可用；例如 View Camera 不能只靠页面本地状态设置 `isConnected=true`，否则会把未实现功能伪装成已连接。
+- TS 文件不能 import ETS 文件；需要被 `CoreLoaderService.ts` 等 TS 模块调用的跨层能力要拆成 `.ts` 服务，例如 `FileAuthorizationService.ts` 负责文件授权，`PermissionService.ets` 只做 ArkTS/页面层封装。
 
 ### 中文输入经验
 - sendImeCommittedText() 对中文走 sendClipboardData() + sendPasteShortcut()（设剪贴板后发Ctrl+V）
@@ -128,9 +154,11 @@
 - 参考 screenshot.rs 中 Clipboard 的用法模式
 
 ### 连接/会话经验
+- **ID卡片连接模式per-card化**：PreferenceStore新增peer_connect_modes存储，getPeerConnectMode/setPeerConnectMode按peerId读写；中继重连后自动更新per-peer模式为relay；菜单其他功能已确认per-card
+- **native connectToPeer无forceRelay参数**：首次连接中继通过临时关闭enableDirectIp实现；reconnectSession(forceRelay)有显式参数
 - 密码提示优先级必须高于自动关闭/重连逻辑
 - session-closed 事件也需要检查密码需求，不能只在 session-error 检查
-- 等待视频流要先区分方向：出站控制端看 `session-connected`/`peer-info`/`video-frame`，入站被控端看 `ScreenCaptureService` 和 native incoming 是否真的有视频源。没有真实 Harmony 录屏/desktop server 时，必须返回 `incomingReady=false` 并回滚共享开关，不能用 ready 状态让远端无限等待。
+- 等待视频流要先区分方向：出站控制端看 `session-connected`/`peer-info`/`video-frame`，入站被控端看 `ScreenCaptureService` 和 native incoming 是否真的有视频源。当前 App 侧可用 `AVScreenCaptureRecorder` 做录屏授权/录制探测，但没有真实 Harmony 录屏帧接入 RustDesk desktop server 时，必须返回 `incomingReady=false` 并回滚共享开关，不能用 ready 状态让远端无限等待。
 - 连接成功前不弹重试，非人为断开才弹重试
 - OHOS 有独立的 rendezvous_mediator_ohos.rs，修改 LAN 逻辑时必须检查 OHOS 专用文件
 - UDP ping 发出但无监听线程接收响应是 LAN 发现失效的典型症状
@@ -196,6 +224,7 @@
 - **直接在项目根构建（RUSTDESK_HARMONY_DISABLE_STAGE=1）时签名路径 `../99_Temp/` 可正确解析**，但前提是签名文件名必须匹配
 - **Staged build 签名路径必须在 staged 项目内**：`stage_project_for_build.ps1` 需要把 `99_Temp/rustdesk_harmonyos_signing` 复制到 staged `signing/`，并把 staged `build-profile.json5` 的签名路径改为 `./signing/`；不要把项目根配置永久改成绝对路径。
 - **HDC `[Empty]` 不是设备**：`hdc list targets` 无设备时输出 `[Empty]`，脚本必须过滤入参、`RUSTDESK_HARMONY_USB_TARGET`、无线目标和 fallback 列表中的 `[Empty]`。
+- **HDC服务钝化导致设备丢失**：无线设备在线但`hdc list targets`显示`[Empty]`时，应先`hdc kill`+`hdc start`重启HDC服务再重试连接，不要直接判定设备不在线。AUTO_BUILD_INSTALL.bat已在无线目标未找到和安装失败时自动重启HDC服务重试。
 
 ### 编译经验
 - OHOS 的 target_os = "linux"，所有 Linux 桌面端依赖必须显式排除
@@ -205,7 +234,24 @@
 - RUSTFLAGS 必须指定 OHOS lld，避免错误调用 PATH 中的 ld.exe
 
 ### UI/图标经验
-- fill 格式图标用 fillColor，stroke 格式图标用 colorFilter(BlendMode.SRC_IN)
+- **画面平移边界限制**：clampPanOffset方法限制画面偏移范围，左右最多到屏幕边缘一条缝(gap=4px)，竖向显示时左右可缩小到屏幕边缘；横竖屏切换时需重新计算边界
+- **键盘避让只平移画面不平移容器**：键盘弹出时通过修改panOffsetY平移画面（模拟双指向上拖动），而非用额外computeKeyboardOffset叠加；键盘关闭时恢复preKeyboardPanOffsetY；只有工具栏键盘按钮激活时才触发平移(imeProxyFocused)，其他方式激活键盘不触发
+- **键盘平移计算逻辑**：distanceFromBottom=画面底部到屏幕底部的距离；distanceFromBottom<=0(画面超出屏幕底部)→推整个键盘高度；0<distanceFromBottom<kbH→推kbH-distanceFromBottom；distanceFromBottom>=kbH→不平移
+- **预览容器必须铺满到屏幕底部**：工具栏从Column流中移出改为Stack悬浮(zIndex)，预览区layoutWeight(1)占满整个Stack高度；这样previewHeight就是到屏幕底部的真实距离，distanceFromBottom计算才正确
+- **Row中子项用layoutWeight而非width('100%')**：Row中多个子项如果每个都设width('100%')，只有第一个可见（每个都占满整行）；应该用layoutWeight(1)让子项平分宽度
+- **buildOfficialConnectPanel必须用Column不能用Stack**：外层用Stack会导致连接面板高度计算异常，底部tab栏只显示一个tab；悬浮窗用.overlay()属性实现，不影响Column流式布局
+- **ForEach的key必须随内容变化**：ForEach([this.i18nVersion],...)的key不随currentTab变化时，tab切换不会重建组件；但改用currentTab作key也可能有问题，保持原始i18nVersion作key即可（ForEach渲染函数是响应式的，currentTab变化会触发重渲染）
+- **旋转画面不要叠加系统旋转和组件旋转**：setLandscape()已让系统旋转屏幕90度，viewRotation=90又让画面.rotate({angle:90})再旋转90度，叠加为180度；用isLandscapeMode状态跟踪，viewRotation保持0
+- **ID输入框默认焦点**：TextInput作为页面第一个可聚焦元素会自动获取焦点弹出输入法；将默认焦点放到底部连接tab图标(focusControl.requestFocus)，避免输入法自动弹出
+- **TextInput onBlur焦点循环陷阱**：onBlur中设showKeyboard=false会触发UI重排，布局变化可能导致TextInput重新获取焦点→系统键盘再次弹出→形成无限循环。解决方案：onBlur中延迟300ms再设showKeyboard=false，且检查imeProxyFocused是否仍为false才执行；不要在onBlur中用requestFocus恢复焦点
+- **键盘关闭按钮状态不同步**：onBlur延迟300ms设showKeyboard=false，但按钮点击时showKeyboard可能仍为true（延迟未生效），导致按钮判断逻辑错误。修复：按钮点击时检查`showKeyboard || imeProxyFocused`，同时直接设imeProxyFocused=false和imeProxyDismissRequested=true并调用clearFocus()
+- **工具栏展开时底部避让**：用margin({ bottom: avoidNavigationBarHeight })替代expandSafeArea，与收起时一致避让底部导航栏
+- **图标格式原则：不要重绘SVG，根据图标自身格式选择着色方法**
+- fill格式图标用fillColor，stroke格式图标用colorFilter(BlendMode.SRC_IN)
+- 判断规则：SVG有fill属性且无stroke→fill格式；有stroke属性且fill="none"→stroke格式
+- fill格式图标 path 必须有 `fill="#000000"`，stroke格式 path 必须有 `stroke="#000000"` + 显式 `fill="none"`
+- 平台图标格式：win/mac=stroke(colorFilter)，android/linux=fill(fillColor)
+- `buildThemedPlatformIcon` 通过 `isFillPlatformIcon()` 自动分流：android/harmony/linux/ubuntu 用 fillColor，win/mac/ios 用 colorFilter
 - SVG 必须删除背景 path（fill="none" 的 rect/path），防止 fillColor 填充背景导致方块
 - fill 格式图标 path 添加 fill="#000000"，stroke 格式添加 stroke="#000000"
 - **stroke 格式 SVG 每个 path 必须显式 fill="none"，不能只靠根元素 fill="none" 继承，OHOS 渲染器不正确继承会导致方块被填充**
@@ -222,7 +268,8 @@
 ### 核心项目迁移经验
 - **核心构建已迁移到独立项目 `13_librustdesk_core`**：所有 Rust 桥接层、C++ 桥接层、代码生成脚本均在此项目维护
 - **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions 在线构建并发布 latest → 11 项目构建脚本自动下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
-- **当前核心下载规则**：11 项目构建前默认强制刷新 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`；只有需要固定版本时才设置 `RUSTDESK_CORE_URL` 和 `RUSTDESK_CORE_SHA256`
+- **本地核心链接**：`11_Rustdesk_harmonyos/13_librustdesk_core` 是 NTFS Junction，指向同级 `%VSCODE_ROOT%\13_librustdesk_core`；该链接只方便从 App 项目内访问核心仓库，已加入 `.git/info/exclude`，不要提交为仓库文件
+- **当前核心下载规则**：11 项目构建前默认强制刷新 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`；只有需要固定版本时才设置 `RUSTDESK_CORE_URL` 和 `RUSTDESK_CORE_SHA256` → **已改为智能检测**：通过 HTTP HEAD 请求比对 ETag/Content-Length/Last-Modified，线上核心无变化时跳过下载，有变化才下载覆盖；元数据缓存到 `99_Temp/librustdesk_core/librustdesk_core.meta.json`；`-Force` 参数仍可强制下载
 - **11 项目保留的核心相关文件**：`entry/src/main/cpp/`（C++桥接层，从13项目同步）、`entry/src/main/libs/arm64/librustdesk_core.a`（从 GitHub Releases 下载）
 - **11 项目不再保留的核心相关文件**：`native_rust_core/`（已迁移到13项目）、`scripts/generate_*.js`/`dedup_*.js`/`regenerate_all.js`/`rename_mapping.js`（已迁移到13项目）
 - **代码生成脚本路径修复**：所有硬编码的绝对路径已改为相对于 `__dirname`/`os.path` 的相对路径
@@ -239,6 +286,15 @@
 - **2026-06-12 历史成功 release**：`harmonyos-20260612-020111`
 - **2026-06-13 core release**：13 项目 run `27459455573` 成功，发布 `core-70`，asset `librustdesk_core.a` 为 131,263,476 bytes，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
 - **2026-06-13 设备验证状态**：core-70 构建 HAP 通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.100:36169` 安装成功；但 `aa start` 被锁屏阻止，`Error Code:10106102`，应用未运行，本轮无法验证 `coreReady`/`video-frame`
+- **2026-06-14 core release**：13 项目 commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 推送后，GitHub Actions run `27483922931` 成功发布 `core-71`，asset `librustdesk_core.a` 为 131,297,004 bytes，SHA256 `C750A785297AA22A2518B158BF334A1B1415C4E0739E01D0856C8BB5D450E15C`
+- **2026-06-14 设备验证状态**：11 项目下载 core-71 后增量/全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.100:36169` 安装启动成功；`bm dump` 显示 `versionName=0.17.0`、`versionCode=1000087`，hilog `coreReady= true`、在线查询和 LAN 发现正常，app fatal/panic/signal 为 0。
+- **2026-06-14 core release**：13 项目 commit `275b231e11aefd4a2e51050fc74fbdeba9c566bd` 推送后，GitHub Actions run `27485061967` 成功发布 `core-73`，asset `librustdesk_core.a` 为 131,471,532 bytes，SHA256 `E444D739EC958CD1485519FE0A712BFC1F074B60EEA65D71552E7E95A909A7B1`
+- **2026-06-14 设备验证状态**：11 项目下载 core-73 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,338 bytes / SHA256 `F40E44646D8DB6A561559B1815E812FB8D4B85FDA0D8D2073DBDC26648AC5DB4`，`192.168.11.100:36169` 安装成功；设备锁屏阻止启动，`pidof com.open.rundesk` 为空，`reports/hilog_latest_after_core73_locked.txt` 无 app runtime 证据。
+- **2026-06-14 core release**：13 项目 commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 推送后，GitHub Actions run `27486100946` 成功发布 `core-74`，asset `librustdesk_core.a` 为 131,471,786 bytes，SHA256 `3755D448FBB1A583E7B5F7C3C6ADEC29D8AF0FBB7E5DD192251CD18A68C45D7C`
+- **2026-06-14 设备验证状态**：11 项目下载 core-74 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,000 bytes / SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`，`192.168.11.100:36169` 安装成功；手动解锁后启动成功，`pidof com.open.rundesk` 返回 `4232`，`reports/hilog_latest_after_core74_unlocked.txt` 记录 `coreReady= true` 5 次、`query-onlines-result` 6 次、app fatal/panic/signal 为 0。
+- **2026-06-14 复装复启状态**：文档更新后手机再次解锁，skip-build 安装启动成功，进程 `12565` 存活；`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
+- **2026-06-14 core release**：13 项目 commits `3afa229`（自建服务器 key）和 `1f474fc`（聊天事件语义）分别发布为 `core-75` / `core-76`；`core-76` asset `librustdesk_core.a` 为 131,470,712 bytes，SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`。
+- **2026-06-14 设备验证状态**：11 项目下载 core-76 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,909,325 bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`，`192.168.11.100:36169` 安装成功；设备锁屏阻止启动，`aa start` 返回 `Error Code:10106102`，运行态待解锁后复测。
 
 ### 修改流程经验（本次会话最大教训）
 - **代码修改必须改项目根源文件！staging 只是构建副本，全量 robocopy 会从项目根覆盖 staging，导致修改丢失**
@@ -341,4 +397,46 @@
 | 2026-06-12 | 等待视频流复查：出站控制端真实帧路径仍是 `on_rgba -> video-frame`；入站被控端没有 Harmony 录屏/desktop server 时不能标记 `incomingReady=true`。11端共享开关录屏失败即回滚并关闭 incoming，13端 `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免远端无限等待视频流。 |
 | 2026-06-13 | 13 native core 本地构建脚本修复：解析到 OHOS SDK 后必须同步设置 `RUSTDESK_HARMONY_HOST_SDK`/`OHOS_SDK_HOME`/`OHOS_NDK_HOME`，并在 libsodium MSYS bash 脚本中 export；否则 Windows `.cmd` clang wrapper 在 configure 中报 `OHOS SDK not found`。 |
 | 2026-06-13 | 完成 core-70 闭环：13 项目修复 libvpx RTC C++ CI 构建失败并推送 `d61ceca`；GitHub Actions run `27459455573` 成功发布 `core-70`；11 项目下载新核心（131,263,476 bytes / SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`），HAP 构建、native/signature 校验和真机安装通过；设备锁屏导致启动/视频流日志未能继续验证。 |
+| 2026-06-13 | 在 App 项目根创建本地 Junction `13_librustdesk_core` → `%VSCODE_ROOT%\13_librustdesk_core`，并加入 `.git/info/exclude`；后续可从 `11_Rustdesk_harmonyos\13_librustdesk_core` 直接进入核心项目。NTFS 支持该方式，exFAT 不适合作为 Junction 宿主。 |
 | 2026-06-13 | 新对话读取全部文档，HAP 构建验证通过（版本 0.13.40，signed HAP 18,746,430 bytes，构建时间 2026-06-13 09:34）；确认项目状态与文档一致。 |
+| 2026-06-13 | 核心详情弹窗精简：从18行缩减为8行（类型/运行/兼容/文件/大小/哈希/编译/有效），运行行合并状态+运行摘要+异常+详情；新增 getCoreRuntimeText() 方法；i18n 新增 Runtime/Compatible/Compile/Valid 翻译；HAP 构建验证通过（构建时间 2026-06-13 11:33）。 |
+| 2026-06-13 | 聊天浮窗宽度从272缩至240（maxWidth从340缩至300），默认弹出位置改为屏幕水平中心；构建脚本智能核心检测：fetch_native_core.ps1 通过 HTTP HEAD 比对 ETag/Content-Length/Last-Modified，线上无变化跳过下载，有变化才下载覆盖；元数据缓存到 99_Temp/librustdesk_core/librustdesk_core.meta.json；build_hap.bat/build_full_hap.bat/AUTO_BUILD_INSTALL.bat 去掉 -Force 参数；HAP 构建验证通过，设备未连接无法安装测试。 |
+| 2026-06-13 | HDC服务钝化经验：无线设备在线但hdc list targets显示[Empty]时，应先hdc kill+hdc start重启HDC服务再重试；AUTO_BUILD_INSTALL.bat已在无线目标未找到和安装失败时自动重启HDC服务重试。 |
+| 2026-06-13 | 图标格式原则更新：不要重绘SVG，根据图标自身格式选择着色方法；linux.svg是fill格式改用fillColor(theme_ACCENT)；android.svg添加fill="#000000"属性；buildThemedPlatformIcon通过isFillPlatformIcon()自动分流fill/stroke格式；UI.md和AGENT_MEMORY文档更新图标格式原则；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 设置页扫码图标主题匹配：scan_frame.svg保持原始fill格式不变，着色从colorFilter改为fillColor(theme_TEXT_TERTIARY)；按钮从ACCENT_SURFACE实心圆改为透明背景+1.5px TEXT_TERTIARY描边圆形（类似华为运动健康风格）；HAP构建验证通过，无线安装验证通过。 |
+| 2026-06-13 | 全量图标主题匹配检查修复：10处fill格式SVG使用colorFilter改为fillColor（arrow.svg×3、file.svg×2、search.svg×1、group.svg×1、display.svg×1、keyboard_mouse.svg×1、rec.svg×1）；3个SVG补fill="#000000"属性（file.svg、group.svg、rec.svg）；账户菜单图标从右侧移到左侧（login/logout.svg）；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 账户菜单修正：左侧图标改为登录提供方图标（resolveAuthProviderIcon()，支持github/google/apple/facebook/gitlab/azure/auth0/okta，未知用auth-default.svg）；右侧退出登录图标缩小为36×36独立容器，点击区域只限退出按钮；未登录时整行点击打开登录对话框；版本自增0.13.41；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 会话菜单布局统一：图标左→文字中间→选项(Radio/Checkbox/箭头)右；菜单宽度从280缩至240；内边距从20统一为16；RadioOptionItem/CheckboxOptionItem/buildMenuRow/buildToggleMenuRow均已符合此布局；版本0.13.42；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 会话菜单优化：buildToggleMenuRow文字从靠Radio改为靠图标(layoutWeight(1))；点击其他功能菜单按钮可关闭当前菜单；点击菜单外空白区域关闭菜单；菜单圆角从仅顶部改为四角16；背景从CARD_BG改为MENU_BG半透(#D01E232F暗/#D0FFFFFF亮)；ThemeConfig新增MENU_BG主题色；版本0.13.44；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 显示质量面板精简：只保留分辨率/帧率/延迟/速度/类型/缩放6项，移除标题栏/关闭按钮/Updated/Quality Details/Raw Quality Status；面板从340×460缩至140宽自适应高度；字号从12/14缩至11；背景改为全透(Color.Transparent)；菜单面板背景也改为全透；版本0.13.45；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 菜单面板恢复半透背景(MENU_BG)，仅质量面板保持全透；键盘挤压逻辑优化：新增remoteInputActive状态，仅远程输入(imeProxy)时向上挤压，聊天/密码等输入不挤压；打开远程键盘时自动收起工具栏(toolbarHiddenByKeyboard)，关闭键盘后自动恢复；移除密码输入框的avoidKeyboardHeight手动设置；版本0.13.46；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 修复质量监控开启状态下连接后不显示：loadSessionMenuState后同步setConnectionInfoVisible；工具栏底部安全区避让expandSafeArea；键盘输入从整个页面translate改为仅视频显示区域translate；聊天按钮可关闭已打开的聊天面板；全量构建版本0.16.0；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 设置页开关统一逻辑：所有显示设置开关从只调setLocalOption改为同时调applySessionOption+setLocalOption，与会话页一致；去掉会话菜单关闭按钮(×图标)，改为点击菜单区域外关闭；菜单宽度从240缩至210；内边距从16缩至12；菜单标题高度从48缩至40；版本0.16.1；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 画面平移边界限制：新增clampPanOffset方法，左右最多到屏幕边缘一条缝(gap=4px)，竖向显示时左右可缩小到屏幕边缘；横竖屏切换时自动重新计算边界；版本0.16.4；HAP构建验证通过，待安装测试。 |
+| 2026-06-13 | 显示设置菜单标题右侧添加旋转方向按钮：新增opt_rotate.svg(stroke格式)、PanelHeaderAction接口、buildSessionPanelHeader支持headerAction参数；点击按钮调用toggleRotation()切换竖屏/横屏显示，旋转时重置panOffset；HAP构建验证通过，无线安装启动验证通过(coreReady=true)。 |
+| 2026-06-13 | 质量监控面板：新增编码行显示当前编码类型(VP9/H265等，从quality-status的codec_format提取)；连接类型标签从"连接类型"改为"连接"（去掉"类型"两字）；新增@State connectionCodec；HAP构建验证通过。 |
+| 2026-06-13 | ID卡片连接模式per-card化：PreferenceStore新增PEER_CONNECT_MODES_KEY/getPeerConnectMode/setPeerConnectMode；buildConnectModeRow从per-peer存储读取选中状态而非全局recentMenuConnectMode；移除recentMenuConnectMode全局状态；中继重连后自动更新per-peer连接模式为relay；菜单其他功能(收藏/删除/重命名/文件传输/终端/摄像头)已确认per-card；HAP构建验证通过，设备离线未安装测试。 |
+| 2026-06-13 | 关于页修改：启动检查更新开关改为禁用状态(disabled=true，灰色不可操作)；指纹行点击事件从文本移到整行Row，右侧空白区域显示指纹前12字符点击可复制完整指纹；buildSettingsToggleSettingRow新增disabled参数；HAP构建验证通过。 |
+| 2026-06-13 | 键盘避让优化：平移从容器移到画面Image本身，computeKeyboardOffset()计算画面下边缘与键盘区域重叠量，只有重叠>0时才向上平移重叠量(且不超过画面顶部位置)；取消键盘弹出自动收起工具栏(移除toolbarHiddenByKeyboard)；pinchScale最小值从0.5改为1(最小100%缩放)；clampPanOffset竖屏画面比容器窄时左右到屏幕边缘、横屏画面比容器矮时上下到屏幕边缘；收起工具栏bottom从固定20改为avoidNavigationBarHeight；菜单面板bottom从56改为56+avoidNavigationBarHeight；HAP构建验证通过，安装启动验证通过。 |
+| 2026-06-13 | 工具栏展开时底部避让：移除expandSafeArea，改为margin({ bottom: avoidNavigationBarHeight })，与收起时一致避让底部导航栏；新增@StorageProp('avoidNavigationBarHeight')；HAP构建验证通过。已合并到键盘避让优化轮。 |
+| 2026-06-13 | 多项修复轮(1/2)：1.输入法特殊符号修复：isPlainAsciiText改为isAlphanumericText，非字母数字走sessionInputString；onBlur中焦点恢复防止跳出光标区；2.中键滚动速度：步长从4px改为20px，每步只发1个滚轮事件；3.横向显示时切换系统屏幕方向：WindowChromeService新增setLandscape方法，toggleRotation调用setLandscape，会话结束恢复竖屏；5.聊天输入区高度从46缩至36(Chat.ets)/从42缩至34(RemoteControl)；6.扫描优化：去掉复制按钮只保留重试，扫描成功自动复制+导入服务器+1.2秒后退出；7.核心按钮改为启动/停止2个，停止时closeSession+resetForRetry+重置officialCoreState，去掉消息提示；8.核心详情弹窗运行行拆分为Status/Summary/Error/Detail独立行；9.ID输入框自动激活修复：aboutToAppear中延迟焦点到tab列表。全量构建通过。 |
+| 2026-06-13 | 多项修复轮(2/2)：4.聊天功能链路修复：C++层SendChatMessage从读args[0]改为读args[2](content)，ChatService事件匹配增加chat_client_mode；10.ID卡片选项卡搜索功能确认已有实现；11.通讯录同步添加服务器API调用(addPeerToAddressBook/deletePeerFromAddressBook)；12.ID输入悬浮匹配建议(showIdSuggestions/getIdSuggestions)；13.平台图标修复：buildChatSessionCard传platform而非deviceName，resolvePlatformForDevice()；14.共享页启动服务修复：startCapture异常后仍启动incoming service；15.聊天消息时间优化：shouldShowTimestamp()5分钟内同发送者只显示最后一条时间；scan_frame.svg替换；输入法无法关闭修复(onBlur延迟300ms+键盘按钮状态同步)；computeKeyboardOffset方向反转修复(maxShift取Math.max(0,imageTop))；聊天输入框高度再降40%(Chat.ets 36→22/RemoteControl 34→20)；调试日志清理(3条[IME]日志)；HAP构建验证通过，无线安装验证通过。 |
+| 2026-06-14 | 键盘避让重构：(1)删除computeKeyboardOffset()方法，translate改为纯panOffsetY；(2)键盘弹出时修改panOffsetY模拟双指平移，关闭时恢复preKeyboardPanOffsetY；(3)@Watch监听showKeyboard和avoidKeyboardHeight变化；(4)工具栏从Column流移出改为Stack悬浮(zIndex=5)，预览区铺满到屏幕底部，previewHeight=到屏幕底部的真实距离；(5)distanceFromBottom计算：<=0推kbH，0<x<kbH推kbH-x，>=kbH不平移；(6)ID匹配悬浮窗从Column流移出改为Stack绝对定位(position+zIndex=10)，宽度70%；HAP构建验证通过，无线安装验证通过。 |
+| 2026-06-14 | 旋转画面修复：(1)新增isLandscapeMode状态替代viewRotation=90，viewRotation保持0不再额外旋转画面(setLandscape已旋转系统屏幕，叠加rotate导致180度)；(2)isQuarterTurn()改用isLandscapeMode；(3)transformPreviewPointToImageSpace横屏时交换xy坐标；(4)closeSession()和goBack()中恢复横屏状态；(5)ID输入框焦点：默认焦点放到connect-tab-btn(底部连接tab图标)，避免TextInput自动获取焦点弹出输入法；HAP构建验证通过，无线安装验证通过。 |
+| 2026-06-14 | 底部tab栏修复：(1)buildFillTabItem中width('100%')误改回layoutWeight(1)，Row中多个width('100%')子项只有第一个可见；(2)buildOfficialConnectPanel外层从Stack还原为Column，悬浮窗改用.overlay()属性实现（Stack导致面板高度异常）；(3)ForEach还原为原始i18nVersion作key；HAP构建验证通过，干净卸载重装验证通过。 |
+| 2026-06-14 | 核心/App 对接闭环：修复 13 项目终端 stub、终端 dataBase64 事件、音频空队列 `[]`、本地音频上传假成功和核心 C++ 聊天四参；commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 推送后发布 `core-71`；11 项目下载后全量 HAP 构建、验包、无线安装启动和 hilog `coreReady=true` 验证通过。 |
+| 2026-06-14 | 构建脚本经验：`13_librustdesk_core` junction 不能进入 staging，`stage_project_for_build.ps1` 要排除该目录并使用 `/XJ`；核心构建 cwd 必须是真实 `%VSCODE_ROOT%\13_librustdesk_core`，不能是 app 内 junction 路径。 |
+| 2026-06-14 | 文件传输对接追加：13 核心补齐 `HarmonyHandler` 文件传输事件和 `switch-sides` option 路由；11 App `FileTransferService` 去掉本地示例文件，改用 `@ohos.file.fs` 读取真实下载目录，并在上传前检查源路径存在。 |
+| 2026-06-14 | 摄像头查看入口收敛：Recent 菜单 `View Camera` 改为不可用提示，`ViewCamera.ets` 不再将本地状态伪装成 connected，等待后续真实 official view-camera session 接入。 |
+| 2026-06-14 | core-73 验证：13 核心文件传输事件和 `switch-sides` option 路由已发布为 `core-73`；11 App 全量构建、验包和无线安装通过，设备锁屏导致启动运行态待解锁后复测。 |
+| 2026-06-14 | 剪贴板/命令假成功收敛：`Send Clipboard Keys` 检查 native 返回值；一次性远控命令未被 core 处理时提示 `Command unavailable`，不再写本地 option 伪装排队。 |
+| 2026-06-14 | core-74 验证：13 核心旧 Harmony source mirror 剪贴板发送已与 active bridge 对齐并发布为 `core-74`；11 App 全量构建为 `0.19.0`，验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证通过。 |
+| 2026-06-14 | 本轮功能缺失复查：连接页返回不再聚焦 ID 输入框；登录/历史/收藏/发现/通讯录/核心搜索入口改为从图标向左悬浮展开；通讯录登录成功和刷新按钮触发服务器同步；核心页按钮拆成开始/重启与加载/停止；共享页使用 `AVScreenCaptureRecorder` 录屏授权探测，密码刷新立即生效；设置页与会话菜单同功能共用一套 option 状态；关于页新增调试常亮；文件授权 API 统一请求下载目录/持久访问并唤起 `DocumentViewPicker`；聊天发送失败不写入 failed 文本，远控聊天按钮弹出语音/文字模式。增量 HAP 构建通过，等待最新 core 发布后全量验证。 |
+| 2026-06-14 | 核心追加：自定义服务器 key 必须透传到 `start_service` 和 `session_start`，且空配置要清理旧 server option；聊天发送结果不能复用 `chat-message`，失败用 `chat-error`、成功用 `chat-sent`、远端消息才用 `chat-message`。13 核心 commits `3afa229`、`1f474fc` 已推送，等待 CI 发布新 core。 |
+| 2026-06-14 | 旧逻辑清理：`AppDataService` 中早期演示设备别名/备注/分组自动翻译会污染真实用户数据，已移除；以后只允许清理可明确识别的旧自动生成项，例如 `远程/Remote + 数字ID`。 |
+| 2026-06-14 | core-76 全量构建和安装：13 核心 key 透传与聊天语义均已发布，11 App 下载 latest core 后全量构建 `0.20.0`，验包和无线安装通过；手机当前密码锁屏，运行态 `coreReady=true` 需要解锁后继续验证。 |
+| 2026-06-14 | core-74 复核：文档更新后已在解锁手机上重新执行 skip-build 安装启动；进程 `12565` 存活，hilog `coreReady= true` 7 次、`query-onlines-result` 14 次，app fatal/panic/signal 为 0。 |
+| 2026-06-14 | 7项问题修复轮：(1)TAB连接页返回时自动聚焦修复：底部tab按钮添加id `${tab}-bottom-tab-btn`，switchHomeTab切到connect时焦点请求到 `connect-bottom-tab-btn`，onPageShow中也请求焦点，aboutToAppear默认焦点也改为 `connect-bottom-tab-btn`；(2)搜索失焦修复：onBlur只关闭输入框不清空搜索文本，搜索图标点击时如果有搜索文本则清空再重新打开；(3)核心按钮逻辑修复：主按钮Restart时stopCoreRuntime后重设coreLoadBusy=true防止按钮闪烁，副按钮在staticlib模式下只显示Stop且核心未运行时disabled，移除无意义的Load逻辑；(4)设置页与会话显示设置状态同步：打开显示设置对话框时先递增settingsOptionVersion强制重新读取native option值；(5)聊天对话框默认大小再缩小40%：168x216→100x130，最小值也同步调整；(6)调试常亮开关：WindowChromeService.setKeepScreenOn改为3次重试循环，onPageShow中重新调用syncControlledKeepScreenOn恢复常亮状态；(7)术语约定：TAB=底部主菜单4项，选项卡=ID输入框下方子选项。增量HAP构建通过，卸载重装验证通过，hilog coreReady=true、LAN发现正常、在线查询正常。 |
+| 2026-06-14 | 聊天对话框放大20%：100x130→120x156；再放大20%：120x156→144x187，最小值同步调整。ID输入框悬浮匹配框改为只在输入法激活时显示：新增`deviceIdInputFocused`状态，TextInput的onFocus设true/onBlur设false，onChange中`showIdSuggestions = deviceIdInputFocused && raw.length >= 3`，onBlur时隐藏匹配框。增量HAP构建通过。 |
+| 2026-06-14 | ID输入框修复：(1)悬浮匹配框左右居中：overlay align改为Alignment.Top，去掉x偏移；(2)X/→按钮点击无反应：Stack中左侧Column width('100%')覆盖右侧按钮，给左侧Column加right:60 padding留出按钮空间，右侧Row加zIndex(20)确保在overlay之上，按钮加hitTestBehavior(Block)和padding扩大点击区域，X按钮先关闭匹配框再清空避免状态竞争。增量HAP构建通过，卸载重装验证通过。 |
+| 2026-06-14 | ID输入框状态提示优化：(1)所有提示文本不超过8个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码等；(2)resolveStatusMessage不再拼接目标ID，改用短key如Connecting/Enter ID/ID incorrect/Conn failed/Pwd required；(3)setStatusMessageRaw加8字截断；(4)所有权限拒绝提示缩短：截屏权限拒绝、输入权限拒绝等；(5)去掉按钮padding避免图标视觉变小。增量HAP构建通过，卸载重装验证通过。 |

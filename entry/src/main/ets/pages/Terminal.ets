@@ -11,7 +11,7 @@ import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 
 interface TerminalResponsePayload {
   type?: string;
-  data?: string;
+  success?: boolean;
   message?: string;
 }
 
@@ -54,7 +54,7 @@ struct Terminal {
       this.outputLines = this.outputLines.concat([this.lt('Terminal entry unavailable')]);
       this.sessionStatus = this.lt('Failed to connect');
     } else {
-      this.sessionStatus = this.lt('Connected');
+      this.sessionStatus = this.lt('Connecting');
     }
   }
 
@@ -330,7 +330,7 @@ struct Terminal {
         Image($rawfile('keyboard_mouse.svg'))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .fillColor(this.theme_TEXT_TERTIARY)
           .margin({ right: 8 })
         TextInput({ placeholder: this.lt('Input command'), text: this.commandInput })
           .layoutWeight(1)
@@ -354,7 +354,7 @@ struct Terminal {
           Image($rawfile('arrow.svg'))
             .width(14)
             .height(14)
-            .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT_TEXT))
+            .fillColor(this.theme_ACCENT_TEXT)
             .rotate({ angle: 90 })
           Text(this.lt('Send'))
             .fontSize(14)
@@ -425,21 +425,20 @@ struct Terminal {
     try {
       const payload = JSON.parse(event.detail) as TerminalResponsePayload;
       if (payload.type === 'data') {
-        const lines = (payload.data ?? '').split(/\r?\n/).filter((line: string) => line.length > 0);
-        if (lines.length > 0) {
-          this.outputLines = this.outputLines.concat(lines);
-        }
         return;
       }
       if (payload.type === 'opened') {
+        this.sessionStatus = payload.success === false ? this.lt('Failed to connect') : this.lt('Connected');
         this.outputLines = this.outputLines.concat([payload.message?.trim() || this.lt('Terminal opened')]);
         return;
       }
       if (payload.type === 'error') {
+        this.sessionStatus = this.lt('Failed to connect');
         this.outputLines = this.outputLines.concat([`[${this.lt('Error')}] ${payload.message ?? this.lt('Terminal returned error')}`]);
         return;
       }
       if (payload.type === 'closed') {
+        this.sessionStatus = this.lt('Disconnected');
         this.outputLines = this.outputLines.concat([this.lt('Terminal closed')]);
       }
     } catch (error) {

@@ -3,9 +3,9 @@ import { AppDataService } from '../services/AppDataService';
 import { EmptyState, PageHeader } from '../common/CommonComponents';
 import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../services/ChatService';
 import { I18nService } from '../services/I18nService';
+import { PermissionService } from '../services/PermissionService';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
-import picker from '@ohos.file.picker';
 
 interface DragFileInfo {
   name: string;
@@ -73,14 +73,14 @@ struct Chat {
           .padding({ top: 56 + 40 })
         } else {
           Column({ space: 12 }) {
-            ForEach(this.messages, (message: ChatMessage) => {
+            ForEach(this.messages, (message: ChatMessage, index?: number) => {
               Row() {
                 if (message.sender === 'remote') {
-                  this.buildMessageBubble(message, false)
+                  this.buildMessageBubble(message, false, ChatService.shouldShowTimestamp(this.messages, index ?? 0))
                   Blank().layoutWeight(1)
                 } else {
                   Blank().layoutWeight(1)
-                  this.buildMessageBubble(message, true)
+                  this.buildMessageBubble(message, true, ChatService.shouldShowTimestamp(this.messages, index ?? 0))
                 }
               }
               .width('100%')
@@ -138,7 +138,7 @@ struct Chat {
         Image($rawfile('file.svg'))
           .width(64)
           .height(64)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT))
+          .fillColor(this.theme_ACCENT)
         
         Text(this.lt('Drop files to send'))
           .fontSize(18)
@@ -152,7 +152,7 @@ struct Chat {
                 Image($rawfile('file.svg'))
                   .width(20)
                   .height(20)
-                  .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+                  .fillColor(this.theme_TEXT_SECONDARY)
                 Text(file.name)
                   .fontSize(14)
                   .fontColor(this.theme_TEXT_SECONDARY)
@@ -283,7 +283,10 @@ struct Chat {
           .margin({ right: 8 })
         TextInput({ placeholder: this.lt('Input message'), text: this.draft })
           .layoutWeight(1)
-          .height(46)
+          .height(34)
+          .fontSize(15)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .placeholderColor(this.theme_TEXT_TERTIARY)
           .backgroundColor('transparent')
           .borderRadius(0)
           .padding({ left: 0, right: 0 })
@@ -292,7 +295,7 @@ struct Chat {
           })
       }
       .layoutWeight(1)
-      .height(46)
+      .height(44)
       .backgroundColor(this.theme_CARD_BG)
       .borderRadius(12)
       .padding({ left: 16, right: 16 })
@@ -303,15 +306,15 @@ struct Chat {
           Image($rawfile('arrow.svg'))
             .width(14)
             .height(14)
-            .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT_TEXT))
+            .fillColor(this.theme_ACCENT_TEXT)
             .rotate({ angle: 90 })
           Text(this.lt('Send'))
-            .fontSize(14)
+            .fontSize(13)
             .fontColor(this.theme_ACCENT_TEXT)
         }
       }
-      .width(88)
-      .height(46)
+      .width(84)
+      .height(44)
       .backgroundColor(this.theme_ACCENT)
       .borderRadius(12)
       .onClick(() => {
@@ -323,7 +326,7 @@ struct Chat {
   }
 
   @Builder
-  private buildMessageBubble(message: ChatMessage, local: boolean) {
+  private buildMessageBubble(message: ChatMessage, local: boolean, showTime: boolean) {
     Column({ space: 6 }) {
       Text(this.getMessageTypeLabel(message))
         .fontSize(11)
@@ -333,9 +336,11 @@ struct Chat {
         .fontSize(14)
         .fontColor(local ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
 
-      Text(ChatService.formatTimestamp(message.timestamp))
-        .fontSize(11)
-        .fontColor(local ? this.theme_TEXT_TERTIARY : this.theme_TEXT_TERTIARY)
+      if (showTime) {
+        Text(ChatService.formatTimestamp(message.timestamp))
+          .fontSize(11)
+          .fontColor(local ? this.theme_TEXT_TERTIARY : this.theme_TEXT_TERTIARY)
+      }
     }
     .alignItems(HorizontalAlign.Start)
     .padding(14)
@@ -371,19 +376,18 @@ struct Chat {
     void this.chatService.sendTextMessage(this.deviceId, text).then(() => {
       this.refreshMessages();
     }).catch(() => {
+      this.draft = text;
       console.error('send chat message failed');
     });
   }
 
   private async sendFileReference(): Promise<void> {
     try {
-      const documentSelectOptions = new picker.DocumentSelectOptions();
-      const documentPicker = new picker.DocumentViewPicker();
-      const selectedUris: Array<string> = await documentPicker.select(documentSelectOptions);
-      if (selectedUris === undefined || selectedUris.length === 0) {
+      const authorization = await PermissionService.getInstance().requestFileAuthorization({ maxSelectNumber: 1 });
+      if (!authorization.granted || authorization.uris.length === 0) {
         return;
       }
-      const uri = selectedUris[0];
+      const uri = authorization.uris[0];
       await this.chatService.sendFileMessage(this.deviceId, uri, this.extractFileName(uri), 0);
       this.refreshMessages();
       this.scheduleChatScroll(50);

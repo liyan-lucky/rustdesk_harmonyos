@@ -303,6 +303,22 @@ jobs:
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
+          # Extract changelog for current version
+          if [ -f CHANGELOG.md ]; then
+            # Extract section between current version header and next version header
+            VERSION_HEADER="## v${APP_VERSION:-0.0.0}"
+            CHANGELOG_BODY=$(awk "/^${VERSION_HEADER}/{found=1; next} /^## v[0-9]/{found=0} found{print}" CHANGELOG.md | head -200)
+            if [ -z "$CHANGELOG_BODY" ]; then
+              # Fallback: extract first section after the intro
+              CHANGELOG_BODY=$(awk '/^## v[0-9]/{if(!first){first=1; next} else exit} first' CHANGELOG.md | head -200)
+            fi
+            echo "CHANGELOG_BODY<<EOF" >> "$GITHUB_ENV"
+            echo "$CHANGELOG_BODY" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          else
+            echo "CHANGELOG_BODY=See commit history for details." >> "$GITHUB_ENV"
+          fi
+
           cd "$HARMONY_ARTIFACTS_DIR"
           ls -lh
 
@@ -319,6 +335,6 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}
-          generate_release_notes: true
+          body: ${{ env.CHANGELOG_BODY }}
           files: |
             ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap

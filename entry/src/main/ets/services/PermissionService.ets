@@ -1,6 +1,6 @@
 import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
-import picker from '@ohos.file.picker';
 import { AppContextService } from './AppContextService';
+import { FileAuthorizationService } from './FileAuthorizationService';
 
 export enum PermissionStatus {
   NOT_REQUESTED = 'not_requested',
@@ -25,6 +25,20 @@ export interface PermissionSummary {
   results: PermissionRequestResult[];
 }
 
+export interface FileAuthorizationOptions {
+  folder?: boolean;
+  authMode?: boolean;
+  defaultFilePathUri?: string;
+  maxSelectNumber?: number;
+}
+
+export interface FileAuthorizationResult {
+  granted: boolean;
+  uris: string[];
+  permissionResults: PermissionRequestResult[];
+  error: string;
+}
+
 export class PermissionService {
   private static instance: PermissionService;
   private atManager: abilityAccessCtrl.AtManager;
@@ -44,7 +58,7 @@ export class PermissionService {
     return [
       {
         name: 'ohos.permission.CUSTOM_SCREEN_CAPTURE',
-        reason: 'Required for screen capture and sharing.',
+        reason: 'Required for screen recording and sharing.',
         required: false
       },
       {
@@ -158,25 +172,40 @@ export class PermissionService {
     }
   }
 
-  async requestFileAccessAuthorization(): Promise<boolean> {
-    const results = await this.requestPermissions([
-      'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions,
-      'ohos.permission.FILE_ACCESS_PERSIST' as Permissions
-    ]);
-    const allGranted = results.every((item: PermissionRequestResult) => item.status === PermissionStatus.GRANTED);
-    if (!allGranted) {
-      return false;
-    }
+  async requestFileAuthorization(options?: FileAuthorizationOptions): Promise<FileAuthorizationResult> {
+    const result = await FileAuthorizationService.requestFileAuthorization(options);
+    const permissionResults: PermissionRequestResult[] = result.permissionResults.map((item) => {
+      return {
+        permission: item.permission,
+        status: item.status === PermissionStatus.GRANTED ? PermissionStatus.GRANTED : PermissionStatus.DENIED
+      };
+    });
+    return {
+      granted: result.granted,
+      uris: result.uris,
+      permissionResults,
+      error: result.error
+    };
+  }
 
-    try {
-      const documentSelectOptions = new picker.DocumentSelectOptions();
-      const documentPicker = new picker.DocumentViewPicker();
-      const selectedUris: Array<string> = await documentPicker.select(documentSelectOptions);
-      return selectedUris !== undefined && selectedUris.length > 0;
-    } catch (error) {
-      console.error('Request file access authorization failed:', error);
-      return false;
-    }
+  async requestFileAccessAuthorization(): Promise<boolean> {
+    const result = await this.requestFileAuthorization();
+    return result.granted;
+  }
+
+  async requestShareRuntimePermissions(): Promise<PermissionSummary> {
+    const results = await this.requestPermissions([
+      'ohos.permission.CUSTOM_SCREEN_CAPTURE' as Permissions,
+      'ohos.permission.KEEP_BACKGROUND_RUNNING' as Permissions,
+      'ohos.permission.READ_LOCAL_DEVICE_NAME' as Permissions
+    ]);
+    return this.buildPermissionSummary(results);
+  }
+
+  async requestAllFeaturePermissions(): Promise<PermissionSummary> {
+    const permissions = this.getRequiredPermissions().map((config: PermissionConfig) => config.name);
+    const results = await this.requestPermissions(permissions);
+    return this.buildPermissionSummary(results);
   }
 
   async checkAllRequiredPermissions(): Promise<PermissionSummary> {
@@ -202,11 +231,7 @@ export class PermissionService {
       }
     }
 
-    const summary: PermissionSummary = {
-      allGranted: allGranted,
-      results: results
-    };
-    return summary;
+    return this.buildPermissionSummary(results, allGranted);
   }
 
   async requestAllRequiredPermissions(): Promise<PermissionSummary> {
@@ -231,15 +256,45 @@ export class PermissionService {
       }
     }
 
-    const summary: PermissionSummary = {
+    return this.buildPermissionSummary(results, allGranted);
+  }
+
+  private buildPermissionSummary(results: PermissionRequestResult[], allGrantedOverride?: boolean): PermissionSummary {
+    if (allGrantedOverride !== undefined) {
+      return {
+        allGranted: allGrantedOverride,
+        results: results
+      };
+    }
+    let allGranted = true;
+    for (let index = 0; index < results.length; index++) {
+      if (results[index].status !== PermissionStatus.GRANTED) {
+        allGranted = false;
+        break;
+      }
+    }
+    return {
       allGranted: allGranted,
       results: results
     };
-    return summary;
   }
 
   async openAppSettings(): Promise<void> {
-    console.log('Opening app settings is not implemented yet.');
+    const context = AppContextService.getContext();
+    if (!context) {
+      console.warn('Open app settings failed: missing UI ability context');
+      return;
+    }
+    try {
+      await context.startAbility({
+        action: 'ohos.settings.application.details',
+        parameters: {
+          'package': context.abilityInfo.bundleName
+        }
+      });
+    } catch (error) {
+      console.warn('Open app settings failed:', JSON.stringify(error));
+    }
   }
 
   getPermissionReason(permission: Permissions): string {

@@ -119,6 +119,19 @@ if not defined TARGET (
 )
 
 if not defined TARGET (
+  echo Wireless target not found, restarting HDC service and retrying...
+  "%HDC%" kill >nul 2>nul
+  timeout /t 2 /nobreak >nul 2>nul
+  "%HDC%" start >nul 2>nul
+  timeout /t 3 /nobreak >nul 2>nul
+  "%HDC%" tconn "%WIRELESS_TARGET%" >nul 2>nul
+  "%HDC%" list targets > "%TARGETS_LOG%" 2>&1
+  findstr /x /c:"%WIRELESS_TARGET%" "%TARGETS_LOG%" >nul 2>nul
+  if not errorlevel 1 set "TARGET=%WIRELESS_TARGET%"
+  if /I "!TARGET!"=="[Empty]" set "TARGET="
+)
+
+if not defined TARGET (
   for /f "usebackq delims=" %%T in ("%TARGETS_LOG%") do (
     if not defined TARGET if not "%%T"=="" (
       echo(%%T | findstr /i /l /c:"[Empty]" >nul 2>nul
@@ -147,7 +160,7 @@ echo Project: %PROJECT_ROOT%
 echo Target : %TARGET%
 
 if not defined SKIP_BUILD (
-  call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1" -Force
+  call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1"
   if errorlevel 1 exit /b 1
   set "BUILD_PROJECT_ROOT=%PROJECT_ROOT%"
   if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
@@ -194,6 +207,18 @@ set "HDC_EXIT=%ERRORLEVEL%"
 type "%HDC_LOG%"
 findstr /c:"[Fail]" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
 if not errorlevel 1 set "HDC_EXIT=1"
+if not "%HDC_EXIT%"=="0" (
+  echo Install failed, restarting HDC service and retrying...
+  "%HDC%" kill >nul 2>nul
+  timeout /t 2 /nobreak >nul 2>nul
+  "%HDC%" start >nul 2>nul
+  timeout /t 3 /nobreak >nul 2>nul
+  "%HDC%" -t "%TARGET%" install -r "%HAP_FILE%" > "%HDC_LOG%" 2>&1
+  set "HDC_EXIT=!ERRORLEVEL!"
+  type "%HDC_LOG%"
+  findstr /c:"[Fail]" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
+  if not errorlevel 1 set "HDC_EXIT=1"
+)
 if not "%HDC_EXIT%"=="0" (
   del "%HDC_LOG%" >nul 2>nul
   del "%TARGETS_LOG%" >nul 2>nul

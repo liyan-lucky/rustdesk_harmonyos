@@ -157,9 +157,12 @@ struct Index {
   @State connectTabRefreshAngle: number = 0;
   private connectTabRefreshTimer: number = -1;
   @State showConnectTabVisibilityMenu: boolean = false;
+  @State showIdSuggestions: boolean = false;
+  @State deviceIdInputFocused: boolean = false;
   @State showSortMenu: boolean = false;
   @State showSearchInput: boolean = false;
   @State searchText: string = '';
+  @State settingsOptionVersion: number = 0;
   @State currentSort: string = I18nService.getInstance().translate('Remote ID');
   @State visibleConnectTabs: Set<ConnectPeerTab> = loadVisibleTabs();
   @State addressBookVersion: number = 0;
@@ -183,8 +186,55 @@ struct Index {
   private setStatusMessageRaw(raw: string): void {
     this.statusMessageKey = '';
     this.statusMessageTargetId = '';
-    this.statusMessage = raw;
+    const maxLen = 8;
+    if (raw.length > maxLen) {
+      this.statusMessage = raw.substring(0, maxLen);
+    } else {
+      this.statusMessage = raw;
+    }
   }
+  private getIdSuggestions(): Array<RecentSession | AddressBookEntry> {
+    const raw = this.deviceId.trim();
+    if (raw.length < 3) {
+      return [];
+    }
+    const results: Array<RecentSession | AddressBookEntry> = [];
+    const seen = new Set<string>();
+    for (const s of this.recentSessions) {
+      if (s.id.includes(raw) && !seen.has(s.id)) {
+        seen.add(s.id);
+        results.push(s);
+      }
+    }
+    for (const e of this.appData.getAddressBook()) {
+      if (e.id.includes(raw) && !seen.has(e.id)) {
+        seen.add(e.id);
+        results.push(e);
+      }
+    }
+    return results.slice(0, 5);
+  }
+
+  private getSuggestionId(item: RecentSession | AddressBookEntry): string {
+    return item.id;
+  }
+
+  private getSuggestionName(item: RecentSession | AddressBookEntry): string {
+    const rs = item as RecentSession;
+    if (rs.name && rs.name.length > 0) {
+      return rs.name;
+    }
+    const ab = item as AddressBookEntry;
+    if (ab.alias && ab.alias.length > 0) {
+      return ab.alias;
+    }
+    return '';
+  }
+
+  private getSuggestionPlatform(item: RecentSession | AddressBookEntry): string {
+    return item.platform ?? '';
+  }
+
   private filterRecentSessions(items: RecentSession[]): RecentSession[] {
     if (!this.searchText || this.searchText.trim() === '') {
       return items;
@@ -204,8 +254,47 @@ struct Index {
     return items.filter(item => {
       const idMatch = item.id.toLowerCase().includes(searchLower);
       const aliasMatch = item.alias ? item.alias.toLowerCase().includes(searchLower) : false;
-      return idMatch || aliasMatch;
+      const noteMatch = item.note ? item.note.toLowerCase().includes(searchLower) : false;
+      const groupMatch = item.group ? item.group.toLowerCase().includes(searchLower) : false;
+      const platformMatch = item.platform ? item.platform.toLowerCase().includes(searchLower) : false;
+      return idMatch || aliasMatch || noteMatch || groupMatch || platformMatch;
     });
+  }
+
+  private dismissConnectSearch(clearText: boolean = true): void {
+    this.showSearchInput = false;
+    if (clearText) {
+      this.searchText = '';
+    }
+  }
+
+  private openConnectSearch(): void {
+    this.showSearchInput = true;
+    setTimeout(() => {
+      try {
+        focusControl.requestFocus('connect-search-input');
+      } catch (_e) {}
+    }, 30);
+  }
+
+  private requestConnectTabFocus(delayMs: number = 40, targetId: string = 'recent-tab-btn'): void {
+    setTimeout(() => {
+      try {
+        focusControl.requestFocus(targetId);
+      } catch (_e) {}
+    }, delayMs);
+  }
+
+  private switchHomeTab(tab: HomeTab): void {
+    this.currentTab = tab;
+    if (tab === 'connect') {
+      this.showIdSuggestions = false;
+      this.dismissConnectSearch();
+      this.requestConnectTabFocus(60, 'connect-bottom-tab-btn');
+    }
+    if (tab === 'chat' && this.chatMessages.length > 0) {
+      this.scheduleChatTabScroll(100);
+    }
   }
   private clearStatusMessage(): void {
     this.statusMessageKey = '';
@@ -214,26 +303,25 @@ struct Index {
   }
   private resolveStatusMessage(key: string, targetId: string): string {
     const i18n = I18nService.getInstance();
-    const fmtId = targetId.length > 0 ? this.formatId(targetId) : '';
     switch (key) {
-      case 'connecting_saved': return `${i18n.translate('Connecting to')} ${fmtId}...`;
-      case 'connecting': return i18n.translate('Connecting to') + ' ' + fmtId + '...';
-      case 'enter_id': return i18n.translate('Remote ID');
-      case 'id_incorrect': return i18n.translate('ID length incorrect');
+      case 'connecting_saved': return i18n.translate('Connecting');
+      case 'connecting': return i18n.translate('Connecting');
+      case 'enter_id': return i18n.translate('Enter ID');
+      case 'id_incorrect': return i18n.translate('ID incorrect');
       case 'core_not_ready': return i18n.translate('Core Unknown');
       case 'share_requested': return i18n.translate('Core Ready');
       case 'share_stopped': return i18n.translate('Core Stopped');
       case 'server_updated': return i18n.translate('Core Ready');
-      case 'detected_saved_password': return `${i18n.translate('Connecting to')} ${fmtId}...`;
-      case 'connection_failed': return i18n.translate('Connection failed');
+      case 'detected_saved_password': return i18n.translate('Connecting');
+      case 'connection_failed': return i18n.translate('Conn failed');
       case 'connection_request_cancelled': return '';
       case 'password_saved': return i18n.translate('Core Ready');
-      case 'password_saved_continue': return `${i18n.translate('Connecting to')} ${fmtId}...`;
+      case 'password_saved_continue': return i18n.translate('Connecting');
       case 'connection_established': return i18n.translate('Core Ready');
       case 'session_ended': return '';
-      case 'connection_still': return `${i18n.translate('Connecting to')} ${fmtId}...`;
-      case 'password_submitted': return `${i18n.translate('Connecting to')} ${fmtId}...`;
-      case 'password_required': return i18n.translate('Password required');
+      case 'connection_still': return i18n.translate('Connecting');
+      case 'password_submitted': return i18n.translate('Connecting');
+      case 'password_required': return i18n.translate('Pwd required');
       default: return '';
     }
   }
@@ -294,7 +382,6 @@ struct Index {
   @State renameDraft: string = '';
   @State showProxyDialog: boolean = false;
   @State showConnectModeMenu: boolean = false;
-  @State recentMenuConnectMode: 'direct' | 'relay' = 'direct';
   @State draftSocks5Proxy: string = '';
   @State draftHttpProxy: string = '';
   private cachedHostname: string = '';
@@ -399,6 +486,7 @@ struct Index {
     this.syncDraftServers();
     this.themeMode = ThemeManager.resolveMode(this.settings.theme);
     void WindowChromeService.getInstance().refreshSystemBars();
+    this.syncControlledKeepScreenOn();
     void this.refreshState().then(() => {
       this.refreshCoreDetailInfo();
       void this.ensureIncomingServiceEnabled();
@@ -407,6 +495,7 @@ struct Index {
     this.startOnlineStatusPoll();
     this.buildTime = BuildInfo.BUILD_TIME;
     this.buildVersion = BuildInfo.VERSION;
+    this.requestConnectTabFocus(100, 'connect-bottom-tab-btn');
     hilog.info(0xA03D00, 'CONN', 'onPageShow denyLanDiscovery=' + this.settings.denyLanDiscovery);
     if (!this.settings.denyLanDiscovery) {
       LanDiscoveryService.getInstance().startDiscovery();
@@ -426,6 +515,7 @@ struct Index {
   onPageShow(): void {
     void WindowChromeService.getInstance().refreshSystemBars();
     this.refreshAccountState();
+    this.syncControlledKeepScreenOn();
     if (this.accountState.isLoggedIn && this.showAccountDialog) {
       this.showAccountDialog = false;
       this.loginErrorMsg = '';
@@ -433,6 +523,9 @@ struct Index {
     void this.refreshState().then(() => {
       this.refreshCurrentSessionChat(true);
     });
+    if (this.currentTab === 'connect') {
+      this.requestConnectTabFocus(100, 'connect-bottom-tab-btn');
+    }
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
@@ -473,6 +566,7 @@ struct Index {
       .height('100%')
       .align(Alignment.TopStart)
       .padding({ top: 200, bottom: 120 })
+      .id('connect-tab-list')
 
       Column() {
         Column() { PageHeader(this.lt('RustDesk')) }
@@ -519,14 +613,14 @@ struct Index {
               .height(200)
               .justifyContent(FlexAlign.Center)
             } else {
-              ForEach(this.chatMessages, (message: ChatMessage) => {
+              ForEach(this.chatMessages, (message: ChatMessage, index?: number) => {
                 Row() {
                   if (message.sender === 'remote') {
-                    this.buildChatMessageBubble(message, false)
+                    this.buildChatMessageBubble(message, false, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
                     Blank().layoutWeight(1)
                   } else {
                     Blank().layoutWeight(1)
-                    this.buildChatMessageBubble(message, true)
+                    this.buildChatMessageBubble(message, true, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
                   }
                 }
                 .width('100%')
@@ -572,7 +666,7 @@ struct Index {
                 Image($rawfile('group.svg'))
                   .width(22)
                   .height(22)
-                  .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+                  .fillColor(this.theme_ACCENT)
               }
               .width(40)
               .height(40)
@@ -722,16 +816,15 @@ struct Index {
               const prevRaw = this.deviceId;
               this.deviceId = raw;
               this.deviceIdDisplay = formatted;
+              this.showIdSuggestions = this.deviceIdInputFocused && raw.length >= 3;
               if (this.deviceIdInputFromCard) {
                 this.deviceIdInputFromCard = false;
                 this.deviceIdInputKey++;
+                this.showIdSuggestions = false;
                 return;
               }
               this.deviceIdInputKey++;
               setTimeout(() => {
-                try {
-                  focusControl.requestFocus('deviceIdInput');
-                } catch (_e) {}
                 if (raw.length < prevRawLen && raw.length > 0) {
                   const prevCaretRaw = Math.min(this.estimateCaretInRaw(value, prevRaw), raw.length);
                   const caretInFormatted = this.rawPosToFormattedPos(prevCaretRaw, formatted);
@@ -741,12 +834,22 @@ struct Index {
                 }
               }, 50);
             })
+            .onFocus(() => {
+              this.deviceIdInputFocused = true;
+              if (this.deviceId.trim().length >= 3) {
+                this.showIdSuggestions = true;
+              }
+            })
+            .onBlur(() => {
+              this.deviceIdInputFocused = false;
+              this.showIdSuggestions = false;
+            })
             .key(this.deviceIdInputKey.toString())
             .id('deviceIdInput')
         }
         .width('100%')
         .height(64)
-        .padding({ left: ThemeConfig.SPACING_LG })
+        .padding({ left: ThemeConfig.SPACING_LG, right: 60 })
         .alignItems(HorizontalAlign.Start)
         .border({ width: 1, color: this.theme_BORDER_SUBTLE })
         .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
@@ -757,7 +860,9 @@ struct Index {
               .width(20)
               .height(20)
               .fillColor(this.theme_TEXT_TERTIARY)
+              .hitTestBehavior(HitTestMode.Block)
               .onClick(() => {
+                this.showIdSuggestions = false;
                 this.deviceId = '';
                 this.deviceIdDisplay = '';
                 this.deviceIdInputKey++;
@@ -769,13 +874,16 @@ struct Index {
             .width(30)
             .height(30)
             .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .hitTestBehavior(HitTestMode.Block)
             .onClick(() => {
+              this.showIdSuggestions = false;
               void this.handleConnect();
             })
         }
         .height(64)
         .padding({ right: ThemeConfig.SPACING_LG })
         .alignItems(VerticalAlign.Center)
+        .zIndex(20)
       }
       .width('100%')
 
@@ -802,36 +910,7 @@ struct Index {
         Blank().layoutWeight(1)
 
         Row({ space: 8 }) {
-          if (this.currentConnectTab !== 'account') {
-            if (this.showSearchInput) {
-              TextInput({ placeholder: this.lt('Search'), text: this.searchText })
-                .width(140)
-                .height(32)
-                .fontSize(14)
-                .fontColor(this.theme_TEXT_PRIMARY)
-                .placeholderColor(this.theme_TEXT_TERTIARY)
-                .backgroundColor(this.theme_CARD_BG)
-                .borderRadius(8)
-                .onChange((value: string) => {
-                  this.searchText = value;
-                })
-                .onSubmit(() => {
-                  this.showSearchInput = false;
-                })
-                .onBlur(() => {
-                  this.showSearchInput = false;
-                  this.searchText = '';
-                })
-            } else {
-              Image($rawfile('search.svg'))
-                .width(18)
-                .height(18)
-                .fillColor(this.theme_TEXT_TERTIARY)
-                .onClick(() => {
-                  this.showSearchInput = true;
-                })
-            }
-          }
+          this.buildConnectSearchAnchor()
 
           if (this.currentConnectTab === 'recent') {
             Image($rawfile('checkbox-outline.svg'))
@@ -846,8 +925,7 @@ struct Index {
               .height(18)
               .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
               .onClick(() => {
-                this.showSearchInput = false;
-                this.searchText = '';
+                this.dismissConnectSearch();
                 this.showSortMenu = true;
               })
           }
@@ -862,8 +940,7 @@ struct Index {
                 if (this.isConnectTabRefreshing) {
                   return;
                 }
-                this.showSearchInput = false;
-                this.searchText = '';
+                this.dismissConnectSearch();
                 void this.refreshCurrentConnectTab();
               })
           }
@@ -876,6 +953,104 @@ struct Index {
       }
     .width('100%')
     .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD, top: ThemeConfig.SPACING_SM, bottom: ThemeConfig.SPACING_SM })
+    .overlay(this.buildIdSuggestionsOverlay(), { align: Alignment.Top })
+  }
+
+  @Builder
+  private buildConnectSearchAnchor() {
+    Stack({ alignContent: Alignment.Center }) {
+      Image($rawfile('search.svg'))
+        .width(18)
+        .height(18)
+        .fillColor(this.showSearchInput ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .onClick(() => {
+          if (this.showSearchInput) {
+            this.dismissConnectSearch();
+          } else if (this.searchText.trim().length > 0) {
+            this.searchText = '';
+          } else {
+            this.openConnectSearch();
+          }
+        })
+
+      if (this.showSearchInput) {
+        TextInput({ placeholder: this.lt('Search'), text: this.searchText })
+          .width(140)
+          .height(32)
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .placeholderColor(this.theme_TEXT_TERTIARY)
+          .backgroundColor(this.theme_CARD_BG)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+          .borderRadius(8)
+          .padding({ left: 10, right: 10 })
+          .id('connect-search-input')
+          .zIndex(10)
+          .position({ x: -122, y: 5 })
+          .onChange((value: string) => {
+            this.searchText = value;
+          })
+          .onSubmit(() => {
+            this.dismissConnectSearch(false);
+          })
+           .onBlur(() => {
+             this.showSearchInput = false;
+           })
+      }
+    }
+    .width(18)
+    .height(42)
+    .clip(false)
+  }
+
+  @Builder
+  private buildIdSuggestionsOverlay() {
+    if (this.showIdSuggestions && this.deviceId.trim().length >= 3) {
+      Column({ space: 0 }) {
+        ForEach(this.getIdSuggestions(), (item: RecentSession | AddressBookEntry) => {
+          Row({ space: ThemeConfig.SPACING_MD }) {
+            Row() {
+              this.buildThemedPlatformIcon(this.getSuggestionPlatform(item), 20)
+            }
+            .width(28)
+            .height(28)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor(this.theme_ACCENT_SURFACE)
+            .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
+
+            Column({ space: 2 }) {
+              Text(this.getSuggestionName(item))
+                .fontSize(13)
+                .fontColor(this.theme_TEXT_PRIMARY)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              Text(this.formatId(this.getSuggestionId(item)))
+                .fontSize(11)
+                .fontColor(this.theme_TEXT_TERTIARY)
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+          .onClick(() => {
+            const id = this.getSuggestionId(item);
+            this.deviceIdInputFromCard = true;
+            this.deviceId = id;
+            this.deviceIdDisplay = this.formatId(id);
+            this.deviceIdInputKey++;
+            this.showIdSuggestions = false;
+          })
+        }, (item: RecentSession | AddressBookEntry, index?: number) => `${this.getSuggestionId(item)}-${index ?? 0}`)
+      }
+      .width('70%')
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .shadow({ radius: 8, color: '#20000000', offsetY: 2 })
+      .offset({ y: 72 })
+      .zIndex(10)
+    }
   }
 
   @Builder
@@ -1115,6 +1290,11 @@ struct Index {
       this.buildSettingsSectionLabel(this.lt('Account'), 'settings_person.svg')
       CardContainer() {
         Row({ space: ThemeConfig.SPACING_MD }) {
+          Image($rawfile(this.resolveAuthProviderIcon()))
+            .width(20)
+            .height(20)
+            .fillColor(this.theme_TEXT_TERTIARY)
+
           if (this.accountState.isLoggedIn) {
             Text(this.lt('Account Name'))
               .fontSize(ThemeConfig.FONT_SIZE_SM)
@@ -1126,20 +1306,29 @@ struct Index {
             .fontColor(this.accountState.isLoggedIn ? this.theme_TEXT_PRIMARY : this.theme_TEXT_SECONDARY)
             .layoutWeight(1)
 
-          Image($rawfile(this.accountState.isLoggedIn ? 'logout.svg' : 'login.svg'))
-            .width(20)
-            .height(20)
-            .fillColor(this.theme_TEXT_TERTIARY)
+          if (this.accountState.isLoggedIn) {
+            Row() {
+              Image($rawfile('logout.svg'))
+                .width(20)
+                .height(20)
+                .fillColor(this.theme_TEXT_TERTIARY)
+            }
+            .width(36)
+            .height(36)
+            .justifyContent(FlexAlign.Center)
+            .borderRadius(18)
+            .onClick(() => {
+              void this.accountService.logout().then(() => {
+                this.refreshAccountState();
+              });
+            })
+          }
         }
         .width('100%')
         .height(ThemeConfig.MENU_ITEM_HEIGHT)
         .constraintSize({ maxHeight: ThemeConfig.MENU_ITEM_HEIGHT })
         .onClick(() => {
-          if (this.accountState.isLoggedIn) {
-            void this.accountService.logout().then(() => {
-              this.refreshAccountState();
-            });
-          } else {
+          if (!this.accountState.isLoggedIn) {
             this.showAccountDialog = true;
           }
         })
@@ -1280,9 +1469,10 @@ struct Index {
           .width('100%')
           .height(ThemeConfig.MENU_ITEM_HEIGHT)
           .constraintSize({ minHeight: ThemeConfig.MENU_ITEM_HEIGHT })
-          .onClick(() => {
-            this.showDisplaySettingsDialog = true;
-          })
+           .onClick(() => {
+             this.settingsOptionVersion++;
+             this.showDisplaySettingsDialog = true;
+           })
         }
         .width('100%')
       }
@@ -1403,7 +1593,10 @@ struct Index {
         Column({ space: 0 }) {
           this.buildSettingsToggleSettingRow(this.lt('Check Updates On Startup'), this.settings.checkUpdatesOnStartup, (value: boolean) => {
             this.updateSettings({ checkUpdatesOnStartup: value });
-          }, '', false, 'settings_update.svg')
+          }, '', false, 'settings_update.svg', true)
+          this.buildSettingsToggleSettingRow(this.lt('Debug Keep Screen Awake'), this.settings.debugKeepScreenAwake, (value: boolean) => {
+            this.updateSettings({ debugKeepScreenAwake: value });
+          }, '', true, 'settings_keepscreen.svg', false)
           this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`, 'settings_info_circle.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Build Time'), this.buildTime, 'settings_timer.svg', '', true)
           Row({ space: ThemeConfig.SPACING_MD }) {
@@ -1417,23 +1610,22 @@ struct Index {
               .fontColor(this.theme_TEXT_PRIMARY)
               .layoutWeight(1)
 
-            Text(this.localDevice.fingerprint.length > 0 ? this.localDevice.fingerprint.substring(0, 12) + '...' : '')
+            Text(this.localDevice.fingerprint.length > 0 ? this.localDevice.fingerprint.substring(0, 12) + '...' : this.lt('None'))
               .fontSize(ThemeConfig.FONT_SIZE_SM)
               .fontColor(this.theme_TEXT_SECONDARY)
               .textAlign(TextAlign.End)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .constraintSize({ maxWidth: '40%' })
-              .onClick(() => {
-                if (this.localDevice.fingerprint.length > 0) {
-                  void this.copyText(this.localDevice.fingerprint, this.lt('Fingerprint copied'));
-                }
-              })
           }
           .width('100%')
           .height(ThemeConfig.MENU_ITEM_HEIGHT)
           .constraintSize({ minHeight: ThemeConfig.MENU_ITEM_HEIGHT })
           .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+          .onClick(() => {
+            if (this.localDevice.fingerprint.length > 0) {
+              void this.copyText(this.localDevice.fingerprint, this.lt('Fingerprint copied'));
+            }
+          })
           this.buildSettingsLinkRow(this.lt('Privacy Policy'), 'rustdesk.com', () => {
             try {
               void this.getUIContext().getRouter().pushUrl({ url: 'https://rustdesk.com/privacy' });
@@ -1506,70 +1698,31 @@ struct Index {
       }
 
       Row({ space: ThemeConfig.SPACING_SM }) {
-        if (!this.officialCoreState.coreReady) {
-          Button(this.lt('Start'))
-            .height(36)
-            .fontSize(ThemeConfig.FONT_SIZE_MD)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .borderRadius(8)
-            .layoutWeight(1)
-            .enabled(!this.coreLoadBusy)
-            .onClick(() => {
-              this.coreLoadBusy = true;
-              this.coreLoadStatus = this.lt('Starting...');
-              if (!NativeRustDeskBridge.isCoreLoaded()) {
-                CoreLoaderService.getInstance().autoLoadCore().then((result) => {
-                  if (result.success) {
-                    this.refreshCoreDetailInfo();
-                    this.startCoreRuntime();
-                  } else {
-                    this.coreLoadStatus = `${this.lt('Load failed')}: ${result.error ?? 'unknown'}`;
-                    this.coreLoadBusy = false;
-                  }
-                });
-              } else {
-                this.startCoreRuntime();
-              }
-            })
-        } else {
-          Button(this.lt('Reset'))
-            .height(36)
-            .fontSize(ThemeConfig.FONT_SIZE_MD)
-            .backgroundColor(this.theme_SECONDARY_BTN_BG)
-            .fontColor(this.theme_SECONDARY_BTN_TEXT)
-            .borderRadius(8)
-            .layoutWeight(1)
-            .onClick(() => {
-              this.coreModules = [];
-              this.coreLoadStatus = '';
-              void this.refreshState();
-            })
-        }
+        Button(this.getCorePrimaryButtonLabel())
+          .height(36)
+          .fontSize(ThemeConfig.FONT_SIZE_MD)
+          .backgroundColor(this.officialCoreState.coreReady ? this.theme_SECONDARY_BTN_BG : this.theme_ACCENT)
+          .fontColor(this.officialCoreState.coreReady ? this.theme_SECONDARY_BTN_TEXT : this.theme_ACCENT_TEXT)
+          .borderRadius(8)
+          .layoutWeight(1)
+          .enabled(!this.coreLoadBusy)
+          .onClick(() => {
+            this.handleCorePrimaryAction();
+          })
 
-        Button(this.lt('Stop'))
+        Button(this.getCoreSecondaryButtonLabel())
           .height(36)
           .fontSize(ThemeConfig.FONT_SIZE_MD)
           .backgroundColor(this.theme_SECONDARY_BTN_BG)
           .fontColor(this.theme_SECONDARY_BTN_TEXT)
           .borderRadius(8)
           .layoutWeight(1)
-          .enabled(this.officialCoreState.coreReady)
+          .enabled(!this.coreLoadBusy && this.officialCoreState.coreReady)
           .onClick(() => {
-            NativeRustDeskBridge.closeSession();
-            this.coreLoadStatus = this.lt('Core stopped');
-            void this.refreshState();
+            this.handleCoreSecondaryAction();
           })
       }
       .width('100%')
-
-      if (this.coreLoadStatus.length > 0) {
-        Text(this.coreLoadStatus)
-          .fontSize(ThemeConfig.FONT_SIZE_XS)
-          .fontColor(this.theme_TEXT_SECONDARY)
-          .width('100%')
-          .maxLines(3)
-      }
     }
     .width('100%')
   }
@@ -1579,6 +1732,91 @@ struct Index {
       return this.lt('Ready');
     }
     return this.lt('Unrecognized');
+  }
+
+  private isCoreRuntimeLoadedOrRunning(): boolean {
+    return this.officialCoreState.coreReady || NativeRustDeskBridge.isCoreLoaded();
+  }
+
+  private getCorePrimaryButtonLabel(): string {
+    return this.officialCoreState.coreReady ? this.lt('Restart') : this.lt('Start');
+  }
+
+  private getCoreSecondaryButtonLabel(): string {
+    if (this.coreLoadBusy) {
+      return this.lt('Loading...');
+    }
+    if (this.officialCoreState.coreReady) {
+      return this.lt('Stop');
+    }
+    return this.lt('Stop');
+  }
+
+  private handleCorePrimaryAction(): void {
+    this.coreLoadBusy = true;
+    if (this.officialCoreState.coreReady) {
+      this.stopCoreRuntime(false);
+      this.coreLoadBusy = true;
+    }
+    this.ensureCoreLoadedThenStart();
+  }
+
+  private handleCoreSecondaryAction(): void {
+    if (this.officialCoreState.coreReady) {
+      this.stopCoreRuntime(true);
+      return;
+    }
+  }
+
+  private ensureCoreLoadedThenStart(): void {
+    if (!NativeRustDeskBridge.isCoreLoaded()) {
+      CoreLoaderService.getInstance().autoLoadCore().then((result) => {
+        if (result.success) {
+          this.refreshCoreDetailInfo();
+          this.startCoreRuntime();
+        } else {
+          this.coreLoadStatus = this.lt('Load failed');
+          this.coreLoadBusy = false;
+        }
+      }).catch(() => {
+        this.coreLoadStatus = this.lt('Load failed');
+        this.coreLoadBusy = false;
+      });
+      return;
+    }
+    this.startCoreRuntime();
+  }
+
+  private stopCoreRuntime(refreshAfterStop: boolean = true): void {
+    ScreenCaptureService.getInstance().stopCapture();
+    NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
+    NativeRustDeskBridge.setIncomingServiceEnabled(false, this.settings.idServer, this.settings.relayServer, this.settings.apiServer, this.settings.key);
+    NativeRustDeskBridge.closeSession();
+    NativeRustDeskBridge.resetForRetry();
+    this.settings = this.appData.updateSettings({ serviceEnabled: false });
+    this.syncControlledKeepScreenOn();
+    this.localDevice = this.appData.setServiceEnabled(false);
+    const serverConfig = AppDataService.resolveServerConfig(this.settings);
+    this.officialCoreState = {
+      adapter: 'official-native',
+      coreReady: false,
+      incomingReady: false,
+      displayId: '',
+      fingerprint: '',
+      directAddress: '',
+      statusSummary: this.lt('Core stopped'),
+      detailMessage: this.lt('Core stopped'),
+      server: serverConfig.idServer,
+      sessionStage: 'idle',
+      activePeerId: '',
+      lastError: ''
+    };
+    this.coreLoadStatus = this.lt('Core stopped');
+    this.coreLoadBusy = false;
+    this.refreshCoreDetailInfo();
+    if (refreshAfterStop) {
+      void this.refreshState();
+    }
   }
 
   private refreshCoreDetailInfo(): void {
@@ -1595,11 +1833,11 @@ struct Index {
     const nativeModuleReady = NativeRustDeskBridge.hasNativeModule();
     const nativeCoreLoaded = NativeRustDeskBridge.isCoreLoaded();
     const staticCorePackaged = CoreBuildInfo.FILE_SIZE.length > 0;
-    const nativeCoreReady = nativeCoreLoaded || this.officialCoreState.coreReady || (nativeModuleReady && staticCorePackaged);
-    const coreVersion = nativeCoreReady ? (NativeRustDeskBridge.getVersion() || '') : '';
-    const deviceId = nativeCoreReady ? (NativeRustDeskBridge.getMyId() || '') : '';
-    const fingerprint = nativeCoreReady ? (NativeRustDeskBridge.getFingerprint() || '') : '';
-    const bridgeFnCount = nativeCoreReady ? String(NativeRustDeskBridge.getRegisteredFunctionCount()) : '0';
+    const nativeCoreAvailable = nativeCoreLoaded || (nativeModuleReady && staticCorePackaged);
+    const coreVersion = nativeCoreAvailable ? (NativeRustDeskBridge.getVersion() || '') : '';
+    const deviceId = nativeCoreAvailable ? (NativeRustDeskBridge.getMyId() || '') : '';
+    const fingerprint = nativeCoreAvailable ? (NativeRustDeskBridge.getFingerprint() || '') : '';
+    const bridgeFnCount = nativeCoreAvailable ? String(NativeRustDeskBridge.getRegisteredFunctionCount()) : '0';
     const upstreamVer = CoreBuildInfo.COMPATIBLE_OFFICIAL_VERSION;
 
     modules.push({
@@ -1661,10 +1899,10 @@ struct Index {
       fileSizeMB: rustInfo.fileSizeMB,
       hash: rustInfo.hash,
       compatibleOfficialVersion: upstreamVer,
-      validElf: this.officialCoreState.coreReady || nativeCoreReady,
+      validElf: nativeCoreAvailable,
       buildTime: rustInfo.buildTime,
-      statusText: nativeCoreReady ? this.lt('Ready') : (nativeModuleReady ? this.lt('Stop') : this.lt('Error')),
-      statusActive: nativeCoreReady,
+      statusText: this.officialCoreState.coreReady ? this.lt('Ready') : (nativeCoreAvailable ? this.lt('Stop') : this.lt('Error')),
+      statusActive: this.officialCoreState.coreReady,
       icon: 'settings_cpu.svg',
       lastError: nativeModuleReady ? this.officialCoreState.lastError : NativeRustDeskBridge.getCombinedDebugSummary(),
       detailMessage: this.officialCoreState.detailMessage.length > 0 ? this.officialCoreState.detailMessage : this.nativeBridgeSummary,
@@ -1771,23 +2009,16 @@ struct Index {
 
         Column({ space: 0 }) {
           this.buildSettingsInfoSettingRow(this.lt('Type'), this.getSelectedCoreModuleField('kind').length > 0 ? this.getSelectedCoreModuleField('kind') : this.lt('Unknown'), 'info_layers.svg')
-          this.buildSettingsInfoSettingRow(this.lt('Status'), this.getCoreStatusDetailText(), 'settings_record.svg')
-          this.buildSettingsInfoSettingRow(this.lt('Runtime Summary'), this.getSelectedCoreModuleField('statusSummary').length > 0 ? this.getSelectedCoreModuleField('statusSummary') : this.lt('None'), 'settings_terminal.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Status'), this.getSelectedCoreModuleField('statusActive') === 'true' ? this.lt('Running') : this.lt('Stopped'), 'settings_terminal.svg')
+          this.buildSettingsInfoSettingRow(this.lt('Summary'), this.getSelectedCoreModuleField('statusSummary').length > 0 ? this.getSelectedCoreModuleField('statusSummary') : '--', 'info_layers.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Error'), this.getSelectedCoreModuleField('lastError').length > 0 ? this.getSelectedCoreModuleField('lastError') : this.lt('None'), 'info_alert.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Detail'), this.getSelectedCoreModuleField('detailMessage').length > 0 ? this.getSelectedCoreModuleField('detailMessage') : this.lt('None'), 'info_file.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Compatible Official Version'), this.getSelectedCoreModuleField('compatibleOfficialVersion').length > 0 ? `RustDesk ${this.getSelectedCoreModuleField('compatibleOfficialVersion')}` : this.lt('Unknown'), 'info_code.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Detail'), this.getSelectedCoreModuleField('detailMessage').length > 0 ? this.getSelectedCoreModuleField('detailMessage') : this.lt('None'), 'info_code.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Compatible'), this.getSelectedCoreModuleField('compatibleOfficialVersion').length > 0 ? `RustDesk ${this.getSelectedCoreModuleField('compatibleOfficialVersion')}` : this.lt('Unknown'), 'info_code.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('File'), this.getSelectedCoreModuleField('path').length > 0 ? this.getSelectedCoreModuleField('path').split('/').pop() ?? this.getSelectedCoreModuleField('path') : this.lt('None'), 'info_file.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('File Size'), this.getSelectedCoreFileSizeText(), 'info_drive.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Hash (FNV-1a)'), this.getSelectedCoreModuleField('hash').length > 0 ? this.getSelectedCoreModuleField('hash') : this.lt('Unknown'), 'info_hash.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Valid ELF'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), 'opt_shield.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Compile Time'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), 'info_clock.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Source'), this.getSelectedCoreModuleField('source').length > 0 ? this.getSelectedCoreModuleField('source') : this.lt('Unknown'), 'info_code.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Bridge Functions'), this.getSelectedCoreModuleField('bridgeFunctionCount').length > 0 ? this.getSelectedCoreModuleField('bridgeFunctionCount') : this.lt('Unknown'), 'settings_terminal.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('NAPI Registered'), this.getSelectedCoreModuleField('napiRegisteredCount').length > 0 ? this.getSelectedCoreModuleField('napiRegisteredCount') : this.lt('Unknown'), 'settings_terminal.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Core Version'), this.getSelectedCoreModuleField('coreVersion').length > 0 ? this.getSelectedCoreModuleField('coreVersion') : this.lt('Unknown'), 'info_code.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Device ID'), this.getSelectedCoreModuleField('deviceId').length > 0 ? this.getSelectedCoreModuleField('deviceId') : this.lt('Unknown'), 'fingerprint.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Fingerprint'), this.getSelectedCoreModuleField('fingerprint').length > 0 ? this.getSelectedCoreModuleField('fingerprint') : this.lt('Unknown'), 'info_hash.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Upstream Version'), this.getSelectedCoreModuleField('upstreamVersion').length > 0 ? `RustDesk ${this.getSelectedCoreModuleField('upstreamVersion')}` : this.lt('Unknown'), 'info_code.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Compile'), this.getSelectedCoreModuleField('buildTime').length > 0 ? this.getSelectedCoreModuleField('buildTime') : this.lt('Unknown'), 'info_clock.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Valid'), this.getSelectedCoreModuleValidElf() ? this.lt('Yes') : this.lt('No'), 'opt_shield.svg', '', true)
         }
         .width('100%')
       }
@@ -1887,6 +2118,23 @@ struct Index {
       return this.lt('Stop');
     }
     return this.lt('Error');
+  }
+
+  private getCoreRuntimeText(): string {
+    const parts: string[] = [];
+    if (this.officialCoreState.coreReady) {
+      const summary = this.getSelectedCoreModuleField('statusSummary').trim();
+      parts.push(summary.length > 0 ? summary : this.lt('Ready'));
+    } else if (NativeRustDeskBridge.isCoreLoaded() || NativeRustDeskBridge.hasNativeModule()) {
+      parts.push(this.lt('Stop'));
+    } else {
+      parts.push(this.lt('Error'));
+    }
+    const lastError = this.getSelectedCoreModuleField('lastError').trim();
+    if (lastError.length > 0) parts.push(lastError);
+    const detail = this.getSelectedCoreModuleField('detailMessage').trim();
+    if (detail.length > 0) parts.push(detail);
+    return parts.join(' | ');
   }
 
   private getCoreStatusDetailText(): string {
@@ -1995,7 +2243,7 @@ struct Index {
   private buildChatSessionCard(session: ChatSession) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        this.buildThemedPlatformIcon(session.deviceName, 26)
+        this.buildThemedPlatformIcon(this.resolvePlatformForDevice(session.deviceId, session.deviceName), 26)
       }
       .width(40)
       .height(40)
@@ -2063,7 +2311,9 @@ struct Index {
 
             Text(
               this.isShareServiceRunning()
-                ? this.lt('Screen share service started, can accept remote connections.')
+                ? (this.officialCoreState.incomingReady
+                  ? this.lt('Screen share service started, can accept remote connections.')
+                  : this.lt('Screen recording active, waiting for core incoming service.'))
                 : this.lt('Tap to start service or enable screen capture, then screen sharing will start.')
             )
               .fontSize(ThemeConfig.FONT_SIZE_MD)
@@ -2073,7 +2323,7 @@ struct Index {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
-          StatusBadge(this.isShareServiceRunning() ? this.lt('Running') : this.lt('Not running'), this.isShareServiceRunning())
+          StatusBadge(this.isShareServiceRunning() ? (this.officialCoreState.incomingReady ? this.lt('Running') : this.lt('Recording Active')) : this.lt('Not running'), this.isShareServiceRunning())
         }
         .width('100%')
 
@@ -2106,7 +2356,11 @@ struct Index {
             .fontColor(this.theme_ACCENT_TEXT)
             .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
             .onClick(() => {
-              void this.toggleIncomingService(!this.isShareServiceRunning());
+              if (this.isShareServiceRunning()) {
+                void this.toggleIncomingService(false);
+              } else {
+                void this.checkScreenCapturePermissionAndToggle();
+              }
             })
           if (this.isShareServiceRunning()) {
             Button(this.lt('Generate password'))
@@ -2129,7 +2383,8 @@ struct Index {
   }
 
   private isShareServiceRunning(): boolean {
-    return this.settings.serviceEnabled && this.officialCoreState.incomingReady;
+    return this.settings.serviceEnabled &&
+      (this.officialCoreState.incomingReady || ScreenCaptureService.getInstance().isCapturingActive());
   }
 
   private getShareDisplayId(): string {
@@ -2296,8 +2551,8 @@ struct Index {
           .padding({ left: 20, right: 20 })
           .margin({ top: 4 })
 
-        this.buildConnectModeRow('direct', this.lt('Direct Connection'))
-        this.buildConnectModeRow('relay', this.lt('Relay Connection'))
+        this.buildConnectModeRow('direct', this.lt('Direct Connection'), this.recentMenuSessionId)
+        this.buildConnectModeRow('relay', this.lt('Relay Connection'), this.recentMenuSessionId)
 
         Divider()
           .color(this.theme_BORDER_SUBTLE)
@@ -2317,14 +2572,13 @@ struct Index {
 
         Text(this.lt('View Camera'))
           .fontSize(16)
-          .fontColor(this.theme_TEXT_PRIMARY)
+          .fontColor(this.theme_TEXT_TERTIARY)
           .width('100%')
           .height(48)
           .padding({ left: 20, right: 20 })
           .onClick(() => {
-            const id = this.recentMenuSessionId;
             this.recentMenuSessionId = '';
-            this.navigateTo('pages/ViewCamera', { deviceId: id });
+            this.setStatusMessageRaw(this.lt('Camera unavailable'));
           })
 
         Text(this.lt('Terminal (beta)'))
@@ -2496,17 +2750,17 @@ struct Index {
   }
 
   @Builder
-  private buildConnectModeRow(mode: 'direct' | 'relay', label: string) {
+  private buildConnectModeRow(mode: 'direct' | 'relay', label: string, peerId: string) {
     Row({ space: 10 }) {
       Stack() {
         Circle()
           .width(20)
           .height(20)
           .fill(Color.Transparent)
-          .stroke(this.recentMenuConnectMode === mode ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+          .stroke(PreferenceStore.getPeerConnectMode(peerId) === mode ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
           .strokeWidth(2)
 
-        if (this.recentMenuConnectMode === mode) {
+        if (PreferenceStore.getPeerConnectMode(peerId) === mode) {
           Circle()
             .width(12)
             .height(12)
@@ -2518,28 +2772,27 @@ struct Index {
 
       Text(label)
         .fontSize(16)
-        .fontColor(this.recentMenuConnectMode === mode ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .fontColor(PreferenceStore.getPeerConnectMode(peerId) === mode ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
     }
     .width('100%')
     .height(48)
     .padding({ left: 20, right: 20 })
     .onClick(() => {
-      this.recentMenuConnectMode = mode;
-      const id = this.recentMenuSessionId;
+      PreferenceStore.setPeerConnectMode(peerId, mode);
       this.recentMenuSessionId = '';
       this.deviceIdInputFromCard = true;
-      this.deviceId = id;
-      this.deviceIdDisplay = this.formatId(id);
+      this.deviceId = peerId;
+      this.deviceIdDisplay = this.formatId(peerId);
       this.deviceIdInputKey++;
       if (mode === 'relay') {
         const savedDirectIp = this.settings.enableDirectIp;
         this.updateSettings({ enableDirectIp: false });
-        void this.handleConnect(id).then(() => {
+        void this.handleConnect(peerId).then(() => {
           this.updateSettings({ enableDirectIp: savedDirectIp });
         });
       } else {
-        void this.handleConnect(id);
+        void this.handleConnect(peerId);
       }
     })
   }
@@ -2678,12 +2931,13 @@ struct Index {
           Image($rawfile('scan_frame.svg'))
             .width(22)
             .height(22)
-      .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+            .fillColor(this.theme_TEXT_TERTIARY)
         }
         .width(40)
         .height(40)
         .borderRadius(20)
-        .backgroundColor(this.theme_ACCENT_SURFACE)
+        .backgroundColor(Color.Transparent)
+        .border({ width: 1.5, color: this.theme_TEXT_TERTIARY, style: BorderStyle.Solid })
         .onClick(() => {
           this.navigateTo('pages/Scan');
         })
@@ -2728,10 +2982,11 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
     .clip(false)
     .hitTestBehavior(HitTestMode.Block)
+    .id(tab === 'recent' ? 'recent-tab-btn' : `${tab}-tab-btn`)
     .onClick(() => {
-      this.showSearchInput = false;
-      this.searchText = '';
+      this.dismissConnectSearch();
       this.currentConnectTab = tab;
+      this.requestConnectTabFocus(20, tab === 'recent' ? 'recent-tab-btn' : `${tab}-tab-btn`);
     })
     .gesture(
       LongPressGesture({ duration: 500 })
@@ -2846,7 +3101,7 @@ struct Index {
   }
 
   @Builder
-  private buildSettingsToggleSettingRow(label: string, value: boolean, action: (value: boolean) => void, detail: string = '', showTopBorder: boolean = false, icon: string = '') {
+  private buildSettingsToggleSettingRow(label: string, value: boolean, action: (value: boolean) => void, detail: string = '', showTopBorder: boolean = false, icon: string = '', disabled: boolean = false) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       if (icon.length > 0) {
         Image($rawfile(icon))
@@ -2858,7 +3113,7 @@ struct Index {
       Column({ space: 4 }) {
         Text(label)
           .fontSize(ThemeConfig.FONT_SIZE_XL)
-          .fontColor(this.theme_TEXT_PRIMARY)
+          .fontColor(disabled ? this.theme_TEXT_TERTIARY : this.theme_TEXT_PRIMARY)
           .width('100%')
 
         if (detail.trim().length > 0) {
@@ -2875,6 +3130,8 @@ struct Index {
         .selectedColor(this.theme_ACCENT)
         .switchPointColor(this.theme_WHITE)
         .constraintSize({ maxHeight: 32 })
+        .enabled(!disabled)
+        .opacity(disabled ? 0.4 : 1)
         .onChange((isOn: boolean) => {
           action(isOn);
         })
@@ -3050,11 +3307,9 @@ struct Index {
     .justifyContent(FlexAlign.End)
     .alignItems(HorizontalAlign.Center)
     .padding({ top: 4, bottom: 4 })
+    .id(`${tab}-bottom-tab-btn`)
     .onClick(() => {
-      this.currentTab = tab;
-      if (tab === 'chat' && this.chatMessages.length > 0) {
-        this.scheduleChatTabScroll(100);
-      }
+      this.switchHomeTab(tab);
     })
   }
 
@@ -3088,10 +3343,7 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
     .padding({ top: 4, bottom: 4 })
     .onClick(() => {
-      this.currentTab = tab;
-      if (tab === 'chat' && this.chatMessages.length > 0) {
-        this.scheduleChatTabScroll(100);
-      }
+      this.switchHomeTab(tab);
     })
   }
 
@@ -3237,10 +3489,22 @@ struct Index {
 
   @Builder
   private buildThemedPlatformIcon(platform: string, size: number) {
-    Image(this.resolvePlatformIcon(platform))
-      .width(size)
-      .height(size)
-      .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+    if (this.isFillPlatformIcon(platform)) {
+      Image(this.resolvePlatformIcon(platform))
+        .width(size)
+        .height(size)
+        .fillColor(this.theme_ACCENT)
+    } else {
+      Image(this.resolvePlatformIcon(platform))
+        .width(size)
+        .height(size)
+        .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+    }
+  }
+
+  private isFillPlatformIcon(platform: string): boolean {
+    const n = platform.toLowerCase();
+    return n.indexOf('android') >= 0 || n.indexOf('harmony') >= 0 || n.indexOf('linux') >= 0 || n.indexOf('ubuntu') >= 0;
   }
 
   private refreshRecentSessionFromPeerInfo(peerId: string, detail: string = ''): void {
@@ -3337,6 +3601,12 @@ struct Index {
       this.themeMode = ThemeManager.resolveMode(this.settings.theme);
       void WindowChromeService.getInstance().refreshSystemBars();
     }
+    if (patch.debugKeepScreenAwake !== undefined) {
+      this.syncControlledKeepScreenOn();
+    }
+    if (patch.keepScreenOnWhenControlled !== undefined) {
+      this.syncControlledKeepScreenOn();
+    }
     this.syncDraftServers();
     this.oneTimePassword = this.appData.getPassword();
     void this.refreshState();
@@ -3399,6 +3669,12 @@ struct Index {
       this.setStatusMessage('server_config_copied');
       await this.showToast(this.lt('server_config_copied'));
     }
+  }
+
+  private syncControlledKeepScreenOn(): void {
+    const keepAwake = this.settings.debugKeepScreenAwake ||
+      (this.settings.keepScreenOnWhenControlled && this.settings.serviceEnabled);
+    void WindowChromeService.getInstance().setKeepScreenOn(keepAwake);
   }
 
   private async importServerConfig(): Promise<void> {
@@ -3566,16 +3842,18 @@ struct Index {
     const granted = results.every((item) => item.status === PermissionStatus.GRANTED);
     hilog.info(0xA03D00, 'SHARE', 'checkScreenCapturePermissionAndToggle: granted=%{public}s', String(granted));
     if (!granted) {
-      this.settings = this.appData.updateSettings({ serviceEnabled: false });
+      this.settings = this.appData.updateSettings({ serviceEnabled: false, allowRemoteControl: false });
+      this.syncControlledKeepScreenOn();
       this.localDevice = this.appData.setServiceEnabled(false);
-      this.setStatusMessageRaw(this.lt('Screen capture permission denied'));
+      this.setStatusMessageRaw(this.lt('Screen capture denied'));
       return;
     }
     try {
       await this.toggleIncomingService(true);
     } catch (error) {
       hilog.warn(0xA03D00, 'SHARE', 'toggleIncomingService failed: %{public}s', String(error));
-      this.settings = this.appData.updateSettings({ serviceEnabled: false });
+      this.settings = this.appData.updateSettings({ serviceEnabled: false, allowRemoteControl: false });
+      this.syncControlledKeepScreenOn();
       this.localDevice = this.appData.setServiceEnabled(false);
     }
   }
@@ -3586,7 +3864,7 @@ struct Index {
     ]);
     if (!results.every((item) => item.status === PermissionStatus.GRANTED)) {
       this.updateSettings({ allowRemoteControl: false });
-      this.setStatusMessageRaw(this.lt('Input control permission denied'));
+      this.setStatusMessageRaw(this.lt('Input control denied'));
       return;
     }
   }
@@ -3597,7 +3875,7 @@ struct Index {
     ]);
     if (!results.every((item) => item.status === PermissionStatus.GRANTED)) {
       this.updateSettings({ enableAudio: false });
-      this.setStatusMessageRaw(this.lt('Microphone permission denied'));
+      this.setStatusMessageRaw(this.lt('Mic permission denied'));
       return;
     }
   }
@@ -3608,7 +3886,7 @@ struct Index {
     ]);
     if (!results.every((item) => item.status === PermissionStatus.GRANTED)) {
       this.updateSettings({ allowClipboard: false, enableClipboard: false });
-      this.setStatusMessageRaw(this.lt('Clipboard permission denied'));
+      this.setStatusMessageRaw(this.lt('Clipboard denied'));
       return;
     }
   }
@@ -3622,7 +3900,7 @@ struct Index {
     const status = await PermissionService.getInstance().requestPermission('ohos.permission.SYSTEM_FLOAT_WINDOW' as Permissions);
     if (status !== PermissionStatus.GRANTED) {
       this.updateSettings({ enableFloatingWindow: false });
-      this.setStatusMessageRaw(this.lt('Floating window permission denied'));
+      this.setStatusMessageRaw(this.lt('Float window denied'));
       return;
     }
 
@@ -3642,31 +3920,18 @@ struct Index {
         ScreenCaptureService.getInstance().stopCapture();
         NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
         hilog.warn(0xA03D00, 'SHARE', 'startCapture failed: %{public}s', String(error));
+        this.setStatusMessageRaw(this.lt('Recording not started'));
+        throw new Error(String(error));
       }
     } else {
       ScreenCaptureService.getInstance().stopCapture();
       NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
     }
-    if (enabled && !captureReady) {
-      this.settings = this.appData.updateSettings({
-        serviceEnabled: false,
-        allowRemoteControl: false
-      });
-      this.localDevice = this.appData.setServiceEnabled(false);
-      this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(false, this.settings);
-      this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
-      this.oneTimePassword = this.appData.getPassword();
-      this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();
-      this.setStatusMessageRaw(this.lt('Screen capture unavailable, share service not started'));
-      setTimeout(() => {
-        void this.refreshState();
-      }, 500);
-      return;
-    }
     this.settings = this.appData.updateSettings({
       serviceEnabled: enabled,
       allowRemoteControl: enabled
     });
+    this.syncControlledKeepScreenOn();
     this.localDevice = this.appData.setServiceEnabled(enabled);
     this.syncSharePasswordToNative(this.appData.getPassword());
     this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(enabled, this.settings);
@@ -3674,7 +3939,11 @@ struct Index {
     this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
     this.oneTimePassword = this.appData.getPassword();
     this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();
-    this.setStatusMessage(enabled ? "share_requested" : "share_stopped");
+    if (enabled && captureReady && !this.officialCoreState.incomingReady) {
+      this.setStatusMessageRaw(this.lt('Recording waiting'));
+    } else {
+      this.setStatusMessage(enabled ? "share_requested" : "share_stopped");
+    }
     setTimeout(() => {
       void this.refreshState();
     }, 500);
@@ -3694,7 +3963,7 @@ struct Index {
     const granted = await PermissionService.getInstance().requestFileAccessAuthorization();
     if (!granted) {
       this.settings = this.appData.updateSettings({ allowFileTransfer: false });
-      this.setStatusMessageRaw(this.lt('File access permission denied'));
+      this.setStatusMessageRaw(this.lt('File access denied'));
       return;
     }
     this.updateSettings({ allowFileTransfer: true });
@@ -3708,7 +3977,7 @@ struct Index {
     const granted = await this.requestFileTransferPermissions();
     if (!granted) {
       this.settings = this.appData.updateSettings({ allowFileTransfer: false });
-      this.setStatusMessageRaw(this.lt('File access permission denied'));
+      this.setStatusMessageRaw(this.lt('File access denied'));
       return;
     }
     this.updateSettings({ allowFileTransfer: true });
@@ -3722,7 +3991,7 @@ struct Index {
     const newPassword = this.appData.generatePassword();
     this.oneTimePassword = newPassword;
     this.syncSharePasswordToNative(newPassword);
-    this.setStatusMessageRaw(this.lt('Password updated'));
+    this.setStatusMessageRaw(this.lt('Pwd updated'));
     if (this.settings.serviceEnabled) {
       this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(true, this.settings);
     }
@@ -3743,6 +4012,24 @@ struct Index {
     NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
     NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
     NativeRustDeskBridge.setLocalOption('temporary-password', normalizedPassword);
+  }
+
+  private async syncAddressBookFromServer(showToast: boolean = false): Promise<void> {
+    this.refreshAccountState();
+    if (!this.accountState.isLoggedIn) {
+      return;
+    }
+    await this.accountService.fetchAddressBook();
+    this.recentSessions = this.appData.getRecentSessions();
+    this.addressBookVersion++;
+    this.peerOnlineVersion++;
+    if (showToast) {
+      try {
+        await this.getUIContext().getPromptAction().openToast({
+          message: this.lt('Address book synced')
+        });
+      } catch (_e) {}
+    }
   }
 
   private async refreshCurrentConnectTab(): Promise<void> {
@@ -3766,6 +4053,11 @@ struct Index {
         await new Promise<void>((resolve) => {
           setTimeout(() => resolve(), 2600);
         });
+        return;
+      }
+      if (this.currentConnectTab === 'addressBook') {
+        await this.syncAddressBookFromServer(true);
+        await this.refreshState();
         return;
       }
       await this.refreshState();
@@ -3792,6 +4084,8 @@ struct Index {
     }
     if (this.officialCoreState.incomingReady) {
       this.localDevice = this.appData.setServiceEnabled(false);
+      this.settings = this.appData.updateSettings({ serviceEnabled: false });
+      this.syncControlledKeepScreenOn();
       this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(false, this.settings);
       this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
       this.oneTimePassword = this.appData.getPassword();
@@ -3832,7 +4126,7 @@ struct Index {
       this.loginPassword = '';
       this.addressBookVersion++;
       this.discoveredVersion++;
-      void this.accountService.fetchAddressBook();
+      await this.syncAddressBookFromServer(false);
       try {
         await this.getUIContext().getPromptAction().openToast({
           message: this.lt('Login successful')
@@ -3874,7 +4168,7 @@ struct Index {
         this.oauthCheckTimer = -1;
         this.showAccountDialog = false;
         this.loginErrorMsg = '';
-        void this.accountService.fetchAddressBook();
+        void this.syncAddressBookFromServer(false);
       } else if (this.accountState.status === 'error') {
         clearInterval(this.oauthCheckTimer);
         this.oauthCheckTimer = -1;
@@ -4033,6 +4327,15 @@ struct Index {
     return $rawfile(isSelected ? 'secure_filled.svg' : 'secure.svg');
   }
 
+  private resolvePlatformForDevice(deviceId: string, fallback: string): string {
+    for (let i = 0; i < this.recentSessions.length; i++) {
+      if (this.recentSessions[i].id === deviceId) {
+        return this.recentSessions[i].platform;
+      }
+    }
+    return fallback;
+  }
+
   private resolvePlatformIcon(text: string): Resource {
     const normalized = text.toLowerCase();
     if (normalized.indexOf('android') >= 0) {
@@ -4054,8 +4357,60 @@ struct Index {
   }
 
   private resolveLocalToggleOption(key: string): boolean {
+    this.settingsOptionVersion;
     const value = NativeRustDeskBridge.getLocalOption(key).trim().toUpperCase();
-    return value === 'Y' || value === 'YES' || value === 'TRUE' || value === '1';
+    if (value.length > 0) {
+      return value === 'Y' || value === 'YES' || value === 'TRUE' || value === '1';
+    }
+    return NativeRustDeskBridge.getSessionToggleOption(key);
+  }
+
+  private applySessionAndLocalOption(key: string, value: string): void {
+    NativeRustDeskBridge.applySessionOption(key, value);
+    NativeRustDeskBridge.setLocalOption(key, value);
+    this.settingsOptionVersion++;
+  }
+
+  private applySessionAndLocalToggleOption(key: string, enabled: boolean): void {
+    this.applySessionAndLocalOption(key, enabled ? 'Y' : 'N');
+  }
+
+  private resolveImageQualityMode(): string {
+    this.settingsOptionVersion;
+    const value = NativeRustDeskBridge.getLocalOption('image-quality').trim();
+    if (value === 'best' || value === 'balanced' || value === 'speed' || value === 'custom') {
+      return value;
+    }
+    return this.settings.quality >= 90 ? 'best' : (this.settings.quality <= 50 ? 'speed' : 'balanced');
+  }
+
+  private describeImageQualityMode(): string {
+    const mode = this.resolveImageQualityMode();
+    if (mode === 'best') return this.lt('Best Quality');
+    if (mode === 'speed') return this.lt('Best Speed');
+    if (mode === 'custom') return this.lt('Custom');
+    return this.lt('Balanced');
+  }
+
+  private applyImageQualityMode(mode: string): void {
+    this.applySessionAndLocalOption('image-quality', mode);
+    if (mode === 'best') {
+      this.settings = this.appData.updateSettings({ quality: 100 });
+    } else if (mode === 'speed') {
+      this.settings = this.appData.updateSettings({ quality: 40 });
+    } else if (mode === 'balanced') {
+      this.settings = this.appData.updateSettings({ quality: 80 });
+    }
+    if (mode === 'custom') {
+      const customQuality = NativeRustDeskBridge.getLocalOption('custom-image-quality').trim();
+      if (customQuality.length === 0) {
+        this.applySessionAndLocalOption('custom-image-quality', String(this.settings.quality));
+      }
+      const customFps = NativeRustDeskBridge.getLocalOption('custom-fps').trim();
+      if (customFps.length === 0) {
+        this.applySessionAndLocalOption('custom-fps', '30');
+      }
+    }
   }
 
   private describeAccountName(): string {
@@ -4083,6 +4438,18 @@ struct Index {
       ? profile.provider.trim()
       : this.accountState.provider.trim();
     return provider.length > 0 ? provider.charAt(0).toUpperCase() + provider.slice(1) : this.lt('Unknown');
+  }
+
+  private resolveAuthProviderIcon(): string {
+    const profile = this.accountState.profile;
+    const provider = profile && profile.provider.trim().length > 0
+      ? profile.provider.trim().toLowerCase()
+      : this.accountState.provider.trim().toLowerCase();
+    const known = ['github', 'google', 'apple', 'facebook', 'gitlab', 'azure', 'auth0', 'okta'];
+    if (known.includes(provider)) {
+      return `auth-${provider}.svg`;
+    }
+    return 'auth-default.svg';
   }
 
   private resolveLanguageKey(lang: string): string {
@@ -4186,7 +4553,7 @@ struct Index {
   }
 
   @Builder
-  private buildChatMessageBubble(message: ChatMessage, local: boolean) {
+  private buildChatMessageBubble(message: ChatMessage, local: boolean, showTime: boolean) {
     Column() {
       Text(message.type === ChatMessageType.FILE
         ? `${message.fileName ?? this.lt('Attachment')}${message.fileSize ? ' ' + ChatService.formatFileSize(message.fileSize) : ''}`
@@ -4195,10 +4562,12 @@ struct Index {
         .fontColor(local ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
         .maxLines(10)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      Text(ChatService.formatTimestamp(message.timestamp))
-        .fontSize(11)
-        .fontColor(local ? '#AAFFFFFF' : this.theme_TEXT_TERTIARY)
-        .margin({ top: 4 })
+      if (showTime) {
+        Text(ChatService.formatTimestamp(message.timestamp))
+          .fontSize(11)
+          .fontColor(local ? '#AAFFFFFF' : this.theme_TEXT_TERTIARY)
+          .margin({ top: 4 })
+      }
     }
     .padding({ left: 12, right: 12, top: 8, bottom: 8 })
     .constraintSize({ maxWidth: '75%' })
@@ -4697,7 +5066,11 @@ struct Index {
         Scroll() {
           Column({ space: 0 }) {
             this.buildDisplaySettingsLinkRow(this.lt('Default View Mode'), this.settings.videoQuality === 'high' ? this.lt('Original Size') : (this.settings.videoQuality === 'medium' ? this.lt('Adaptive') : this.lt('Fit Window')))
-            this.buildDisplaySettingsLinkRow(this.lt('Default Image Quality'), `${this.settings.quality}%`, true)
+            this.buildDisplaySettingsLinkRow(this.lt('Default Image Quality'), this.describeImageQualityMode(), true)
+            this.buildDisplaySettingsChoiceRow(this.lt('Best Quality'), this.resolveImageQualityMode() === 'best', () => { this.applyImageQualityMode('best'); }, true)
+            this.buildDisplaySettingsChoiceRow(this.lt('Balanced'), this.resolveImageQualityMode() === 'balanced', () => { this.applyImageQualityMode('balanced'); }, true)
+            this.buildDisplaySettingsChoiceRow(this.lt('Best Speed'), this.resolveImageQualityMode() === 'speed', () => { this.applyImageQualityMode('speed'); }, true)
+            this.buildDisplaySettingsChoiceRow(this.lt('Custom'), this.resolveImageQualityMode() === 'custom', () => { this.applyImageQualityMode('custom'); }, true)
             this.buildDisplaySettingsLinkRow(this.lt('Default Codec'), this.settings.enableHardwareCodec ? 'H265' : 'Auto', true)
 
             Text(this.lt('Other Default options'))
@@ -4707,19 +5080,19 @@ struct Index {
               .height(ThemeConfig.MENU_ITEM_HEIGHT)
               .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
 
-            this.buildDisplaySettingsToggleRow(this.lt('View Mode'), this.resolveLocalToggleOption('view-only'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('view-only', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Show Remote Cursor'), this.resolveLocalToggleOption('show-remote-cursor'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('show-remote-cursor', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Follow Remote Cursor'), this.resolveLocalToggleOption('follow-remote-cursor'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('follow-remote-cursor', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Follow Remote Window Focus'), this.resolveLocalToggleOption('follow-remote-window'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('follow-remote-window', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Show Quality Monitor'), this.resolveLocalToggleOption('show-quality-monitor'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('show-quality-monitor', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Mute'), this.resolveLocalToggleOption('disable-audio'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('disable-audio', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Disable Clipboard'), this.resolveLocalToggleOption('disable-clipboard'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('disable-clipboard', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Lock After Session End'), this.resolveLocalToggleOption('lock-after-session-end'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('lock-after-session-end', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Privacy Mode'), this.resolveLocalToggleOption('privacy-mode'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('privacy-mode', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('True Color (4:4:4)'), this.resolveLocalToggleOption('true-color-444'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('true-color-444', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Reverse Mouse Scroll'), this.resolveLocalToggleOption('reverse-scroll'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('reverse-scroll', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Swap Mouse Buttons'), this.resolveLocalToggleOption('swap-left-right-mouse'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('swap-left-right-mouse', value ? 'Y' : 'N'); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Keep Terminal Session On Disconnect'), this.resolveLocalToggleOption('keep-terminal-on-disconnect'), (value: boolean) => { NativeRustDeskBridge.setLocalOption('keep-terminal-on-disconnect', value ? 'Y' : 'N'); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('View Mode'), this.resolveLocalToggleOption('view-only'), (value: boolean) => { this.applySessionAndLocalToggleOption('view-only', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Show Remote Cursor'), this.resolveLocalToggleOption('show-remote-cursor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-remote-cursor', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Follow Remote Cursor'), this.resolveLocalToggleOption('follow-remote-cursor'), (value: boolean) => { this.applySessionAndLocalToggleOption('follow-remote-cursor', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Follow Remote Window Focus'), this.resolveLocalToggleOption('follow-remote-window'), (value: boolean) => { this.applySessionAndLocalToggleOption('follow-remote-window', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Show Quality Monitor'), this.resolveLocalToggleOption('show-quality-monitor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-quality-monitor', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Mute'), this.resolveLocalToggleOption('disable-audio'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-audio', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Disable Clipboard'), this.resolveLocalToggleOption('disable-clipboard'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-clipboard', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Lock After Session End'), this.resolveLocalToggleOption('lock-after-session-end'), (value: boolean) => { this.applySessionAndLocalToggleOption('lock-after-session-end', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Privacy Mode'), this.resolveLocalToggleOption('privacy-mode'), (value: boolean) => { this.applySessionAndLocalToggleOption('privacy-mode', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('True Color (4:4:4)'), this.resolveLocalToggleOption('true-color-444'), (value: boolean) => { this.applySessionAndLocalToggleOption('true-color-444', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Reverse Mouse Scroll'), this.resolveLocalToggleOption('reverse-scroll'), (value: boolean) => { this.applySessionAndLocalToggleOption('reverse-scroll', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Swap Mouse Buttons'), this.resolveLocalToggleOption('swap-left-right-mouse'), (value: boolean) => { this.applySessionAndLocalToggleOption('swap-left-right-mouse', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('Keep Terminal Session On Disconnect'), this.resolveLocalToggleOption('keep-terminal-on-disconnect'), (value: boolean) => { this.applySessionAndLocalToggleOption('keep-terminal-on-disconnect', value); }, true)
           }
           .width('100%')
         }
@@ -4776,6 +5149,26 @@ struct Index {
     .width('100%')
     .height(ThemeConfig.MENU_ITEM_HEIGHT)
     .border(showTopBorder ? { width: { top: 1 }, color: this.theme_BORDER_SUBTLE } : { width: 0 })
+  }
+
+  @Builder
+  private buildDisplaySettingsChoiceRow(label: string, selected: boolean, onSelect: () => void, showTopBorder: boolean = false) {
+    Row({ space: 10 }) {
+      Circle()
+        .width(10)
+        .height(10)
+        .fill(selected ? this.theme_ACCENT : this.theme_BORDER_SUBTLE)
+
+      Text(label)
+        .fontSize(15)
+        .fontColor(selected ? this.theme_TEXT_PRIMARY : this.theme_TEXT_SECONDARY)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .height(44)
+    .padding({ left: 16, right: 4 })
+    .border(showTopBorder ? { width: { top: 1 }, color: this.theme_BORDER_SUBTLE } : { width: 0 })
+    .onClick(onSelect)
   }
 
   @Builder
@@ -5191,7 +5584,7 @@ struct Index {
     }
     if (password.length === 0) {
       PreferenceStore.setPeerPassword(peerId, '');
-      this.setStatusMessageRaw(`${this.lt('Password saved locally, will auto-fill next connection.')}`);
+      this.setStatusMessageRaw(`${this.lt('Pwd saved')}`);
       try {
         await this.getUIContext().getPromptAction().openToast({
           message: this.lt('Saved password deleted')
@@ -5347,7 +5740,7 @@ struct Index {
     this.showPasswordDialog = false;
     if (this.pendingPasswordDialogProactive) {
       this.pendingPasswordDialogProactive = false;
-      this.setStatusMessageRaw(this.lt('Switching to password connection...'));
+      this.setStatusMessageRaw(this.lt('Switching pwd conn'));
       await this.resetPendingConnectionState(true);
       await this.handleConnectWithPassword(peerId, password);
       return;
@@ -5362,7 +5755,7 @@ struct Index {
     }
 
     this.isConnecting = false;
-    this.setStatusMessageRaw(this.lt('Cannot submit password directly, reconnecting with password...'));
+    this.setStatusMessageRaw(this.lt('Reconnecting'));
     await this.resetPendingConnectionState(true);
     await this.handleConnectWithPassword(peerId, password);
   }
@@ -5511,7 +5904,7 @@ struct Index {
             this.buildChatOverview()
           } else if (this.currentTab === 'share') {
             this.buildShareOverview()
-          } else if (this.currentTab === 'settings') {
+          } else {
             this.buildSettingsOverview()
           }
         }, (_: number, index: number) => `${this.i18nVersion}_${index}`)

@@ -1,5 +1,6 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
+import fileFs from '@ohos.file.fs';
 
 export interface FileInfo {
   path: string;
@@ -84,10 +85,8 @@ export class FileTransferService {
   private readonly rootLocalPath: string = '/storage/Users/currentUser/Download';
   private readonly rootRemotePath: string = '/remote';
   private remoteFiles: FileInfo[] = [];
-  private localFiles: FileInfo[] = [];
 
   private constructor() {
-    this.seedLocalFiles();
     this.seedRemoteFiles();
     this.officialBridge.addEventListener((event: OfficialSessionEvent) => {
       this.handleOfficialEvent(event);
@@ -102,7 +101,7 @@ export class FileTransferService {
   }
 
   async listDirectory(path: string): Promise<FileInfo[]> {
-    return Promise.resolve(this.listVirtualDirectory(this.localFiles, path));
+    return Promise.resolve(this.readLocalDirectory(path));
   }
 
   async listRemoteDirectory(path: string): Promise<FileInfo[]> {
@@ -119,13 +118,11 @@ export class FileTransferService {
     if (name.length === 0) {
       return;
     }
-    this.localFiles.push({
-      path: normalized,
-      name,
-      size: 0,
-      isDirectory: true,
-      modifiedTime: Date.now()
-    });
+    try {
+      fileFs.mkdirSync(normalized, true);
+    } catch (error) {
+      this.dispatchEvent({ type: 'error', error: `local mkdir failed: ${this.errorToMessage(error)}` });
+    }
   }
 
   async createRemoteDirectory(path: string): Promise<void> {
@@ -141,7 +138,17 @@ export class FileTransferService {
   }
 
   async deleteFile(path: string): Promise<void> {
-    this.localFiles = this.removeVirtualItem(this.localFiles, path);
+    const normalized = this.normalizePath(path);
+    try {
+      const stat = fileFs.statSync(normalized);
+      if (stat.isDirectory()) {
+        fileFs.rmdirSync(normalized);
+      } else {
+        fileFs.unlinkSync(normalized);
+      }
+    } catch (error) {
+      this.dispatchEvent({ type: 'error', error: `local delete failed: ${this.errorToMessage(error)}` });
+    }
   }
 
   async deleteRemoteFile(path: string): Promise<void> {
@@ -184,6 +191,13 @@ export class FileTransferService {
     task.status = FileTransferStatus.TRANSFERRING;
     task.error = undefined;
     this.activeTransfers.add(taskId);
+    if (task.direction === 'upload' && !this.localPathExists(task.fileInfo.path)) {
+      task.status = FileTransferStatus.FAILED;
+      task.error = 'local source path unavailable';
+      this.activeTransfers.delete(task.id);
+      this.dispatchEvent({ type: 'task_failed', task, error: task.error });
+      return;
+    }
     const resolvedTargetPath = this.normalizePath(targetPath ?? (task.direction === 'upload'
       ? this.rootRemotePath
       : this.rootLocalPath));
@@ -276,6 +290,47 @@ export class FileTransferService {
     }
   }
 
+  private readLocalDirectory(path: string): FileInfo[] {
+    const normalized = this.normalizePath(path);
+    try {
+      const names = fileFs.listFileSync(normalized);
+      const result: FileInfo[] = [];
+      names.forEach((name: string) => {
+        const entryName = this.getBaseName(name);
+        if (entryName.length === 0) {
+          return;
+        }
+        const entryPath = name.startsWith('/') ? this.normalizePath(name) : this.normalizePath(`${normalized}/${name}`);
+        try {
+          const stat = fileFs.statSync(entryPath);
+          const isDirectory = stat.isDirectory();
+          result.push({
+            path: entryPath,
+            name: entryName,
+            size: isDirectory ? 0 : stat.size,
+            isDirectory,
+            modifiedTime: stat.mtime > 0 ? stat.mtime : Date.now()
+          });
+        } catch (_error) {
+          return;
+        }
+      });
+      return result;
+    } catch (error) {
+      this.dispatchEvent({ type: 'error', error: `local directory unavailable: ${this.errorToMessage(error)}` });
+      return [];
+    }
+  }
+
+  private localPathExists(path: string): boolean {
+    try {
+      fileFs.statSync(this.normalizePath(path));
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   private listVirtualDirectory(source: FileInfo[], path: string): FileInfo[] {
     const normalized = this.normalizePath(path);
     const prefix = normalized.endsWith('/') ? normalized : `${normalized}/`;
@@ -323,19 +378,6 @@ export class FileTransferService {
     const normalized = this.normalizePath(path);
     const segments = normalized.split('/');
     return segments[segments.length - 1] || '';
-  }
-
-  private seedLocalFiles(): void {
-    const now = Date.now();
-    this.localFiles = [
-      { path: this.rootLocalPath, name: '下载', size: 0, isDirectory: true, modifiedTime: now },
-      { path: `${this.rootLocalPath}/Projects`, name: '项目', size: 0, isDirectory: true, modifiedTime: now - 40000 },
-      { path: `${this.rootLocalPath}/Archive`, name: '存档', size: 0, isDirectory: true, modifiedTime: now - 60000 },
-      { path: `${this.rootLocalPath}/rustdesk-log.txt`, name: 'rustdesk-日志.txt', size: 18 * 1024, isDirectory: false, modifiedTime: now - 3600 * 1000 },
-      { path: `${this.rootLocalPath}/screenshot.png`, name: '屏幕截图.png', size: 2 * 1024 * 1024, isDirectory: false, modifiedTime: now - 7200 * 1000 },
-      { path: `${this.rootLocalPath}/Projects/demo.hap`, name: '演示版.hap', size: 32 * 1024 * 1024, isDirectory: false, modifiedTime: now - 1800 * 1000 },
-      { path: `${this.rootLocalPath}/Archive/logs.zip`, name: '日志归档.zip', size: 8 * 1024 * 1024, isDirectory: false, modifiedTime: now - 5400 * 1000 }
-    ];
   }
 
   private seedRemoteFiles(): void {
@@ -533,5 +575,17 @@ export class FileTransferService {
     } catch (error) {
       console.error('applyRemoteDirectoryEvent failed', JSON.stringify(error));
     }
+  }
+
+  private errorToMessage(error: Object): string {
+    if (typeof error === 'string') {
+      return error;
+    }
+    const record = error as Record<string, Object | undefined>;
+    const message = record['message'];
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+    return JSON.stringify(error);
   }
 }

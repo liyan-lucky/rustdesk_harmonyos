@@ -1,8 +1,8 @@
 import { AppContextService } from './AppContextService';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
+import { FileAuthorizationService } from './FileAuthorizationService';
 import fileFs from '@ohos.file.fs';
 import http from '@ohos.net.http';
-import picker from '@ohos.file.picker';
 import environment from '@ohos.file.environment';
 
 const CORE_SO_FILENAME = 'librustdesk_core.so';
@@ -315,15 +315,12 @@ export class CoreLoaderService {
     }
 
     try {
-      const documentSelectOptions = new picker.DocumentSelectOptions();
-      const documentPicker = new picker.DocumentViewPicker();
-      const selectResult: Array<string> = await documentPicker.select(documentSelectOptions);
-
-      if (!selectResult || selectResult.length === 0) {
-        return { success: false, path: '', source: 'none', error: 'No file selected' };
+      const authorization = await FileAuthorizationService.requestFileAuthorization({ maxSelectNumber: 1 });
+      if (!authorization.granted || authorization.uris.length === 0) {
+        return { success: false, path: '', source: 'none', error: authorization.error || 'No file selected' };
       }
 
-      const selectedUri = selectResult[0];
+      const selectedUri = authorization.uris[0];
       console.info(`[CoreLoader] Picker selected: ${selectedUri}`);
 
       const coreDir = this.getCoreDirectory();

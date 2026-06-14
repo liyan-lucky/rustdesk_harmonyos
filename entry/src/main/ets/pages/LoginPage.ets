@@ -23,6 +23,8 @@ struct LoginPage {
   @State isLoading: boolean = false;
   @State requireEmail: boolean = false;
   @State requireTfa: boolean = false;
+  @State showSearchInput: boolean = false;
+  @State searchText: string = '';
 
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
@@ -103,6 +105,34 @@ struct LoginPage {
     this.availableProviders = providers.length > 0 ? providers : this.accountService.getAllProviders().slice(0, 5);
   }
 
+  private filterProviders(providers: OAuthProvider[]): OAuthProvider[] {
+    const keyword = this.searchText.trim().toLowerCase();
+    if (keyword.length === 0) {
+      return providers;
+    }
+    return providers.filter((provider: OAuthProvider) => {
+      return provider.id.toLowerCase().includes(keyword) ||
+        provider.name.toLowerCase().includes(keyword) ||
+        provider.icon.toLowerCase().includes(keyword);
+    });
+  }
+
+  private dismissSearch(clearText: boolean = true): void {
+    this.showSearchInput = false;
+    if (clearText) {
+      this.searchText = '';
+    }
+  }
+
+  private openSearch(): void {
+    this.showSearchInput = true;
+    setTimeout(() => {
+      try {
+        focusControl.requestFocus('login-search-input');
+      } catch (_e) {}
+    }, 30);
+  }
+
   build() {
     Column() {
       Column() {
@@ -128,9 +158,14 @@ struct LoginPage {
       .backgroundColor(this.themeIsDark ? '#08FFFFFF' : '#08FFFFFF')
       .borderRadius(20)
 
-      Row({ space: 16 }) {
-        this.buildModeTab(this.lt('OAuth Login'), 'oauth')
-        this.buildModeTab(this.lt('Password Login'), 'password')
+      Row() {
+        Row({ space: 16 }) {
+          this.buildModeTab(this.lt('OAuth Login'), 'oauth')
+          this.buildModeTab(this.lt('Password Login'), 'password')
+        }
+        .layoutWeight(1)
+
+        this.buildLoginSearchAnchor()
       }
       .width('100%')
       .padding({ left: 12, right: 12 })
@@ -189,15 +224,71 @@ struct LoginPage {
       .onClick(() => {
         this.loginMode = mode;
         this.errorMessage = '';
+        this.dismissSearch();
       })
+  }
+
+  @Builder
+  private buildLoginSearchAnchor() {
+    Stack({ alignContent: Alignment.Center }) {
+      Image($rawfile('search.svg'))
+        .width(18)
+        .height(18)
+        .fillColor(this.showSearchInput ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .onClick(() => {
+          if (this.showSearchInput) {
+            this.dismissSearch();
+          } else if (this.searchText.trim().length > 0) {
+            this.searchText = '';
+          } else {
+            this.openSearch();
+          }
+        })
+
+      if (this.showSearchInput) {
+        TextInput({ placeholder: this.lt('Search'), text: this.searchText })
+          .width(140)
+          .height(32)
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .placeholderColor(this.theme_TEXT_TERTIARY)
+          .backgroundColor(this.theme_CARD_BG)
+          .borderRadius(8)
+          .padding({ left: 10, right: 10 })
+          .id('login-search-input')
+          .zIndex(10)
+          .position({ x: -122, y: 0 })
+          .onChange((value: string) => {
+            this.searchText = value;
+          })
+          .onSubmit(() => {
+            this.dismissSearch(false);
+          })
+          .onBlur(() => {
+            this.showSearchInput = false;
+          })
+      }
+    }
+    .width(18)
+    .height(32)
+    .clip(false)
   }
 
   @Builder
   private buildOAuthLogin() {
     Column({ space: 12 }) {
-      ForEach(this.availableProviders, (provider: OAuthProvider) => {
+      ForEach(this.filterProviders(this.availableProviders), (provider: OAuthProvider) => {
         this.buildProviderButton(provider)
       }, (provider: OAuthProvider) => provider.id)
+
+      if (this.filterProviders(this.availableProviders).length === 0) {
+        Text(this.lt('No matching results'))
+          .fontSize(13)
+          .fontColor(this.theme_TEXT_TERTIARY)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .margin({ top: 8, bottom: 8 })
+      }
 
       if (this.isPollingOAuth) {
         Row() {
@@ -217,7 +308,7 @@ struct LoginPage {
       Column() {
         Text(this.lt('Other Methods')).fontSize(12).fontColor(this.theme_TEXT_TERTIARY).margin({ bottom: 8 })
         Row({ space: 12 }) {
-          ForEach(this.accountService.getAllProviders().slice(5), (provider: OAuthProvider) => {
+          ForEach(this.filterProviders(this.accountService.getAllProviders().slice(5)), (provider: OAuthProvider) => {
             Image($rawfile(provider.icon)).width(28).height(28)
               .onClick(() => void this.handleOAuthLogin(provider.id))
           }, (provider: OAuthProvider) => provider.id)
