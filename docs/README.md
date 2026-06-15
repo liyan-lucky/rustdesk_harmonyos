@@ -15,16 +15,21 @@
 - 2026-06-14 13 项目继续补齐文件传输事件回流和 `switch-sides` option 路由；commit `275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已由 run `27485061967` 发布 `core-73`。11 项目已下载 core-73 并完成全量 HAP 构建、验包和无线安装；设备当前锁屏导致 `aa start` 被系统拒绝，运行态 hilog 待解锁后继续复测。
 - 2026-06-14 13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 已由 run `27486100946` 发布 `core-74`。11 项目已下载 core-74，并完成全量 HAP 构建、验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证。
 - 2026-06-14 本轮 App 侧补齐连接页焦点、统一搜索、登录后通讯录同步、共享录屏授权、核心页启动/重启/加载/停止状态、会话/设置同源选项、文件授权 API、聊天发送/时间/窗口/模式菜单等逻辑；13 核心已发布自定义服务器 key 透传 `core-75` 与聊天事件语义修复 `core-76`。11 项目已下载 `core-76` 并全量构建 `0.20.0` / versionCode `1000096`，验包和无线安装通过；当前设备锁屏导致 `aa start` 被系统拒绝，运行态 hilog 等待手动解锁后继续复测。
+- 2026-06-15 13 核心聊天 ABI 源项目回同步和 d.ts 自建服务器 `key` 参数已由 run `27515510727` 发布 `core-78`。11 项目已下载 `core-78` 并全量构建 `0.21.0` / versionCode `1000102`，验包、连接链路审计、无线安装启动和 hilog `coreReady` 验证通过。
+- 2026-06-15 远控 direct session 命令已继续接入并验证：13 核心 commit `bc36b1d` 已由 run `27516993020` 发布 `core-79`；11 App 已同步 C++/d.ts/ArkTS，切换主控端、截图、会话录制、语音聊天改用核心 direct function 的 bool 返回值，会话录制不再触发本机录屏 API。已全量构建 `0.22.0` / versionCode `1000103`，无线安装启动和 app-only hilog 验证通过。
+- 2026-06-15 权限链路复查：共享开关不再预申请 `CUSTOM_SCREEN_CAPTURE`，避免先唤起截屏/屏幕捕获授权；文件传输页和 `requestFileAccessAuthorization()` 默认改为 `DocumentViewPicker` 目录授权模式。增量构建 `0.22.1` / versionCode `1000104`，验包、连接链路审计、无线安装启动和严格 app hilog 验证通过。
+- 2026-06-15 共享录屏底层切换：`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 和临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；增量构建 `0.22.2` / versionCode `1000105`，验包、连接链路审计、无线安装启动和严格 app hilog 验证通过。
+- 2026-06-15 共享入站帧进入核心缓存：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80` 并补中文 release 说明；11 App 已同步 incoming frame C ABI/NAPI/ArkTS wrapper，native screen capture buffer 会推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false 直到 desktop server/video source 接通。强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-14 18:24`
-  - App 显示版本：`0.20.0`
-  - versionCode：`1000096`
+  - BuildInfo 编译时间：`2026-06-15 07:15`
+  - App 显示版本：`0.22.4`
+  - versionCode：`1000107`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
   - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-76/HAP-only/staging 修正）
+  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-80/incoming frame/permission/HAP-only/staging 修正）
   - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：
@@ -64,11 +69,11 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - release：`core-76`
-  - 大小：`131,470,712` bytes
-  - 编译时间/mtime：`2026-06-14 18:24`
-  - FNV-1a 1MB：`da7131f6`
-  - SHA256：`AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
+  - release：`core-80`
+  - 大小：`131,624,954` bytes
+  - 编译时间/mtime：`2026-06-15 07:15`
+  - FNV-1a 1MB：`bea81e95`
+  - SHA256：`4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
   - 默认下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`
@@ -81,9 +86,9 @@
 
 共享服务启动：
 
-- **ScreenCaptureService 当前走录屏授权/录制探测**（2026-06-14）：`@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 可触发系统“录制/投射屏幕”授权并写入临时 mp4 探测文件；禁止再用 `@ohos.screenshot.capture()` 作为 fallback。
-- Toggle 回弹、ForEach key、startCapture throw、录屏失败后仍启动 incoming 等问题已修复；启动服务必须先确认录屏授权/录制状态，再请求 native incoming。
-- 录屏 recorder 与 RustDesk desktop server/live frame 桥仍需继续对接；没有真实视频源时不得标记 `incomingReady=true`，避免其他设备连接后一直等待视频流。
+- **ScreenCaptureService 当前走原生屏幕采集**（2026-06-15）：ArkTS 不再使用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder`，C++ NAPI 改为 `OH_AVScreenCapture_StartScreenCapture` + native buffer 取帧统计；禁止再用 `@ohos.screenshot.capture()` 或临时 mp4 录制文件作为 fallback。
+- Toggle 回弹、ForEach key、startCapture throw、录屏失败后仍启动 incoming 等问题已修复；共享开关现在先请求 native incoming 状态，只有 `incomingReady=true` 后才启动屏幕采集，且不再预申请 `CUSTOM_SCREEN_CAPTURE`，避免录屏前先唤起截屏/屏幕捕获授权。
+- 原生 screen capture buffer 与 RustDesk desktop server/live frame 桥仍需继续对接；没有真实视频源时不得标记 `incomingReady=true`，避免其他设备连接后一直等待视频流。
 
 LAN 发现（2026-06-03）：
 
@@ -148,7 +153,7 @@ UI 交互修复（2026-06-03）：
 - 未确认 official incoming ready 时不能显示为“运行中”，避免共享服务实际不可访问但 UI 显示正常。
 - LAN 发现只在 App 打开时自动执行一次；之后需要用户手动刷新。手动刷新只清空 ArkTS/UI 发现状态并重新执行 `discoverLanPeers()` + `loadLanPeers()`，不能调用 native `removeDiscoveredPeer()` 清 LAN peers，否则会删除 RustDesk 原生发现结果。
 - 通讯录必须登录后才能添加设备；未登录时通讯录区域显示登录入口，历史记录里的添加动作也必须先弹出登录。
-- 文件访问授权必须同时申请 `READ_WRITE_DOWNLOAD_DIRECTORY` 和 `FILE_ACCESS_PERSIST`。
+- 文件访问授权必须同时申请必要权限位并唤起 `DocumentViewPicker`；文件传输页本地操作前必须走目录授权，不能只依赖远控入口提前授权。
 
 输入和会话 UI：
 

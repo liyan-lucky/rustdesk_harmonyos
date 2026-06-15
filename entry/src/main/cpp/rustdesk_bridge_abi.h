@@ -15,6 +15,20 @@ int rustdesk_bridge_copy_latest_video_frame(
     unsigned long long frame_id,
     unsigned char *buffer,
     unsigned long long buffer_len);
+const char *rustdesk_bridge_get_incoming_screen_frame_metadata(unsigned long long since_frame_id);
+int rustdesk_bridge_copy_incoming_screen_frame(
+    unsigned long long frame_id,
+    unsigned char *buffer,
+    unsigned long long buffer_len);
+int rustdesk_bridge_update_incoming_screen_frame(
+    int width,
+    int height,
+    int stride,
+    long long timestamp,
+    const char *format,
+    const unsigned char *data,
+    unsigned long long data_len);
+void rustdesk_bridge_clear_incoming_screen_frame(void);
 int rustdesk_bridge_refresh_session_video(int display);
 void rustdesk_bridge_harmony_next_rgba(int display);
 const char *rustdesk_bridge_bootstrap_core_snapshot(
@@ -63,6 +77,7 @@ const char * rustdesk_bridge_get_core_snapshot_json(const char * server);
 const char * rustdesk_bridge_pull_session_events_json(void);
 const char * rustdesk_bridge_pull_audio_frames_json(void);
 const char * rustdesk_bridge_get_latest_video_frame_metadata_json(unsigned long long since_frame_id);
+const char * rustdesk_bridge_get_incoming_screen_frame_metadata_json(unsigned long long since_frame_id);
 const char * rustdesk_bridge_main_start_service(int enabled, const char * server, const char * relay_server, const char * api_server, const char * key);
 int rustdesk_bridge_session_send_mouse(int mask, int x, int y);
 int rustdesk_bridge_session_input_key(int key_code, int is_pressed, int modifiers);
@@ -93,20 +108,20 @@ const char * rustdesk_bridge_main_load_lan_peers(void);
 int rustdesk_bridge_main_remove_discovered(const char * peer_id);
 int rustdesk_bridge_session_send2fa(const char * code, int trust_this_device);
 void rustdesk_bridge_session_toggle_option(const char * name);
-void rustdesk_bridge_session_toggle_privacy_mode(const char * impl_key, int on);
-void rustdesk_bridge_session_switch_display(int display);
-void rustdesk_bridge_session_enter_or_leave(void);
-void rustdesk_bridge_session_leave(void);
+int rustdesk_bridge_session_toggle_privacy_mode(const char * impl_key, int on);
+int rustdesk_bridge_session_switch_display(int display);
+int rustdesk_bridge_session_enter_or_leave(void);
+int rustdesk_bridge_session_leave(void);
 void rustdesk_bridge_session_set_size(unsigned long long display, unsigned long long width, unsigned long long height);
 void rustdesk_bridge_session_change_resolution(int display, int width, int height);
 void rustdesk_bridge_session_elevate_direct(void);
 void rustdesk_bridge_session_elevate_with_logon(const char * username, const char * password);
-void rustdesk_bridge_session_switch_sides(void);
+int rustdesk_bridge_session_switch_sides(void);
 int rustdesk_bridge_session_take_screenshot(unsigned long long display);
-void rustdesk_bridge_session_record_screen(int start);
+int rustdesk_bridge_session_record_screen(int start);
 int rustdesk_bridge_session_get_is_recording(void);
-void rustdesk_bridge_session_request_voice_call(void);
-void rustdesk_bridge_session_close_voice_call(void);
+int rustdesk_bridge_session_request_voice_call(void);
+int rustdesk_bridge_session_close_voice_call(void);
 void rustdesk_bridge_session_add_port_forward(int local_port, const char * remote_host, int remote_port);
 void rustdesk_bridge_session_remove_port_forward(int local_port);
 void rustdesk_bridge_session_new_rdp(void);

@@ -5,6 +5,17 @@ export interface NativeBridgeModule {
   pullAudioFrames?(): string;
   getLatestVideoFrameMetadata?(sinceFrameId: number): string | null;
   copyLatestVideoFrame?(frameId: number, expectedBytes: number): ArrayBuffer | null;
+  getIncomingScreenFrameMetadata?(sinceFrameId: number): string | null;
+  copyIncomingScreenFrame?(frameId: number, expectedBytes: number): ArrayBuffer | null;
+  updateIncomingScreenFrame?(
+    width: number,
+    height: number,
+    stride: number,
+    timestamp: number,
+    format: string,
+    data: ArrayBuffer | Uint8Array
+  ): boolean;
+  clearIncomingScreenFrame?(): void;
   refreshSessionVideo?(display: number): boolean;
   harmonyNextRgba?(display: number): void;
   connectToPeer?(peerId: string, password: string, server: string, relayServer: string, apiServer: string): void;
@@ -41,6 +52,10 @@ export interface NativeBridgeModule {
     timestamp: number,
     dataLength: number
   ): boolean;
+  startNativeScreenCapture?(width: number, height: number, frameRate: number): boolean;
+  stopNativeScreenCapture?(): boolean;
+  isNativeScreenCaptureActive?(): boolean;
+  getNativeScreenCaptureStats?(): string;
   sendChatMessage?(peerId: string, messageType: string, content: string, timestamp: number): boolean;
   sendFileTransferRequest?(
     taskId: string,
@@ -73,6 +88,17 @@ export interface NativeBridgeModule {
   pullSessionEventsJson(): string;
   pullAudioFramesJson(): string;
   getLatestVideoFrameMetadataJson(since_frame_id: number): string;
+  getIncomingScreenFrameMetadataJson(since_frame_id: number): string;
+  copyIncomingScreenFrame(frame_id: number, expected_bytes: number): ArrayBuffer | null;
+  updateIncomingScreenFrame(
+    width: number,
+    height: number,
+    stride: number,
+    timestamp: number,
+    format: string,
+    data: ArrayBuffer | Uint8Array
+  ): boolean;
+  clearIncomingScreenFrame(): void;
   copyLatestVideoFrame(frame_id: number, buffer: any): number;
   refreshSessionVideo(display: number): boolean;
   harmonyNextRgba(display: number): void;
@@ -84,6 +110,10 @@ export interface NativeBridgeModule {
   sendClipboardData(content: string, timestamp: number): boolean;
   sendVideoFrameMetadata(codec: number, width: number, height: number, timestamp: number, key_frame: boolean, data_length: number): boolean;
   sendAudioFrameMetadata(codec: number, sample_rate: number, channels: number, timestamp: number, data_length: number): boolean;
+  startNativeScreenCapture(width: number, height: number, frameRate: number): boolean;
+  stopNativeScreenCapture(): boolean;
+  isNativeScreenCaptureActive(): boolean;
+  getNativeScreenCaptureStats(): string;
   sessionSendChat(content: string): boolean;
   sendFileTransferRequest(task_id: string, file_name: string, total_bytes: number, direction: string): boolean;
   sessionStart(peer_id: string, password: string, server: string, relay_server: string, api_server: string): void;
@@ -117,20 +147,20 @@ export interface NativeBridgeModule {
   mainRemoveDiscovered(peer_id: string): boolean;
   sessionSend2fa(code: string, trust_this_device: boolean): boolean;
   sessionToggleOption(name: string): void;
-  sessionTogglePrivacyMode(impl_key: string, on: boolean): void;
-  sessionSwitchDisplay(display: number): void;
-  sessionEnterOrLeave(): void;
-  sessionLeave(): void;
+  sessionTogglePrivacyMode(impl_key: string, on: boolean): boolean;
+  sessionSwitchDisplay(display: number): boolean;
+  sessionEnterOrLeave(): boolean;
+  sessionLeave(): boolean;
   sessionSetSize(display: number, width: number, height: number): void;
   sessionChangeResolution(display: number, width: number, height: number): void;
   sessionElevateDirect(): void;
   sessionElevateWithLogon(username: string, password: string): void;
-  sessionSwitchSides(): void;
+  sessionSwitchSides(): boolean;
   sessionTakeScreenshot(display: number): boolean;
-  sessionRecordScreen(start: boolean): void;
+  sessionRecordScreen(start: boolean): boolean;
   sessionGetIsRecording(): boolean;
-  sessionRequestVoiceCall(): void;
-  sessionCloseVoiceCall(): void;
+  sessionRequestVoiceCall(): boolean;
+  sessionCloseVoiceCall(): boolean;
   sessionAddPortForward(local_port: number, remote_host: string, remote_port: number): void;
   sessionRemovePortForward(local_port: number): void;
   sessionNewRdp(): void;

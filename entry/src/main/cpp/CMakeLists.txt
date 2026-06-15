@@ -9,6 +9,8 @@ message(STATUS "Bridge links Rust core staticlib directly, single .so output")
 find_library(log-lib hilog_ndk.z)
 find_library(napi-lib ace_napi.z)
 find_library(cpp_shared-lib c++_shared)
+find_library(native_avscreen_capture_lib native_avscreen_capture)
+find_library(native_buffer_lib native_buffer)
 
 if(NOT cpp_shared-lib AND DEFINED OHOS_SDK_NATIVE AND DEFINED OHOS_TOOLCHAIN_NAME)
   set(CPP_SHARED_FALLBACK_CANDIDATES
@@ -44,6 +46,8 @@ if(EXISTS ${RUST_CORE_A})
     ${log-lib}
     ${napi-lib}
     ${cpp_shared-lib}
+    ${native_avscreen_capture_lib}
+    ${native_buffer_lib}
     ${RUST_CORE_A}
     m
   )
@@ -59,6 +63,8 @@ else()
     ${log-lib}
     ${napi-lib}
     ${cpp_shared-lib}
+    ${native_avscreen_capture_lib}
+    ${native_buffer_lib}
   )
 endif()
 

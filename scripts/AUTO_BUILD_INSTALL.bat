@@ -18,6 +18,7 @@ if not exist "%BUILD_CACHE_DIR%" mkdir "%BUILD_CACHE_DIR%" >nul 2>nul
 set "TARGET=%~1"
 set "SKIP_BUILD="
 set "FULL_BUILD="
+set "USB_ONLY="
 if /I "%TARGET%"=="--skip-build" (
   set "SKIP_BUILD=1"
   set "TARGET=%~2"
@@ -25,6 +26,14 @@ if /I "%TARGET%"=="--skip-build" (
 if /I "%TARGET%"=="--full" (
   set "FULL_BUILD=1"
   set "TARGET=%~2"
+)
+if /I "%TARGET%"=="usb" (
+  set "USB_ONLY=1"
+  set "TARGET="
+)
+if /I "%TARGET%"=="--usb" (
+  set "USB_ONLY=1"
+  set "TARGET="
 )
 if /I "%TARGET%"=="auto" set "TARGET="
 if /I "%TARGET%"=="[Empty]" set "TARGET="
@@ -110,7 +119,7 @@ if not defined TARGET (
   )
 )
 
-if not defined TARGET (
+if not defined TARGET if not defined USB_ONLY (
   "%HDC%" tconn "%WIRELESS_TARGET%" >nul 2>nul
   "%HDC%" list targets > "%TARGETS_LOG%" 2>&1
   findstr /x /c:"%WIRELESS_TARGET%" "%TARGETS_LOG%" >nul 2>nul
@@ -118,7 +127,7 @@ if not defined TARGET (
   if /I "!TARGET!"=="[Empty]" set "TARGET="
 )
 
-if not defined TARGET (
+if not defined TARGET if not defined USB_ONLY (
   echo Wireless target not found, restarting HDC service and retrying...
   "%HDC%" kill >nul 2>nul
   timeout /t 2 /nobreak >nul 2>nul
@@ -131,11 +140,22 @@ if not defined TARGET (
   if /I "!TARGET!"=="[Empty]" set "TARGET="
 )
 
+if not defined TARGET if defined USB_ONLY (
+  "%HDC%" list targets > "%TARGETS_LOG%" 2>&1
+)
+
 if not defined TARGET (
   for /f "usebackq delims=" %%T in ("%TARGETS_LOG%") do (
     if not defined TARGET if not "%%T"=="" (
       echo(%%T | findstr /i /l /c:"[Empty]" >nul 2>nul
-      if errorlevel 1 set "TARGET=%%T"
+      if errorlevel 1 (
+        if defined USB_ONLY (
+          echo(%%T | findstr /c:":" >nul 2>nul
+          if errorlevel 1 set "TARGET=%%T"
+        ) else (
+          set "TARGET=%%T"
+        )
+      )
     )
   )
 )
@@ -148,7 +168,7 @@ if defined TARGET (
 if not defined TARGET (
   echo No HDC target is available.
   if defined USB_TARGET echo Tried USB target: %USB_TARGET%
-  echo Tried wireless target: %WIRELESS_TARGET%
+  if not defined USB_ONLY echo Tried wireless target: %WIRELESS_TARGET%
   echo Current hdc targets:
   type "%TARGETS_LOG%"
   del "%HDC_LOG%" >nul 2>nul

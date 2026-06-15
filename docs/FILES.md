@@ -40,10 +40,10 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `CMakeLists.txt` | 91 | 构建配置，STATIC LINK MODE链接librustdesk_core.a到bridge SO |
-| `rustdesk_bridge_loader.cpp` | 3721 | C++ NAPI桥接层，当前约400个NAPI注册，staticlib模式直接调用Rust C ABI；聊天四参调用需读`args[2]`内容参数，服务器 key 需随 start/connect 透传 |
-| `rustdesk_bridge_abi.h` | 405 | 当前声明369个Rust extern "C"函数；需与13项目`native_rust_core/src/bridge_api.rs`完全对齐 |
-| `types/librustdesk_bridge/index.d.ts` | 399 | NAPI模块TypeScript类型声明，与C++ NAPI签名对齐 |
+| `CMakeLists.txt` | 75 | 构建配置，STATIC LINK MODE 链接 `librustdesk_core.a` 到 bridge SO，并链接 `native_avscreen_capture`/`native_buffer` 供共享录屏 native buffer 采集使用 |
+| `rustdesk_bridge_loader.cpp` | 4553 | C++ NAPI桥接层，当前约400个NAPI注册，staticlib模式直接调用Rust C ABI；聊天四参调用需读`args[2]`内容参数，服务器 key 需随 start/connect 透传；direct session 命令的 bool 返回值必须透传给 ArkTS；共享录屏 native drain loop 使用 `OH_AVScreenCapture_StartScreenCapture`/`OH_AVScreenCapture_AcquireVideoBuffer`，并把 `OH_NativeBuffer` payload 通过 `rustdesk_bridge_update_incoming_screen_frame` 推入核心入站帧缓存 |
+| `rustdesk_bridge_abi.h` | 427 | 当前声明Rust extern "C"函数；需与13项目`native_rust_core/src/bridge_api.rs`完全对齐，尤其注意 C ABI 返回类型变更和 incoming screen frame metadata/copy/update/clear 新接口 |
+| `types/librustdesk_bridge/index.d.ts` | 415 | NAPI模块TypeScript类型声明，与C++ NAPI签名对齐；`sessionRecordScreen/sessionSwitchSides/sessionRequestVoiceCall/sessionCloseVoiceCall` 等 direct session 命令返回 boolean，native 屏幕采集函数返回 boolean/string 状态，并声明 incoming frame metadata/copy/update/clear |
 | `types/librustdesk_bridge/oh-package.json5` | 6 | NAPI模块包配置 |
 
 ## Rust核心 (native_rust_core/)
@@ -54,7 +54,7 @@
 |------|------|------|
 | `Cargo.toml` | - | crate配置，`crate-type=["staticlib"]`，`default-features=false`，`features=["use_dasp"]` |
 | `build.rs` | - | 构建脚本，编译时生成 |
-| `src/bridge_api.rs` | 559 | C ABI导出层，46个`rustdesk_bridge_*`函数，含get_peer_option/get_peer_info；initialize_runtime返回本地BridgeSnapshot避免上游stub空JSON透传 |
+| `src/bridge_api.rs` | 2978 | C ABI导出层，当前约374个 `rustdesk_bridge_*` 导出，含 session/main/cm/plugin/install/incoming frame 等接口；initialize_runtime返回本地BridgeSnapshot避免上游stub空JSON透传 |
 | `src/bridge_state.rs` | 130 | 桥接状态管理 |
 | `src/lib.rs` | 50 | crate入口 |
 
@@ -62,10 +62,10 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `Index.ets` | 5529 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享录屏授权，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
-| `RemoteControl.ets` | 4778 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息；聊天按钮弹出语音/文字模式；本地音频上传当前提示不可用，避免metadata-only接口假启动 |
+| `Index.ets` | 6013 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享启动不再预申请 `CUSTOM_SCREEN_CAPTURE`，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
+| `RemoteControl.ets` | 5080 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息；聊天按钮弹出语音/文字模式；远控更多菜单的切换主控端/截图/会话录制必须走核心 direct session function，会话录制禁止启动本机 `ScreenCaptureService`；本地音频上传当前提示不可用，避免metadata-only接口假启动 |
 | ~~`Settings.ets`~~ | - | 已删除，设置功能合并到Index.ets设置tab |
-| `FileTransfer.ets` | 635 | 文件传输页面，加载本地下载目录和远端目录，创建/删除/上传/下载队列入口 |
+| `FileTransfer.ets` | 753 | 文件传输页面，进入/切到本地/刷新/上传/下载/本地新建删除前唤起 `DocumentViewPicker` 目录授权，加载本地下载目录和远端目录，创建/删除/上传/下载队列入口 |
 | `LoginPage.ets` | 436 | 登录页面(OAuth+密码，统一走AccountService)，提供统一搜索入口过滤登录 provider |
 | `Terminal.ets` | 470 | 终端页面(多会话) |
 | `AddressBook.ets` | 487 | 地址簿页面 |
@@ -79,10 +79,10 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `NativeRustDeskBridge.ts` | 4913 | **NAPI底层桥接**，ArkTS封装C++ SO；369 ABI/约400 NAPI surface 的安全包装与fallback，连接/共享服务透传自建服务器 key |
-| `I18nService.ets` | 2040 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染；核心停止态中文统一为“停止” |
+| `NativeRustDeskBridge.ts` | 5566 | **NAPI底层桥接**，ArkTS封装C++ SO；369 ABI/约400 NAPI surface 的安全包装与fallback，连接/共享服务透传自建服务器 key；direct session 命令返回值必须按 native boolean 透传，不能把函数存在当作成功；封装 native 屏幕采集 start/stop/active/stats 和 incoming frame metadata/copy/update/clear |
+| `I18nService.ets` | 2117 | **国际化服务**，translate()/lt()，中英翻译，@State i18nVersion触发重渲染；核心停止态中文统一为“停止”，录屏/文件授权提示避免截屏误译 |
 | `OfficialRustDeskBridge.ets` | 803 | 官方桥接高层封装，统一调用NativeRustDeskBridge |
-| `AppDataService.ets` | 1019 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31)，不再返回固定测试聊天消息，保存调试常亮偏好；旧演示别名/分组自动翻译已清理 |
+| `AppDataService.ets` | 1125 | **核心数据管理**，会话列表/连接状态/核心状态/发现列表，createRecentSession()优先用getPeerInfo()获取hostname(2026-05-31)，不再返回固定测试聊天消息，保存调试常亮偏好且调试常亮当前默认开启；旧演示别名/分组自动翻译已清理 |
 | `ServerConfigCodec.ets` | 66 | 服务器配置导入导出编解码，复用官方 JSON→Base64→反转格式 |
 | `ChatService.ets` | 637 | 聊天服务，持久化消息加载时重建会话摘要；发送成功后才落本地消息，过滤旧 `failed=`/`error=` 事件和本地 echo，按跨天/5分钟间隔显示时间 |
 | `AccountService.ets` | 515 | 账户服务(token持久化/登录登出/PasswordLoginResult) |
@@ -94,17 +94,17 @@
 | `InputService.ets` | 353 | 输入服务(鼠标/键盘/触摸) |
 | `HttpClient.ets` | 415 | HTTP客户端 |
 | `ClipboardService.ets` | 246 | 剪贴板服务(双向同步) |
-| `PermissionService.ets` | 319 | 权限服务；统一请求录屏/麦克风/输入/悬浮窗/文件授权，文件授权委托 TS 层服务 |
+| `PermissionService.ets` | 351 | 权限服务；统一请求麦克风/输入/悬浮窗/文件授权，文件访问默认走 `DocumentViewPicker` 目录授权；共享录屏不再通过普通权限列表预申请 `CUSTOM_SCREEN_CAPTURE` |
 | `FileAuthorizationService.ts` | 96 | 文件授权服务；请求 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST` 并唤起 `DocumentViewPicker` 返回 URI |
-| `ScreenCaptureService.ets` | 264 | 屏幕捕获服务；使用 `AVScreenCaptureRecorder` 触发录屏授权并写临时 mp4 做录制状态探测，禁止截图 fallback |
+| `ScreenCaptureService.ets` | 225 | 屏幕捕获服务；仅用于共享/被控链路的 native `OH_AVScreenCapture_StartScreenCapture` 启动和 native buffer 统计，禁止截图 fallback、禁止 `AVScreenCaptureRecorder`/临时 mp4 探测，也禁止被远控会话录制菜单调用 |
 | `TerminalService.ets` | 246 | 终端服务，打开/输入/resize/关闭走official Session，终端输出事件从`dataBase64`解码 |
 | `WindowChromeService.ets` | 247 | 窗口管理(状态栏透明/全屏/系统栏颜色/保持屏幕常亮) |
 | `EventBus.ets` | 171 | 事件总线 |
 | `FrameService.ets` | 225 | 视频帧服务 |
-| `PreferenceStore.ts` | 160 | 偏好存储(轻量KV) |
+| `PreferenceStore.ts` | 234 | 偏好存储(轻量KV)，包含调试常亮一次性默认开启迁移 |
 | `LanDiscoveryService.ets` | 121 | LAN发现服务(启动一次发现，后续手动刷新) |
 | `OfficialSessionTransport.ets` | 81 | 会话传输层，聊天发送优先走 `sessionSendChat` |
-| `librustdesk_bridge.d.ts` | 65 | NAPI模块类型声明 |
+| `librustdesk_bridge.d.ts` | 462 | NAPI模块类型声明，包含 direct session boolean 返回、native 屏幕采集函数和 incoming frame metadata/copy/update/clear |
 | `OfficialSessionTypes.ets` | 63 | 会话类型定义 |
 | `AppContextService.ts` | 17 | 应用上下文服务 |
 
@@ -148,7 +148,7 @@
 ## 修改注意事项
 
 - **设置Tab**: 所有UI代码在Index.ets中，不在Settings.ets
-- **Index.ets**: 5529行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console；搜索浮层和 ID 输入焦点不要互相抢焦点
+- **Index.ets**: 6013行，修改前定位到具体Builder方法；权限开关onChange必须先同步updateSettings再异步请求；调试日志用hilog不用console；搜索浮层和 ID 输入焦点不要互相抢焦点
 - **RemoteControl.ets**: 4778行，视频帧性能敏感，避免ForEach；聊天浮窗尺寸和模式菜单要同时检查
 - **I18nService.ets**: 所有翻译文本在此，新增语言需添加
 - **ThemeConfig.ets**: 颜色通过AppStorage管理，不是color.json
@@ -178,7 +178,7 @@
 
 | 资产 | 作用 |
 |------|------|
-| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前智能刷新，当前 latest release `core-76`，SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F` |
+| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前智能刷新，当前 latest release `core-78`，SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD` |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
-| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038` | 当前最新线上 App release；本地已验证 core-76 HAP 构建、验包和无线安装，但设备锁屏导致运行态 hilog 待手动解锁后复测；线上 App workflow 需推送后重跑 |
+| `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038` | 当前最新线上 App release；本地已验证 core-78 / App `0.21.0` HAP 全量构建、验包、无线安装启动和 hilog `coreReady`；线上 App workflow 需推送后重跑 |

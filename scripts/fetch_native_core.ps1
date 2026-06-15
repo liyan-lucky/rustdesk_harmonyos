@@ -85,7 +85,11 @@ function Test-RemoteCoreChanged {
   try {
     $response = Invoke-WebRequest -Uri $Url -Method Head -UseBasicParsing
   } catch {
-    Write-Host "Remote core HEAD request failed: $($_.Exception.Message). Will download."
+    if (Test-Path -LiteralPath $corePath) {
+      Write-Host "Remote core HEAD request failed: $($_.Exception.Message). Reusing local core."
+      return $false
+    }
+    Write-Host "Remote core HEAD request failed: $($_.Exception.Message). Local core missing, will download."
     return $true
   }
 
@@ -161,24 +165,40 @@ if ($shouldDownload) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
   } catch {}
 
-  Invoke-WebRequest -Uri $CoreUrl -OutFile $tempFile -UseBasicParsing
-  $downloaded = Assert-CoreFile -Path $tempFile
-  Move-Item -LiteralPath $tempFile -Destination $corePath -Force
-
+  $downloadSucceeded = $false
   try {
-    $headResponse = Invoke-WebRequest -Uri $CoreUrl -Method Head -UseBasicParsing
-    $metaJson = @{};
-    if ($headResponse.Headers["ETag"]) { $metaJson["ETag"] = $headResponse.Headers["ETag"] }
-    if ($headResponse.Headers["Content-Length"]) { $metaJson["ContentLength"] = $headResponse.Headers["Content-Length"] }
-    if ($headResponse.Headers["Last-Modified"]) { $metaJson["LastModified"] = $headResponse.Headers["Last-Modified"] }
-    $metaJson["DownloadTime"] = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
-    $metaJson["Sha256"] = $downloaded.Sha256
-    $metaJson | ConvertTo-Json | Set-Content -LiteralPath $metaPath -Encoding UTF8
+    Invoke-WebRequest -Uri $CoreUrl -OutFile $tempFile -UseBasicParsing
+    $downloadSucceeded = $true
   } catch {
-    Write-Host "Warning: could not save core metadata: $($_.Exception.Message)"
+    if (Test-Path -LiteralPath $corePath) {
+      Write-Host "Warning: native core download failed: $($_.Exception.Message). Reusing local core."
+      if (Test-Path -LiteralPath $tempFile) {
+        Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+      }
+    } else {
+      throw
+    }
   }
 
-  Write-Host "Native core refreshed: size=$($downloaded.Size), sha256=$($downloaded.Sha256)"
+  if ($downloadSucceeded) {
+    $downloaded = Assert-CoreFile -Path $tempFile
+    Move-Item -LiteralPath $tempFile -Destination $corePath -Force
+
+    try {
+      $headResponse = Invoke-WebRequest -Uri $CoreUrl -Method Head -UseBasicParsing
+      $metaJson = @{};
+      if ($headResponse.Headers["ETag"]) { $metaJson["ETag"] = $headResponse.Headers["ETag"] }
+      if ($headResponse.Headers["Content-Length"]) { $metaJson["ContentLength"] = $headResponse.Headers["Content-Length"] }
+      if ($headResponse.Headers["Last-Modified"]) { $metaJson["LastModified"] = $headResponse.Headers["Last-Modified"] }
+      $metaJson["DownloadTime"] = [DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+      $metaJson["Sha256"] = $downloaded.Sha256
+      $metaJson | ConvertTo-Json | Set-Content -LiteralPath $metaPath -Encoding UTF8
+    } catch {
+      Write-Host "Warning: could not save core metadata: $($_.Exception.Message)"
+    }
+
+    Write-Host "Native core refreshed: size=$($downloaded.Size), sha256=$($downloaded.Sha256)"
+  }
 }
 
 $final = Assert-CoreFile -Path $corePath

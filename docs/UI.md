@@ -2,6 +2,20 @@
 
 > 顶部渐变、Tab栏、连接页面布局、SVG图标主题适配
 
+## 2026-06-15 远控更多/聊天菜单状态
+
+- 远控“更多操作”中的 `Switch Sides`、`Take Screenshot`、`Session Recording` 必须调用核心 direct session function，不能再通过本地 option 伪装排队。
+- `Session Recording` 表示远端会话录制，不等于 Harmony 本机屏幕录制；UI 不应请求 `CUSTOM_SCREEN_CAPTURE`，也不应启动 `ScreenCaptureService`。录制状态以本地点击后的期望状态和核心 `record-status` 事件回流为准。
+- 聊天菜单的 `Voice Chat/Stop Voice Chat` 由 `voiceCallActive` 驱动，状态来自 `sessionRequestVoiceCall/sessionCloseVoiceCall` 返回值和核心 `voice-call-started/voice-call-waiting/voice-call-closed` 事件。
+- 新增 toast 文案必须有中文翻译：`Screenshot requested`、`Screenshot saved`、`Recording Started`、`Recording Stopped`、`Voice call requested`、`Voice call closed`。
+
+## 2026-06-15 授权弹窗行为
+
+- 共享页点击启动时不能先弹 `CUSTOM_SCREEN_CAPTURE` 普通权限申请，避免用户看到截屏/屏幕捕获授权；录屏授权只允许由 native `OH_AVScreenCapture_StartScreenCapture` 采集链路在核心 ready 后触发。
+- 文件传输页必须主动唤起文件访问授权：进入页面、切到本地、刷新本地、上传/下载和本地新建/删除前都要走 `DocumentViewPicker` 目录授权。
+- 授权失败只显示短 toast，不在页面加入额外说明卡片；`Screen capture denied` 中文显示为“录屏授权拒绝”，不要再写成“截屏权限拒绝”。
+- core-80 新增的 `incomingFramePayloadReady/incomingFrameId/incomingFrameBytes/incomingFramesSeen` 只用于诊断“App native buffer 已进入核心缓存”；UI 的共享 TAB 绿点、设备 ID、一次性密码和“服务运行中”仍只能由 `incomingReady=true` 驱动，不能因为入站帧缓存有数据就显示可被远端连接。
+
 ## 顶部渐变背景
 
 ### 设计目标
@@ -169,7 +183,7 @@ Column() { /* TextInput... */ }
 - 自定义键盘位于远程画面顶部，背景透明，只保留功能按键行；面板内不再放键盘按钮和关闭按钮。
 - 显示菜单、鼠标菜单、更多菜单都使用顶部标题行 + 关闭图标，关闭入口必须始终可见。
 - 更多菜单项目多，必须使用垂直滚动，不能让聊天、文件传输、截图、录制、重启、锁屏等后半段入口被屏幕裁掉。
-- 连接质量浮层由顶部工具栏显示按钮直接开关；浮层至少显示分辨率、FPS、延迟、接收速率、发送速率、连接线路、缩放比例。
+- 连接质量浮层由顶部工具栏显示按钮直接开关；浮层至少显示分辨率、FPS、延迟、速度、编码、连接线路、缩放比例，并通过滚动区域展示核心上报的动态质量指标。
 - 菜单入口必须带完整行为：跳转类入口传递当前 `deviceId`，命令类入口调用 native 或给出本地排队提示，不能静默失败。
 - 未接通 official session 的菜单入口必须灰显并明确提示不可用，不能跳转到会把本地状态伪装成 connected 的页面；当前 `View Camera` 入口采用此规则。
 - 一次性远控命令必须按 native/core 返回值显示结果；未被处理时显示 `Command unavailable`，不能用“本地排队”或成功提示替代真实发送。
@@ -473,10 +487,10 @@ this.refreshAngle = 0;
 
 ### 质量监控面板
 
-- 7行：分辨率/FPS/延迟/速度/编码/连接/缩放
+- 基础7行：分辨率/FPS/延迟/速度/编码/连接/缩放；核心上报的 `quality-status` 动态指标追加为可滚动行。
 - 编码行：从quality-status的codec_format提取，转大写显示（VP9/H265等）
 - 连接行：标签为"连接"（非"连接类型"），显示直连/中继/加密等
-- 面板140宽全透背景，字号11
+- 面板180宽全透背景，基础指标和动态指标共用滚动容器，避免长质量详情挤压远控画面。
 
 ### 键盘避让
 
@@ -502,6 +516,12 @@ this.refreshAngle = 0;
 - "启动检查更新"开关为禁用状态（disabled=true，灰色不可操作）
 - 指纹行：整行可点击复制完整指纹，右侧显示指纹前12字符
 - `buildSettingsToggleSettingRow` 支持 `disabled` 参数
+
+### 共享页状态
+
+- 真实共享运行态只由 `settings.serviceEnabled && officialCoreState.incomingReady` 决定，运行态才显示绿色状态、设备 ID 和一次性密码。
+- 共享已请求但核心未 ready 时显示 `Share requested` / `Requested`，描述优先展示核心 `lastError/detailMessage`，不显示成“服务运行中”。
+- 录屏探针只作为临时诊断状态，不能触发共享 TAB 绿点，也不能展示设备 ID/密码；当前启动顺序已改为核心 ready 后才启动 native 屏幕采集，避免本机采集状态与真实共享状态冲突。
 
 ### ID卡片连接模式
 

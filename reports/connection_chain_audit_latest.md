@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-07 07:24:31
-- Project: L:\Visual_Studio_Code\11_Rustdesk_harmonyos
-- HAP: L:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 50 PASS, 0 FAIL, 0 SKIP
+- Generated: 2026-06-15 07:16:28
+- Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
+- HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
+- Summary: 66 PASS, 0 FAIL, 0 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -13,11 +13,11 @@
 | 4 | PASS | GitHub online workflow exists | .github\workflows\build-harmonyos.yml |
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
-| 7 | PASS | Native core archive exists | L:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 137430594 bytes |
+| 7 | PASS | Native core archive exists | F:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
+| 8 | PASS | Native core archive size is plausible | 131624954 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=137430594 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=00B1735321D83C23F68DCDA4058ADA879729055AC88BD9D2D8AB574CE0CE6E7C |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=131624954 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |
@@ -55,5 +55,21 @@
 | 46 | PASS | Quality parser captures target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches target_bitrate |
 | 47 | PASS | Quality parser captures codec format | entry\src\main\ets\pages\RemoteControl.ets matches codec_format |
 | 48 | PASS | Speed summary falls back to target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches targetBitrateDisplay |
-| 49 | PASS | Built HAP contains required native libraries | L:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
+| 49 | PASS | Built HAP contains required native libraries | F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
 | 50 | PASS | Packaged native bridge has no missing time service dependency | NEEDED set excludes libtime_service_ndk.so and includes NAPI/Hilog |
+| 51 | PASS | CMake links native screen capture library | entry\src\main\cpp\CMakeLists.txt matches native_avscreen_capture |
+| 52 | PASS | CMake links native buffer library | entry\src\main\cpp\CMakeLists.txt matches native_buffer |
+| 53 | PASS | Screen capture service starts native capture through bridge | entry\src\main\ets\services\ScreenCaptureService.ets matches NativeRustDeskBridge\.startNativeScreenCapture |
+| 54 | PASS | Screen capture service no longer uses recorder/screenshot APIs | entry\src\main\ets\services\ScreenCaptureService.ets does not match forbidden pattern |
+| 55 | PASS | Index does not pre-request custom screen capture permission | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
+| 56 | PASS | Permission service does not request custom screen capture generically | entry\src\main\ets\services\PermissionService.ets does not match forbidden pattern |
+| 57 | PASS | Native loader starts original-stream screen capture | entry\src\main\cpp\rustdesk_bridge_loader.cpp matches OH_AVScreenCapture_StartScreenCapture |
+| 58 | PASS | Native loader drains screen capture native buffers | entry\src\main\cpp\rustdesk_bridge_loader.cpp matches OH_AVScreenCapture_AcquireVideoBuffer |
+| 59 | PASS | Native loader pushes incoming screen frames into core | entry\src\main\cpp\rustdesk_bridge_loader.cpp matches rustdesk_bridge_update_incoming_screen_frame |
+| 60 | PASS | Core ABI declares incoming screen frame update | entry\src\main\cpp\rustdesk_bridge_abi.h matches rustdesk_bridge_update_incoming_screen_frame |
+| 61 | PASS | Native bridge wrapper exposes incoming frame metadata | entry\src\main\ets\services\NativeRustDeskBridge.ts matches static\s+getIncomingScreenFrameMetadata |
+| 62 | PASS | Native bridge wrapper exposes incoming frame copy | entry\src\main\ets\services\NativeRustDeskBridge.ts matches static\s+copyIncomingScreenFrame |
+| 63 | PASS | Native d.ts exposes incoming frame update | entry\src\main\cpp\types\librustdesk_bridge\index.d.ts matches updateIncomingScreenFrame |
+| 64 | PASS | File transfer page bootstraps local access authorization | entry\src\main\ets\pages\FileTransfer.ets matches bootstrapFileTransferPage |
+| 65 | PASS | File transfer local operations use access authorization guard | entry\src\main\ets\pages\FileTransfer.ets matches ensureLocalFileAccessAuthorization |
+| 66 | PASS | File access authorization uses folder auth mode | entry\src\main\ets\services\PermissionService.ets matches requestFileAuthorization\(\s*\{\s*folder:\s*true,\s*authMode:\s*true\s*\}\s*\) |

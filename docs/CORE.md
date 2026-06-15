@@ -17,7 +17,12 @@
 - 2026-06-14 13 项目源码已补齐终端 official Session 调用、终端响应事件、音频空队列 `[]` 和 C++ 聊天四参兼容；核心 commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并由 GitHub Actions run `27483922931` 发布 `core-71`，11 项目已下载、全量构建、验包并安装验证。
 - 2026-06-14 13 项目源码已继续补齐文件传输回调事件和 `switch-sides` option 路由，提交 `9c6ad4d`、`275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已推送，GitHub Actions run `27485061967` 成功发布 `core-73`；11 项目已下载 core-73 并完成全量构建、验包和无线安装。设备当前锁屏导致 `aa start` 被系统拒绝，运行态 `coreReady` 待解锁后继续复测。
 - 2026-06-14 13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 已由 GitHub Actions run `27486100946` 发布 `core-74`；11 项目已下载 core-74 并完成全量 HAP 构建、验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证。
-- 2026-06-14 13 项目已发布自定义服务器 key 透传 `core-75` 和聊天事件语义修复 `core-76`：`start_service/session_start` 新增 key 参数，空服务器配置会清理旧 option；聊天失败为 `chat-error`、发送成功为 `chat-sent`、远端消息才是 `chat-message`。11 项目已下载 `core-76` 并完成全量构建、验包和无线安装；设备当前锁屏导致运行态 `coreReady` 待解锁后继续复测。
+- 2026-06-14 13 项目已发布自定义服务器 key 透传 `core-75` 和聊天事件语义修复 `core-76`：`start_service/session_start` 新增 key 参数，空服务器配置会清理旧 option；聊天失败为 `chat-error`、发送成功为 `chat-sent`、远端消息才是 `chat-message`。11 项目已下载 `core-76` 并完成全量构建、验包和无线安装。
+- 2026-06-15 13 核心项目已回同步聊天 ABI 源文件修复和 d.ts 自建服务器 key 参数：`rustdesk_bridge_session_send_chat` 的 C++ 声明和调用改为四参，`connectToPeer/setIncomingServiceEnabled` 类型补齐 `key`，避免后续同步覆盖 11 App 已修路径；commits `034e446`、`cc5f4de` 已推送，GitHub Actions run `27515510727` 成功发布 `core-78`，release asset `131,470,442` bytes，SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`。11 App 已下载并全量构建 `0.21.0`，无线安装启动和 hilog `coreReady` 验证通过。
+- 2026-06-15 远控 direct session 命令状态返回已在 13 核心 commit `bc36b1d` 推送并发布 `core-79`：Rust bridge、C ABI、C++ NAPI、核心/app d.ts 均改为 bool 返回，并补 `voice-call-*`、`record-status`、`screenshot-response` 事件；11 App 侧远控菜单已同步 direct function 调用，会话录制不再触发本机 `ScreenCaptureService`。11 App 已全量拉取 core-79 构建 `0.22.0` 并无线安装/hilog 验证通过。
+- 2026-06-15 App 权限链路继续验证为 `0.22.1` / versionCode `1000104`：共享启动去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，文件传输页改为主动唤起 `DocumentViewPicker` 目录授权；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
+- 2026-06-15 App 屏幕采集底层继续验证为 `0.22.2` / versionCode `1000105`：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
+- 2026-06-15 core-80 入站帧缓存已发布并在 11 App 验证：13 核心 commit `12ad723` / run `27526413545` 发布 `core-80`，新增 `updateIncomingScreenFrame/getIncomingScreenFrameMetadata/copyIncomingScreenFrame/clearIncomingScreenFrame`；11 App 强制拉取线上 core-80 构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。当前只接通 native buffer 到核心缓存，`incomingReady` 仍不能置 true。
 
 ## 架构总览
 
@@ -46,10 +51,10 @@ RustDesk Server / Peer
 | 文件 | 作用 |
 | --- | --- |
 | `entry/src/main/cpp/` | 从 13 项目同步到 App 项目的 C++ 桥接层 |
-| `entry/src/main/cpp/CMakeLists.txt` | 将 `librustdesk_core.a` 链接进 `librustdesk_bridge.so` |
+| `entry/src/main/cpp/CMakeLists.txt` | 将 `librustdesk_core.a`、`native_avscreen_capture`、`native_buffer` 链接进 `librustdesk_bridge.so` |
 | `entry/src/main/libs/arm64/librustdesk_core.a` | 从 GitHub Releases 下载的 Rust staticlib |
 | `entry/src/main/ets/common/CoreBuildInfo.ets` | 构建时生成的 native core 文件大小、mtime 和 hash 信息 |
-| `entry/src/main/ets/services/NativeRustDeskBridge.ts` | ArkTS 原生桥接封装 |
+| `entry/src/main/ets/services/NativeRustDeskBridge.ts` | ArkTS 原生桥接封装，包含 native 屏幕采集 NAPI 包装 |
 | `entry/src/main/ets/services/OfficialRustDeskBridge.ets` | 官方连接状态和事件封装 |
 | `entry/src/main/ets/pages/RemoteControl.ets` | 远程会话 UI、视频帧、输入、重试弹窗 |
 
@@ -65,16 +70,16 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-76`
-- Size: `131,470,712` bytes (`125.38 MB`)
-- SHA256: `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
+- Release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-80`
+- Size: `131,624,954` bytes (`125.53 MB`)
+- SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
 
 HAP:
 
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
 - Wireless target: `192.168.11.100:36169`
-- Latest validation: 2026-06-14 下载 `core-76` 后，全量 HAP 构建通过；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验；无线目标 `192.168.11.100:36169` 安装成功，设备上 `versionName=0.20.0`、`versionCode=1000096`。当前设备锁屏导致 `aa start` 返回 `Error Code:10106102`；运行态 `coreReady=true` hilog 等待手动解锁后继续复测。
+- Latest validation: 2026-06-15 强制下载线上 `core-80` 后增量 HAP 构建通过；signed HAP `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；`verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.4`、`versionCode=1000107`，`pidof com.open.rundesk` 返回 `14881`。干净 app hilog `coreReady=4`、`query-onlines-result=8`，app fatal/panic/`exit(-1)` 为 0，app 相关 `signal` 为 0；日志中的 `signal` 命中来自系统 Wi-Fi 服务 `HandleSignalPollChangedMsg unsupported`，非本应用崩溃。
 
 ## Native core 构建来源
 
@@ -145,9 +150,10 @@ Pop-Location
 
 - 共享服务默认停止
 - 停止状态下不显示设备 ID 和密码
-- 启动服务后显示设备 ID 和一次性密码
-- **当前限制**：App 侧已可用 `AVScreenCaptureRecorder` 触发录屏授权/录制探测，但录屏 live frame 到 RustDesk desktop server 的桥仍需继续接入。
+- 只有核心返回 `incomingReady=true` 后才显示设备 ID 和一次性密码；本机 native 屏幕采集处于 active 时不得展示为服务运行中。
+- **当前限制**：App 侧已可用 `OH_AVScreenCapture_StartScreenCapture` 启动原生屏幕采集并统计 native buffer 帧，但录屏 live frame 到 RustDesk desktop server 的桥仍需继续接入。
 - 2026-06-12 起，录屏/被控视频源不可用时共享服务不得进入假运行状态：App 侧回滚 `serviceEnabled/allowRemoteControl`，native core `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
+- 2026-06-14 复查：共享页 UI 已把“录屏探测 active”和“核心 incoming ready”拆开，录屏探测只显示黄色 `Recording Probe` 状态并保留停止按钮，真实共享运行态只由 `settings.serviceEnabled && officialCoreState.incomingReady` 决定。
 
 远程连接：
 
@@ -179,9 +185,23 @@ Pop-Location
 - 服务器配置有效值统一由 `AppDataService.resolveServerConfig()` 解析
 - `OfficialRustDeskBridge` 的刷新、连接、共享服务启动均使用解析后的有效服务器配置；自建服务器的 key 必须和 server/relay/api 一起传入 `start_service` 与 `session_start`
 - Harmony bridge 在未接入真实屏幕采集/desktop server 时不能标记 incoming ready；`main_start_service(true)` 返回 `incomingReady=false`，防止被控端无视频源却让远端等待视频流。
-- 系统截图 fallback 已确认会崩溃并被禁用；当前 App 侧使用 `AVScreenCaptureRecorder` 录屏授权/录制探测，后续仍需接入 live frame/desktop server。
+- 系统截图 fallback 已确认会崩溃并被禁用；当前 App 侧使用 native `OH_AVScreenCapture_StartScreenCapture` 做屏幕采集启动和 native buffer 统计，后续仍需接入 live frame/desktop server。
 
-## 2026-06-14 verified current core
+## 2026-06-15 verified current core
+
+- Upstream compatibility: `RustDesk 1.4.7`
+- Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-80`
+- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27516993020`
+- Native core commit: `bc36b1df590b173650a152d4902be9363dec9c73` (`Return status for Harmony session commands`)
+- Native core size: `131,493,470` bytes (`125.40 MB`)
+- Native core SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
+- HAP build verified: version `0.22.4`, versionCode `1000107`, signed HAP `18,968,380` bytes, SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`
+- Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
+- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.4`, `versionCode=1000107`, native library path `entry/libs/arm64`
+- Launch/runtime status: `aa start` succeeded, process `14881` stayed alive; `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt` recorded `coreReady` 4 times, `query-onlines-result` 8 times, app fatal/panic/`exit(-1)` all 0, app-related `signal` 0. The remaining `signal` text hits in that log are Wi-Fi service status lines, not `com.open.rundesk` crashes.
+
+## 2026-06-14 verified core-76
 
 - Upstream compatibility: `RustDesk 1.4.7`
 - Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`

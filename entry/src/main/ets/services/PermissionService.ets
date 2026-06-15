@@ -57,11 +57,6 @@ export class PermissionService {
   getRequiredPermissions(): PermissionConfig[] {
     return [
       {
-        name: 'ohos.permission.CUSTOM_SCREEN_CAPTURE',
-        reason: 'Required for screen recording and sharing.',
-        required: false
-      },
-      {
         name: 'ohos.permission.CAMERA',
         reason: 'Required for QR code scanning.',
         required: false
@@ -189,13 +184,12 @@ export class PermissionService {
   }
 
   async requestFileAccessAuthorization(): Promise<boolean> {
-    const result = await this.requestFileAuthorization();
+    const result = await this.requestFileAuthorization({ folder: true, authMode: true });
     return result.granted;
   }
 
   async requestShareRuntimePermissions(): Promise<PermissionSummary> {
     const results = await this.requestPermissions([
-      'ohos.permission.CUSTOM_SCREEN_CAPTURE' as Permissions,
       'ohos.permission.KEEP_BACKGROUND_RUNNING' as Permissions,
       'ohos.permission.READ_LOCAL_DEVICE_NAME' as Permissions
     ]);

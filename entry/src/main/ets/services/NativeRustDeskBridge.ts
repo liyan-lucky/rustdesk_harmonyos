@@ -95,6 +95,17 @@ export interface NativeBridgeModule {
   pullAudioFrames?: () => string;
   getLatestVideoFrameMetadata?: (sinceFrameId: number) => string | null;
   copyLatestVideoFrame?: (frameId: number, expectedBytes: number) => ArrayBuffer | null;
+  getIncomingScreenFrameMetadata?: (sinceFrameId: number) => string | null;
+  copyIncomingScreenFrame?: (frameId: number, expectedBytes: number) => ArrayBuffer | null;
+  updateIncomingScreenFrame?: (
+    width: number,
+    height: number,
+    stride: number,
+    timestamp: number,
+    format: string,
+    data: ArrayBuffer | Uint8Array
+  ) => boolean;
+  clearIncomingScreenFrame?: () => void;
   refreshSessionVideo?: (display: number) => boolean;
   harmonyNextRgba?: (display: number) => void;
   connectToPeer?: (peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void;
@@ -131,6 +142,10 @@ export interface NativeBridgeModule {
     timestamp: number,
     dataLength: number
   ) => boolean;
+  startNativeScreenCapture?: (width: number, height: number, frameRate: number) => boolean;
+  stopNativeScreenCapture?: () => boolean;
+  isNativeScreenCaptureActive?: () => boolean;
+  getNativeScreenCaptureStats?: () => string;
   sendChatMessage?: (peerId: string, messageType: string, content: string, timestamp: number) => boolean;
   sendFileTransferRequest?: (
     taskId: string,
@@ -1430,6 +1445,81 @@ export class NativeRustDeskBridge {
     return nativeModule.sendVideoFrameMetadata(codec, width, height, timestamp, keyFrame, dataLength) === true;
   }
 
+  static getIncomingScreenFrameMetadata(sinceFrameId: number): string | null {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[number], string | null>(
+      nativeModule,
+      ['getIncomingScreenFrameMetadata', 'get_incoming_screen_frame_metadata']
+    );
+    if (!fn) {
+      return null;
+    }
+    try {
+      return fn(sinceFrameId);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  static copyIncomingScreenFrame(frameId: number, expectedBytes: number): ArrayBuffer | null {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number], ArrayBuffer | null>(
+      nativeModule,
+      ['copyIncomingScreenFrame', 'copy_incoming_screen_frame']
+    );
+    if (!fn) {
+      return null;
+    }
+    try {
+      return fn(frameId, expectedBytes);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  static updateIncomingScreenFrame(
+    width: number,
+    height: number,
+    stride: number,
+    timestamp: number,
+    format: string,
+    data: ArrayBuffer | Uint8Array
+  ): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number, number, string, ArrayBuffer | Uint8Array], boolean>(
+      nativeModule,
+      ['updateIncomingScreenFrame', 'update_incoming_screen_frame']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn(width, height, stride, timestamp, format, data) === true;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'updateIncomingScreenFrame failed: ' + NativeRustDeskBridge.describeError(error));
+      return false;
+    }
+  }
+
+  static clearIncomingScreenFrame(): void {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+      nativeModule,
+      ['clearIncomingScreenFrame', 'clear_incoming_screen_frame']
+    );
+    if (!fn) {
+      return;
+    }
+    try {
+      fn();
+    } catch (_error) {
+    }
+  }
+
   static sendAudioFrameMetadata(
     codec: number,
     sampleRate: number,
@@ -1443,6 +1533,77 @@ export class NativeRustDeskBridge {
       return false;
     }
     return nativeModule.sendAudioFrameMetadata(codec, sampleRate, channels, timestamp, dataLength) === true;
+  }
+
+  static startNativeScreenCapture(width: number, height: number, frameRate: number): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number], boolean>(
+      nativeModule,
+      ['startNativeScreenCapture', 'start_native_screen_capture']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn(width, height, frameRate) === true;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'startNativeScreenCapture failed: ' + NativeRustDeskBridge.describeError(error));
+      return false;
+    }
+  }
+
+  static stopNativeScreenCapture(): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
+      nativeModule,
+      ['stopNativeScreenCapture', 'stop_native_screen_capture']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn() === true;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'stopNativeScreenCapture failed: ' + NativeRustDeskBridge.describeError(error));
+      return false;
+    }
+  }
+
+  static isNativeScreenCaptureActive(): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
+      nativeModule,
+      ['isNativeScreenCaptureActive', 'is_native_screen_capture_active']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn() === true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  static getNativeScreenCaptureStats(): string {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], string>(
+      nativeModule,
+      ['getNativeScreenCaptureStats', 'get_native_screen_capture_stats']
+    );
+    if (!fn) {
+      return '{}';
+    }
+    try {
+      return fn();
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'getNativeScreenCaptureStats failed: ' + NativeRustDeskBridge.describeError(error));
+      return '{}';
+    }
   }
 
   static sendChatMessage(peerId: string, messageType: string, content: string, timestamp: number): boolean {
@@ -1950,6 +2111,16 @@ export class NativeRustDeskBridge {
     try { return fn(since_frame_id) || ''; } catch { return ''; }
   }
 
+  static getIncomingScreenFrameMetadataJson(since_frame_id: number): string {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[since_frame_id: number], string>(
+      nativeModule,
+      ['getIncomingScreenFrameMetadataJson', 'get_incoming_screen_frame_metadata_json', 'rustdesk_bridge_get_incoming_screen_frame_metadata_json']
+    );
+    if (!fn) return '';
+    try { return fn(since_frame_id) || ''; } catch { return ''; }
+  }
+
   static copyLatestVideoFrame(frame_id: number, buffer: any): number {
     const nativeModule = NativeRustDeskBridge.getModule();
     const fn = NativeRustDeskBridge.resolveFunction<[frame_id: number, buffer: any], number>(
@@ -2290,44 +2461,44 @@ export class NativeRustDeskBridge {
     try { fn(name); } catch { /* ignore */ }
   }
 
-  static sessionTogglePrivacyMode(impl_key: string, on: boolean): void {
+  static sessionTogglePrivacyMode(impl_key: string, on: boolean): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[impl_key: string, on: boolean], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[impl_key: string, on: boolean], boolean>(
       nativeModule,
       ['sessionTogglePrivacyMode', 'session_toggle_privacy_mode', 'rustdesk_bridge_session_toggle_privacy_mode']
     );
-    if (!fn) return;
-    try { fn(impl_key, on); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn(impl_key, on) || false; } catch { return false; }
   }
 
-  static sessionSwitchDisplay(display: number): void {
+  static sessionSwitchDisplay(display: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[display: number], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[display: number], boolean>(
       nativeModule,
       ['sessionSwitchDisplay', 'session_switch_display', 'rustdesk_bridge_session_switch_display']
     );
-    if (!fn) return;
-    try { fn(display); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn(display) || false; } catch { return false; }
   }
 
-  static sessionEnterOrLeave(): void {
+  static sessionEnterOrLeave(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
       nativeModule,
       ['sessionEnterOrLeave', 'session_enter_or_leave', 'rustdesk_bridge_session_enter_or_leave']
     );
-    if (!fn) return;
-    try { fn(); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn() || false; } catch { return false; }
   }
 
-  static sessionLeave(): void {
+  static sessionLeave(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
       nativeModule,
       ['sessionLeave', 'session_leave', 'rustdesk_bridge_session_leave']
     );
-    if (!fn) return;
-    try { fn(); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn() || false; } catch { return false; }
   }
 
   static sessionSetSize(display: number, width: number, height: number): void {
@@ -2370,14 +2541,14 @@ export class NativeRustDeskBridge {
     try { fn(username, password); } catch { /* ignore */ }
   }
 
-  static sessionSwitchSides(): void {
+  static sessionSwitchSides(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
       nativeModule,
       ['sessionSwitchSides', 'session_switch_sides', 'rustdesk_bridge_session_switch_sides']
     );
-    if (!fn) return;
-    try { fn(); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn() || false; } catch { return false; }
   }
 
   static sessionTakeScreenshot(display: number): boolean {
@@ -2390,14 +2561,14 @@ export class NativeRustDeskBridge {
     try { return fn(display) || false; } catch { return false; }
   }
 
-  static sessionRecordScreen(start: boolean): void {
+  static sessionRecordScreen(start: boolean): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[start: boolean], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[start: boolean], boolean>(
       nativeModule,
       ['sessionRecordScreen', 'session_record_screen', 'rustdesk_bridge_session_record_screen']
     );
-    if (!fn) return;
-    try { fn(start); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn(start) || false; } catch { return false; }
   }
 
   static sessionGetIsRecording(): boolean {
@@ -2410,24 +2581,24 @@ export class NativeRustDeskBridge {
     try { return fn() || false; } catch { return false; }
   }
 
-  static sessionRequestVoiceCall(): void {
+  static sessionRequestVoiceCall(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
       nativeModule,
       ['sessionRequestVoiceCall', 'session_request_voice_call', 'rustdesk_bridge_session_request_voice_call']
     );
-    if (!fn) return;
-    try { fn(); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn() || false; } catch { return false; }
   }
 
-  static sessionCloseVoiceCall(): void {
+  static sessionCloseVoiceCall(): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
       nativeModule,
       ['sessionCloseVoiceCall', 'session_close_voice_call', 'rustdesk_bridge_session_close_voice_call']
     );
-    if (!fn) return;
-    try { fn(); } catch { /* ignore */ }
+    if (!fn) return false;
+    try { return fn() || false; } catch { return false; }
   }
 
   static sessionAddPortForward(local_port: number, remote_host: string, remote_port: number): void {

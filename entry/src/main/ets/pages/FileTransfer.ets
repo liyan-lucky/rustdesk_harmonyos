@@ -5,6 +5,7 @@ import { ThemeConfig } from '../common/ThemeConfig';
 import { FileInfo, FileTransferEvent, FileTransferService } from '../services/FileTransferService';
 import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
+import { PermissionService } from '../services/PermissionService';
 
 type FilePane = 'local' | 'remote';
 type SortMode = 'name' | 'time';
@@ -29,6 +30,7 @@ struct FileTransfer {
       void this.loadCurrentPaneFiles();
     }
   };
+  private fileAccessRequestPromise: Promise<boolean> | null = null;
 
   @State deviceId: string = '';
   @State deviceName: string = '';
@@ -42,6 +44,8 @@ struct FileTransfer {
   @State newFolderName: string = '';
   @State isFileListRefreshing: boolean = false;
   @State fileListRefreshAngle: number = 0;
+  @State fileAccessAuthorized: boolean = false;
+  @State fileAccessRequesting: boolean = false;
   private fileListRefreshTimer: number = -1;
   aboutToAppear() {
     const params = this.getRouteParams();
@@ -51,7 +55,7 @@ struct FileTransfer {
     this.deviceName = this.appData.getDisplayName(this.deviceId);
     this.fileTransferService.addEventListener(this.transferListener);
     this.refreshTransferTasks();
-    void this.loadCurrentPaneFiles();
+    void this.bootstrapFileTransferPage();
   }
 
   aboutToDisappear() {
@@ -409,6 +413,11 @@ struct FileTransfer {
 
   private async loadCurrentPaneFiles(): Promise<void> {
     if (this.currentPane === 'local') {
+      const granted = await this.ensureLocalFileAccessAuthorization();
+      if (!granted) {
+        this.localFiles = [];
+        return;
+      }
       const files = await this.fileTransferService.listDirectory(this.localPath);
       this.localFiles = this.sortEntries(files.map((item: FileInfo) => this.mapFileInfo(item)));
       return;
@@ -451,6 +460,9 @@ struct FileTransfer {
 
   private async openFolder(entry: FileEntry): Promise<void> {
     if (this.currentPane === 'local') {
+      if (!await this.ensureLocalFileAccessAuthorization()) {
+        return;
+      }
       this.localPath = entry.path;
     } else {
       this.remotePath = entry.path;
@@ -460,6 +472,9 @@ struct FileTransfer {
 
   private async goParentDirectory(): Promise<void> {
     if (this.currentPane === 'local') {
+      if (!await this.ensureLocalFileAccessAuthorization()) {
+        return;
+      }
       this.localPath = this.parentPath(this.localPath, '/storage/Users/currentUser/Download');
     } else {
       this.remotePath = this.parentPath(this.remotePath, '/remote');
@@ -473,6 +488,9 @@ struct FileTransfer {
       return;
     }
     if (this.currentPane === 'local') {
+      if (!await this.ensureLocalFileAccessAuthorization()) {
+        return;
+      }
       await this.fileTransferService.createDirectory(`${this.localPath}/${name}`);
     } else {
       await this.fileTransferService.createRemoteDirectory(`${this.remotePath}/${name}`);
@@ -483,6 +501,9 @@ struct FileTransfer {
 
   private async deleteEntry(entry: FileEntry): Promise<void> {
     if (this.currentPane === 'local') {
+      if (!await this.ensureLocalFileAccessAuthorization()) {
+        return;
+      }
       await this.fileTransferService.deleteFile(entry.path);
     } else {
       await this.fileTransferService.deleteRemoteFile(entry.path);
@@ -491,6 +512,9 @@ struct FileTransfer {
   }
 
   private async queueTransfer(entry: FileEntry, direction: 'upload' | 'download'): Promise<void> {
+    if (!await this.ensureLocalFileAccessAuthorization()) {
+      return;
+    }
     const fileInfo: FileInfo = {
       path: entry.path,
       name: entry.name,
@@ -514,6 +538,9 @@ struct FileTransfer {
   }
 
   private async startFirstRemoteDownload(): Promise<void> {
+    if (!await this.ensureLocalFileAccessAuthorization()) {
+      return;
+    }
     if (this.remoteFiles.length === 0) {
       await this.loadCurrentPaneFiles();
     }
@@ -526,6 +553,9 @@ struct FileTransfer {
   private async startTask(taskId: string): Promise<void> {
     const task = this.fileTransferService.getTransferTask(taskId);
     if (!task) {
+      return;
+    }
+    if (!await this.ensureLocalFileAccessAuthorization()) {
       return;
     }
     await this.fileTransferService.startTransfer(taskId, this.getTransferTargetPath(task.direction));
@@ -654,6 +684,54 @@ struct FileTransfer {
 
   private getRouteParams(): Record<string, string> {
     return this.getUIContext().getRouter().getParams() as Record<string, string>;
+  }
+
+  private async bootstrapFileTransferPage(): Promise<void> {
+    await this.ensureLocalFileAccessAuthorization(false);
+    await this.loadCurrentPaneFiles();
+  }
+
+  private async ensureLocalFileAccessAuthorization(showToastOnSuccess: boolean = false): Promise<boolean> {
+    if (this.fileAccessAuthorized) {
+      return true;
+    }
+    if (this.fileAccessRequestPromise) {
+      return this.fileAccessRequestPromise;
+    }
+    this.fileAccessRequesting = true;
+    this.fileAccessRequestPromise = this.requestLocalFileAccessAuthorization(showToastOnSuccess);
+    return this.fileAccessRequestPromise;
+  }
+
+  private async requestLocalFileAccessAuthorization(showToastOnSuccess: boolean): Promise<boolean> {
+    try {
+      const result = await PermissionService.getInstance().requestFileAuthorization({ folder: true, authMode: true });
+      const granted = result.granted;
+      this.fileAccessAuthorized = granted;
+      if (granted && showToastOnSuccess) {
+        void this.showToast(this.lt('File access authorized'));
+      }
+      if (!granted) {
+        void this.showToast(this.lt('File access permission denied'));
+      }
+      return granted;
+    } catch (error) {
+      console.error('file access authorization failed', JSON.stringify(error));
+      this.fileAccessAuthorized = false;
+      void this.showToast(this.lt('File access permission denied'));
+      return false;
+    } finally {
+      this.fileAccessRequesting = false;
+      this.fileAccessRequestPromise = null;
+    }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    try {
+      await this.getUIContext().getPromptAction().openToast({ message });
+    } catch (error) {
+      console.error('FileTransfer toast failed', JSON.stringify(error));
+    }
   }
 
   private goBack(): void {

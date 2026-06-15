@@ -17,6 +17,7 @@ export class PreferenceStore {
   private static readonly LOCAL_FAVORITES_KEY: string = 'local_favorites';
   private static readonly IGNORED_DISCOVERED_PEERS_KEY: string = 'ignored_discovered_peers';
   private static readonly INCOMING_SERVICE_DEFAULT_OFF_MIGRATION_KEY: string = 'incoming_service_default_off_migration_20260602';
+  private static readonly DEBUG_KEEP_SCREEN_AWAKE_DEFAULT_ON_MIGRATION_KEY: string = 'debug_keep_screen_awake_default_on_20260615';
   private static readonly PEER_CONNECT_MODES_KEY: string = 'peer_connect_modes';
 
   private static getStore(): preferences.Preferences | undefined {
@@ -166,6 +167,14 @@ export class PreferenceStore {
 
   public static setMigratedIncomingServiceDefaultOff(): void {
     PreferenceStore.setString(PreferenceStore.INCOMING_SERVICE_DEFAULT_OFF_MIGRATION_KEY, 'Y');
+  }
+
+  public static hasMigratedDebugKeepScreenAwakeDefaultOn(): boolean {
+    return PreferenceStore.getString(PreferenceStore.DEBUG_KEEP_SCREEN_AWAKE_DEFAULT_ON_MIGRATION_KEY) === 'Y';
+  }
+
+  public static setMigratedDebugKeepScreenAwakeDefaultOn(): void {
+    PreferenceStore.setString(PreferenceStore.DEBUG_KEEP_SCREEN_AWAKE_DEFAULT_ON_MIGRATION_KEY, 'Y');
   }
 
   public static getPeerConnectMode(peerId: string): 'direct' | 'relay' {

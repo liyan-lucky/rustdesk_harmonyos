@@ -2,6 +2,125 @@
 
 > Current focused record for connection and video-stream verification. Keep this file updated when device-side behavior is tested.
 
+## 2026-06-15 v0.22.4 core-80 incoming frame bridge verification
+
+- Core release: 13 核心 commit `12ad723907af594fdec210b8379cd7d662224102` 已由 GitHub Actions run `27526413545` 发布 `core-80`，release body 已补中文说明；线上 asset `131,624,954` bytes，SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`。
+- App/native fix: `rustdesk_bridge_loader.cpp` 在 native screen capture drain loop 中 map `OH_NativeBuffer` 后调用 `rustdesk_bridge_update_incoming_screen_frame()`，统计 `coreFrameCount/payloadBytes/corePushOk`；ArkTS wrapper 和 d.ts 已补 `getIncomingScreenFrameMetadata/copyIncomingScreenFrame/updateIncomingScreenFrame/clearIncomingScreenFrame`。
+- Safety boundary: `incomingReady` 仍不能因为 native buffer 有 payload 就置 true；当前只证明“App native capture frame -> core incoming cache”链路可用，desktop server/video source 真接入后才能对外显示共享服务运行。
+- Build result: `scripts\build_hap.bat` 强制下载 latest core 后 rebuilt `0.22.4` / versionCode `1000107`，BuildInfo time `2026-06-15 07:15`。
+- HAP result: `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`。
+- Verification: `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed；`audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`。
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`；`bm dump` showed `versionName=0.22.4`, `versionCode=1000107`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `14881`。
+- Clean hilog: after `hilog -r` and 18s wait, `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt` recorded `coreReady=4`, `query-onlines-result=8`, app fatal/panic/`exit(-1)` = 0, app-related signal = 0. Remaining `signal` matches are Wi-Fi service `HandleSignalPollChangedMsg unsupported`, not app crash.
+
+## 2026-06-15 v0.22.2 native screen capture verification
+
+- Symptom: after removing the explicit `CUSTOM_SCREEN_CAPTURE` pre-request, the share capture path still used ArkTS `AVScreenCaptureRecorder` and a temporary mp4 probe file. That was the wrong current primitive for RustDesk sharing because it records to a file instead of exposing live buffers to the desktop server/video source.
+- App/native fix: `ScreenCaptureService.ets` now calls `NativeRustDeskBridge.startNativeScreenCapture/stopNativeScreenCapture/isNativeScreenCaptureActive/getNativeScreenCaptureStats`. `rustdesk_bridge_loader.cpp` creates `OH_AVScreenCapture`, starts `OH_AVScreenCapture_StartScreenCapture`, and drains `OH_AVScreenCapture_AcquireVideoBuffer`/native buffer map-unmap in a background loop for frame stats. `CMakeLists.txt` links `native_avscreen_capture` and `native_buffer`.
+- Build result: `scripts\build_hap.bat` rebuilt `0.22.2` / versionCode `1000105`, BuildInfo time `2026-06-15 06:17`.
+- Signed HAP: `18,946,878` bytes, SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`.
+- HAP verification: explicit `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.2`, `versionCode=1000105`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `62121`.
+- Runtime log: `reports\hilog_latest_after_0222_wireless_app_strict.txt` has `coreReady=1`, `query-onlines-result=2`, and app fatal/panic/`exit(-1)` all `0`. The `signal` text hits are Wi-Fi service `HandleSignalPollChangedMsg unsupported` lines, not `com.open.rundesk` crashes.
+- Remaining share work: this verifies the app native capture entry and install/runtime stability. It does not yet mean incoming sharing is ready; frame payload still must be bridged into the RustDesk desktop server/video source before `incomingReady=true`.
+
+## 2026-06-15 v0.22.1 share/file authorization verification
+
+- Symptom: the share start path still explicitly requested `CUSTOM_SCREEN_CAPTURE`, which can show as a screenshot/screen-capture authorization prompt before any real screen recording starts. The file transfer page could also read local Download paths without first waking the system file access authorization picker.
+- App fix: `Index.checkScreenCapturePermissionAndToggle()` no longer calls `requestPermissionsFromUser(['ohos.permission.CUSTOM_SCREEN_CAPTURE'])`; `PermissionService.getRequiredPermissions()` and `requestShareRuntimePermissions()` no longer include that permission in generic requests. `FileTransfer.ets` now requests `DocumentViewPicker` folder authorization on page entry and before local file operations; `requestFileAccessAuthorization()` defaults to folder authorization mode.
+- Build result: `scripts\build_hap.bat` rebuilt `0.22.1` / versionCode `1000104`, BuildInfo time `2026-06-15 06:01`.
+- Signed HAP: `18,953,784` bytes, SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`.
+- HAP verification: explicit `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.1`, `versionCode=1000104`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `56711`.
+- Runtime log: `reports\hilog_latest_after_0221_wireless_app_strict.txt` has `coreReady=71`, `initializeRuntimeFn returned=3`, `Bootstrap snapshot=1`, `query-onlines-result=134`, and app fatal/panic/signal/`exit(-1)` all `0`.
+
+## 2026-06-15 RemoteControl direct session command and local recording conflict
+
+- Symptom: the RemoteControl `Session Recording` menu requested `CUSTOM_SCREEN_CAPTURE` and called `ScreenCaptureService.startCapture()`, putting the phone into local recording state even though this menu is a remote-session command. `Switch Sides` and `Take Screenshot` also still used a generic option command, while voice chat used local `AudioService` capture state.
+- App fix: `RemoteControl.ets` now calls `NativeRustDeskBridge.sessionSwitchSides()`, `sessionTakeScreenshot(display)`, `sessionRecordScreen(start)`, `sessionRequestVoiceCall()`, and `sessionCloseVoiceCall()` directly. Session recording no longer requests local screen-capture permission and no longer starts `ScreenCaptureService`.
+- State fix: `record-status`, `voice-call-started`, `voice-call-waiting`, `voice-call-closed`, and `screenshot-response` events update the UI state/toasts. `I18nService.ets` includes Chinese translations for the new screenshot, recording, and voice-call toast strings.
+- Core dependency: core commit `bc36b1d` was published by run `27516993020` as `core-79`; release asset `131,493,470` bytes, SHA256 `8BBB12AA93EE8703ABBED5BA6D411031AD78CE7FA6A71D7C407A0A350A8789F2`.
+- Verification: `scripts\build_full_hap.bat` rebuilt `0.22.0` / versionCode `1000103`; signed HAP `18,929,896` bytes, SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`; native/signature verifier passed with explicit `-HapPath`; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`; wireless install/start to `192.168.11.100:36169` succeeded and `pidof com.open.rundesk` returned `56136`.
+- Runtime log: `reports\hilog_latest_after_core79_wireless_app_only.txt` has `coreReady=187`, `initializeRuntimeFn returned=3`, `Bootstrap snapshot=1`, `query-onlines-result=366`, and app fatal/panic/signal/`exit(-1)` all `0`.
+
+## 2026-06-15 v0.21.0 core-78 wireless runtime verification
+
+- Context: after core run `27515510727` completed, the latest release `core-78` was downloaded by `scripts\build_full_hap.bat` and a full HAP rebuild was run.
+- Core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-78`, commit `cc5f4de27bff6c89a6edcf3ea3d19f01b12b128e`, asset `librustdesk_core.a` `131,470,442` bytes, SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`.
+- Build result: version `0.21.0`, versionCode `1000102`, BuildInfo time `2026-06-15 01:02`.
+- Signed HAP: `18,928,728` bytes, SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`.
+- HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed.
+- Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Target: `192.168.11.100:36169`.
+- Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
+- Install/start result: `install bundle successfully`; `start ability successfully`.
+- Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.21.0`, `versionCode=1000102`, `minCompatibleVersionCode=1000102`, native library path `entry/libs/arm64`.
+- Process state: `pidof com.open.rundesk` returned `41841`.
+- Hilog capture: `reports\hilog_latest_after_core78_wireless.txt`; `coreReady` count 14, `initializeRuntimeFn returned` count 3, `Bootstrap snapshot` count 1, `query-onlines-result` count 20, app fatal/panic/signal/`Unexpected call`/`exit(-1)` all 0.
+
+## 2026-06-15 v0.20.5 share start-order wireless verification
+
+- Context: after changing share start order and requested/not-ready UI state, an incremental HAP build was run with unchanged core-76.
+- Build result: version `0.20.5`, versionCode `1000101`, BuildInfo time `2026-06-15 00:56`.
+- Signed HAP: `18,928,713` bytes, SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`.
+- HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native library, runtime dependency, bundle, and signature checks.
+- Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Target: `192.168.11.100:36169`.
+- Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
+- Install/start result: `install bundle successfully`; `start ability successfully`.
+- Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.5`, `versionCode=1000101`, `minCompatibleVersionCode=1000101`, native library path `entry/libs/arm64`.
+- Process state: `pidof com.open.rundesk` returned `39312`.
+
+## 2026-06-15 v0.20.4 wireless reinstall/runtime smoke
+
+- Context: after rebuilding the USB-only installer/doc updates, the user re-enabled wireless debugging and asked to retry wireless install.
+- Target: `192.168.11.100:36169`.
+- Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
+- Install/start result: `install bundle successfully`; `start ability successfully`.
+- Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.4`, `versionCode=1000100`, `minCompatibleVersionCode=1000100`.
+- Signed HAP: `18,917,915` bytes, SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`.
+- Process state: `pidof com.open.rundesk` returned `29101`.
+- HDC target list after install: `192.168.11.100:36169`.
+- HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native library, runtime dependency, bundle, and signature checks.
+- Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Follow-up: continue manual feature logic validation and remaining share live-frame implementation work.
+
+## 2026-06-15 share start-order recheck
+
+- Finding: the share toggle still started `AVScreenCaptureRecorder` before asking the core whether the incoming service was really ready. That could show system screen-recording state even while the core returned `incomingReady=false`.
+- App fix: `Index.toggleIncomingService(true)` now writes `enable-screen-capture=Y` and calls `setIncomingServiceEnabled` first; screen capture starts only after `officialCoreState.incomingReady=true`.
+- UI fix: while requested but not ready, the share card displays `Share requested` / `Requested` and shows core `lastError/detailMessage`; it does not expose device ID/password or mark the share TAB as running.
+- Remaining core work: real incoming share still requires OHOS live buffer capture plus `server_ohos.rs`/`scrap::common::ohos::Capturer` integration.
+
+## 2026-06-15 core chat ABI follow-up
+
+- Finding: the app-side `entry/src/main/cpp` copy already forwarded chat as `peer_id/message_type/content/timestamp`, but the source-of-truth core project `13_librustdesk_core\cpp` still declared and called `rustdesk_bridge_session_send_chat(content)` with one argument.
+- Core fix: `cpp/rustdesk_bridge_abi.h` and `cpp/rustdesk_bridge_loader.cpp` in the real `F:\Visual_Studio_Code\13_librustdesk_core` project now use the four-argument Rust ABI and keep a one-argument fallback for legacy callers.
+- Local core build: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1` passed from the real core path.
+- Local core artifact: `128,882,788` bytes, SHA256 `D0654CC920619957D99E640B7E18969135D224A0F562E26188241B41F47BC45A`.
+- Core commits pushed: `034e446 Fix Harmony chat ABI forwarding`, then `cc5f4de Sync Harmony bridge TypeScript signatures`.
+- Online core run: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27515510727` completed successfully and published release tag `core-78`; asset `131,470,442` bytes, SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`. The earlier intermediate run `27515455076` was canceled after the follow-up source sync.
+
+## 2026-06-15 v0.20.3 wireless install/runtime smoke
+
+- Context: after USB-only mode returned `[Empty]`, the phone's wireless debugging was re-enabled and the current signed HAP was installed with `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
+- Target: `192.168.11.100:36169`.
+- Install/start result: `install bundle successfully`; `start ability successfully`.
+- Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.3`, `versionCode=1000099`.
+- Signed HAP: `18,917,916` bytes, SHA256 `1B72498BBB53A8637C2859364B877D4116D06AEF339977ED1D1E0F6A8E2748A4`.
+- Process state: `pidof com.open.rundesk` returned `26834`.
+- Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
+- Follow-up: after the USB-only installer script/doc changes are rebuilt, install the next version again so the installed package matches the latest repository changes.
+
+## 2026-06-14 share-state UI gate recheck
+
+- Context: user reported the sharing link is not implemented yet and the current screen-recording state may conflict with sharing service readiness.
+- Finding: App `Index.isShareServiceRunning()` treated either `officialCoreState.incomingReady` or `ScreenCaptureService.isCapturingActive()` as a running share service, so the UI could show service running, ID, and one-time password while native core still returned `incomingReady=false`.
+- App fix: `isShareServiceRunning()` now only returns `settings.serviceEnabled && officialCoreState.incomingReady`; a separate recording-probe state shows `Recording Probe`, keeps the stop button available, and hides Device ID/password until the core incoming service is genuinely ready.
+- Core state remains unchanged: `core-76` still reports incoming unavailable until the Harmony live frame/desktop server path is wired.
+- Implementation note: ArkTS `AVScreenCaptureRecorder` is useful for permission/recording probe only. The SDK's native `OH_AVScreenCapture` buffer callback path is the likely route for real live frames into the RustDesk desktop server/video source.
+- Verification required after build/install: open the Share TAB, start screen recording permission flow, confirm the card shows recording probe instead of service running when `incomingReady=false`, and confirm Stop service closes the probe.
+
 ## 2026-06-14 core-76 package/install verification
 
 - Core source: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-76`

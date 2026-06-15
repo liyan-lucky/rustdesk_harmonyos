@@ -137,6 +137,7 @@ export class AppDataService {
     }
     this.loadSettings();
     this.migrateIncomingServiceDefaultOff();
+    this.migrateDebugKeepScreenAwakeDefaultOn();
     this.loadRecentSessions();
     this.loadAddressBook();
     this.loadLocalFavorites();
@@ -814,6 +815,16 @@ export class AppDataService {
     PreferenceStore.setMigratedIncomingServiceDefaultOff();
   }
 
+  private migrateDebugKeepScreenAwakeDefaultOn(): void {
+    if (PreferenceStore.hasMigratedDebugKeepScreenAwakeDefaultOn()) {
+      return;
+    }
+    if (!this.settings.debugKeepScreenAwake) {
+      this.updateSettings({ debugKeepScreenAwake: true });
+    }
+    PreferenceStore.setMigratedDebugKeepScreenAwakeDefaultOn();
+  }
+
   private loadRecentSessions(): void {
     const value = PreferenceStore.getRecentSessions();
     if (!value) {
@@ -1064,7 +1075,7 @@ export class AppDataService {
       autoCloseInactiveSessions: false,
       checkUpdatesOnStartup: true,
       keepScreenOnWhenControlled: false,
-      debugKeepScreenAwake: false,
+      debugKeepScreenAwake: true,
       quality: 80,
       keepScreenOn: 'session',
       approvalMode: 'password',

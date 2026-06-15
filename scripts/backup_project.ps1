@@ -13,8 +13,31 @@ $stageRoot = Join-Path $env:TEMP "rustdesk_harmonyos_backup_$timestamp"
 $zipPath = Join-Path $backupRoot "rustdesk_harmonyos_$timestamp.zip"
 
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
+
+function Remove-DirectorySafe {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  $fullPath = [System.IO.Path]::GetFullPath($Path)
+  $tempPath = [System.IO.Path]::GetFullPath($env:TEMP)
+  if (-not $fullPath.StartsWith($tempPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to remove path outside TEMP: $fullPath"
+  }
+
+  if (-not (Test-Path -LiteralPath $fullPath)) {
+    return
+  }
+
+  try {
+    Get-ChildItem -LiteralPath $fullPath -Recurse -Force -ErrorAction SilentlyContinue |
+      ForEach-Object { $_.Attributes = [System.IO.FileAttributes]::Normal }
+  } catch {}
+
+  $longPath = "\\?\$fullPath"
+  [System.IO.Directory]::Delete($longPath, $true)
+}
+
 if (Test-Path -LiteralPath $stageRoot) {
-  Remove-Item -LiteralPath $stageRoot -Recurse -Force
+  Remove-DirectorySafe -Path $stageRoot
 }
 
 $excludeDirs = @(
@@ -25,6 +48,7 @@ $excludeDirs = @(
   (Join-Path $projectRoot ".idea"),
   (Join-Path $projectRoot ".appanalyzer"),
   (Join-Path $projectRoot ".vscode"),
+  (Join-Path $projectRoot "13_librustdesk_core"),
   (Join-Path $projectRoot "rustdesk_harmonyos"),
   (Join-Path $projectRoot "oh_modules"),
   (Join-Path $projectRoot "entry\oh_modules"),
@@ -34,7 +58,7 @@ $excludeDirs = @(
 )
 
 try {
-  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XD") + $excludeDirs + @("/XF", "*.log", "*.tmp", "*.bak", "*.hap", "*.a", "*.so", "local.properties", "check_i18n.py", "check_result.txt")
+  $robocopyArgs = @($projectRoot, $stageRoot, "/E", "/XJ", "/R:2", "/W:1", "/XD") + $excludeDirs + @("/XF", "*.log", "*.tmp", "*.bak", "*.hap", "*.a", "*.so", "local.properties", "check_i18n.py", "check_result.txt")
   & robocopy @robocopyArgs | Out-Host
   $robocopyExit = $LASTEXITCODE
   if ($robocopyExit -gt 7) {
@@ -47,7 +71,7 @@ try {
   Compress-Archive -Path (Join-Path $stageRoot "*") -DestinationPath $zipPath -CompressionLevel Optimal
 } finally {
   if (Test-Path -LiteralPath $stageRoot) {
-    Remove-Item -LiteralPath $stageRoot -Recurse -Force
+    Remove-DirectorySafe -Path $stageRoot
   }
 }
 

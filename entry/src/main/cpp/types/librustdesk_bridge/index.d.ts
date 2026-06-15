@@ -8,6 +8,17 @@ export const initializeRuntime: (appDir: string, customClientConfig: string) => 
 export const pullSessionEvents: () => string;
 export const getLatestVideoFrameMetadata: (sinceFrameId: number) => string | null;
 export const copyLatestVideoFrame: (frameId: number, expectedBytes: number) => ArrayBuffer | null;
+export const getIncomingScreenFrameMetadata: (sinceFrameId: number) => string | null;
+export const copyIncomingScreenFrame: (frameId: number, expectedBytes: number) => ArrayBuffer | null;
+export const updateIncomingScreenFrame: (
+  width: number,
+  height: number,
+  stride: number,
+  timestamp: number,
+  format: string,
+  data: ArrayBuffer | Uint8Array
+) => boolean;
+export const clearIncomingScreenFrame: () => void;
 export const refreshSessionVideo: (display: number) => boolean;
 export const harmonyNextRgba: (display: number) => void;
 export const connectToPeer: (peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string) => void;
@@ -26,6 +37,10 @@ export const sendKeyboardInput: (keyCode: number, isPressed: boolean, modifiers:
 export const sendClipboardData: (content: string, timestamp: number) => boolean;
 export const sendVideoFrameMetadata: (codec: number, width: number, height: number, timestamp: number, keyFrame: boolean, dataLength: number) => boolean;
 export const sendAudioFrameMetadata: (codec: number, sampleRate: number, channels: number, timestamp: number, dataLength: number) => boolean;
+export const startNativeScreenCapture: (width: number, height: number, frameRate: number) => boolean;
+export const stopNativeScreenCapture: () => boolean;
+export const isNativeScreenCaptureActive: () => boolean;
+export const getNativeScreenCaptureStats: () => string;
 export const sendChatMessage: (peerId: string, messageType: string, content: string, timestamp: number) => boolean;
 export const sendFileTransferRequest: (taskId: string, peerId: string, fileName: string, totalBytes: number, direction: string) => boolean;
 export const openTerminal: (terminalId: number, rows: number, cols: number) => boolean;
@@ -59,6 +74,7 @@ export const getCoreSnapshotJson: (server: string) => string;
 export const pullSessionEventsJson: () => string;
 export const pullAudioFramesJson: () => string;
 export const getLatestVideoFrameMetadataJson: (since_frame_id: number) => string;
+export const getIncomingScreenFrameMetadataJson: (since_frame_id: number) => string;
 export const mainStartService: (enabled: boolean, server: string, relay_server: string, api_server: string, key: string) => string;
 export const sessionSendMouse: (mask: number, x: number, y: number) => boolean;
 export const sessionInputKey: (key_code: number, is_pressed: boolean, modifiers: number) => boolean;
@@ -89,20 +105,20 @@ export const mainLoadLanPeers: () => string;
 export const mainRemoveDiscovered: (peer_id: string) => boolean;
 export const sessionSend2fa: (code: string, trust_this_device: boolean) => boolean;
 export const sessionToggleOption: (name: string) => void;
-export const sessionTogglePrivacyMode: (impl_key: string, on: boolean) => void;
-export const sessionSwitchDisplay: (display: number) => void;
-export const sessionEnterOrLeave: () => void;
-export const sessionLeave: () => void;
+export const sessionTogglePrivacyMode: (impl_key: string, on: boolean) => boolean;
+export const sessionSwitchDisplay: (display: number) => boolean;
+export const sessionEnterOrLeave: () => boolean;
+export const sessionLeave: () => boolean;
 export const sessionSetSize: (display: number, width: number, height: number) => void;
 export const sessionChangeResolution: (display: number, width: number, height: number) => void;
 export const sessionElevateDirect: () => void;
 export const sessionElevateWithLogon: (username: string, password: string) => void;
-export const sessionSwitchSides: () => void;
+export const sessionSwitchSides: () => boolean;
 export const sessionTakeScreenshot: (display: number) => boolean;
-export const sessionRecordScreen: (start: boolean) => void;
+export const sessionRecordScreen: (start: boolean) => boolean;
 export const sessionGetIsRecording: () => boolean;
-export const sessionRequestVoiceCall: () => void;
-export const sessionCloseVoiceCall: () => void;
+export const sessionRequestVoiceCall: () => boolean;
+export const sessionCloseVoiceCall: () => boolean;
 export const sessionAddPortForward: (local_port: number, remote_host: string, remote_port: number) => void;
 export const sessionRemovePortForward: (local_port: number) => void;
 export const sessionNewRdp: () => void;

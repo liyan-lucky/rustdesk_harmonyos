@@ -34,7 +34,7 @@ import { LanDiscoveryService } from '../services/LanDiscoveryService';
 import { ScreenCaptureService } from '../services/ScreenCaptureService';
 import { PermissionService } from '../services/PermissionService';
 import { PermissionStatus } from '../services/PermissionService';
-import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
+import { Permissions } from '@ohos.abilityAccessCtrl';
 import hilog from '@ohos.hilog';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
@@ -2300,22 +2300,16 @@ struct Index {
           Image(this.isShareServiceRunning() ? $rawfile('secure.svg') : $rawfile('secure_stop.svg'))
             .width(36)
             .height(36)
-            .fillColor(this.isShareServiceRunning() ? this.theme_SUCCESS_TEXT : this.theme_ERROR_TEXT)
+            .fillColor(this.isShareServiceRunning() ? this.theme_SUCCESS_TEXT : (this.isShareRecordingProbeActive() ? this.theme_WARNING_TEXT : this.theme_ERROR_TEXT))
 
           Column({ space: 4 }) {
-            Text(this.isShareServiceRunning() ? this.lt('Service Running') : this.lt('Service Not Running'))
+            Text(this.resolveShareServiceTitle())
               .fontSize(ThemeConfig.FONT_SIZE_TITLE)
               .fontWeight(FontWeight.Bold)
               .fontColor(this.theme_TEXT_PRIMARY)
               .width('100%')
 
-            Text(
-              this.isShareServiceRunning()
-                ? (this.officialCoreState.incomingReady
-                  ? this.lt('Screen share service started, can accept remote connections.')
-                  : this.lt('Screen recording active, waiting for core incoming service.'))
-                : this.lt('Tap to start service or enable screen capture, then screen sharing will start.')
-            )
+            Text(this.resolveShareServiceDescription())
               .fontSize(ThemeConfig.FONT_SIZE_MD)
               .fontColor(this.theme_TEXT_SECONDARY)
               .width('100%')
@@ -2323,7 +2317,7 @@ struct Index {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
-          StatusBadge(this.isShareServiceRunning() ? (this.officialCoreState.incomingReady ? this.lt('Running') : this.lt('Recording Active')) : this.lt('Not running'), this.isShareServiceRunning())
+          StatusBadge(this.resolveShareStatusBadgeText(), this.isShareServiceRunning())
         }
         .width('100%')
 
@@ -2347,7 +2341,7 @@ struct Index {
         }
 
         Row({ space: ThemeConfig.SPACING_SM }) {
-          Button(this.isShareServiceRunning() ? this.lt('Stop service') : this.lt('Start service'))
+          Button(this.isShareStopAvailable() ? this.lt('Stop service') : this.lt('Start service'))
             .layoutWeight(1)
             .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
             .fontSize(ThemeConfig.FONT_SIZE_MD)
@@ -2356,7 +2350,7 @@ struct Index {
             .fontColor(this.theme_ACCENT_TEXT)
             .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
             .onClick(() => {
-              if (this.isShareServiceRunning()) {
+              if (this.isShareStopAvailable()) {
                 void this.toggleIncomingService(false);
               } else {
                 void this.checkScreenCapturePermissionAndToggle();
@@ -2383,8 +2377,60 @@ struct Index {
   }
 
   private isShareServiceRunning(): boolean {
+    return this.settings.serviceEnabled && this.officialCoreState.incomingReady;
+  }
+
+  private isShareRecordingProbeActive(): boolean {
     return this.settings.serviceEnabled &&
-      (this.officialCoreState.incomingReady || ScreenCaptureService.getInstance().isCapturingActive());
+      ScreenCaptureService.getInstance().isCapturingActive() &&
+      !this.officialCoreState.incomingReady;
+  }
+
+  private isShareStopAvailable(): boolean {
+    return this.settings.serviceEnabled || ScreenCaptureService.getInstance().isCapturingActive();
+  }
+
+  private resolveShareServiceTitle(): string {
+    if (this.isShareServiceRunning()) {
+      return this.lt('Service Running');
+    }
+    if (this.isShareRecordingProbeActive()) {
+      return this.lt('Screen recording probe active');
+    }
+    if (this.settings.serviceEnabled) {
+      return this.lt('Share requested');
+    }
+    return this.lt('Service Not Running');
+  }
+
+  private resolveShareServiceDescription(): string {
+    if (this.isShareServiceRunning()) {
+      return this.lt('Screen share service started, can accept remote connections.');
+    }
+    if (this.isShareRecordingProbeActive()) {
+      return this.lt('Screen recording probe is active, but the core incoming video source is not ready.');
+    }
+    if (this.settings.serviceEnabled) {
+      const detail = (this.officialCoreState.lastError || this.officialCoreState.detailMessage).trim();
+      if (detail.length > 0) {
+        return detail;
+      }
+      return this.lt('Incoming service requested, waiting for core readiness.');
+    }
+    return this.lt('Tap to start service or enable screen capture, then screen sharing will start.');
+  }
+
+  private resolveShareStatusBadgeText(): string {
+    if (this.isShareServiceRunning()) {
+      return this.lt('Running');
+    }
+    if (this.isShareRecordingProbeActive()) {
+      return this.lt('Recording Probe');
+    }
+    if (this.settings.serviceEnabled) {
+      return this.lt('Requested');
+    }
+    return this.lt('Not running');
   }
 
   private getShareDisplayId(): string {
@@ -3835,19 +3881,7 @@ struct Index {
   }
 
   private async checkScreenCapturePermissionAndToggle(): Promise<void> {
-    hilog.info(0xA03D00, 'SHARE', 'checkScreenCapturePermissionAndToggle: start');
-    const results = await PermissionService.getInstance().requestPermissions([
-      'ohos.permission.CUSTOM_SCREEN_CAPTURE' as Permissions
-    ]);
-    const granted = results.every((item) => item.status === PermissionStatus.GRANTED);
-    hilog.info(0xA03D00, 'SHARE', 'checkScreenCapturePermissionAndToggle: granted=%{public}s', String(granted));
-    if (!granted) {
-      this.settings = this.appData.updateSettings({ serviceEnabled: false, allowRemoteControl: false });
-      this.syncControlledKeepScreenOn();
-      this.localDevice = this.appData.setServiceEnabled(false);
-      this.setStatusMessageRaw(this.lt('Screen capture denied'));
-      return;
-    }
+    hilog.info(0xA03D00, 'SHARE', 'checkScreenCapturePermissionAndToggle: start without screen capture pre-request');
     try {
       await this.toggleIncomingService(true);
     } catch (error) {
@@ -3911,18 +3945,8 @@ struct Index {
     hilog.info(0xA03D00, 'SHARE', 'toggleIncomingService: enabled=%{public}s', String(enabled));
     let captureReady = false;
     if (enabled) {
-      try {
-        await ScreenCaptureService.getInstance().startCapture();
-        NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'Y');
-        captureReady = true;
-        hilog.info(0xA03D00, 'SHARE', 'startCapture succeeded');
-      } catch (error) {
-        ScreenCaptureService.getInstance().stopCapture();
-        NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
-        hilog.warn(0xA03D00, 'SHARE', 'startCapture failed: %{public}s', String(error));
-        this.setStatusMessageRaw(this.lt('Recording not started'));
-        throw new Error(String(error));
-      }
+      ScreenCaptureService.getInstance().stopCapture();
+      NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'Y');
     } else {
       ScreenCaptureService.getInstance().stopCapture();
       NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
@@ -3936,6 +3960,26 @@ struct Index {
     this.syncSharePasswordToNative(this.appData.getPassword());
     this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(enabled, this.settings);
     hilog.info(0xA03D00, 'SHARE', 'setIncomingServiceEnabled result: coreReady=%{public}s', String(this.officialCoreState.coreReady));
+    if (enabled && this.officialCoreState.incomingReady) {
+      try {
+        await ScreenCaptureService.getInstance().startCapture();
+        captureReady = true;
+        hilog.info(0xA03D00, 'SHARE', 'startCapture succeeded after core incoming ready');
+      } catch (error) {
+        ScreenCaptureService.getInstance().stopCapture();
+        NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
+        this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(false, this.settings);
+        this.settings = this.appData.updateSettings({
+          serviceEnabled: false,
+          allowRemoteControl: false
+        });
+        this.syncControlledKeepScreenOn();
+        this.localDevice = this.appData.setServiceEnabled(false);
+        hilog.warn(0xA03D00, 'SHARE', 'startCapture failed: %{public}s', String(error));
+        this.setStatusMessageRaw(this.lt('Recording not started'));
+        throw new Error(String(error));
+      }
+    }
     this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
     this.oneTimePassword = this.appData.getPassword();
     this.nativeBridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary();

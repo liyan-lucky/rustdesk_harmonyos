@@ -15,9 +15,7 @@ import { WindowChromeService } from '../services/WindowChromeService';
 import { ClipboardService } from '../services/ClipboardService';
 import { AudioService } from '../services/AudioService';
 import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../services/ChatService';
-import { PermissionService, PermissionStatus } from '../services/PermissionService';
-import { ScreenCaptureService } from '../services/ScreenCaptureService';
-import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
+import { PermissionService } from '../services/PermissionService';
 import { FrameService, frameService } from '../services/FrameService';
 import { AppState, appState } from '../services/AppState';
 import audio from '@ohos.multimedia.audio';
@@ -80,6 +78,7 @@ interface SessionRetryPrompt {
 }
 
 interface QualityMetricItem {
+  key: string;
   label: string;
   value: string;
   priority: number;
@@ -312,6 +311,7 @@ struct RemoteControl {
   @State showCustomQualityPanel: boolean = false;
   @State keyboardMode: number = 0;
   @State sessionRecording: boolean = false;
+  @State voiceCallActive: boolean = false;
   @State showRemoteCursor: boolean = false;
   @State showQualityMonitor: boolean = false;
   @State muteAudio: boolean = false;
@@ -369,6 +369,7 @@ struct RemoteControl {
     this.swapMouseButtons = this.resolveToggleOption('swap-left-right-mouse');
     this.viewMode = this.resolveToggleOption('view-only');
     this.privacyMode = this.resolveToggleOption('privacy-mode');
+    this.sessionRecording = NativeRustDeskBridge.sessionGetIsRecording();
     const qualityValue = NativeRustDeskBridge.getLocalOption('image-quality');
     if (qualityValue) {
       const qualityMap: Record<string, number> = { 'best': 0, 'balanced': 1, 'speed': 2, 'custom': 3 };
@@ -452,15 +453,22 @@ struct RemoteControl {
     return 187;
   }
 
-  private async openVoiceChatMode(): Promise<void> {
+  private openVoiceChatMode(): void {
     this.showChatModeMenu = false;
     this.showChatPanel = false;
-    if (this.audioService.isCapturingActive()) {
-      await this.audioService.stopCapture();
-      void this.showToast(this.lt('Local Audio Stopped'));
+    if (this.voiceCallActive) {
+      const handled = NativeRustDeskBridge.sessionCloseVoiceCall();
+      if (handled) {
+        this.voiceCallActive = false;
+      }
+      void this.showToast(handled ? this.lt('Voice call closed') : this.lt('Command unavailable'));
       return;
     }
-    await this.toggleLocalAudioCapture();
+    const handled = NativeRustDeskBridge.sessionRequestVoiceCall();
+    if (handled) {
+      this.voiceCallActive = true;
+    }
+    void this.showToast(handled ? this.lt('Voice call requested') : this.lt('Command unavailable'));
   }
 
   private scheduleChatPanelScroll(delayMs: number): void {
@@ -1029,90 +1037,33 @@ struct RemoteControl {
 
   @Builder
   private buildConnectionInfoPanel() {
-    Column({ space: 6 }) {
-      Row() {
-        Text(this.lt('Resolution'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--')
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
+    Column() {
+      Scroll() {
+        Column({ space: 8 }) {
+          this.buildConnectionInfoRow(this.lt('Resolution'), this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--', this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('FPS'), this.connectionFps > 0 ? `${this.connectionFps}` : '--', this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('Latency'), this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--', this.getLatencyColor())
+          this.buildConnectionInfoRow(this.lt('Speed'), this.connectionSpeedDisplay, this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('Codec'), this.connectionCodec.length > 0 ? this.connectionCodec : '--', this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('Connection'), this.connectionType.length > 0 ? this.connectionType : '--', this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('Zoom'), `${Math.round(this.getCurrentZoom() * 100)}%`, this.theme_CONTRAST_TEXT)
+          ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
+            this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT)
+          }, (item: QualityMetricItem) => item.key)
+        }
+        .width('100%')
       }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('FPS'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.connectionFps > 0 ? `${this.connectionFps}` : '--')
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
-      }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('Latency'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--')
-          .fontSize(11)
-          .fontColor(this.getLatencyColor());
-      }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('Speed'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.connectionSpeedDisplay)
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
-      }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('Codec'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.connectionCodec.length > 0 ? this.connectionCodec : '--')
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
-      }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('Connection'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(this.connectionType.length > 0 ? this.connectionType : '--')
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
-      }
-      .width('100%');
-
-      Row() {
-        Text(this.lt('Zoom'))
-          .fontSize(11)
-          .fontColor(this.theme_DISABLED_TEXT);
-        Blank();
-        Text(`${Math.round(this.getCurrentZoom() * 100)}%`)
-          .fontSize(11)
-          .fontColor(this.theme_CONTRAST_TEXT);
-      }
-      .width('100%');
+      .scrollable(ScrollDirection.Vertical)
+      .scrollBar(BarState.Off)
+      .width('100%')
+      .height(this.qualityMetricItems.length > 0 ? 260 : 184)
     }
-    .width(140)
+    .width(180)
     .padding(10)
     .backgroundColor(Color.Transparent)
     .borderRadius(8)
     .position({ x: '100%', y: 60 })
-    .translate({ x: -148 })
+    .translate({ x: -188 })
   }
 
   @Builder
@@ -1598,8 +1549,8 @@ struct RemoteControl {
     Column() {
       this.buildSessionPanelHeader(this.lt('Chat'), 'chat-mode');
       this.buildMenuRow(
-        this.audioService.isCapturingActive() ? this.lt('Stop Voice Chat') : this.lt('Voice Chat'),
-        () => { void this.openVoiceChatMode(); },
+        this.voiceCallActive ? this.lt('Stop Voice Chat') : this.lt('Voice Chat'),
+        () => { this.openVoiceChatMode(); },
         false,
         'opt_mic.svg'
       );
@@ -1633,9 +1584,9 @@ struct RemoteControl {
           this.buildMenuRow(this.lt('Refresh Screen'), () => { this.showMoreMenu = false; this.maybeRequestVideoRefresh(true); void this.showToast(this.lt('Refreshing...')); }, false, 'menu_refresh.svg');
           this.buildMenuRow(this.lt('File Transfer'), () => { this.showMoreMenu = false; void this.openFileTransferWithPermissionCheck(); }, true, 'menu_transfer.svg');
           this.buildMenuRow(this.lt('Copy Fingerprint'), () => { this.showMoreMenu = false; this.copyFingerprint(); }, false, 'menu_fingerprint.svg');
-          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.sendOptionCommand('switch-sides', 'Y'); }, false, 'menu_switch.svg');
-          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.sendOptionCommand('take-screenshot', 'Y'); }, false, 'menu_screenshot.svg');
-          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; void this.toggleSessionRecording(); }, 'menu_record.svg');
+          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.switchSessionSides(); }, false, 'menu_switch.svg');
+          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.takeSessionScreenshot(); }, false, 'menu_screenshot.svg');
+          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; this.toggleSessionRecording(); }, 'menu_record.svg');
         }
       }
       .scrollable(ScrollDirection.Vertical)
@@ -2359,29 +2310,24 @@ struct RemoteControl {
     this.maybeRequestVideoRefresh(true);
   }
 
-  private sendOptionCommand(key: string, value: string): void {
-    const handled = NativeRustDeskBridge.applySessionOption(key, value);
+  private switchSessionSides(): void {
+    const handled = NativeRustDeskBridge.sessionSwitchSides();
     void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command unavailable'));
     this.maybeRequestVideoRefresh(true);
   }
 
-  private async toggleSessionRecording(): Promise<void> {
-    if (!this.sessionRecording) {
-      const results = await PermissionService.getInstance().requestPermissions([
-          'ohos.permission.CUSTOM_SCREEN_CAPTURE' as Permissions
-      ]);
-      if (!results.every((item) => item.status === PermissionStatus.GRANTED)) {
-        void this.showToast(this.lt('Screen capture permission denied'));
-        return;
-      }
-      try {
-        await ScreenCaptureService.getInstance().startCapture();
-      } catch (error) {
-        return;
-      }
+  private takeSessionScreenshot(): void {
+    const handled = NativeRustDeskBridge.sessionTakeScreenshot(this.currentRemoteDisplay);
+    void this.showToast(handled ? this.lt('Screenshot requested') : this.lt('Command unavailable'));
+  }
+
+  private toggleSessionRecording(): void {
+    const start = !this.sessionRecording;
+    const handled = NativeRustDeskBridge.sessionRecordScreen(start);
+    if (handled) {
+      this.sessionRecording = start;
     }
-    this.sessionRecording = !this.sessionRecording;
-    this.sendOptionCommand('record-session', this.sessionRecording ? 'Y' : 'N');
+    void this.showToast(handled ? (start ? this.lt('Recording Started') : this.lt('Recording Stopped')) : this.lt('Command unavailable'));
   }
 
   private async openFileTransferWithPermissionCheck(): Promise<void> {
@@ -3123,6 +3069,27 @@ struct RemoteControl {
       return;
     }
 
+    if (event.kind === 'record-status') {
+      const values = this.parseKeyValueDetail(event.detail);
+      this.sessionRecording = this.parseDetailBoolean(values, 'start', this.sessionRecording);
+      return;
+    }
+
+    if (event.kind === 'voice-call-started' || event.kind === 'voice-call-waiting') {
+      this.voiceCallActive = true;
+      return;
+    }
+
+    if (event.kind === 'voice-call-closed') {
+      this.voiceCallActive = false;
+      return;
+    }
+
+    if (event.kind === 'screenshot-response') {
+      void this.showToast(this.lt('Screenshot saved'));
+      return;
+    }
+
     if (event.kind === 'cursor_position') {
       const values = this.parseKeyValueDetail(event.detail);
       this.remoteCursorX = this.parseDetailNumber(values, 'x', this.remoteCursorX);
@@ -3151,6 +3118,8 @@ struct RemoteControl {
 
     if (event.kind === 'session-error' || event.kind === 'session-closed' || event.kind === 'closed') {
       this.remoteCursorVisible = false;
+      this.voiceCallActive = false;
+      this.sessionRecording = false;
     }
   }
 
@@ -3747,6 +3716,7 @@ struct RemoteControl {
         continue;
       }
       items.push({
+        key: key,
         label: this.formatQualityMetricLabel(key),
         value: displayValue,
         priority: this.getQualityMetricPriority(key)

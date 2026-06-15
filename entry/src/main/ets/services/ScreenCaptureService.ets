@@ -1,9 +1,5 @@
 import display from '@ohos.display';
-import image from '@ohos.multimedia.image';
-import media from '@ohos.multimedia.media';
-import fileFs from '@ohos.file.fs';
-import { AppContextService } from './AppContextService';
-import { OfficialSessionTransport } from './OfficialSessionTransport';
+import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { SessionVideoCodec, SessionVideoFrame } from './OfficialSessionTypes';
 
 export interface ScreenCaptureConfig {
@@ -34,9 +30,6 @@ export class ScreenCaptureService {
   private eventListeners: Array<(event: ScreenCaptureEvent) => void> = [];
   private displayInfo: display.Display | null = null;
   private hasScreenCapturePermission: boolean = false;
-  private screenRecorder: media.AVScreenCaptureRecorder | null = null;
-  private recorderFile: fileFs.File | null = null;
-  private recorderFilePath: string = '';
 
   private constructor() {
     this.config = {
@@ -93,30 +86,16 @@ export class ScreenCaptureService {
 
   private async startScreenCaptureSession(): Promise<void> {
     this.hasScreenCapturePermission = false;
-    const capturePath = this.resolveRecorderFilePath();
-    const recorderFile = fileFs.openSync(
-      capturePath,
-      fileFs.OpenMode.CREATE | fileFs.OpenMode.TRUNC | fileFs.OpenMode.READ_WRITE
+    const started = NativeRustDeskBridge.startNativeScreenCapture(
+      this.config.width,
+      this.config.height,
+      Math.max(1, this.config.frameRate)
     );
-    this.recorderFile = recorderFile;
-    this.recorderFilePath = capturePath;
-
-    try {
-      const recorder = await media.createAVScreenCaptureRecorder();
-      this.screenRecorder = recorder;
-      await recorder.init({
-        fd: recorderFile.fd,
-        frameWidth: this.config.width,
-        frameHeight: this.config.height,
-        videoBitrate: this.resolveVideoBitrate(),
-        preset: media.AVScreenCaptureRecordPreset.SCREEN_RECORD_PRESET_H264_AAC_MP4
-      });
-      await recorder.startRecording();
-      this.hasScreenCapturePermission = true;
-    } catch (error) {
-      this.stopScreenCaptureSession();
-      throw new Error('Screen recording API start failed: ' + (error instanceof Error ? error.message : String(error)));
+    if (!started) {
+      const stats = NativeRustDeskBridge.getNativeScreenCaptureStats();
+      throw new Error('Native screen capture API start failed: ' + stats);
     }
+    this.hasScreenCapturePermission = true;
   }
 
   stopCapture(): void {
@@ -133,28 +112,11 @@ export class ScreenCaptureService {
   }
 
   private stopScreenCaptureSession(): void {
-    const recorder = this.screenRecorder;
-    const recorderFile = this.recorderFile;
-    const recorderPath = this.recorderFilePath;
-    this.screenRecorder = null;
-    this.recorderFile = null;
-    this.recorderFilePath = '';
     this.hasScreenCapturePermission = false;
-    if (recorder) {
-      void recorder.stopRecording()
-        .catch((error: Object | string) => {
-          console.warn('AVScreenCaptureRecorder stop failed: ' + JSON.stringify(error));
-        })
-        .then(() => recorder.release())
-        .catch((error: Object | string) => {
-          console.warn('AVScreenCaptureRecorder release failed: ' + JSON.stringify(error));
-        })
-        .then(() => {
-          this.closeRecorderFile(recorderFile, recorderPath);
-        });
-      return;
+    const stopped = NativeRustDeskBridge.stopNativeScreenCapture();
+    if (!stopped) {
+      console.warn('Native screen capture stop failed: ' + NativeRustDeskBridge.getNativeScreenCaptureStats());
     }
-    this.closeRecorderFile(recorderFile, recorderPath);
   }
 
   private async captureFrame(): Promise<void> {
@@ -215,7 +177,7 @@ export class ScreenCaptureService {
   }
 
   hasInputInjectionPermission(): boolean {
-    return this.hasScreenCapturePermission;
+    return this.hasScreenCapturePermission && NativeRustDeskBridge.isNativeScreenCaptureActive();
   }
 
   addEventListener(listener: (event: ScreenCaptureEvent) => void): void {
@@ -260,36 +222,4 @@ export class ScreenCaptureService {
     }
   }
 
-  private resolveRecorderFilePath(): string {
-    const context = AppContextService.getContext();
-    if (!context) {
-      throw new Error('Screen recording requires UIAbility context.');
-    }
-    const contextRecord = context as Object as Record<string, string | undefined>;
-    const baseDir = (contextRecord.cacheDir ?? contextRecord.tempDir ?? contextRecord.filesDir ?? '').trim();
-    if (baseDir.length === 0) {
-      throw new Error('Screen recording cache directory is unavailable.');
-    }
-    return baseDir + '/rustdesk_screen_recording_probe.mp4';
-  }
-
-  private resolveVideoBitrate(): number {
-    const pixels = Math.max(1, this.config.width * this.config.height);
-    const fps = Math.max(1, this.config.frameRate);
-    const quality = Math.max(30, Math.min(100, this.config.quality));
-    return Math.max(1000000, Math.floor(pixels * fps * quality / 24));
-  }
-
-  private closeRecorderFile(recorderFile: fileFs.File | null, recorderPath: string): void {
-    if (recorderFile) {
-      try {
-        fileFs.closeSync(recorderFile);
-      } catch (_e) {}
-    }
-    if (recorderPath.length > 0) {
-      try {
-        fileFs.unlinkSync(recorderPath);
-      } catch (_e) {}
-    }
-  }
 }

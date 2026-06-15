@@ -3,10 +3,17 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <atomic>
+#include <algorithm>
+#include <chrono>
+#include <mutex>
+#include <thread>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <multimedia/player_framework/native_avscreen_capture.h>
+#include <native_buffer/native_buffer.h>
 
 extern "C" void qsort_r(void *base, size_t nmemb, size_t size,
                          int (*compar)(const void *, const void *, void *),
@@ -93,6 +100,258 @@ std::string CopyOwnedText(const char *value) {
 
 bool IsCoreLoaded() {
   return true;
+}
+
+struct NativeScreenCaptureState {
+  std::mutex mutex;
+  OH_AVScreenCapture *capture = nullptr;
+  std::thread worker;
+  std::atomic_bool running{false};
+  bool active = false;
+  int width = 0;
+  int height = 0;
+  int frame_rate = 0;
+  int32_t last_error_code = 0;
+  int32_t last_buffer_format = 0;
+  int32_t last_buffer_stride = 0;
+  int64_t last_timestamp = 0;
+  uint64_t frame_count = 0;
+  uint64_t core_frame_count = 0;
+  uint64_t last_payload_bytes = 0;
+  bool last_core_push_ok = false;
+  std::string last_error;
+};
+
+NativeScreenCaptureState g_native_screen_capture;
+
+std::string EscapeJsonString(const std::string &value) {
+  std::string escaped;
+  escaped.reserve(value.size() + 8);
+  for (char ch : value) {
+    switch (ch) {
+      case '\\': escaped += "\\\\"; break;
+      case '"': escaped += "\\\""; break;
+      case '\n': escaped += "\\n"; break;
+      case '\r': escaped += "\\r"; break;
+      case '\t': escaped += "\\t"; break;
+      default: escaped += ch; break;
+    }
+  }
+  return escaped;
+}
+
+void NativeScreenCaptureSetError(const std::string &message, int32_t code = 0) {
+  std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+  g_native_screen_capture.last_error = message;
+  g_native_screen_capture.last_error_code = code;
+  OH_LOG_Print(LOG_APP, LOG_ERROR, LOG_DOMAIN, LOG_TAG,
+               "Native screen capture error code=%{public}d message=%{public}s",
+               code, message.c_str());
+}
+
+void NativeScreenCaptureOnError(OH_AVScreenCapture *capture, int32_t errorCode) {
+  (void)capture;
+  NativeScreenCaptureSetError("OH_AVScreenCapture runtime error", errorCode);
+}
+
+void NativeScreenCaptureOnAudioBuffer(OH_AVScreenCapture *capture, bool isReady,
+                                      OH_AudioCaptureSourceType type) {
+  (void)capture;
+  (void)isReady;
+  (void)type;
+}
+
+void NativeScreenCaptureOnVideoBuffer(OH_AVScreenCapture *capture, bool isReady) {
+  (void)capture;
+  if (!isReady) {
+    NativeScreenCaptureSetError("OH_AVScreenCapture video buffer is not ready", 0);
+  }
+}
+
+int32_t NativeScreenCaptureOk(OH_AVSCREEN_CAPTURE_ErrCode code, const char *step) {
+  if (code == AV_SCREEN_CAPTURE_ERR_OK) {
+    return 1;
+  }
+  NativeScreenCaptureSetError(std::string(step) + " failed", static_cast<int32_t>(code));
+  return 0;
+}
+
+const char *NativeScreenCaptureFormatName(int32_t format) {
+  switch (format) {
+    case NATIVEBUFFER_PIXEL_FMT_RGBA_8888:
+      return "RGBA";
+    case NATIVEBUFFER_PIXEL_FMT_BGRA_8888:
+      return "BGRA";
+    case NATIVEBUFFER_PIXEL_FMT_RGBX_8888:
+      return "RGBX";
+    case NATIVEBUFFER_PIXEL_FMT_BGRX_8888:
+      return "BGRX";
+    case NATIVEBUFFER_PIXEL_FMT_RGB_565:
+      return "RGB565";
+    default:
+      return "RGBA";
+  }
+}
+
+void NativeScreenCaptureDrainLoop(OH_AVScreenCapture *capture, int frame_rate) {
+  const int sleep_ms = frame_rate > 0 ? std::max(16, 1000 / frame_rate) : 100;
+  while (g_native_screen_capture.running.load()) {
+    int32_t fence = 0;
+    int64_t timestamp = 0;
+    OH_Rect region = {};
+    OH_NativeBuffer *buffer = OH_AVScreenCapture_AcquireVideoBuffer(capture, &fence, &timestamp, &region);
+    if (buffer != nullptr) {
+      OH_NativeBuffer_Config buffer_config = {};
+      OH_NativeBuffer_GetConfig(buffer, &buffer_config);
+      void *mapped = nullptr;
+      bool core_push_ok = false;
+      uint64_t payload_bytes = 0;
+      if (OH_NativeBuffer_Map(buffer, &mapped) == 0 && mapped != nullptr) {
+        const int32_t width = buffer_config.width > 0 ? buffer_config.width : 0;
+        const int32_t height = buffer_config.height > 0 ? buffer_config.height : 0;
+        const int32_t stride = buffer_config.stride > 0 ? buffer_config.stride : width * 4;
+        if (width > 0 && height > 0 && stride > 0) {
+          payload_bytes = static_cast<uint64_t>(stride) * static_cast<uint64_t>(height);
+          core_push_ok = rustdesk_bridge_update_incoming_screen_frame(
+            width,
+            height,
+            stride,
+            static_cast<long long>(timestamp),
+            NativeScreenCaptureFormatName(buffer_config.format),
+            static_cast<const unsigned char *>(mapped),
+            static_cast<unsigned long long>(payload_bytes)) != 0;
+        }
+        OH_NativeBuffer_Unmap(buffer);
+      }
+      {
+        std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+        g_native_screen_capture.frame_count += 1;
+        if (core_push_ok) {
+          g_native_screen_capture.core_frame_count += 1;
+        }
+        g_native_screen_capture.last_core_push_ok = core_push_ok;
+        g_native_screen_capture.last_payload_bytes = payload_bytes;
+        g_native_screen_capture.last_timestamp = timestamp;
+        g_native_screen_capture.last_buffer_format = buffer_config.format;
+        g_native_screen_capture.last_buffer_stride = buffer_config.stride;
+        if (buffer_config.width > 0) g_native_screen_capture.width = buffer_config.width;
+        if (buffer_config.height > 0) g_native_screen_capture.height = buffer_config.height;
+      }
+      OH_AVScreenCapture_ReleaseVideoBuffer(capture);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+  }
+}
+
+bool NativeScreenCaptureStopInternal() {
+  OH_AVScreenCapture *capture = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+    capture = g_native_screen_capture.capture;
+    g_native_screen_capture.running.store(false);
+  }
+  if (g_native_screen_capture.worker.joinable()) {
+    g_native_screen_capture.worker.join();
+  }
+  if (capture != nullptr) {
+    OH_AVScreenCapture_StopScreenCapture(capture);
+    OH_AVScreenCapture_Release(capture);
+  }
+  rustdesk_bridge_clear_incoming_screen_frame();
+  {
+    std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+    g_native_screen_capture.capture = nullptr;
+    g_native_screen_capture.active = false;
+  }
+  return true;
+}
+
+bool NativeScreenCaptureStart(int width, int height, int frame_rate) {
+  {
+    std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+    if (g_native_screen_capture.active && g_native_screen_capture.capture != nullptr) {
+      return true;
+    }
+  }
+  NativeScreenCaptureStopInternal();
+
+  const int capture_width = width > 0 ? width : 1280;
+  const int capture_height = height > 0 ? height : 720;
+  const int capture_fps = frame_rate > 0 ? frame_rate : 10;
+  OH_AVScreenCapture *capture = OH_AVScreenCapture_Create();
+  if (capture == nullptr) {
+    NativeScreenCaptureSetError("OH_AVScreenCapture_Create failed");
+    return false;
+  }
+
+  OH_AVScreenCaptureCallback callback = {};
+  callback.onError = NativeScreenCaptureOnError;
+  callback.onAudioBufferAvailable = NativeScreenCaptureOnAudioBuffer;
+  callback.onVideoBufferAvailable = NativeScreenCaptureOnVideoBuffer;
+  OH_AVScreenCapture_SetCallback(capture, callback);
+  OH_AVScreenCapture_SetMicrophoneEnabled(capture, false);
+
+  OH_AVScreenCaptureConfig config = {};
+  config.captureMode = OH_CAPTURE_HOME_SCREEN;
+  config.dataType = OH_ORIGINAL_STREAM;
+  config.audioInfo.micCapInfo.audioSource = OH_SOURCE_INVALID;
+  config.audioInfo.innerCapInfo.audioSource = OH_SOURCE_INVALID;
+  config.videoInfo.videoCapInfo.videoFrameWidth = capture_width;
+  config.videoInfo.videoCapInfo.videoFrameHeight = capture_height;
+  config.videoInfo.videoCapInfo.videoSource = OH_VIDEO_SOURCE_SURFACE_RGBA;
+  config.videoInfo.videoEncInfo.videoCodec = OH_VIDEO_DEFAULT;
+  config.videoInfo.videoEncInfo.videoFrameRate = capture_fps;
+  config.videoInfo.videoEncInfo.videoBitrate = capture_width * capture_height * capture_fps;
+
+  if (!NativeScreenCaptureOk(OH_AVScreenCapture_Init(capture, config), "OH_AVScreenCapture_Init")) {
+    OH_AVScreenCapture_Release(capture);
+    return false;
+  }
+  OH_AVScreenCapture_SetMaxVideoFrameRate(capture, capture_fps);
+  if (!NativeScreenCaptureOk(OH_AVScreenCapture_StartScreenCapture(capture), "OH_AVScreenCapture_StartScreenCapture")) {
+    OH_AVScreenCapture_Release(capture);
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+    g_native_screen_capture.capture = capture;
+    g_native_screen_capture.active = true;
+    g_native_screen_capture.width = capture_width;
+    g_native_screen_capture.height = capture_height;
+    g_native_screen_capture.frame_rate = capture_fps;
+    g_native_screen_capture.frame_count = 0;
+    g_native_screen_capture.core_frame_count = 0;
+    g_native_screen_capture.last_payload_bytes = 0;
+    g_native_screen_capture.last_core_push_ok = false;
+    g_native_screen_capture.last_error.clear();
+    g_native_screen_capture.last_error_code = 0;
+    g_native_screen_capture.running.store(true);
+  }
+  g_native_screen_capture.worker = std::thread(NativeScreenCaptureDrainLoop, capture, capture_fps);
+  OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,
+               "Native screen capture started width=%{public}d height=%{public}d fps=%{public}d",
+               capture_width, capture_height, capture_fps);
+  return true;
+}
+
+std::string NativeScreenCaptureStatsJson() {
+  std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+  std::string error = EscapeJsonString(g_native_screen_capture.last_error);
+  return std::string("{") +
+    "\"active\":" + (g_native_screen_capture.active ? "true" : "false") +
+    ",\"width\":" + std::to_string(g_native_screen_capture.width) +
+    ",\"height\":" + std::to_string(g_native_screen_capture.height) +
+    ",\"frameRate\":" + std::to_string(g_native_screen_capture.frame_rate) +
+    ",\"frameCount\":" + std::to_string(g_native_screen_capture.frame_count) +
+    ",\"coreFrameCount\":" + std::to_string(g_native_screen_capture.core_frame_count) +
+    ",\"payloadBytes\":" + std::to_string(g_native_screen_capture.last_payload_bytes) +
+    ",\"corePushOk\":" + (g_native_screen_capture.last_core_push_ok ? "true" : "false") +
+    ",\"timestamp\":" + std::to_string(g_native_screen_capture.last_timestamp) +
+    ",\"format\":" + std::to_string(g_native_screen_capture.last_buffer_format) +
+    ",\"stride\":" + std::to_string(g_native_screen_capture.last_buffer_stride) +
+    ",\"lastErrorCode\":" + std::to_string(g_native_screen_capture.last_error_code) +
+    ",\"lastError\":\"" + error + "\"}";
 }
 
 struct CoreFileInfo {
@@ -318,6 +577,93 @@ napi_value CopyLatestVideoFrame(napi_env env, napi_callback_info info) {
   return array_buffer;
 }
 
+napi_value GetIncomingScreenFrameMetadata(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  int64_t since_frame_id = 0;
+  if (argc > 0) napi_get_value_int64(env, args[0], &since_frame_id);
+  const char *metadata = rustdesk_bridge_get_incoming_screen_frame_metadata(static_cast<unsigned long long>(since_frame_id));
+  if (metadata == nullptr) return MakeNull(env);
+  const std::string copied(metadata);
+  rustdesk_bridge_string_free(metadata);
+  if (copied.empty() || copied == "null") return MakeNull(env);
+  return MakeString(env, copied);
+}
+
+napi_value CopyIncomingScreenFrame(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value args[2] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  int64_t frame_id = 0, expected_bytes = 0;
+  if (argc > 0) napi_get_value_int64(env, args[0], &frame_id);
+  if (argc > 1) napi_get_value_int64(env, args[1], &expected_bytes);
+  if (expected_bytes <= 0) return MakeNull(env);
+  void *data = nullptr;
+  napi_value array_buffer = nullptr;
+  napi_create_arraybuffer(env, static_cast<size_t>(expected_bytes), &data, &array_buffer);
+  const int copied = rustdesk_bridge_copy_incoming_screen_frame(static_cast<unsigned long long>(frame_id), static_cast<unsigned char *>(data), static_cast<unsigned long long>(expected_bytes));
+  if (copied <= 0 || copied != expected_bytes) return MakeNull(env);
+  return array_buffer;
+}
+
+napi_value UpdateIncomingScreenFrame(napi_env env, napi_callback_info info) {
+  size_t argc = 6;
+  napi_value args[6] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  int32_t width = 0, height = 0, stride = 0;
+  int64_t timestamp = 0;
+  std::string format;
+  if (argc > 0) napi_get_value_int32(env, args[0], &width);
+  if (argc > 1) napi_get_value_int32(env, args[1], &height);
+  if (argc > 2) napi_get_value_int32(env, args[2], &stride);
+  if (argc > 3) napi_get_value_int64(env, args[3], &timestamp);
+  if (argc > 4) ReadUtf8String(env, args[4], &format);
+  void *data = nullptr;
+  size_t data_len = 0;
+  if (argc > 5 && args[5] != nullptr) {
+    bool is_array_buffer = false;
+    napi_is_arraybuffer(env, args[5], &is_array_buffer);
+    if (is_array_buffer) {
+      napi_get_arraybuffer_info(env, args[5], &data, &data_len);
+    } else {
+      bool is_typed_array = false;
+      napi_is_typedarray(env, args[5], &is_typed_array);
+      if (is_typed_array) {
+        napi_typedarray_type type;
+        size_t length = 0;
+        napi_value array_buffer = nullptr;
+        size_t byte_offset = 0;
+        napi_get_typedarray_info(env, args[5], &type, &length, &data, &array_buffer, &byte_offset);
+        (void)array_buffer;
+        (void)byte_offset;
+        data_len = length;
+        if (type != napi_uint8_array && type != napi_uint8_clamped_array) {
+          data = nullptr;
+          data_len = 0;
+        }
+      }
+    }
+  }
+  if (data == nullptr || data_len == 0) return MakeBool(env, false);
+  return MakeBool(env, rustdesk_bridge_update_incoming_screen_frame(
+    width,
+    height,
+    stride,
+    timestamp,
+    format.c_str(),
+    static_cast<const unsigned char *>(data),
+    static_cast<unsigned long long>(data_len)) != 0);
+}
+
+napi_value ClearIncomingScreenFrame(napi_env env, napi_callback_info info) {
+  (void)info;
+  rustdesk_bridge_clear_incoming_screen_frame();
+  napi_value undefined = nullptr;
+  napi_get_undefined(env, &undefined);
+  return undefined;
+}
+
 napi_value RefreshSessionVideo(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1] = {nullptr};
@@ -520,6 +866,35 @@ napi_value SendAudioFrameMetadata(napi_env env, napi_callback_info info) {
   if (argc > 3) napi_get_value_int64(env, args[3], &timestamp);
   if (argc > 4) napi_get_value_int32(env, args[4], &data_length);
   return MakeBool(env, rustdesk_bridge_send_audio_frame_metadata(codec, sample_rate, channels, timestamp, data_length) != 0);
+}
+
+napi_value StartNativeScreenCapture(napi_env env, napi_callback_info info) {
+  size_t argc = 3;
+  napi_value args[3] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  int32_t width = 0;
+  int32_t height = 0;
+  int32_t frame_rate = 0;
+  if (argc > 0) napi_get_value_int32(env, args[0], &width);
+  if (argc > 1) napi_get_value_int32(env, args[1], &height);
+  if (argc > 2) napi_get_value_int32(env, args[2], &frame_rate);
+  return MakeBool(env, NativeScreenCaptureStart(width, height, frame_rate));
+}
+
+napi_value StopNativeScreenCapture(napi_env env, napi_callback_info info) {
+  (void)info;
+  return MakeBool(env, NativeScreenCaptureStopInternal());
+}
+
+napi_value IsNativeScreenCaptureActive(napi_env env, napi_callback_info info) {
+  (void)info;
+  std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+  return MakeBool(env, g_native_screen_capture.active && g_native_screen_capture.capture != nullptr);
+}
+
+napi_value GetNativeScreenCaptureStats(napi_env env, napi_callback_info info) {
+  (void)info;
+  return MakeString(env, NativeScreenCaptureStatsJson());
 }
 
 napi_value SendChatMessage(napi_env env, napi_callback_info info) {
@@ -818,6 +1193,15 @@ napi_value GetLatestVideoFrameMetadataJson(napi_env env, napi_callback_info info
   int64_t since_frame_id = 0;
   if (argc > 0) napi_get_value_int64(env, args[0], &since_frame_id);
   return MakeString(env, CopyOwnedText(rustdesk_bridge_get_latest_video_frame_metadata_json(static_cast<unsigned long long>(since_frame_id))));
+}
+
+napi_value GetIncomingScreenFrameMetadataJson(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  int64_t since_frame_id = 0;
+  if (argc > 0) napi_get_value_int64(env, args[0], &since_frame_id);
+  return MakeString(env, CopyOwnedText(rustdesk_bridge_get_incoming_screen_frame_metadata_json(static_cast<unsigned long long>(since_frame_id))));
 }
 
 napi_value MainStartService(napi_env env, napi_callback_info info) {
@@ -1145,10 +1529,7 @@ napi_value SessionTogglePrivacyMode(napi_env env, napi_callback_info info) {
   if (argc > 0) ReadUtf8String(env, args[0], &impl_key);
   bool on = false;
   if (argc > 1) napi_get_value_bool(env, args[1], &on);
-  rustdesk_bridge_session_toggle_privacy_mode(impl_key.c_str(), on ? 1 : 0);
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_toggle_privacy_mode(impl_key.c_str(), on ? 1 : 0) != 0);
 }
 
 napi_value SessionSwitchDisplay(napi_env env, napi_callback_info info) {
@@ -1157,24 +1538,15 @@ napi_value SessionSwitchDisplay(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
   int32_t display = 0;
   if (argc > 0) napi_get_value_int32(env, args[0], &display);
-  rustdesk_bridge_session_switch_display(display);
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_switch_display(display) != 0);
 }
 
 napi_value SessionEnterOrLeave(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_session_enter_or_leave();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_enter_or_leave() != 0);
 }
 
 napi_value SessionLeave(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_session_leave();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_leave() != 0);
 }
 
 napi_value SessionSetSize(napi_env env, napi_callback_info info) {
@@ -1231,10 +1603,7 @@ napi_value SessionElevateWithLogon(napi_env env, napi_callback_info info) {
 }
 
 napi_value SessionSwitchSides(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_session_switch_sides();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_switch_sides() != 0);
 }
 
 napi_value SessionTakeScreenshot(napi_env env, napi_callback_info info) {
@@ -1252,10 +1621,7 @@ napi_value SessionRecordScreen(napi_env env, napi_callback_info info) {
   napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
   bool start = false;
   if (argc > 0) napi_get_value_bool(env, args[0], &start);
-  rustdesk_bridge_session_record_screen(start ? 1 : 0);
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_record_screen(start ? 1 : 0) != 0);
 }
 
 napi_value SessionGetIsRecording(napi_env env, napi_callback_info info) {
@@ -1263,17 +1629,11 @@ napi_value SessionGetIsRecording(napi_env env, napi_callback_info info) {
 }
 
 napi_value SessionRequestVoiceCall(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_session_request_voice_call();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_request_voice_call() != 0);
 }
 
 napi_value SessionCloseVoiceCall(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_session_close_voice_call();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  return MakeBool(env, rustdesk_bridge_session_close_voice_call() != 0);
 }
 
 napi_value SessionAddPortForward(napi_env env, napi_callback_info info) {
@@ -3744,6 +4104,10 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"pullSessionEvents", nullptr, PullSessionEvents, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"getLatestVideoFrameMetadata", nullptr, GetLatestVideoFrameMetadata, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"copyLatestVideoFrame", nullptr, CopyLatestVideoFrame, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"getIncomingScreenFrameMetadata", nullptr, GetIncomingScreenFrameMetadata, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"copyIncomingScreenFrame", nullptr, CopyIncomingScreenFrame, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"updateIncomingScreenFrame", nullptr, UpdateIncomingScreenFrame, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"clearIncomingScreenFrame", nullptr, ClearIncomingScreenFrame, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"refreshSessionVideo", nullptr, RefreshSessionVideo, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"harmonyNextRgba", nullptr, HarmonyNextRgba, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"connectToPeer", nullptr, ConnectToPeer, nullptr, nullptr, nullptr, napi_default, nullptr},
@@ -3763,6 +4127,10 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"sendClipboardData", nullptr, SendClipboardData, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendVideoFrameMetadata", nullptr, SendVideoFrameMetadata, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendAudioFrameMetadata", nullptr, SendAudioFrameMetadata, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"startNativeScreenCapture", nullptr, StartNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"stopNativeScreenCapture", nullptr, StopNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"isNativeScreenCaptureActive", nullptr, IsNativeScreenCaptureActive, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"getNativeScreenCaptureStats", nullptr, GetNativeScreenCaptureStats, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendChatMessage", nullptr, SendChatMessage, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendFileTransferRequest", nullptr, SendFileTransferRequest, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"openTerminal", nullptr, OpenTerminal, nullptr, nullptr, nullptr, napi_default, nullptr},
@@ -3796,6 +4164,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"pullSessionEventsJson", nullptr, PullSessionEventsJson, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"pullAudioFramesJson", nullptr, PullAudioFramesJson, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"getLatestVideoFrameMetadataJson", nullptr, GetLatestVideoFrameMetadataJson, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"getIncomingScreenFrameMetadataJson", nullptr, GetIncomingScreenFrameMetadataJson, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainStartService", nullptr, MainStartService, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sessionSendMouse", nullptr, SessionSendMouse, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sessionInputKey", nullptr, SessionInputKey, nullptr, nullptr, nullptr, napi_default, nullptr},

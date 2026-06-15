@@ -228,8 +228,13 @@ $nativeBridgePath = "entry\src\main\ets\services\NativeRustDeskBridge.ts"
 $officialBridgePath = "entry\src\main\ets\services\OfficialRustDeskBridge.ets"
 $remoteControlPath = "entry\src\main\ets\pages\RemoteControl.ets"
 $indexPath = "entry\src\main\ets\pages\Index.ets"
+$screenCapturePath = "entry\src\main\ets\services\ScreenCaptureService.ets"
+$fileTransferPath = "entry\src\main\ets\pages\FileTransfer.ets"
+$permissionPath = "entry\src\main\ets\services\PermissionService.ets"
 $cmakePath = "entry\src\main\cpp\CMakeLists.txt"
 $loaderPath = "entry\src\main\cpp\rustdesk_bridge_loader.cpp"
+$abiPath = "entry\src\main\cpp\rustdesk_bridge_abi.h"
+$bridgeDtsPath = "entry\src\main\cpp\types\librustdesk_bridge\index.d.ts"
 $stubsPath = "entry\src\main\cpp\ohos_stubs.cpp"
 $corePath = Get-RepoPath "entry\src\main\libs\arm64\librustdesk_core.a"
 $hapResolvedPath = Resolve-HapPath
@@ -365,6 +370,32 @@ Invoke-AuditCheck 50 "Packaged native bridge has no missing time service depende
       Remove-Item -LiteralPath $tempDir -Recurse -Force
     }
   }
+}
+
+Invoke-AuditCheck 51 "CMake links native screen capture library" { Test-TextMatch $cmakePath "native_avscreen_capture" }
+Invoke-AuditCheck 52 "CMake links native buffer library" { Test-TextMatch $cmakePath "native_buffer" }
+Invoke-AuditCheck 53 "Screen capture service starts native capture through bridge" { Test-TextMatch $screenCapturePath "NativeRustDeskBridge\.startNativeScreenCapture" }
+Invoke-AuditCheck 54 "Screen capture service no longer uses recorder/screenshot APIs" {
+  $forbidden = "AVScreenCaptureRecorder|createAVScreenCaptureRecorder|SCREEN_RECORD_PRESET|rustdesk_screen_recording_probe|@ohos\.screenshot|screenshot\.capture"
+  Test-TextNotMatch $screenCapturePath $forbidden
+}
+Invoke-AuditCheck 55 "Index does not pre-request custom screen capture permission" {
+  Test-TextNotMatch $indexPath "requestPermissions\(\s*\[\s*'ohos\.permission\.CUSTOM_SCREEN_CAPTURE'\s*\]"
+}
+Invoke-AuditCheck 56 "Permission service does not request custom screen capture generically" {
+  Test-TextNotMatch $permissionPath "CUSTOM_SCREEN_CAPTURE"
+}
+Invoke-AuditCheck 57 "Native loader starts original-stream screen capture" { Test-TextMatch $loaderPath "OH_AVScreenCapture_StartScreenCapture" }
+Invoke-AuditCheck 58 "Native loader drains screen capture native buffers" { Test-TextMatch $loaderPath "OH_AVScreenCapture_AcquireVideoBuffer" }
+Invoke-AuditCheck 59 "Native loader pushes incoming screen frames into core" { Test-TextMatch $loaderPath "rustdesk_bridge_update_incoming_screen_frame" }
+Invoke-AuditCheck 60 "Core ABI declares incoming screen frame update" { Test-TextMatch $abiPath "rustdesk_bridge_update_incoming_screen_frame" }
+Invoke-AuditCheck 61 "Native bridge wrapper exposes incoming frame metadata" { Test-TextMatch $nativeBridgePath "static\s+getIncomingScreenFrameMetadata" }
+Invoke-AuditCheck 62 "Native bridge wrapper exposes incoming frame copy" { Test-TextMatch $nativeBridgePath "static\s+copyIncomingScreenFrame" }
+Invoke-AuditCheck 63 "Native d.ts exposes incoming frame update" { Test-TextMatch $bridgeDtsPath "updateIncomingScreenFrame" }
+Invoke-AuditCheck 64 "File transfer page bootstraps local access authorization" { Test-TextMatch $fileTransferPath "bootstrapFileTransferPage" }
+Invoke-AuditCheck 65 "File transfer local operations use access authorization guard" { Test-TextMatch $fileTransferPath "ensureLocalFileAccessAuthorization" }
+Invoke-AuditCheck 66 "File access authorization uses folder auth mode" {
+  Test-TextMatch $permissionPath "requestFileAuthorization\(\s*\{\s*folder:\s*true,\s*authMode:\s*true\s*\}\s*\)"
 }
 
 $passCount = @($results | Where-Object { $_.Status -eq "PASS" }).Count

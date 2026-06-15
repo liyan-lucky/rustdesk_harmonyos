@@ -2,6 +2,98 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-15 共享 native buffer 未进入核心缓存
+
+### 有 native 采集帧不等于 incoming ready，必须先进入独立入站帧缓存
+
+**现象**：App 侧已经从 `OH_AVScreenCapture_StartScreenCapture` 拿到 native buffer 统计，但 13 核心缺少接收 App native buffer payload 的 C ABI/NAPI 入口；只看 App 侧帧统计无法证明共享链路已经进入核心。
+
+**根因**：出站远控视频帧和入站被控共享帧方向不同，不能复用 `latest_video_frame`。如果直接因为 App native buffer 有帧就把 `incomingReady=true`，远端客户端会认为设备可被控，但 Harmony desktop server/video source 尚未消费这些帧，会造成假共享。
+
+**解决**：13 核心 `core-80` 新增独立 `incoming_screen_frame` latest-frame 缓存，暴露 `updateIncomingScreenFrame/getIncomingScreenFrameMetadata/copyIncomingScreenFrame/clearIncomingScreenFrame`；11 App C++ drain loop map `OH_NativeBuffer` 后调用 `rustdesk_bridge_update_incoming_screen_frame()`，并在 stats 中记录 `coreFrameCount/payloadBytes/corePushOk`。
+
+**验证**：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80`，线上 asset `131,624,954` bytes / SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`，release body 已补中文说明。11 App 强制下载线上 core-80 构建 `0.22.4` / versionCode `1000107`，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活。
+
+**教训**：共享链路至少分为“录屏 API 可启动”“App native buffer 有帧”“核心已接收入站 payload”“desktop server/video source 已消费帧并可对外服务”。只有最后一层完成后才能把 `incomingReady` 置 true。
+
+## 2026-06-15 共享录屏误用 AVScreenCaptureRecorder/临时 mp4 探测
+
+### 当前共享录屏底层必须走 native StartScreenCapture，不再使用 recorder 文件探测
+
+**现象**：共享录屏虽然已经去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，但 `ScreenCaptureService` 仍创建 `AVScreenCaptureRecorder` 并写临时 mp4 文件做录制探测；用户看到系统录屏状态时容易继续误判为“截屏 API/录制 API 混用”，也会把本地文件录制探测误当成 RustDesk live frame。
+
+**根因**：`AVScreenCaptureRecorder` 的语义是屏幕录制到文件，更适合历史阶段探测授权；它不会天然把 frame payload 接入 RustDesk desktop server/video source。共享链路需要的是 live buffer，因此应使用 OHOS native `OH_AVScreenCapture_StartScreenCapture` + `OH_AVScreenCapture_AcquireVideoBuffer`，再把 native buffer 转成后续 RustDesk 视频源输入。
+
+**解决**：`ScreenCaptureService` 删除 `AVScreenCaptureRecorder`、临时 mp4 文件和 `@ohos.multimedia.media` 依赖，改为调用 C++ NAPI `startNativeScreenCapture/stopNativeScreenCapture/isNativeScreenCaptureActive/getNativeScreenCaptureStats`；C++ bridge 链接 `native_avscreen_capture`、`native_buffer`，使用 `OH_AVScreenCapture_StartScreenCapture` 启动采集，并在后台线程轮询 native buffer 做帧统计。
+
+**验证**：`scripts\build_hap.bat` 通过，`0.22.2` / versionCode `1000105` 已验证 native StartScreenCapture 替换；后续 `0.22.4` / versionCode `1000107` 强制拉取 `core-80` 后再次验证通过，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`，66 项连接链路审计和干净 app hilog 均通过，设备端进程 `14881` 存活。
+
+**教训**：文件录制成功、native buffer 有统计、核心入站帧缓存有 payload、核心 `incomingReady=true` 是不同层级。当前 0.22.4 已把 App native 采集 payload 推进核心缓存，但真实共享还必须继续实现 OHOS 采集帧到 RustDesk desktop server/video source 的桥接，完成前不能把共享 UI 标记为真实运行。
+
+## 2026-06-15 共享启动预申请截屏/屏幕捕获权限
+
+### 录屏授权必须由真实录屏 API 触发，不能先调普通权限申请
+
+**现象**：点击共享启动时，系统先出现类似截屏/屏幕捕获的授权提示，然后才可能进入录屏状态；这会让共享录屏看起来像同时唤起了截屏 API。
+
+**根因**：`Index.checkScreenCapturePermissionAndToggle()` 在调用核心 incoming 前显式请求 `ohos.permission.CUSTOM_SCREEN_CAPTURE`。该权限在系统侧属于屏幕捕获/截屏类授权，不等同于 RustDesk 被控链路的 live frame，也不应该在核心尚未 ready 时提前弹出。
+
+**解决**：去掉共享启动前的 `CUSTOM_SCREEN_CAPTURE` 显式 `requestPermissionsFromUser`；`PermissionService.getRequiredPermissions()` 和 `requestShareRuntimePermissions()` 也不再把它作为普通功能权限申请。保留 manifest 声明，真正录屏授权只由 native `OH_AVScreenCapture_StartScreenCapture` 在 `incomingReady=true` 后触发。
+
+**验证**：`0.22.1` 已验证去掉预申请；`0.22.2` 进一步去掉 `AVScreenCaptureRecorder`/临时 mp4 探测，验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `62121` 存活。
+
+**教训**：共享链路里“权限位已申请”“录屏授权弹窗”“核心 incoming ready”“真实 live frame”是四个不同状态，不能用前一个状态替代后一个状态。
+
+## 2026-06-15 文件管理页未主动唤起文件访问授权
+
+### 文件传输页自身必须兜底调用 DocumentViewPicker 目录授权
+
+**现象**：从文件管理/文件传输页进入后，本地文件列表和上传/下载目标可能直接读 `/storage/Users/currentUser/Download`，但没有唤起系统文件访问授权。
+
+**根因**：远控菜单和共享页开关已有文件授权入口，但 `FileTransfer.ets` 页面自身没有兜底；直接进入页面、切到本地或刷新本地时只调用 `FileTransferService.listDirectory()`。同时 `requestFileAccessAuthorization()` 默认未固定为目录授权模式。
+
+**解决**：`FileTransfer.ets` 在页面进入、切到本地、刷新本地、打开本地目录、上传/下载、本地新建/删除前统一调用 `PermissionService.requestFileAuthorization({ folder: true, authMode: true })`；`PermissionService.requestFileAccessAuthorization()` 默认也改成目录授权模式。聊天发文件、核心导入这类“选择单个文件”入口仍直接调用 `requestFileAuthorization({ maxSelectNumber: 1 })`。
+
+**验证**：同 0.22.1 增量构建和无线安装验证；新增中文/英文 `File access authorized` 文案，文件授权失败继续提示 `File access permission denied`。
+
+**教训**：文件管理页面不能假设调用方已经授权；页面级本地文件操作必须自己兜底唤起 `DocumentViewPicker`，普通权限位通过不代表用户完成了文件访问授权。
+
+## 2026-06-15 远控会话录制误用本机录屏 API
+
+### 远控会话命令必须走核心 direct function 并返回真实状态
+
+**现象**：远控页“会话录制”开启时会请求 `CUSTOM_SCREEN_CAPTURE` 并启动 `ScreenCaptureService`，导致系统进入本机录屏状态；“切换主控端/截图/语音聊天”等菜单虽然有核心函数，但 UI 部分仍走通用 option 或本地音频状态，无法判断无活动 session 时命令是否真正发出。
+
+**根因**：早期 UI 把“远端会话录制”和“入站共享/录屏探测”混在一起；核心 direct session 函数也多为 void，ArkTS 只能按函数存在推断成功。只检查 wrapper 名称不够，必须检查 Rust bridge、C ABI、C++ NAPI、d.ts、ArkTS wrapper、UI caller 以及事件回流。
+
+**解决**：13 核心 commit `bc36b1d` 已将相关 session 函数改为 bool 返回，并补 `voice-call-*`、`record-status`、`screenshot-response` 事件；该核心已由 run `27516993020` 发布为 `core-79`。11 App 远控菜单改用 `sessionSwitchSides/sessionTakeScreenshot/sessionRecordScreen/sessionRequestVoiceCall/sessionCloseVoiceCall`，会话录制不再请求本机录屏权限或启动 `ScreenCaptureService`。`0.22.0` / versionCode `1000103` 已全量构建、验包、连接链路审计、无线安装启动和 app-only hilog 验证通过。
+
+**教训**：入站共享链路和远控会话命令必须分离。本机屏幕采集只属于共享/被控链路，远控菜单中的录制、截图、切换方向和语音呼叫都必须以核心 active session 返回值和回调事件为准。
+
+## 2026-06-15 共享开关提前唤起录屏探针
+
+### 已修复 App 状态与启动顺序，核心 live frame 仍待实现
+
+**现象**：共享开关打开后即使核心返回 `incomingReady=false`，App 仍会先启动 `AVScreenCaptureRecorder` 写 MP4 探针文件，系统出现录屏状态，容易与真实 RustDesk 被控共享混淆。
+
+**根因**：`Index.toggleIncomingService(true)` 原先先调用 `ScreenCaptureService.startCapture()`，再调用核心 `setIncomingServiceEnabled()`；但当前 13 核心 `main_start_service(true)` 明确返回 `incoming-service-unavailable`，`send_video_frame_metadata()` 仍为 false，OHOS `scrap::Capturer` 也尚未实现 live frame。
+
+**解决**：共享启动顺序改为先写 `enable-screen-capture` option 并调用核心，被控服务只有在 `officialCoreState.incomingReady=true` 后才启动屏幕采集。核心未 ready 时 UI 显示 `Share requested/Requested` 和核心错误详情，不再显示“服务运行中”或设备 ID/密码。
+
+**后续**：真实共享还需要补 13 核心 `server_ohos.rs`、`scrap::common::ohos::Capturer` 与 OHOS native `OH_AVScreenCapture` live buffer 到 RustDesk video source 的链路。
+
+## 2026-06-15 核心 C++ 源项目聊天 ABI 漏同步
+
+### App 副本修好不等于核心源项目修好
+
+**现象**：11 App 项目 `entry/src/main/cpp` 已经把 `rustdesk_bridge_session_send_chat` 修为四参调用（`peer_id/message_type/content/timestamp`），但 13 核心项目真实源码 `cpp/rustdesk_bridge_abi.h` 和 `cpp/rustdesk_bridge_loader.cpp` 仍是旧的一参 `content` 调用。
+
+**根因**：前一轮紧急修复落在 App 同步副本，核心源项目没有完全回同步；后续如果从 13 项目重新同步 `cpp/`，会把 App 的已修聊天发送路径覆盖回旧 ABI 调用。
+
+**解决**：在真实 `F:\Visual_Studio_Code\13_librustdesk_core` 中把 C++ ABI 声明和 `SendChatMessage`/`SessionSendChat` 调用同步为四参，并保留一参 fallback；同时补齐核心 d.ts 中 `connectToPeer/setIncomingServiceEnabled` 的自建服务器 `key` 参数。本地核心构建通过，commits `034e446`、`cc5f4de` 已推送，线上 run `27515510727` 已成功发布 `core-78`；11 App 已下载该核心并全量构建 `0.21.0`，无线安装和 hilog 验证通过。
+
+**教训**：核心 ABI 修复必须同时检查 13 核心项目和 11 App 同步副本；`bridge_api.rs`、`rustdesk_bridge_abi.h`、`rustdesk_bridge_loader.cpp` 三层签名必须完全一致，否则 C 调用约定下会出现参数错位且不一定编译报错。
+
 ## 2026-06-14 聊天发送失败根因修复
 
 ### C++ 调用 rustdesk_bridge_session_send_chat 参数数量不匹配
@@ -856,7 +948,7 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 ### official set_incoming_service_enabled 返回空导致共享服务无法确认 (2026-06-03发现, 已修复崩溃与状态确认)
 **现象**: 共享页启动服务后 native 返回 `{}`，ArkTS 只能判断 incoming 未确认，服务显示无法启动。
 **根因**: 上游 Harmony bridge 中 `set_incoming_service_enabled()` 仍是 stub。
-**解决**: native bridge 已改为写入 server option、`stop-service`，并请求 `start_server(true, false)`；历史 `@ohos.screenshot.capture()` 屏幕捕获探测/截图路径已废弃，当前 App 侧使用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 做录屏授权/录制探测。
+**解决**: native bridge 已改为写入 server option、`stop-service`，并请求 `start_server(true, false)`；历史 `@ohos.screenshot.capture()` 屏幕捕获探测/截图路径已废弃，`AVScreenCaptureRecorder`/临时 mp4 探测也已在 2026-06-15 由 native `OH_AVScreenCapture_StartScreenCapture` + buffer 统计替换。
 **剩余风险**: 最新 HAP 已安装到 USB 设备，但设备锁屏导致 `aa start` 失败，仍需解锁后通过共享 Tab 和 hilog 验证服务是否真正监听并可被其他设备访问。
 
 **2026-06-03 10:53 更新**: 已完成 USB 复测。直接启动桌面端 `start_server(true, false)` 会在 Harmony appspawn 环境触发 `exit(-1)` / `signal:6`，因此 native Harmony bridge 已改为安全 incoming requested 路径，不再启动该桌面 server 线程。`get_core_snapshot_json()` 已返回当前 `incomingReady`，前端轮询重试已收敛为单次延迟刷新。最新装机日志中 `incoming-service-requested` 只出现 1 次，App 进程稳定，无 `signal:6`。
@@ -868,6 +960,7 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **根因**: 文件访问授权与普通权限请求混在一起，缺少 `DocumentViewPicker` 授权入口。
 **解决**: `PermissionService` 新增 `requestFileAccessAuthorization()`，在权限位通过后调用 `DocumentViewPicker.select()`；共享页和远控页统一使用该入口。
 **2026-06-14 更新**: `FileAuthorizationService.ts` 作为 TS 层统一文件授权入口，先请求 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST`，再唤起 `DocumentViewPicker` 返回 URI。TS 文件不能 import ETS，因此 `CoreLoaderService.ts` 等 TS 服务必须调用 TS 授权服务，不能直接引用 `PermissionService.ets`。文件传输页本地列表已从虚拟/固定路径模型改为读取真实下载目录；任意外部 URI 选择后直接加入传输队列仍属于后续平台扩展，不再影响下载目录路径的真实传输。
+**2026-06-15 更新**: 文件传输页自身也必须兜底授权，不能只依赖远控菜单或共享页开关。`FileTransfer.ets` 已在进入页面、切到本地、刷新本地、上传/下载、本地新建/删除前调用目录授权；`requestFileAccessAuthorization()` 默认改为 `{ folder: true, authMode: true }`。
 
 ### 悬浮窗设置只持久化、不申请系统授权 (2026-06-03发现，已修复)
 **现象**: `Enable floating window` 在主设置页和旧设置页中只修改 `enableFloatingWindow`，没有触发 `SYSTEM_FLOAT_WINDOW` 授权；用户可能以为功能已开启。
@@ -914,7 +1007,7 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 ### 屏幕采集使用截图API导致崩溃 (2026-06-03发现, 已处理)
 **现象**: 共享服务使用 `@ohos.screenshot.capture()` 作为 fallback，实机触发 signal:6 崩溃。
 **根因**: 截图API不适合作为持续录屏方案，高频调用导致系统压力过大或权限不匹配。`@ohos.avScreenCapture` 在当前SDK中无类型声明，编译不可用。
-**解决**: 历史阶段 `ScreenCaptureService.startScreenCaptureSession()` 明确禁用截图 fallback；2026-06-14 起改为使用当前 SDK 可用的 `@ohos.multimedia.media` / `AVScreenCaptureRecorder` 触发系统录屏授权并写临时录制文件做状态探测。真实屏幕采集仍需把录屏帧接入 RustDesk 被控视频源。
+**解决**: 历史阶段 `ScreenCaptureService.startScreenCaptureSession()` 明确禁用截图 fallback；2026-06-14 曾改用 `@ohos.multimedia.media` / `AVScreenCaptureRecorder` 做临时授权/录制探测，2026-06-15 已继续替换为 native `OH_AVScreenCapture_StartScreenCapture` + `AcquireVideoBuffer` 统计。真实屏幕采集仍需把录屏帧接入 RustDesk 被控视频源。
 **教训**: ✅录屏和截图是不同API，不能用截图 fallback 替代录屏；✅发现 SDK 新增/可用媒体录屏 API 后要更新文档和实现，不要继续沿用旧“不可用”结论；✅未接通 live frame 前不得把 incoming 状态伪装成已就绪。
 
 ### 入站被控无视频源却标记 incomingReady 导致远端等待视频流 (2026-06-12发现, 已修复状态)
@@ -922,6 +1015,42 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **根因**: 13 核心 `main_start_service(true)` 只刷新 rendezvous/状态，没有启动 desktop server，也没有真实 Harmony 屏幕采集链路，却返回 `incomingReady=true`。11 端在 `ScreenCaptureService.startCapture()` 失败后仍继续请求 native incoming，造成“可被控”假阳性。
 **解决**: 11 端共享开关在录屏启动失败时回滚 `serviceEnabled=false` 和 `allowRemoteControl=false`，并调用 native 关闭 incoming；13 端 `main_start_service(true)` 在未接入屏幕采集/desktop server 时返回 `incomingReady=false`、`lastError/detailMessage` 明确不可用。
 **教训**: ✅等待视频流要先区分出站控制端和入站被控端；✅无真实视频源时不能用 ready 状态安慰 UI；✅未接入平台录屏能力前，应明确不可用，避免远端客户端进入无尽等待。
+
+### 共享页把录屏探测误显示为服务运行中 (2026-06-14发现, 已修复UI状态)
+**现象**: 核心已返回 `incomingReady=false` 时，只要本机录屏探测（当时为 `AVScreenCaptureRecorder`）处于 active，共享页仍显示“服务运行中”、绿色/运行态徽标，并展示设备 ID 和一次性密码。
+**根因**: `Index.isShareServiceRunning()` 同时判断了 `officialCoreState.incomingReady` 和 `ScreenCaptureService.isCapturingActive()`，把本地授权/录制探测状态聚合成了真实被控服务状态。
+**解决**: `isShareServiceRunning()` 改为只认 `settings.serviceEnabled && officialCoreState.incomingReady`；新增录屏探测状态和停止可用状态，探测中显示黄色 `Recording Probe`，隐藏设备 ID/密码，但保留“停止服务”按钮用于关闭探测。
+**教训**: ✅授权/录制探测只是前置条件，不是 RustDesk desktop server 被控链路；✅UI 的运行态、ID/密码展示和 TAB 绿点必须只由核心 incoming ready 决定；✅真实共享链路需要 Native `OH_AVScreenCapture` live buffer/payload 桥接后再升级状态。
+
+### latest core 网络中断导致 HAP 构建提前失败 (2026-06-14发现, 已修复脚本容错)
+**现象**: `scripts\build_hap.bat` 启动时 `fetch_native_core.ps1` 对 GitHub latest core 的 HEAD 请求失败，随后下载也被本机网络中断，构建在 ArkTS 编译前退出；本地已有已验证 `librustdesk_core.a`。
+**根因**: 脚本把 HEAD 失败一律视为“远程可能变化，必须下载”，没有在网络不可用时验证并复用本地核心。
+**解决**: HEAD 失败且本地核心存在时跳过下载并继续走 `Assert-CoreFile`；下载中断但本地核心存在时清理临时文件并复用本地核心；本地核心缺失或校验不通过时仍然失败。
+**教训**: ✅核心下载脚本要区分“远程不可达”和“本地核心不可用”；✅构建入口应优先保证可复现，网络拉 latest 失败时不能丢弃已验证产物。
+
+### 项目备份脚本跟随核心 junction 导致清理失败 (2026-06-15发现, 已修复)
+**现象**: 性能优化前执行 `scripts\backup_project.ps1` 时，robocopy 跟随 `13_librustdesk_core` junction 复制核心项目和深层 `.git/refs/codex/...`，压缩后清理 TEMP stage 报长路径/权限错误，脚本退出失败。
+**根因**: 备份脚本缺少构建 staging 已有的 junction 排除规则，也没有使用 robocopy `/XJ`。
+**解决**: `backup_project.ps1` 显式排除 `13_librustdesk_core`，robocopy 增加 `/XJ /R:2 /W:1`，并增加只允许删除 TEMP 内路径的安全清理函数。
+**教训**: ✅所有复制项目树的脚本都必须排除 app 根下的核心 junction；✅备份成功要看脚本退出码，不能只看 zip 是否生成。
+
+### 质量监控面板未渲染动态指标导致链路审计失败 (2026-06-15发现, 已修复)
+**现象**: `scripts\audit_connection_chain.ps1` 第44/45项失败：连接信息面板不是可滚动结构，且没有渲染 `qualityMetricItems` 动态指标行。
+**根因**: 质量状态解析和缓存已存在，但面板只显示固定 7 行，核心上报的 target bitrate、codec format 等动态字段没有进入 UI。
+**解决**: 连接质量浮层改为 `Scroll -> Column({ space: 8 })`，基础 7 行继续显示，并用 `ForEach(this.qualityMetricItems)` 追加动态指标行；复用缓存，不增加解析开销。
+**教训**: ✅审计脚本失败应先核对真实 UI 行为，不要只改规则；✅质量状态可以缓存后渲染，避免每次面板显示再解析 detail。
+
+### 调试安装后手机自动锁屏阻断启动验证 (2026-06-15发现, 已临时调整默认值)
+**现象**: 多次 HAP 安装/启动验证时设备容易自动锁屏，导致 `aa start` 或运行态 hilog 验证被锁屏阻断。
+**根因**: 关于区 `Debug Keep Screen Awake` 默认关闭，升级后旧偏好仍保持 false，调试期间无法主动避免锁屏。
+**解决**: `debugKeepScreenAwake` 默认值临时改为 true，并增加一次性迁移 `debug_keep_screen_awake_default_on_20260615`，升级后自动开启一次；用户手动关闭后，迁移标记已写入，不会被后续启动强制恢复。
+**教训**: ✅调试型默认值变更要考虑已有设备偏好迁移；✅避免锁屏的开关必须既能升级生效，也要保留用户手动关闭能力。
+
+### 临时 USB 安装模式仍尝试无线且缺少 targets log (2026-06-15发现, 已修复脚本)
+**现象**: 需要临时改为 USB 安装测试时，`AUTO_BUILD_INSTALL.bat --skip-build auto` 仍会尝试无线目标；初次加入 USB-only 后，在没有固定 USB target 且 HDC 返回空时未生成 targets log，错误信息缺少当前目标列表。
+**根因**: 安装脚本只有 auto/显式 target 两种模式，没有“只用 USB/local HDC 目标”的分支；USB-only 分支跳过无线后没有补一次 `hdc list targets`。
+**解决**: 新增 `usb` / `--usb` 目标模式，跳过无线 `tconn` 和无线重启重试，只从 HDC 列表选择不含冒号的本地目标；无目标时仍打印当前 `hdc list targets`。
+**教训**: ✅USB 安装测试要有独立入口，避免无线连接状态污染验证结果；✅错误输出必须包含 HDC 当前目标列表。
 
 ### 新旧两套设置页面重复 (2026-06-03发现, 已修复)
 **现象**: Settings.ets（独立设置页）与Index.ets内嵌设置区域高度重复，RemoteSettingsPanel.ets是死代码从未被使用。

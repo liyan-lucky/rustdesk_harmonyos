@@ -2,6 +2,131 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.22.4 (2026-06-15)
+
+### 核心
+
+- **接入 core-80 入站屏幕帧缓存桥**：13 核心 commit `12ad723` 已由 GitHub Actions run `27526413545` 发布为 `core-80`；线上 asset `librustdesk_core.a` `131,624,954` bytes，SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`，release 已补中文说明。
+- **共享 native buffer 进入核心缓存**：App C++ NAPI 的 `OH_AVScreenCapture_StartScreenCapture` / `OH_AVScreenCapture_AcquireVideoBuffer` 会把 native buffer payload 通过 `rustdesk_bridge_update_incoming_screen_frame` 推入核心，并暴露 `getIncomingScreenFrameMetadata/copyIncomingScreenFrame/clearIncomingScreenFrame`。
+- **保持安全边界**：`incomingReady` 仍保持 false，直到 Harmony desktop server / RustDesk 被控端视频源真正接通，避免只因本机有采集帧就假显示共享可连接。
+
+### 验证
+
+- `scripts\build_hap.bat` 强制下载 latest core 后增量构建通过，版本 `0.22.4` / versionCode `1000107`，BuildInfo 时间 `2026-06-15 07:15`。
+- signed HAP `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`。
+- `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过；`audit_connection_chain.ps1` 已扩展到 `66 PASS, 0 FAIL, 0 SKIP`，覆盖 native screen capture、incoming frame bridge 和文件授权兜底。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.4`、`versionCode=1000107`，进程 `14881` 存活。
+- 清空 hilog 后重新抓取 `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt`：`coreReady=4`、`query-onlines-result=8`、app fatal/panic/`exit(-1)` 为 0，app 相关 `signal` 为 0；日志中的 `signal` 仍为系统 Wi-Fi `HandleSignalPollChangedMsg unsupported` 噪声。
+
+## v0.22.2 (2026-06-15)
+
+### 修复
+
+- **共享录屏改为原生 StartScreenCapture**：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder`、不再写临时 mp4 探测文件，改为调用 C++ NAPI `startNativeScreenCapture/stopNativeScreenCapture`，底层使用 `OH_AVScreenCapture_StartScreenCapture` 和 native buffer 取帧统计。
+- **屏幕采集 NAPI 补齐**：`rustdesk_bridge_loader.cpp` 新增原生采集启动/停止/active/stats 导出，CMake 链接 `native_avscreen_capture` 与 `native_buffer`，ArkTS d.ts 和 `NativeRustDeskBridge.ts` 同步包装。
+
+### 验证
+
+- `scripts\build_hap.bat` 增量构建通过，版本 `0.22.2` / versionCode `1000105`，BuildInfo 时间 `2026-06-15 06:17`。
+- signed HAP `18,946,878` bytes，SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`。
+- `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.2`、`versionCode=1000105`，进程 `62121` 存活。
+- `reports\hilog_latest_after_0222_wireless_app_strict.txt` 统计：`coreReady=1`、`query-onlines-result=2`，app fatal/panic/`exit(-1)` 均为 0；日志中的 `signal` 为 Wi-Fi 服务 `HandleSignalPollChangedMsg unsupported`，不是 `com.open.rundesk` 崩溃。
+
+## v0.22.1 (2026-06-15)
+
+### 修复
+
+- **共享启动不再预申请截屏/屏幕捕获权限**：`Index` 去掉启动共享前对 `CUSTOM_SCREEN_CAPTURE` 的显式 `requestPermissionsFromUser` 调用，避免系统先弹“截屏/屏幕捕获”授权；该版本仍由后续 `AVScreenCaptureRecorder` 采集链路触发录屏授权，已在 `v0.22.2` 替换为 native `StartScreenCapture`。
+- **文件管理唤起文件访问授权**：文件传输页进入、切到本地、刷新本地、上传/下载/本地新建/删除前都会走 `DocumentViewPicker` 目录授权；`PermissionService.requestFileAccessAuthorization()` 默认改为目录授权模式。
+- **文案修正**：`Screen capture denied` 中文改为“录屏授权拒绝”，避免把共享录屏误描述成截屏。
+
+### 验证
+
+- `scripts\build_hap.bat` 增量构建通过，版本 `0.22.1` / versionCode `1000104`，BuildInfo 时间 `2026-06-15 06:01`。
+- signed HAP `18,953,784` bytes，SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`。
+- `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.1`、`versionCode=1000104`，进程 `56711` 存活。
+- `reports\hilog_latest_after_0221_wireless_app_strict.txt` 统计：`coreReady=71`、`initializeRuntimeFn returned=3`、`Bootstrap snapshot=1`、`query-onlines-result=134`，app fatal/panic/signal/`exit(-1)` 均为 0。
+
+## v0.22.0 (2026-06-15)
+
+### 修复
+
+- **远控 direct session 命令接入**：切换主控端、截图、会话录制、语音聊天改用核心 direct function 的 bool 返回值；无活动 session 时提示 `Command unavailable`，不再误报成功。
+- **会话录制与本机录屏分离**：远控“会话录制”不再请求 `CUSTOM_SCREEN_CAPTURE` 或启动 `ScreenCaptureService`，避免和共享/录屏探测状态冲突。
+- **核心事件回写 UI 状态**：新增消费 `record-status`、`voice-call-started`、`voice-call-waiting`、`voice-call-closed`、`screenshot-response`，并补齐相关中文 toast。
+
+### 核心
+
+- 13 核心 commit `bc36b1d` 已由 GitHub Actions run `27516993020` 发布为 `core-79`；线上 asset `librustdesk_core.a` `131,493,470` bytes，SHA256 `8BBB12AA93EE8703ABBED5BA6D411031AD78CE7FA6A71D7C407A0A350A8789F2`，release 已补中文更新说明。
+
+### 验证
+
+- `scripts\build_full_hap.bat` 已拉取 core-79 并全量构建 `0.22.0` / versionCode `1000103`，BuildInfo 时间 `2026-06-15 01:55`。
+- signed HAP `18,929,896` bytes，SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`。
+- `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.0`、`versionCode=1000103`，进程 `56136` 存活。
+- `reports\hilog_latest_after_core79_wireless_app_only.txt` 统计：`coreReady=187`、`initializeRuntimeFn returned=3`、`Bootstrap snapshot=1`、`query-onlines-result=366`、app fatal/panic/signal/`exit(-1)` 均为 0。
+
+## v0.21.0 (2026-06-15)
+
+### 核心
+
+- **core-78 已接入验证**：13 核心项目聊天四参 ABI 回同步和 d.ts 自建服务器 `key` 参数修复已由 GitHub Actions run `27515510727` 发布为 `core-78`，release asset `librustdesk_core.a` 为 `131,470,442` bytes，SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`。
+- **全量 HAP 重新构建**：11 App 通过 `scripts\build_full_hap.bat` 下载 `core-78` 后全量构建为 `0.21.0` / versionCode `1000102`，BuildInfo 时间 `2026-06-15 01:02`。
+
+### 验证
+
+- signed HAP `18,928,728` bytes，SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`。
+- `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 验包通过，`scripts\audit_connection_chain.ps1` 连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`。
+- 无线目标 `192.168.11.100:36169` 复装启动成功；设备端 `bm dump` 显示 `versionName=0.21.0`、versionCode `1000102`，`pidof com.open.rundesk` 返回 `41841`。`reports\hilog_latest_after_core78_wireless.txt` 记录 `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 均为 0。
+
+## v0.20.5 (2026-06-15)
+
+### 修复
+
+- **共享启动顺序**：打开共享时不再先启动 `AVScreenCaptureRecorder` MP4 录屏探针，改为先调用核心 `setIncomingServiceEnabled`；只有核心返回 `incomingReady=true` 后才启动屏幕采集，避免核心明确不可用时仍唤起录屏并把 UI 误判为共享中。
+- **共享未就绪状态**：共享开关打开但核心未 ready 时新增 `Share requested` / `Requested` 状态和中文翻译，直接展示核心错误或详情，不再显示成“未运行/请再次点击”。
+
+### 验证
+
+- 增量 HAP 构建通过，版本 `0.20.5` / versionCode `1000101`，signed HAP `18,928,713` bytes，SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`。
+- 同包 native/signature 验证通过，连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`；无线安装启动到 `192.168.11.100:36169` 成功，设备端 `bm dump` 和 `pidof` 确认版本与进程存活。
+
+## v0.20.4 (2026-06-15)
+
+### 构建/部署
+
+- **USB-only 安装模式**：`AUTO_BUILD_INSTALL.bat --skip-build usb` 只检测 USB/HDC 本地目标，不再尝试无线目标，便于临时改用 USB 安装测试。
+- **无线复装验证**：USB-only 脚本/文档变更重新构建后，`AUTO_BUILD_INSTALL.bat --skip-build auto` 已把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.100:36169`；设备端 `bm dump` 和 `pidof` 均确认运行中，同包 native/signature 验证和连接链路审计通过。
+- **核心后续状态**：13 核心项目聊天发送 ABI 源文件同步问题和核心 d.ts 自建服务器 `key` 参数已在后续 `core-78` 中发布，并由 11 App `0.21.0` 全量下载构建、无线安装和 hilog 验证通过。
+
+## v0.20.3 (2026-06-15)
+
+### 调试
+
+- **调试保持亮屏默认开启**：关于区 `Debug Keep Screen Awake` 临时改为默认开启，并增加一次性迁移，升级后自动开启一次，避免调试安装/启动验证时手机自动锁屏；用户仍可手动关闭。
+
+## v0.20.2 (2026-06-15)
+
+### 修复
+
+- **质量监控面板**：连接质量浮层改为可滚动，并渲染核心上报的动态质量指标，连接链路审计恢复 `50 PASS, 0 FAIL`。
+- **项目备份脚本**：`backup_project.ps1` 排除 `13_librustdesk_core` junction 并使用 robocopy `/XJ`，避免备份跟随核心项目导致深路径/权限清理失败。
+
+## v0.20.1 (2026-06-14)
+
+### 修复
+
+- **共享页录屏探测状态**：录屏探测中不再显示为“服务运行中”，也不再展示设备 ID 和一次性密码；真正共享运行态只由核心 `incomingReady=true` 决定。
+- **共享页停止按钮**：录屏探测已启动但核心被控服务未就绪时，仍保留“停止服务”按钮用于关闭探测。
+- **核心下载脚本容错**：远程 latest core HEAD/下载失败但本地核心已存在时，继续使用本地已验证核心，避免网络瞬断阻断 HAP 构建。
+
+### 文档
+
+- 记录 `AVScreenCaptureRecorder` 只能作为授权/录制探测，真实共享链路仍需 Native `OH_AVScreenCapture` live buffer 到 RustDesk desktop server/video source 的桥接。
+
 ## v0.20.0 (2026-06-14)
 
 ### 新增
