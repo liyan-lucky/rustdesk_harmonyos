@@ -62,7 +62,7 @@
 
 | 文件 | 行数 | 作用 |
 |------|------|------|
-| `Index.ets` | 6013 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享启动不再预申请 `CUSTOM_SCREEN_CAPTURE`，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标 |
+| `Index.ets` | 6016 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享启动不再预申请 `CUSTOM_SCREEN_CAPTURE`，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标，最近聊天摘要使用明确分隔符避免中文错字 |
 | `RemoteControl.ets` | 5080 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息；聊天按钮弹出语音/文字模式；远控更多菜单的切换主控端/截图/会话录制必须走核心 direct session function，会话录制禁止启动本机 `ScreenCaptureService`；本地音频上传当前提示不可用，避免metadata-only接口假启动 |
 | ~~`Settings.ets`~~ | - | 已删除，设置功能合并到Index.ets设置tab |
 | `FileTransfer.ets` | 753 | 文件传输页面，进入/切到本地/刷新/上传/下载/本地新建删除前唤起 `DocumentViewPicker` 目录授权，加载本地下载目录和远端目录，创建/删除/上传/下载队列入口 |
@@ -94,7 +94,7 @@
 | `InputService.ets` | 353 | 输入服务(鼠标/键盘/触摸) |
 | `HttpClient.ets` | 415 | HTTP客户端 |
 | `ClipboardService.ets` | 246 | 剪贴板服务(双向同步) |
-| `PermissionService.ets` | 351 | 权限服务；统一请求麦克风/输入/悬浮窗/文件授权，文件访问默认走 `DocumentViewPicker` 目录授权；共享录屏不再通过普通权限列表预申请 `CUSTOM_SCREEN_CAPTURE` |
+| `PermissionService.ets` | 352 | 权限服务；统一请求麦克风/输入/悬浮窗/文件授权，文件访问默认走 `DocumentViewPicker` 目录授权；共享录屏不再通过普通权限列表预申请 `CUSTOM_SCREEN_CAPTURE`；文件授权结果映射显式使用 `PermissionRequestResult` 兼容线上 ArkTS strict |
 | `FileAuthorizationService.ts` | 96 | 文件授权服务；请求 `READ_WRITE_DOWNLOAD_DIRECTORY` + `FILE_ACCESS_PERSIST` 并唤起 `DocumentViewPicker` 返回 URI |
 | `ScreenCaptureService.ets` | 225 | 屏幕捕获服务；仅用于共享/被控链路的 native `OH_AVScreenCapture_StartScreenCapture` 启动和 native buffer 统计，禁止截图 fallback、禁止 `AVScreenCaptureRecorder`/临时 mp4 探测，也禁止被远控会话录制菜单调用 |
 | `TerminalService.ets` | 246 | 终端服务，打开/输入/resize/关闭走official Session，终端输出事件从`dataBase64`解码 |

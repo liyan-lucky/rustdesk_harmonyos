@@ -2,6 +2,16 @@
 
 > Current focused record for connection and video-stream verification. Keep this file updated when device-side behavior is tested.
 
+## 2026-06-15 v0.22.5 ArkTS strict CI and Chinese summary verification
+
+- Symptom: after pushing `c803bee`, GitHub Actions Linux run `27528204491` and release workflow run `27528218065` both failed in `:entry:default@CompileArkTS`. The real error was `PermissionService.ets:173:14 Object literal must correspond to some explicitly declared class or interface (arkts-no-untyped-obj-literals)`.
+- App fix: `PermissionService.requestFileAuthorization()` now maps file authorization permission items through a local `const mappedItem: PermissionRequestResult`, so the object literal has an explicit interface in strict ArkTS. While reviewing Chinese text, the latest chat-summary separator in `Index.describeLastChatMessage()` was changed from the bad `路` display to ASCII ` - `, and old generated-alias filtering no longer carries mojibake text.
+- Build result: `scripts\build_hap.bat` forced latest core download and rebuilt `0.22.5` / versionCode `1000108`, BuildInfo time `2026-06-15 07:32`; core remains `core-80`, `131,624,954` bytes, SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`.
+- HAP result: `18,968,203` bytes, SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`.
+- Verification: native/signature verifier passed; connection chain audit passed `66 PASS, 0 FAIL, 0 SKIP`; current code scan has no `AVScreenCaptureRecorder`, `@ohos.screenshot`, `screenshot.capture`, or explicit `CUSTOM_SCREEN_CAPTURE` runtime permission request.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.5`, `versionCode=1000108`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `20911`.
+- Clean hilog: after `hilog -r` and 18s wait, `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt` recorded `coreReady=4`, `query-onlines-result=8`, app fatal/panic/`exit(-1)` = 0, app-related signal = 0.
+
 ## 2026-06-15 v0.22.4 core-80 incoming frame bridge verification
 
 - Core release: 13 核心 commit `12ad723907af594fdec210b8379cd7d662224102` 已由 GitHub Actions run `27526413545` 发布 `core-80`，release body 已补中文说明；线上 asset `131,624,954` bytes，SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`。

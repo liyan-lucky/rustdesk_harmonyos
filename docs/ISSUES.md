@@ -2,6 +2,20 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-15 GitHub Actions ArkTS strict 未显式对象字面量
+
+### 本地构建能过不代表线上 strict ArkTS 能过，map 返回对象必须显式类型
+
+**现象**：App commit `c803bee` 推送后，GitHub Actions Linux run `27528204491` 和发布 run `27528218065` 都在 `:entry:default@CompileArkTS` 失败；完整 job log 中的根因是 `PermissionService.ets:173:14 Object literal must correspond to some explicitly declared class or interface (arkts-no-untyped-obj-literals)`。
+
+**根因**：`PermissionService.requestFileAuthorization()` 在 `Array.map()` 中直接 `return { permission, status }`，本地构建未拦截，但线上 Linux/Hvigor strict ArkTS 把该对象字面量视为未显式类型。类似问题常见于 `map/filter/reduce` 回调里直接返回对象。
+
+**解决**：在回调里先声明 `const mappedItem: PermissionRequestResult = { ... }`，再 `return mappedItem`。同轮复查还修正了 `Index.describeLastChatMessage()` 中聊天摘要分隔符的中文错字/编码残留，并移除历史 generated alias 判断里的 mojibake 字符串。
+
+**验证**：强制下载线上 core-80 后 `scripts\build_hap.bat` 构建 `0.22.5` / versionCode `1000108` 通过；signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活，app fatal/panic/`exit(-1)`/app signal 为 0。
+
+**教训**：线上 workflow 失败时不要只看末尾 worker exit；必须拉完整 job log 并搜索 `ArkTS Compiler Error`。ArkTS 对象字面量尤其是 `map()` 回调返回值要显式落到 interface 类型，避免 CI strict 与本地构建行为差异。
+
 ## 2026-06-15 共享 native buffer 未进入核心缓存
 
 ### 有 native 采集帧不等于 incoming ready，必须先进入独立入站帧缓存

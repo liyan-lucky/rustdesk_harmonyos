@@ -23,6 +23,7 @@
 - 2026-06-15 App 权限链路继续验证为 `0.22.1` / versionCode `1000104`：共享启动去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，文件传输页改为主动唤起 `DocumentViewPicker` 目录授权；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
 - 2026-06-15 App 屏幕采集底层继续验证为 `0.22.2` / versionCode `1000105`：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
 - 2026-06-15 core-80 入站帧缓存已发布并在 11 App 验证：13 核心 commit `12ad723` / run `27526413545` 发布 `core-80`，新增 `updateIncomingScreenFrame/getIncomingScreenFrameMetadata/copyIncomingScreenFrame/clearIncomingScreenFrame`；11 App 强制拉取线上 core-80 构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。当前只接通 native buffer 到核心缓存，`incomingReady` 仍不能置 true。
+- 2026-06-15 App 侧 CI strict 修正已验证为 `0.22.5` / versionCode `1000108`：线上 Linux/release workflow 在 `PermissionService.ets` 未显式对象字面量处失败，本地已改为显式 `PermissionRequestResult` 并修正聊天摘要中文错字；core 仍为 `core-80`，增量构建、验包、66 项连接链路审计、无线安装启动和干净 hilog 均通过。
 
 ## 架构总览
 

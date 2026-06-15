@@ -11,7 +11,7 @@
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-15 07:15`，App 显示版本 `0.22.4`，versionCode `1000107`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-15 07:32`，App 显示版本 `0.22.5`，versionCode `1000108`。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
@@ -34,16 +34,16 @@
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
   - release：`core-80`
   - 大小：`131,624,954` bytes (`125.53 MB`)
-  - mtime/compile time：`2026-06-15 07:15`
+  - mtime/compile time：`2026-06-15 07:32`
   - FNV-1a 1MB：`bea81e95`
   - SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
 - 当前已验证 HAP：
-  - 本地 BuildInfo 编译时间：`2026-06-15 07:15`
-  - 本地 App 显示版本：`0.22.4`
-  - 本地 versionCode：`1000107`
+  - 本地 BuildInfo 编译时间：`2026-06-15 07:32`
+  - 本地 App 显示版本：`0.22.5`
+  - 本地 versionCode：`1000108`
   - bundle：`com.open.rundesk`
   - 最新线上 release：`harmonyos-20260612-065038`
-  - signed HAP：`entry-default-signed.hap`，`18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`
+  - signed HAP：`entry-default-signed.hap`，`18,968,203` bytes，SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`
   - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
@@ -78,6 +78,7 @@
 - 2026-06-15 共享/文件授权复查：共享启动入口去掉对 `CUSTOM_SCREEN_CAPTURE` 的显式预申请，避免先唤起截屏/屏幕捕获授权；该 `0.22.1` 阶段屏幕采集仍由 `AVScreenCaptureRecorder` 在核心 `incomingReady=true` 后触发，已在 `0.22.2` 替换为 native `StartScreenCapture`。文件传输页进入、切到本地、刷新本地、上传/下载/本地新建/删除前统一走 `DocumentViewPicker` 目录授权，`PermissionService.requestFileAccessAuthorization()` 默认也改为目录授权模式。增量构建 `0.22.1` / versionCode `1000104` 通过，signed HAP `18,953,784` bytes / SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`；验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `56711` 存活，app fatal/panic/signal/`exit(-1)` 为 0。
 - 2026-06-15 共享录屏底层切换：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder` 或临时 mp4，新增 C++ NAPI `startNativeScreenCapture/stopNativeScreenCapture/isNativeScreenCaptureActive/getNativeScreenCaptureStats`，底层使用 `OH_AVScreenCapture_StartScreenCapture`、`OH_AVScreenCapture_AcquireVideoBuffer` 和 native buffer map/unmap 做采集状态统计；CMake 已链接 `native_avscreen_capture`、`native_buffer`。增量构建 `0.22.2` / versionCode `1000105` 通过，signed HAP `18,946,878` bytes / SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`；验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `62121` 存活，app fatal/panic/`exit(-1)` 为 0。
 - 2026-06-15 core-80 共享入站帧缓存接入：13 核心 commit `12ad723` 已由 GitHub Actions run `27526413545` 发布 `core-80`，线上 asset `131,624,954` bytes / SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`，release body 已补中文说明。11 App C++ drain loop 会将 `OH_NativeBuffer` payload 推入核心 `incoming_screen_frame` 缓存并暴露 metadata/copy/clear wrapper；`incomingReady` 仍保持 false，避免未接 desktop server/video source 时假共享。强制下载线上 core 后增量构建 `0.22.4` / versionCode `1000107` 通过，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活，app fatal/panic/`exit(-1)` 为 0。
+- 2026-06-15 线上 ArkTS strict 与中文摘要修正：push 后 Linux run `27528204491` 和发布 run `27528218065` 均在 `PermissionService.ets:173` 因 `arkts-no-untyped-obj-literals` 失败；已将文件授权结果映射为显式 `PermissionRequestResult`，并把聊天摘要中的错字分隔符修为 ` - `。强制下载线上 core-80 后增量构建 `0.22.5` / versionCode `1000108` 通过，signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活，app fatal/panic/`exit(-1)`/app signal 均为 0。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。

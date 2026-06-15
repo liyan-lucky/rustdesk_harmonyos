@@ -2845,7 +2845,10 @@ struct Index {
 
   private resolveConnectEntryName(entry: AddressBookEntry): string {
     const alias = entry.alias.trim();
-    if (alias.length > 0 && !alias.startsWith('杩滅▼ ') && !alias.startsWith('Remote ')) {
+    const generatedRemoteAlias = this.lt('Remote Device').trim();
+    if (alias.length > 0 &&
+      !alias.startsWith('Remote ') &&
+      (generatedRemoteAlias.length === 0 || !alias.startsWith(generatedRemoteAlias))) {
       return alias;
     }
     const displayName = this.appData.getDisplayName(entry.id);
@@ -4588,12 +4591,12 @@ struct Index {
       return this.lt('No messages');
     }
     if (message.type === ChatMessageType.FILE) {
-      return `${this.lt('File')} 路 ${message.fileName ?? this.lt('Attachment')}`;
+      return `${this.lt('File')} - ${message.fileName ?? this.lt('Attachment')}`;
     }
     if (message.type === ChatMessageType.SYSTEM) {
-      return `${this.lt('System')} 路 ${message.content}`;
+      return `${this.lt('System')} - ${message.content}`;
     }
-    return `${message.sender === 'local' ? this.lt('Me') : this.lt('Other')} 路 ${message.content}`;
+    return `${message.sender === 'local' ? this.lt('Me') : this.lt('Other')} - ${message.content}`;
   }
 
   @Builder

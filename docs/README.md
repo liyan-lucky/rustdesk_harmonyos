@@ -20,16 +20,17 @@
 - 2026-06-15 权限链路复查：共享开关不再预申请 `CUSTOM_SCREEN_CAPTURE`，避免先唤起截屏/屏幕捕获授权；文件传输页和 `requestFileAccessAuthorization()` 默认改为 `DocumentViewPicker` 目录授权模式。增量构建 `0.22.1` / versionCode `1000104`，验包、连接链路审计、无线安装启动和严格 app hilog 验证通过。
 - 2026-06-15 共享录屏底层切换：`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 和临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；增量构建 `0.22.2` / versionCode `1000105`，验包、连接链路审计、无线安装启动和严格 app hilog 验证通过。
 - 2026-06-15 共享入站帧进入核心缓存：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80` 并补中文 release 说明；11 App 已同步 incoming frame C ABI/NAPI/ArkTS wrapper，native screen capture buffer 会推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false 直到 desktop server/video source 接通。强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。
+- 2026-06-15 线上 ArkTS 严格模式复查：push 后 Linux/release workflow 在 `PermissionService.ets` 对文件授权结果的未显式对象字面量处失败，已改为显式 `PermissionRequestResult`；同时修正聊天摘要中文错字。强制拉取线上 core-80 后增量构建 `0.22.5` / versionCode `1000108`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-15 07:15`
-  - App 显示版本：`0.22.4`
-  - versionCode：`1000107`
+  - BuildInfo 编译时间：`2026-06-15 07:32`
+  - App 显示版本：`0.22.5`
+  - versionCode：`1000108`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
   - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-  - 最新 run：`27443845710` 失败（旧提交 `0000da6`，未包含本轮本地 core-80/incoming frame/permission/HAP-only/staging 修正）
+  - 最新 run：`27528204491` / `27528218065` 失败（提交 `c803bee`，根因为 `PermissionService.ets` 未显式对象字面量触发线上 ArkTS strict；已在本地 `0.22.5` 修复，等待下一次推送重跑）
   - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：

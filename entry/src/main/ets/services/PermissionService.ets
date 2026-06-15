@@ -170,10 +170,11 @@ export class PermissionService {
   async requestFileAuthorization(options?: FileAuthorizationOptions): Promise<FileAuthorizationResult> {
     const result = await FileAuthorizationService.requestFileAuthorization(options);
     const permissionResults: PermissionRequestResult[] = result.permissionResults.map((item) => {
-      return {
+      const mappedItem: PermissionRequestResult = {
         permission: item.permission,
         status: item.status === PermissionStatus.GRANTED ? PermissionStatus.GRANTED : PermissionStatus.DENIED
       };
+      return mappedItem;
     });
     return {
       granted: result.granted,

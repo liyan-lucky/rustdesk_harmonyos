@@ -2,6 +2,23 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.22.5 (2026-06-15)
+
+### 修复
+
+- **修复线上 ArkTS 严格模式编译失败**：`PermissionService.requestFileAuthorization()` 将 `FileAuthorizationService` 返回项映射为显式 `PermissionRequestResult`，避免 GitHub Actions Linux/Hvigor 报 `arkts-no-untyped-obj-literals`。
+- **修复聊天摘要中文乱码/误字**：连接页聊天 Tab 的最近消息摘要分隔符从异常的“路”修正为 ` - `，避免文件/系统/文本摘要出现错字。
+- **清理旧自动别名兼容判断**：历史设备别名过滤去掉旧编码残留，改为按 `Remote ` 和当前语言下的 `Remote Device` 生成前缀判断。
+
+### 验证
+
+- `scripts\build_hap.bat` 强制拉取 latest core-80 后增量构建通过，版本 `0.22.5` / versionCode `1000108`，BuildInfo 时间 `2026-06-15 07:32`。
+- signed HAP `18,968,203` bytes，SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`。
+- `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
+- 当前代码静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` 普通权限请求命中。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.5`、`versionCode=1000108`，进程 `20911` 存活。
+- 清空 hilog 后重新抓取 `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt`：`coreReady=4`、`query-onlines-result=8`、app fatal/panic/`exit(-1)` = 0，app 相关 `signal` = 0。
+
 ## v0.22.4 (2026-06-15)
 
 ### 核心

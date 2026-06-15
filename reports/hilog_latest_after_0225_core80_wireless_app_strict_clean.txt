@@ -1,0 +1,552 @@
+﻿06-10 23:32:57.644     0     0 I I00000/HiLog: ========Zeroth log of type: init
+06-10 16:32:57.501   569   569 I I02C01/hmos_cust_carrier_mount/CustCarrierMount: MountCarrierToShared start
+06-10 16:32:57.501   569   569 I I02C01/hmos_cust_carrier_mount/CustCarrierMount: success to mount carrier to shared
+06-10 16:32:57.501   569   569 I I02C01/hmos_cust_carrier_mount/CustCarrierMount: MountCarrierToShared start
+06-10 16:32:57.501   569   569 I I02C01/hmos_cust_carrier_mount/CustCarrierMount: success to mount ANCO_APP_DATA to shared
+06-10 16:32:59.925  1148  1148 W I02C01/hmos_cust_carrier_mount/CustCarrierMount: not exsit CUST_GLOBAL_CARRIER_DIR or COTA_PARAM_CARRIER_DIR
+06-10 16:33:01.478  1001  1001 E I04301/light_sensor/LIGHT_SENSOR: AlsGetSpecifyXmlFileName: phoneType error
+06-15 07:34:42.202 21400 21406 W C057C1/bm/IPCWorkThread: ThreadHandler: proto:0 policy:1 name:OS_IPC_0_21406 invoker:3907042688
+06-15 07:34:42.204 21400 21407 W C057C1/bm/IPCWorkThread: ThreadHandler: proto:0 policy:0 name:OS_IPC_1_21407 invoker:1697220224
+06-15 07:34:42.216 24569 26474 W C02D13/hdcd/HDC_LOG: [BeginRemoveTask:160] BeginRemoveTask taskType:0 channelId:3509070537
+06-15 07:34:42.216 24569 26474 W C02D13/hdcd/HDC_LOG: [ClearOwnTasks:190] ClearOwnTasks OP_CLEAR finish, sessionId:175******154(L:10) channelIDInput:3509070537
+06-15 07:34:42.216 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:115] taskClassDeleteRetry start clear task, taskType:0 cid:3509070537 sid:175******154(L:10)
+06-15 07:34:42.216 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:134] TaskDelay task remove finish, channelId:3509070537
+06-15 07:34:42.225 24569 26474 W C02D13/hdcd/HDC_LOG: [BeginRemoveTask:160] BeginRemoveTask taskType:0 channelId:1911781381
+06-15 07:34:42.225 24569 26474 W C02D13/hdcd/HDC_LOG: [ClearOwnTasks:190] ClearOwnTasks OP_CLEAR finish, sessionId:175******154(L:10) channelIDInput:1911781381
+06-15 07:34:42.225 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:115] taskClassDeleteRetry start clear task, taskType:0 cid:1911781381 sid:175******154(L:10)
+06-15 07:34:42.225 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:134] TaskDelay task remove finish, channelId:1911781381
+06-15 07:34:42.300 24569 26474 W C02D13/hdcd/HDC_LOG: [GetDevItem:114] GetDevItem false key:persist.hdc.root
+06-15 07:34:42.349 21409 21409 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.349 21409 21409 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.350 21409 21409 W C02C02/PARAM: SystemReadParam failed!name is:persist.init.debug.loglevel,err:1002
+06-15 07:34:42.356 21409 21409 W C02C02/PARAM: Selinux check name const.logsystem.versiontype in u:object_r:versiontype_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.356 21409 21409 W C02C02/PARAM: SystemReadParam failed!name is:const.logsystem.versiontype,err:1002
+06-15 07:34:42.357 21409 21409 W C02C02/PARAM: Selinux check name musl.log.enable in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.enable
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.enable
+06-15 07:34:42.357 21409 21409 W C02C02/PARAM: Selinux check name musl.log.level in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.level
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.level
+06-15 07:34:42.357 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlopen in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlopen
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlopen
+06-15 07:34:42.357 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlclose in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlclose
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlclose
+06-15 07:34:42.357 21409 21409 W C02C02/PARAM: Selinux check name debug.hitrace.tags.enableflags in u:object_r:hitrace_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to read parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.357 21409 21409 E C02C02/PARAM: Forbid to access parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.372 21409 21409 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.372 21409 21409 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.372 21409 21409 W C02C02/PARAM: SystemReadParam failed!name is:persist.init.debug.loglevel,err:1002
+06-15 07:34:42.375 21409 21409 W C02C02/PARAM: Selinux check name const.logsystem.versiontype in u:object_r:versiontype_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.375 21409 21409 W C02C02/PARAM: SystemReadParam failed!name is:const.logsystem.versiontype,err:1002
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name musl.log.enable in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.enable
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.enable
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name musl.log.level in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.level
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.level
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlopen in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlopen
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlopen
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlclose in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlclose
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlclose
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name debug.hitrace.tags.enableflags in u:object_r:hitrace_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to read parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.376 21409 21409 E C02C02/PARAM: Forbid to access parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.376 21409 21409 W C02C02/PARAM: Selinux check name musl.log.enable in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.enable
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.enable
+06-15 07:34:42.377 21409 21409 W C02C02/PARAM: Selinux check name musl.log.level in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.log.level
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.log.level
+06-15 07:34:42.377 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlopen in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlopen
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlopen
+06-15 07:34:42.377 21409 21409 W C02C02/PARAM: Selinux check name musl.ld.debug.dlclose in u:object_r:musl_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlclose
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlclose
+06-15 07:34:42.377 21409 21409 W C02C02/PARAM: Selinux check name debug.hitrace.tags.enableflags in u:object_r:hitrace_param:s0 [21409 2000 2000] failed
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to read parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.377 21409 21409 E C02C02/PARAM: Forbid to access parameter debug.hitrace.tags.enableflags
+06-15 07:34:42.440 24569 26474 W C02D13/hdcd/HDC_LOG: [BeginRemoveTask:160] BeginRemoveTask taskType:0 channelId:4170943419
+06-15 07:34:42.441 24569 26474 W C02D13/hdcd/HDC_LOG: [ClearOwnTasks:190] ClearOwnTasks OP_CLEAR finish, sessionId:175******154(L:10) channelIDInput:4170943419
+06-15 07:34:42.441 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:115] taskClassDeleteRetry start clear task, taskType:0 cid:4170943419 sid:175******154(L:10)
+06-15 07:34:42.441 24569 26474 W C02D13/hdcd/HDC_LOG: [TaskClassDeleteRetry:134] TaskDelay task remove finish, channelId:4170943419
+06-15 07:34:42.570  2654 24998 E C01560/wifi_manager_service/MultiLinkUtils: Chip type not suppoort Triband
+06-15 07:34:42.571  2654 24998 E C01560/wifi_manager_service/MultiLinkUtils: Chip type not suppoort Triband
+06-15 07:34:42.588 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] pollOnlineStatusOnce: querying 1 ids, coreReady= true
+06-15 07:34:42.590 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] queryOnlines returned: true
+06-15 07:34:42.702  1179  1290 W C01C42/time_service/TimeService: t3 399803415
+06-15 07:34:42.758 20911 20911 I A03D00/com.open.rundesk/JSAPP: [HANDSHAKE_DIAG] Event: query-onlines-result, detail: {"offlines":[],"onlines":["1283267036"]}, peerId:
+06-15 07:34:42.758 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online event kind: query-onlines-result detail: {"offlines":[],"onlines":["1283267036"]} peerId:
+06-15 07:34:42.758 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online result onlines: 1 offlines: 0
+06-15 07:34:43.122  1369 21413 W C057C1/wifi_host/IPCWorkThread: ThreadHandler: proto:0 policy:0 name:OS_IPC_154_21413 invoker:2068315520
+06-15 07:34:43.143  2654 24867 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:44.148  2654 25006 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:44.397  1179  1290 W C01C42/time_service/TimeService: t3 399803719
+06-15 07:34:44.417   856  1405 W C02802/multimodalinput/KnuckleHandler: [|1225]SetKnuckleSwitch is successful in keyCommand handler, knuckleSwitch:1
+06-15 07:34:44.701  1179  1290 W C01C42/time_service/TimeService: t3 399805140
+06-15 07:34:45.177  2654 24997 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:46.125  1179  1290 W C01C42/time_service/TimeService: uid:1096 id:185395133 wk:0
+06-15 07:34:46.125  1179  1290 W C01C42/time_service/TimeService: t3 399805719
+06-15 07:34:46.125  1179  1290 W C01C42/time_service/TimeService: id:185395133 we:399810140
+06-15 07:34:46.182  2654 25005 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:46.701  1179  1290 W C01C42/time_service/TimeService: t3 399806415
+06-15 07:34:47.130  1413  2072 W C02943/power_host/ThermalHdi: Read node failed, title = brightness
+06-15 07:34:47.188  2654 30596 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:47.397  1179  1290 W C01C42/time_service/TimeService: t3 399807719
+06-15 07:34:47.589 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] pollOnlineStatusOnce: querying 1 ids, coreReady= true
+06-15 07:34:47.590 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] queryOnlines returned: true
+06-15 07:34:47.677   855 21361 E C02699/memmgrservice/MM: FilterDiedProcess check pid: 18818 died, filter it from set.
+06-15 07:34:47.739 20911 20911 I A03D00/com.open.rundesk/JSAPP: [HANDSHAKE_DIAG] Event: query-onlines-result, detail: {"offlines":[],"onlines":["1283267036"]}, peerId:
+06-15 07:34:47.739 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online event kind: query-onlines-result detail: {"offlines":[],"onlines":["1283267036"]} peerId:
+06-15 07:34:47.739 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online result onlines: 1 offlines: 0
+06-15 07:34:47.917  1461 20993 W C01650/parent_control_service/RdbStoreManager: IsConfigInvalidChanged:no bundleName
+06-15 07:34:47.917  1461 20993 E C01650/parent_control_service/SilentProxy: IsSupportSilentFromService:GetRdbService failed, err is 27394049.
+06-15 07:34:48.016  1383  2045 I C02C02/PARAM: SystemSetParameter name odm.ril.hw_modem0.rssi id:220975 ret:0
+06-15 07:34:48.209  2654 24997 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:48.310  1529 20295 E C02B2B/media_service/MediaServerManager: #1157 no need report
+06-15 07:34:48.701  1179  1290 W C01C42/time_service/TimeService: t3 399809415
+06-15 07:34:49.236  2654 25006 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:50.256  2654 30603 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:50.397  1179  1290 W C01C42/time_service/TimeService: t3 399809719
+06-15 07:34:50.701  1179  1290 W C01C42/time_service/TimeService: t3 399810140
+06-15 07:34:51.123  1179  1290 W C01C42/time_service/TimeService: uid:1096 id:185395133 wk:0
+06-15 07:34:51.123  1179  1290 W C01C42/time_service/TimeService: id:185395133 we:399815140
+06-15 07:34:51.123  1179  1290 W C01C42/time_service/TimeService: t3 399811719
+06-15 07:34:51.271  2654 25008 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:52.234  1413  2072 W C02943/power_host/ThermalHdi: Read node failed, title = brightness
+06-15 07:34:52.276  2654 24998 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:52.575  2654 24997 E C01560/wifi_manager_service/MultiLinkUtils: Chip type not suppoort Triband
+06-15 07:34:52.577  2654 24997 E C01560/wifi_manager_service/MultiLinkUtils: Chip type not suppoort Triband
+06-15 07:34:52.589 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] pollOnlineStatusOnce: querying 1 ids, coreReady= true
+06-15 07:34:52.590 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] queryOnlines returned: true
+06-15 07:34:52.701  1179  1290 W C01C42/time_service/TimeService: t3 399812415
+06-15 07:34:52.733 20911 20911 I A03D00/com.open.rundesk/JSAPP: [HANDSHAKE_DIAG] Event: query-onlines-result, detail: {"offlines":[],"onlines":["1283267036"]}, peerId:
+06-15 07:34:52.733 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online event kind: query-onlines-result detail: {"offlines":[],"onlines":["1283267036"]} peerId:
+06-15 07:34:52.733 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online result onlines: 1 offlines: 0
+06-15 07:34:53.296  2654 25006 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:53.397  1179  1290 W C01C42/time_service/TimeService: t3 399813719
+06-15 07:34:53.664  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:2818 error:29189 desc:*.TelephonyObserverBroker proxy:2613947264 time:303975545546325
+06-15 07:34:53.667  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:3445 error:29189 desc:*.TelephonyObserverBroker proxy:2755014272 time:303975548721846
+06-15 07:34:53.680  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:5706 error:29189 desc:*.TelephonyObserverBroker proxy:2765402624 time:303975561291117
+06-15 07:34:53.682  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:5669 error:29189 desc:*.TelephonyObserverBroker proxy:2755246336 time:303975563434867
+06-15 07:34:53.684  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:7137 error:29189 desc:*.TelephonyObserverBroker proxy:2707689088 time:303975565245804
+06-15 07:34:53.686  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:6090 error:29189 desc:*.TelephonyObserverBroker proxy:2706614016 time:303975566797367
+06-15 07:34:53.686  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:8395 error:29189 desc:*.TelephonyObserverBroker proxy:2708599552 time:303975567210908
+06-15 07:34:53.687  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:8722 error:29189 desc:*.TelephonyObserverBroker proxy:2768695040 time:303975568074450
+06-15 07:34:53.689  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:9693 error:29189 desc:*.TelephonyObserverBroker proxy:2769635072 time:303975569844762
+06-15 07:34:54.317  2654 25005 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:54.702  1179  1290 W C01C42/time_service/TimeService: t3 399815140
+06-15 07:34:55.344  2654 24866 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:56.123  1179  1290 W C01C42/time_service/TimeService: uid:1096 id:185395133 wk:0
+06-15 07:34:56.123  1179  1290 W C01C42/time_service/TimeService: id:185395133 we:399820140
+06-15 07:34:56.123  1179  1290 W C01C42/time_service/TimeService: t3 399815415
+06-15 07:34:56.365  2654 30603 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:56.397  1179  1290 W C01C42/time_service/TimeService: t3 399815719
+06-15 07:34:56.701  1179  1290 W C01C42/time_service/TimeService: t3 399817719
+06-15 07:34:56.976  1383  2045 I C02C02/PARAM: SystemSetParameter name odm.ril.hw_modem0.rssi id:220976 ret:0
+06-15 07:34:56.982  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:1491 error:29189 desc:*.TelephonyObserverBroker proxy:2283793664 time:303978863336949
+06-15 07:34:56.983  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:2021 error:29189 desc:*.TelephonyObserverBroker proxy:2283419264 time:303978864744241
+06-15 07:34:56.991  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:3469 error:29189 desc:*.TelephonyObserverBroker proxy:2618432256 time:303978872211949
+06-15 07:34:57.002  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:6403 error:29189 desc:*.TelephonyObserverBroker proxy:2767374848 time:303978883751533
+06-15 07:34:57.004  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:6863 error:29189 desc:*.TelephonyObserverBroker proxy:2767239296 time:303978884861949
+06-15 07:34:57.004  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:7041 error:29189 desc:*.TelephonyObserverBroker proxy:2765540096 time:303978885212991
+06-15 07:34:57.005  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:7765 error:29189 desc:*.TelephonyObserverBroker proxy:2766601088 time:303978886216637
+06-15 07:34:57.006  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:7993 error:29189 desc:*.TelephonyObserverBroker proxy:2298217216 time:303978887117679
+06-15 07:34:57.009  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:8312 error:29189 desc:*.TelephonyObserverBroker proxy:2768283520 time:303978889783304
+06-15 07:34:57.009  1590 20579 E C057C2/foundation/IPCObjectProxy: PrintErrorDetailedInfo: failed, handle:8806 error:29189 desc:*.TelephonyObserverBroker proxy:2768752000 time:303978889861429
+06-15 07:34:57.020   607  2762 W C01650/hiview/RdbStoreManager: Clear:store[/***/el1/***/pro***.db] in use by 5 holders
+06-15 07:34:57.265  1413  2072 W C02943/power_host/ThermalHdi: Read node failed, title = brightness
+06-15 07:34:57.376  2654 24867 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:57.590 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] pollOnlineStatusOnce: querying 1 ids, coreReady= true
+06-15 07:34:57.592 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Index] queryOnlines returned: true
+06-15 07:34:57.710  1590 20579 W C01340/foundation/Ext: [a92ab19cbc48e30 15834f1 10d2fe4][ABCM526]empty
+06-15 07:34:57.716   968 20721 E C01731/resource_schedule_service/SUSPEND_MSG: [a92ab19cbc48e30 3afcd22 2337335][(UpdateServiceExtensionMap):148] not support type:1, pid=19947
+06-15 07:34:57.718 20911 20911 I A03D00/com.open.rundesk/JSAPP: [HANDSHAKE_DIAG] Event: query-onlines-result, detail: {"offlines":[],"onlines":["1283267036"]}, peerId:
+06-15 07:34:57.718 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online event kind: query-onlines-result detail: {"offlines":[],"onlines":["1283267036"]} peerId:
+06-15 07:34:57.719 20911 20911 I A03D00/com.open.rundesk/JSAPP: [Bridge] query-online result onlines: 1 offlines: 0
+06-15 07:34:57.742 19947 19947 W C01317/huawei.hmos.brid:workScheduler/AppKit: [a92ab19cbc48e30 27d88f8 20fa36b][JAS274]Not found AbilityStage.js
+06-15 07:34:57.742 19947 19947 W C01321/huawei.hmos.brid:workScheduler/JsRuntime: [a92ab19cbc48e30 27d88f8 20fa36b][js_runtime.cpp1652]invalid nativeRef
+06-15 07:34:57.755  1590 21441 W C01335/foundation/Connection: [a92ab19cbc48e30 3f3892e 2116759][connection_state_manager.cpp421]callerPid:19947
+06-15 07:34:57.757  2938  2938 W A01A00/com.ohos.sceneboard/SYS_UI: [a92ab19cbc48e30 13f4515 3f3705c]AppLifeCycleManager: onProcessDied, uid: 20020139, bundleName: com.huawei.hmos.brid, pid: 19947
+06-15 07:34:57.757   855 21361 E C02699/memmgrservice/MM: [a92ab19cbc48e30 4376e2 b8b03e]UpdatePriorityLocked DIED: u=20020139 not exist, p=19947
+06-15 07:34:57.758  3040  3040 W A06666/com.huawei.hmos.aidataservice/160002364: [a92ab19cbc48e30 3c85bad 3c6e305]Info_Publisher: publish AppProcess
+06-15 07:34:57.764   605   605 I C02C03/PARAM_WATCHER: [watcher_manager.cpp:511]Agent died 13635 19947
+06-15 07:34:57.764   605   605 I C02C03/PARAM_WATCHER: [watcher_manager.cpp:697]Delete param watcher remoteWatcherId 13635 group 154
+06-15 07:34:57.765  1590  4889 W C01337/foundation/EcologicalRule: [a92ab19cbc48e30 37de455 10d2fe4][ERI235]failed,uid: 1096
+06-15 07:34:57.765  3040 21458 W A00F00/com.huawei.hmos.aidataservice/CA: [AppProcessAbility:77]: AppProcessAbility return
+06-15 07:34:57.771 20916 20916 I C02C02/PARAM: ResetParamSecurityLabel Fd:19
+06-15 07:34:57.787 20916 20916 W C02C11/uawei.hmos.email:workScheduler/APPSPAWN: errno:13 private mount to /mnt/sandbox/100/com.huawei.hmos.email/chip_prod/lib64/passthrough '524288' failed
+06-15 07:34:57.788 20916 20916 W C02C11/uawei.hmos.email:workScheduler/APPSPAWN: check dir /data/app/el1/public/aot_compiler/ark_cache/com.huawei.hmos.email failed,strerror:No such file or directory
+06-15 07:34:57.790 20916 20916 W C02C11/uawei.hmos.email:workScheduler/APPSPAWN: errno:2 bind mount /data/preload/app to /mnt/sandbox/100/com.huawei.hmos.email/data/preload/app
+06-15 07:34:57.798 20916 20916 E C05A06/uawei.hmos.email:workScheduler/CODE_SIGN: [XpmIoctl]:Ioctl cmd 40087803 failed: Invalid argument (ignore)
+06-15 07:34:57.803 20916 21464 W C057C1/uawei.hmos.email:workScheduler/IPCWorkThread: ThreadHandler: proto:0 policy:1 name:OS_IPC_0_21464 invoker:1365341824
+06-15 07:34:57.803 20916 21465 W C057C1/uawei.hmos.email:workScheduler/IPCWorkThread: ThreadHandler: proto:0 policy:0 name:OS_IPC_1_21465 invoker:1272944640
+06-15 07:34:57.806  1590 21440 W C01336/foundation/AMS: [a92ab19cbc48e30 2dcd45e 37de455][resident_process_manager.cpp269]rdbResult: 5
+06-15 07:34:57.807   609   609 W C02C11/appspawn/APPSPAWN: [appspawn_service.c:124]com.huawei.hmos.brid with pid 19947 exit with code:0
+06-15 07:34:57.810  3040  3040 W A06666/com.huawei.hmos.aidataservice/160002364: [a92ab19cbc48e30 2c3839c 36db90e]Info_Publisher: publish AppProcess
+06-15 07:34:57.811  1590 21440 W C01300/foundation/AAFwk: [event_handler_wrap.cpp118]can't find event: 14_20916
+06-15 07:34:57.816  3040 21458 W A00F00/com.huawei.hmos.aidataservice/CA: [AppProcessAbility:77]: AppProcessAbility return
+06-15 07:34:57.817   788  8515 I C02C02/PARAM: SystemSetParameter name persist.ffrt.interval.appRate id:144578 ret:0
+06-15 07:34:57.817   788  8515 I C02C02/PARAM: SystemSetParameter name persist.ffrt.interval.rsRate id:144579 ret:0
+06-15 07:34:57.818 20916 21472 W C057C1/uawei.hmos.email:workScheduler/IPCWorkThread: ThreadHandler: proto:0 policy:0 name:OS_IPC_2_21472 invoker:1288717952
+06-15 07:34:57.823  1590  4889 W C01650/foundation/RdbStoreManager: [a92ab19cbc48e30 26f6fa2 1696c2b]IsConfigInvalidChanged:no bundleName
+06-15 07:34:57.823  1590  4889 E C01650/foundation/SilentProxy: [a92ab19cbc48e30 26f6fa2 1696c2b]IsSupportSilentFromService:GetRdbService failed, err is 27394049.
+06-15 07:34:57.825  1590  4889 W C01650/foundation/RdbStoreImpl: [a92ab19cbc48e30 26f6fa2 1696c2b]ExchangeSlaverToMaster:exchange st:3, bun***.db,
+06-15 07:34:57.861 20916 20916 W C01305/uawei.hmos.email:workScheduler/Base: [zip_file.cpp(ExtractToBufByName:966)]GetEntry from pkgContextInfo.json err
+06-15 07:34:57.861 20916 20916 W C01305/uawei.hmos.email:workScheduler/Base: [zip_file.cpp(ExtractToBufByName:966)]GetEntry from pkgContextInfo.json err
+06-15 07:34:57.868 20916 20916 W C01321/uawei.hmos.email:workScheduler/JsRuntime: [CSM161]not Connected
+06-15 07:34:57.871   605   605 I C02C03/PARAM_WATCHER: [watcher_manager.cpp:72]Add remote watcher remoteWatcherId 13643 20916 success
+06-15 07:34:57.871   605   605 I C02C03/PARAM_WATCHER: SendLocalChange start keyPrefix persist.hdc.jdwp remoteWatcherId 13643
+06-15 07:34:57.872 20916 20916 W C01E00/uawei.hmos.email:workScheduler/ResourceManager: update userId, currentUserId_= 0, userId= 100
+06-15 07:34:57.874   605   605 I C02C03/PARAM_WATCHER: [watcher_manager.cpp:187]Add watcher persist.hdc.jdwp remoteWatcherId: 13643 groupId 154 success
+06-15 07:34:57.875 20916 21485 I C02C03/PARAM_WATCHER: Add watcher keyPrefix persist.hdc.jdwp remoteWatcherId 13643 success
+06-15 07:34:57.886 20916 21473 W C01653/uawei.hmos.email:workScheduler/NativePreferences: LoadFromDisk: The settingXml /***/el1/***/i18*** load failed.
+06-15 07:34:57.892 20916 20916 E C01301/uawei.hmos.email:workScheduler/CompatiblePolicyDeviceType: [calculateResourceType:81]deviceType is empty.
+06-15 07:34:57.928 20916 20916 W C04201/uawei.hmos.email:workScheduler/DMS: RegisterClientDeathListener: regis reverse death
+06-15 07:34:57.934  1590  4889 W C04201/foundation/DMS: screen_session.cpp: call BMS
+06-15 07:34:58.056 20916 20916 E C01700/uawei.hmos.email:workScheduler/RSS: ResSchedClient::ReportData type not subscribed.
+06-15 07:34:58.118  1590 63387 W C01202/foundation/Subscriber: Subscribe usual.event.PLUGIN_PACKAGE_CHANGED,usual.event.PLUGIN_PACKAGE_ADDED,usual.event.PLUGIN_PACKAGE_REMOVED, without any restrict subid = 20916_20020058_-1_51152_303979998
+06-15 07:34:58.125 20916 20916 W C03F07/MUSL-LDSO: load libz.so failed, namespace=ndk no inherits, errno=2
+06-15 07:34:58.131   604 19660 W C01800/samgr/SAMGR: CheckCondition:usual.event.SCREEN_OFF, value:0 not pass
+06-15 07:34:58.131   604 19660 W C01800/samgr/SAMGR: CheckCondition:usual.event.SCREEN_OFF, value:0 not pass
+06-15 07:34:58.132  1712  3393 W C04631/CollaborationFwk/AwarenessManager: OnReceiveEvent#164: receive event usual.event.BATTERY_CHANGED
+06-15 07:34:58.133   968 21456 E C01703/resource_schedule_service/socperf: [a92ab59d122078f 0 0][HandleBatteryStatusChange]: SocPerfPlugin: socperf->HandleBatteryStatusChange invalid data
+06-15 07:34:58.134   772 21492 E C02B87/audio_server/AudioServer: [SetExtraParameters]invalid subkey or value
+06-15 07:34:58.177 20916 20916 W C03F04/uawei.hmos.email:workScheduler/MMG: [NMM:1463]Module path conflict: collaboration.rcp
+06-15 07:34:58.188 20916 21484 W C01650/uawei.hmos.email:workScheduler/RdbStoreManager: IsConfigInvalidChanged:no bundleName
+06-15 07:34:58.192 20916 21484 E C01650/uawei.hmos.email:workScheduler/SilentProxy: IsSupportSilentFromService:GetRdbService failed, err is 27394049.
+06-15 07:34:58.271  1179  1192 W C01C42/time_service/TimeService: id:411524315 we:604932211 mwe:1058532211
+06-15 07:34:58.272  1179  1192 W C01C42/time_service/TimeService: id:466474615 we:131665 mwe:1481665
+06-15 07:34:58.272  1179  1192 W C01C42/time_service/TimeService: t3 131665
+06-15 07:34:58.272  1179  1290 W C01C42/time_service/TimeService: uid:5557 id:466474615 wk:0
+06-15 07:34:58.272  1179  1290 W C01C42/time_service/TimeService: id:466474615 we:401531665 mwe:402881665
+06-15 07:34:58.272  1179  1290 W C01C42/time_service/TimeService: t3 399817719
+06-15 07:34:58.273  1179  1192 W C01C42/time_service/TimeService: id:830101870 we:31536564992
+06-15 07:34:58.274  1179  1192 W C01C42/time_service/TimeService: id:2097481044 we:462519017
+06-15 07:34:58.275  1179  1192 W C01C42/time_service/TimeService: id:95969815 we:400500000
+06-15 07:34:58.276  1179  1192 W C01C42/time_service/TimeService: id:436713286 we:20398855 mwe:23098855
+06-15 07:34:58.276  1179  1192 W C01C42/time_service/TimeService: t3 20398855
+06-15 07:34:58.276  1179  1290 W C01C42/time_service/TimeService: uid:5557 id:436713286 wk:0
+06-15 07:34:58.276  1179  1290 W C01C42/time_service/TimeService: bat:23 id:436713286 we:401998855 mwe:404698855
+06-15 07:34:58.276  1179  1290 W C01C42/time_service/TimeService: t3 399817719
+06-15 07:34:58.277  1179  1192 W C01C42/time_service/TimeService: id:887549554 we:431431135
+06-15 07:34:58.278  1179  1192 W C01C42/time_service/TimeService: id:605763484 we:424736226
+06-15 07:34:58.279  1179  1192 W C01C42/time_service/TimeService: id:671798612 we:407961265
+06-15 07:34:58.280  5839 59188 W C05932/rgm_manager/RGM_STATUS: [(HttpSocketSelect:307)]select end, ret:1, errno:0
+06-15 07:34:58.280  5839 59188 E C05930/rgm_manager/RGM_MANAGER: [(SetStringField:309)]key not exist, key: errmsg
+06-15 07:34:58.281  1179  1192 W C01C42/time_service/TimeService: id:1387730152 we:456000000
+06-15 07:34:58.281  5430 43503 W C05930/hmos_fusion_manager/RGM_MANAGER: [(ParseContainerStatus:172)]Rgm status: paused
+06-15 07:34:58.282  5839 59188 E C05930/rgm_manager/RGM_MANAGER: [(ToCustomJsonBody:166)]pause or resume request from 5839
+06-15 07:34:58.282  1179  1192 W C01C42/time_service/TimeService: id:664766321 we:315591088639
+06-15 07:34:58.283  1179  1192 W C01C42/time_service/TimeService: id:1234427517 we:460384347
+06-15 07:34:58.283  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(check_pause_request_vaild:67)]peer request from 5839, 1751866455888
+06-15 07:34:58.284  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(check_pause_request_vaild:82)]peer request from rgm_manager:5839
+06-15 07:34:58.284  1179  1192 W C01C42/time_service/TimeService: id:821919798 we:315598503599
+06-15 07:34:58.285  1179  1192 W C01C42/time_service/TimeService: id:130190933 we:519421266
+06-15 07:34:58.286  1179  1192 W C01C42/time_service/TimeService: id:909375721 we:519612443
+06-15 07:34:58.287  1179  1192 W C01C42/time_service/TimeService: id:1909683711 we:274205267 mwe:339005267
+06-15 07:34:58.287  1179  1192 W C01C42/time_service/TimeService: t3 274205267
+06-15 07:34:58.287  1179  1290 W C01C42/time_service/TimeService: uid:5557 id:1909683711 wk:0
+06-15 07:34:58.287  1179  1290 W C01C42/time_service/TimeService: bat:41 id:1909683711 we:447005267 mwe:511805267
+06-15 07:34:58.287  1179  1290 W C01C42/time_service/TimeService: t3 399817719
+06-15 07:34:58.288  1179  1192 W C01C42/time_service/TimeService: id:1606866206 we:774972838
+06-15 07:34:58.288  1179  1192 W C01C42/time_service/TimeService: id:76783833 we:458919016
+06-15 07:34:58.289  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(container_resume_cb:765)]Event: {Object: ff43e76239634bd9fe644a28060d830d87f5d8568ef8ebaa870203db07055c76, Type: Resuming}
+06-15 07:34:58.289  1179  1192 W C01C42/time_service/TimeService: bat:59 id:2023111668 we:608887446
+06-15 07:34:58.291  1179  1192 W C01C42/time_service/TimeService: id:804478703 we:432898561
+06-15 07:34:58.292  1179  1192 W C01C42/time_service/TimeService: bat:33 id:44683812 we:415500448 mwe:447900448
+06-15 07:34:58.293  1179  1192 W C01C42/time_service/TimeService: id:858707464 we:611894737
+06-15 07:34:58.294  1179  1192 W C01C42/time_service/TimeService: id:2086123997 we:456600040
+06-15 07:34:58.294  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(cgfsng_set:3450)]set state THAWED to freezer.state
+06-15 07:34:58.295  1179  1192 W C01C42/time_service/TimeService: id:1635767710 we:450413008
+06-15 07:34:58.298  1179  1192 W C01C42/time_service/TimeService: id:1464396514 we:451719018
+06-15 07:34:58.300  1153 21498 W C05938/isulad/RGM_ENGINE_PLUGIN: [(do_freeze_thaw:49)]Start to wait ff43e76239634bd9fe644a28060d830d87f5d8568ef8ebaa870203db07055c76 change to THAWED
+06-15 07:34:58.301  1179  1192 W C01C42/time_service/TimeService: id:1312402642 we:1682207878
+06-15 07:34:58.302  1179  1192 W C01C42/time_service/TimeService: id:220345482 we:458919018
+06-15 07:34:58.303  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(do_resume_container:638)]resume container
+06-15 07:34:58.303  1153 21498 W C05938/isulad/RGM_ENGINE_PLUGIN: [GetRgmStateParam:78]current rgm state is 2
+06-15 07:34:58.303  1179  1192 W C01C42/time_service/TimeService: id:1957741678 we:401400137
+06-15 07:34:58.303  1153 21498 I C02C02/PARAM: SystemSetParameter name virt_service.rgm_state.rgm_hmos id:14871 ret:0
+06-15 07:34:58.303  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(container_state_reset_paused:284)]Update RUNNING
+06-15 07:34:58.303   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:virt_service.rgm_state.rgm_hmos pid:5839
+06-15 07:34:58.304 20916 20916 W C03F04/uawei.hmos.email:workScheduler/MMG: [NMM:1289] Name mismatch: systemParameterEnhance != systemParameterV9
+06-15 07:34:58.304   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:virt_service.rgm_state.rgm_hmos pid:5430
+06-15 07:34:58.304  5839 49004 W C05930/rgm_manager/RGM_MANAGER: [(OnRgmStateChanged:790)]Rgm status changed: rgm_hmos running
+06-15 07:34:58.304  5839 49004 W C05932/rgm_manager/RGM_STATUS: [(OnContainerStatusChanged:587)]On Container Status Changed enter
+06-15 07:34:58.304  5839 49004 W C05930/rgm_manager/RGM_MANAGER: [(NotifyContainerStatusChanged:43)]Notify Status Changed SendRequest ret:0
+06-15 07:34:58.304  5839 49004 W C05932/rgm_manager/RGM_STATUS: [(OnContainerStatusChanged:598)]notify rgm status changed status:119                 ret:1
+06-15 07:34:58.304  1179  1192 W C01C42/time_service/TimeService: id:2130652503 we:401898386
+06-15 07:34:58.304  1153 21498 E C05938/isulad/RGM_ENGINE_PLUGIN: [(container_resume_cb:781)]Event: {Object: ff43e76239634bd9fe644a28060d830d87f5d8568ef8ebaa870203db07055c76, Type: Resumed}
+06-15 07:34:58.304  5839 59188 W C05932/rgm_manager/RGM_STATUS: [(HttpSocketSelect:307)]select end, ret:1, errno:0
+06-15 07:34:58.305  5839 59188 E C05930/rgm_manager/RGM_MANAGER: [(SetStringField:309)]key not exist, key: errmsg
+06-15 07:34:58.306  5430  7678 I C02C02/PARAM: SystemSetParameter name hmos_fusion_mgr.ctl.fsm_state id:14905 ret:0
+06-15 07:34:58.306   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:hmos_fusion_mgr.ctl.fsm_state pid:855
+06-15 07:34:58.306   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:hmos_fusion_mgr.ctl.fsm_state pid:2905
+06-15 07:34:58.306   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:hmos_fusion_mgr.ctl.fsm_state pid:968
+06-15 07:34:58.306   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:hmos_fusion_mgr.ctl.fsm_state pid:6134
+06-15 07:34:58.307  2905 12050 E C01CCD/bms_broker/Broker: [ (OnAncoStatusChanged:89)]main handler is nullptr
+06-15 07:34:58.307  2905 16021 W C011FB/bms_broker/BMSBroker: [FreezeCancel:164]get all uninstall bundleNames is empty
+06-15 07:34:58.308   968   968 I C02C02/PARAM: SystemSetParameter name anco_state id:33361 ret:0
+06-15 07:34:58.308   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:855
+06-15 07:34:58.308   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:1383
+06-15 07:34:58.308   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:856
+06-15 07:34:58.308   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6135
+06-15 07:34:58.308   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6133
+06-15 07:34:58.309   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6134
+06-15 07:34:58.309  2654  2654 E C01560/wifi_manager_service/OHWIFI_MANAGER_PERMISSION_HELPE: has no permission_name=ohos.permission.GET_WIFI_PEERS_MAC, pid=5430, uid=7558
+06-15 07:34:58.309  6133  6133 E C02B8A/anco_audio/AncoAudioProxy: [AncoAvSessionActive][AudioRenderProxy::AncoAvSessionActive] start active.
+06-15 07:34:58.309  6134  6134 W C01CCD/anco_service_broker/ALARM_BROKER_LOG: [(IsTimezoneChanged:242)]timezone is not changed, last: Africa/Casablanca
+06-15 07:34:58.310  3040 21150 E C02B91/com.huawei.hmos.aidataservice/AVSession: [HandleEvent]not register callback event=3
+06-15 07:34:58.310  2938 21149 E C02B91/com.ohos.sceneboard/AVSession: [HandleEvent]not register callback event=3
+06-15 07:34:58.310  1179  1192 W C01C42/time_service/TimeService: id:1440150189 we:403898810
+06-15 07:34:58.315   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:hmos_fusion_mgr.ctl.inner.sync_switch pid:5430
+06-15 07:34:58.315  1179  1192 W C01C42/time_service/TimeService: id:1296636182 we:399819017
+06-15 07:34:58.321  6134  6134 E C01CCD/anco_service_broker/POWER_BROKER_LOG: [(AcquireWakeLock:49)]Anco freeze, do not allow acquire wakeLock
+06-15 07:34:58.321  6135  6135 E C01CCC/virt_device/DRBO: [nodict][input_impl.cpp(UpdateWindowInfo)]Corrupted windows info
+06-15 07:34:58.322   856  2209 E C02800/multimodalinput/ContainerIpcMgr: [|1519]UdsSendEvent fail, error:-1
+06-15 07:34:58.337  6134  6134 E C01651/anco_service_broker/shared_block: GetCellUnit: Failed to read row 1, column 2 from a SharedBlock which has 0 rows, 0 columns.
+06-15 07:34:58.337  6134  6134 E C01CCD/anco_service_broker/Broker: [ (GetDataRoamingRDBValue:1279)]resultValue is empty
+06-15 07:34:58.337  6134  6134 E C01CCD/anco_service_broker/Broker: [ (OnChange:1232)]GetValue failed!
+06-15 07:34:58.342  6134  6134 E C01CCD/anco_service_broker/NfcBroker: (112)NfcBrokerClient::GetNfcProxy()
+06-15 07:34:58.343  6134  6261 E C01CCD/anco_service_broker/DMS_BROKER_LOG: [(OnDisplayRotationChanged:133)]0 ret:0
+06-15 07:34:58.343  4527  4527 E C01C02/pasteboard_service/PBS: IsPermissionGranted# permission denied, perm=ohos.permission.SECURE_PASTE
+06-15 07:34:58.343  4527  4527 E C01C02/pasteboard_service/PBS: GetValidDistributeEvent# plugin is null
+06-15 07:34:58.344  4527  4527 E C01C02/pasteboard_service/PBS: GetLocalNetworkId# ret: 0, networkId:cc7db
+06-15 07:34:58.344  4527  4527 E C01C02/pasteboard_service/PBS: GetLocalData# no data userId is 100.
+06-15 07:34:58.344  4527  4527 E C01C02/pasteboard_service/PBS: HandleGetDataError# get local or remote data err:27787283
+06-15 07:34:58.344  4527  4527 E C04111/pasteboard_service/DHDM: [devicemanagerkit][GetUdidByNetworkId]:DeviceManagerImpl::GetUdidByNetworkId error: Invalid para, pkgName: pasteboard_dm_adapter, netWorkId: ******
+06-15 07:34:58.344  4527  4527 E C01C02/pasteboard_service/PBS: GetPasteDataInner# data is invalid, ret is 27787283, callPid is 6134, tokenId is 671658075
+06-15 07:34:58.344  6134 28093 W C01CCD/anco_service_broker/Broker: [broker_pasteboard_observer.cpp(OnPasteboardEvent:34)]the operate is requested by anco_service_broker
+06-15 07:34:58.344  6134  6134 E C01CCD/anco_service_broker/Broker: [keyguard_broker_sa.cpp(UpdateLockState:125)]UpdateLockState isEnable 0, result is 0
+06-15 07:34:58.344  6134 21502 E C01C01/anco_service_broker/PBC: ProcessPasteData# Invalid raw data size:0
+06-15 07:34:58.344  6134 21502 E C01CCD/anco_service_broker/Broker: [pasteboard_broker_sa.cpp(SetPastedata:158)]failed to get pasteData from oh pasteboard.
+06-15 07:34:58.346  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2826] in ASAC
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2825] in ASAC
+06-15 07:34:58.347  6134 20528 E C01CCD/anco_service_broker/GraphicBroker: SetVSyncEnabledLocked: set vsync rate failed, ret=40001000, rate=1
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2824] in ASAC
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2819] in ASAC
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2816] in ASAC
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2809] in ASAC
+06-15 07:34:58.347  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2808] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2807] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2806] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2804] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2791] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2782] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2719] in ASAC
+06-15 07:34:58.348  6134  6261 E C01CCD/anco_service_broker/DMS_BROKER_LOG: [(OnDisplaySizeAndDensityChanged:171)]1260 2844 ret:0
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2720] in ASAC
+06-15 07:34:58.348  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2713] in ASAC
+06-15 07:34:58.349  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2706] in ASAC
+06-15 07:34:58.349  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2777] in ASAC
+06-15 07:34:58.349  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2759] in ASAC
+06-15 07:34:58.349  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2758] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2756] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2743] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2754] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[12] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[16] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2746] in ASAC
+06-15 07:34:58.350  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2731] in ASAC
+06-15 07:34:58.350  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2726] in ASAC
+06-15 07:34:58.350  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2725] in ASAC
+06-15 07:34:58.350  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2724] in ASAC
+06-15 07:34:58.350  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2690] in ASAC
+06-15 07:34:58.350  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2435] in ASAC
+06-15 07:34:58.351  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2820] in ASAC
+06-15 07:34:58.351  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2426] in ASAC
+06-15 07:34:58.351  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2814] in ASAC
+06-15 07:34:58.351  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2420] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2259] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2753] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1768] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2162] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1767] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2068] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1807] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1783] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2073] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1782] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1781] in ASAC
+06-15 07:34:58.352  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1780] in ASAC
+06-15 07:34:58.352  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2948] in ASAC
+06-15 07:34:58.352  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1766] in ASAC
+06-15 07:34:58.352  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2056] in ASAC
+06-15 07:34:58.352  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2750] in ASAC
+06-15 07:34:58.352  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1765] in ASAC
+06-15 07:34:58.353  1590  4889 W C01336/foundation/AMS: [crowd_test_interceptor.cpp54]GetAppInfo failed
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2946] in ASAC
+06-15 07:34:58.353  1590  4889 W C01120/foundation/BMS: get running rule -n empty
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2749] in ASAC
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1764] in ASAC
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2945] in ASAC
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1763] in ASAC
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2745] in ASAC
+06-15 07:34:58.353  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1760] in ASAC
+06-15 07:34:58.353  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2744] in ASAC
+06-15 07:34:58.353  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1759] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2741] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[968] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1756] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2747] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1074] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1665] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2738] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1556] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2736] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1554] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2735] in ASAC
+06-15 07:34:58.354  6134 28093 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1553] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2811] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1826] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2723] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1147] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2722] in ASAC
+06-15 07:34:58.354  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1141] in ASAC
+06-15 07:34:58.355  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1140] in ASAC
+06-15 07:34:58.355  6134  6257 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2812] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1236] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1139] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[939] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1136] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2299] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[938] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1075] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1065] in ASAC
+06-15 07:34:58.355  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[861] in ASAC
+06-15 07:34:58.356  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1649] in ASAC
+06-15 07:34:58.356  6134  6165 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2734] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1552] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1067] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2739] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[966] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1557] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1072] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2733] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[960] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1551] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2839] in ASAC
+06-15 07:34:58.356  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1066] in ASAC
+06-15 07:34:58.357  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2742] in ASAC
+06-15 07:34:58.357  6134 25809 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[969] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2732] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[959] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1258] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1064] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2740] in ASAC
+06-15 07:34:58.357 20916 21484 E C03F00/uawei.hmos.email:workScheduler/ArkEtsVm: [nodict]ani: Cannot attach current thread, reached the limit of EAWorkers
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[770] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1755] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[967] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2727] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1742] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1063] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2729] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2728] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[955] in ASAC
+06-15 07:34:58.357  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1817] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1812] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2295] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[937] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[896] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[895] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2730] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[957] in ASAC
+06-15 07:34:58.358  6134  6134 W C01120/anco_service_broker/BMS: GetParcelableInfo reply false
+06-15 07:34:58.358  6134  6134 W C01121/anco_service_broker/BMSQuery: bundle_mgr_proxy.cpp:QueryAbilityInfo:1311 QueryAbilityInfo mutiparam from server fail
+06-15 07:34:58.358  6134  6134 E C01CBD/anco_service_broker/AmsBrokerService: [AmsBroker(HasPermissionsDeclareForAbility:106)]query ability info failed from bundleMgr Ability:DataShareExtAbility, bundle:com.ohos.medialibrary.medialibrarydata.
+06-15 07:34:58.358  6134  6264 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2755] in ASAC
+06-15 07:34:58.358  6134  6223 E C01CCD/anco_service_broker/POWER_BROKER_LOG: [(RemoveLock:51)]The map of wakeLockMap_ is empty, lock has not acquired.
+06-15 07:34:58.358  6134  6223 E C01CCD/anco_service_broker/POWER_BROKER_LOG: [(ReleaseWakeLockInner:103)]removeLock failed : -4
+06-15 07:34:58.358  6134  6264 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[785] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2810] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[52] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[138] in ASAC
+06-15 07:34:58.358  1590  4889 W C01337/foundation/EcologicalRule: [ERI235]failed,uid: 5557
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[1803] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[2815] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[57] in ASAC
+06-15 07:34:58.358  6134  6223 W C01D11/anco_service_broker/AamsBrokerService: [(DeregisterElementOperator:280)]Not find windowId[55] in ASAC
+06-15 07:34:58.361  1590  4889 E C01312/foundation/DbObsMgr: [dataobs_mgr_inner_ext.cpp281]subscribers num :0
+06-15 07:34:58.361  1590  4889 E C01312/foundation/DbObsMgr: [dataobs_mgr_inner_ext.cpp281]subscribers num :0
+06-15 07:34:58.364   772 20312 W C02B87/audio_server/AudioDeviceCommon: [GetPreferredOutputDeviceDescInner]Invalid usage[0], return current device.
+06-15 07:34:58.378  2654 30594 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:58.384 20916 21484 W C01321/uawei.hmos.email:workScheduler/JsRuntime: [CSM256]not Connected
+06-15 07:34:58.384 20916 21484 W C01321/uawei.hmos.email:workScheduler/JsRuntime: [CSM161]not Connected
+06-15 07:34:58.393 20916 20916 E C01D02/uawei.hmos.email:workScheduler/accessibility_asacfwk: [(AccessibilitySystemAbilityClientImpl:78)]accessibility service is ready.
+06-15 07:34:58.398  1590  2523 W C01202/foundation/Subscriber: Subscribe accessibility.config.ready, without any restrict subid = 20916_20020058_-1_51153_303980278
+06-15 07:34:58.403 20916 20916 W C03F04/uawei.hmos.email:workScheduler/MMG: [NMM:1289] Name mismatch: file.photoAccessHelperNative != file.photoAccessHelper
+06-15 07:34:58.497 20916 20916 W C03F04/uawei.hmos.email:workScheduler/MMG: [NMM:1463]Module path conflict: core.account.accountPicker
+06-15 07:34:58.577  1590  4889 W C01336/foundation/AMS: [ABR2795]null sessionInfo
+06-15 07:34:58.589   968 21449 E C01731/resource_schedule_service/SUSPEND_MSG: [a92abd9d128fd10 0 0][(UpdateServiceExtensionMap):148] not support type:1, pid=20916
+06-15 07:34:58.701  1179  1290 W C01C42/time_service/TimeService: t3 399818415
+06-15 07:34:58.758   855 21361 E C03D00/utils_base: Couldn't unlinkat subFile procs: Operation not permitted
+06-15 07:34:58.810   855   855 W C057C3/memmgrservice/IPCObjectStub: SendRequestInner: Stub(desc:*.AncoStatusSubcriber) code:0 cost:502ms
+06-15 07:34:59.336  2905 16021 E C01CCD/bms_broker/Broker: [ (OnAncoStatusChanged:89)]main handler is nullptr
+06-15 07:34:59.338  6134  6134 E C01CCD/anco_service_broker/GraphicBroker: SetVSyncEnabledLocked: set vsync rate failed, ret=40001000, rate=-1
+06-15 07:34:59.338   968  6137 I C02C02/PARAM: SystemSetParameter name anco_state id:33362 ret:0
+06-15 07:34:59.341  1590 19938 W C01340/foundation/Ext: [ABCM663]normal:35050
+06-15 07:34:59.341  1590 19938 W C01340/foundation/Ext: [ABCM526]empty
+06-15 07:34:59.344   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:855
+06-15 07:34:59.344   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:1383
+06-15 07:34:59.344   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:856
+06-15 07:34:59.345   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6135
+06-15 07:34:59.346   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6133
+06-15 07:34:59.346   605   691 I C02C03/PARAM_WATCHER: ProcessParameterChange key:anco_state pid:6134
+06-15 07:34:59.384  2654 25008 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:34:59.397  1179  1290 W C01C42/time_service/TimeService: t3 399819017
+06-15 07:34:59.596   968   968 W C057C3/resource_schedule_service/IPCObjectStub: SendRequestInner: Stub(desc:*.DistributedConnection) code:1 cost:1003ms
+06-15 07:34:59.819   788  3377 I C02C02/PARAM: SystemSetParameter name persist.ffrt.interval.appRate id:144580 ret:0
+06-15 07:34:59.822   788  3377 I C02C02/PARAM: SystemSetParameter name persist.ffrt.interval.rsRate id:144581 ret:0
+06-15 07:35:00.000  1179  1290 W C01C42/time_service/TimeService: uid:5557 id:1296636182 wk:0
+06-15 07:35:00.005  1179  1290 W C01C42/time_service/TimeService: id:1239644535 we:399879017
+06-15 07:35:00.005  1179  1290 W C01C42/time_service/TimeService: t3 399819719
+06-15 07:35:00.026  5218  5251 W C03937/com.ohos.formrenderservice/AceResource: [(100000:100000:scope)] Get double by name error, resName=sys.float.hms_material_style, errorCode=9001003
+06-15 07:35:00.026  5218  5251 W C03937/com.ohos.formrenderservice/AceResource: [(100000:100000:scope)] Get double by name error, resName=sys.float.hms_material_style, errorCode=9001003
+06-15 07:35:00.388 24569 26474 W C02D13/hdcd/HDC_LOG: [GetDevItem:114] GetDevItem false key:persist.hdc.root
+06-15 07:35:00.397  2654 30596 E C01560/wifi_manager_service/WifiCongestionService: HandleSignalPollChangedMsg unsupported
+06-15 07:35:00.441 21531 21531 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.441 21531 21531 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.441 21531 21531 W C02C02/PARAM: SystemReadParam failed!name is:persist.init.debug.loglevel,err:1002
+06-15 07:35:00.446 21531 21531 W C02C02/PARAM: Selinux check name const.logsystem.versiontype in u:object_r:versiontype_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.446 21531 21531 W C02C02/PARAM: SystemReadParam failed!name is:const.logsystem.versiontype,err:1002
+06-15 07:35:00.449 21531 21531 W C02C02/PARAM: Selinux check name musl.log.enable in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.log.enable
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.log.enable
+06-15 07:35:00.449 21531 21531 W C02C02/PARAM: Selinux check name musl.log.level in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.log.level
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.log.level
+06-15 07:35:00.449 21531 21531 W C02C02/PARAM: Selinux check name musl.ld.debug.dlopen in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlopen
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlopen
+06-15 07:35:00.449 21531 21531 W C02C02/PARAM: Selinux check name musl.ld.debug.dlclose in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlclose
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlclose
+06-15 07:35:00.449 21531 21531 W C02C02/PARAM: Selinux check name debug.hitrace.tags.enableflags in u:object_r:hitrace_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to read parameter debug.hitrace.tags.enableflags
+06-15 07:35:00.449 21531 21531 E C02C02/PARAM: Forbid to access parameter debug.hitrace.tags.enableflags
+06-15 07:35:00.467 21531 21531 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.467 21531 21531 W C02C02/PARAM: Selinux check name persist.init.debug.loglevel in u:object_r:startup_init_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.467 21531 21531 W C02C02/PARAM: SystemReadParam failed!name is:persist.init.debug.loglevel,err:1002
+06-15 07:35:00.469 21531 21531 W C02C02/PARAM: Selinux check name const.logsystem.versiontype in u:object_r:versiontype_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.469 21531 21531 W C02C02/PARAM: SystemReadParam failed!name is:const.logsystem.versiontype,err:1002
+06-15 07:35:00.470 21531 21531 W C02C02/PARAM: Selinux check name musl.log.enable in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.log.enable
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.log.enable
+06-15 07:35:00.470 21531 21531 W C02C02/PARAM: Selinux check name musl.log.level in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.log.level
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.log.level
+06-15 07:35:00.470 21531 21531 W C02C02/PARAM: Selinux check name musl.ld.debug.dlopen in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlopen
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlopen
+06-15 07:35:00.470 21531 21531 W C02C02/PARAM: Selinux check name musl.ld.debug.dlclose in u:object_r:musl_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to read parameter musl.ld.debug.dlclose
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to access parameter musl.ld.debug.dlclose
+06-15 07:35:00.470 21531 21531 W C02C02/PARAM: Selinux check name debug.hitrace.tags.enableflags in u:object_r:hitrace_param:s0 [21531 2000 2000] failed
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to read parameter debug.hitrace.tags.enableflags
+06-15 07:35:00.470 21531 21531 E C02C02/PARAM: Forbid to access parameter debug.hitrace.tags.enableflags
