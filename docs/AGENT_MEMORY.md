@@ -53,7 +53,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.22.5`，versionCode：`1000108`
+- 当前本地版本：`0.22.7`，versionCode：`1000110`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -63,8 +63,8 @@
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- **当前核心 SHA256**：`4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`（core-80）
-- **最新核心更新**：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80`，共享入站帧缓存桥已新增并补中文 release 说明；11 App 已强制拉取线上 core-80 构建 `0.22.5` 并无线安装验证。
+- **当前本地核心 SHA256**：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`（线上 `core-81`）
+- **最新核心更新**：13 核心 `core-81` 已发布，新增 OHOS `scrap::common::ohos::Capturer` incoming frame source，并让共享启动通过 `captureRequired=true` 请求 App 提供首帧；11 App 已强制拉取线上 core-81 构建 `0.22.7` 并无线安装验证。
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
 
@@ -92,11 +92,12 @@
 6. 共享服务 App 侧已改为 C++ NAPI `OH_AVScreenCapture_StartScreenCapture` 原生屏幕采集和 native buffer 统计；录屏 live frame/desktop server 未接入时不得标记 `incomingReady=true`，UI 的“服务运行中”、共享 TAB 绿点、设备 ID 和一次性密码展示也必须只由 `incomingReady=true` 驱动，禁止回退截图 API，也禁止再用 `AVScreenCaptureRecorder`/临时 mp4 当作当前共享录屏方案
 7. 桥接函数已补齐至374个（2026-06-15）：从54个持续扩展，覆盖官方APK绝大部分wire_*函数，并新增 incoming screen frame 缓存桥接口
 8. 远控会话录制不能再调用本机 `ScreenCaptureService`/`CUSTOM_SCREEN_CAPTURE`；它是远端会话命令，必须走 `NativeRustDeskBridge.sessionRecordScreen()` 并依赖核心 `record-status` 回流。共享页的本机录屏探测只属于入站被控链路。
+9. 文件管理/文件传输授权必须 picker-first：先唤起 `DocumentViewPicker`，再记录 `READ_WRITE_DOWNLOAD_DIRECTORY` / `FILE_ACCESS_PERSIST`；普通权限预检不能挡住文件访问授权弹窗。
 
 ### 已验证状态
-- 最新 native core：`librustdesk_core.a`，131,624,954 bytes，SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
-- 最新 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-80`
-- 最新本地构建版本：`0.22.5`，versionCode `1000108`，构建时间 `2026-06-15 07:32`
+- 当前本地 native core：`librustdesk_core.a`，131,631,706 bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
+- 最新本地构建版本：`0.22.7`，versionCode `1000110`，构建时间 `2026-06-15 19:09`
 - 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
 - 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
 - 2026-06-14 core-76 全量构建和安装验证：`scripts\build_full_hap.bat` 下载 latest core-76 并构建 `0.20.0` / versionCode `1000096`；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；验包通过，`192.168.11.100:36169` 安装成功且 `bm dump` 显示 `0.20.0`。当前设备密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续。
@@ -107,6 +108,8 @@
 - 2026-06-15 共享录屏底层切换复查：11 App 增量构建 `0.22.2` / versionCode `1000105`，signed HAP `18,946,878` bytes / SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`；`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 native `OH_AVScreenCapture_StartScreenCapture` + `OH_AVScreenCapture_AcquireVideoBuffer` 统计。验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `62121` 存活。
 - 2026-06-15 core-80 入站帧缓存复查：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80`，release body 已补中文说明；11 App 强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；`OH_NativeBuffer` payload 已推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false。验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活。
 - 2026-06-15 CI strict/中文摘要修正复查：push 后 Linux run `27528204491` 和发布 run `27528218065` 曾因 `PermissionService.ets:173` 未显式对象字面量失败；已改为显式 `PermissionRequestResult` 并修正聊天摘要错字。11 App 强制拉取线上 core-80 后增量构建 `0.22.5` / versionCode `1000108`，signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、66 项链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活。
+- 2026-06-15 v0.22.6/core-81 本地预发布复查：13 核心本地构建 `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`；11 App 使用本地 staticlib 构建 `0.22.6` / versionCode `1000109`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`。文件授权改为 picker-first；共享启动由 `captureRequired` 触发 native 录屏提供首帧，但 `incomingReady` 仍严格表示真实服务 ready。验包、66 项审计、无线安装启动和干净 app hilog 均通过，设备端进程 `7527` 存活。
+- 2026-06-15 v0.22.7/core-81 线上核心复查：13 核心 commit `c5b3eeb` 已由 run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`，release notes 已补中文说明；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`。验包、66 项审计、静态录屏 API 扫描、无线安装启动和干净 app hilog 均通过，设备端进程 `40016` 存活。
 - 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.5`
 - 最新线上 App workflow：push run `27528676811` 成功，release run `27528681007` 成功；线上 signed HAP `20,856,465` bytes / SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，release notes 已补中文说明。
 - coreReady=true，adapter=official-native
@@ -155,6 +158,8 @@
 - `fetch_native_core.ps1` 远程 HEAD/下载失败时，若本地 `librustdesk_core.a` 已存在且通过大小/SHA校验，应复用本地核心继续构建；不能把网络不可达误当成本地核心不可用。
 - 临时 USB 安装测试使用 `scripts\AUTO_BUILD_INSTALL.bat --skip-build usb`；该模式只选不含冒号的本地 HDC 目标并跳过无线重试。若输出 `[Empty]`，说明当前电脑未识别 USB 设备。
 - 临时调试策略：`Debug Keep Screen Awake` 当前默认开启，并有一次性迁移 `debug_keep_screen_awake_default_on_20260615`，目的是避免安装/启动验证时设备自动锁屏；用户手动关闭后不能被后续启动覆盖。
+- HAP 签名验证脚本的证书/profile 提取临时文件必须用唯一名；固定 `cert-chain.cer`/`profile.p7b` 连续验包时可能被旧进程占用，导致把工具清理问题误判成签名失败。
+- `captureRequired=true` 是“核心请求 App 启动录屏提供首帧”，不是 `incomingReady`；共享 UI 的真实运行态、TAB 绿点、设备 ID 和一次性密码展示仍只能由 `incomingReady=true` 驱动。
 - 文件传输对接要同时审计调用方向和回调方向：核心 `InvokeUiSession` 必须发 app 监听的 `folder-files/job-progress/job-done/job-error` 等事件；app 本地文件列表不能使用示例种子数据，必须来自真实文件系统路径。
 - 未接通 official session 的页面入口必须禁用或提示不可用；例如 View Camera 不能只靠页面本地状态设置 `isConnected=true`，否则会把未实现功能伪装成已连接。
 - TS 文件不能 import ETS 文件；需要被 `CoreLoaderService.ts` 等 TS 模块调用的跨层能力要拆成 `.ts` 服务，例如 `FileAuthorizationService.ts` 负责文件授权，`PermissionService.ets` 只做 ArkTS/页面层封装。
@@ -188,6 +193,7 @@
 - 共享页 `isShareServiceRunning()` 只能表示真实被控服务 ready：必须用 `settings.serviceEnabled && officialCoreState.incomingReady`。本机 `ScreenCaptureService.isCapturingActive()` 只能作为本机采集状态，不能驱动“服务运行中”、共享 TAB 绿点、设备 ID 或一次性密码展示。
 - ArkTS `AVScreenCaptureRecorder`/临时 mp4 只能算历史探测方案，当前共享录屏不得再使用它；App 侧已切到 C++ NAPI `OH_AVScreenCapture_StartScreenCapture`，通过 `AcquireVideoBuffer`/native buffer map 统计帧。真实共享链路仍要把帧 payload 接入 RustDesk desktop server/video source 后再标记 incoming ready。
 - 共享启动不要显式调用 `requestPermissionsFromUser(['ohos.permission.CUSTOM_SCREEN_CAPTURE'])`；该权限在系统上会表现为截屏/屏幕捕获授权，和真实录屏采集弹窗混在一起。当前只保留 manifest 声明，录屏授权由 native `OH_AVScreenCapture_StartScreenCapture` 在核心 ready 后触发。
+- 文件授权必须 picker-first：`DocumentViewPicker` 是文件/目录 URI 授权入口，普通权限位只是补充记录；`READ_WRITE_DOWNLOAD_DIRECTORY` 或 `FILE_ACCESS_PERSIST` 未立即 granted 不能让授权函数提前返回，否则文件管理页不会唤醒授权弹窗。
 - 文件管理/文件传输页不能只依赖远控入口提前授权；页面进入、切到本地、刷新本地、上传/下载、本地新建/删除前都要走 `DocumentViewPicker` 目录授权。`PermissionService.requestFileAccessAuthorization()` 默认使用 `{ folder: true, authMode: true }`，聊天/导入这类选单文件仍直接调用 `requestFileAuthorization({ maxSelectNumber: 1 })`。
 - 密码框被覆盖回 false 的常见原因：applyBridgeState connected 分支、monitorConnectionWhileWaiting 轮询、syncBridgeState 周期刷新
 - **重连对话框最大bug：buildReconnectDialog()定义了但从未在build()中渲染，showReconnectDialog=true不会显示对话框，只显示statusText状态文本**
@@ -329,8 +335,8 @@
 
 ### 官方APK对比经验
 - 官方 Android APK 使用 Flutter FFI 架构：单一 rustdesk_core_main + 365个 wire_* 导出函数
-- HarmonyOS 使用 staticlib + CMake + NAPI 架构：369个 rustdesk_bridge_* C ABI 函数
-- harmony_bridge/core.rs 有 363 个 pub fn，bridge_api.rs 有 369 个导出函数
+- HarmonyOS 使用 staticlib + CMake + NAPI 架构：374个 rustdesk_bridge_* C ABI 函数
+- harmony_bridge/core.rs 有 367 个 pub fn，bridge_api.rs 有 374 个导出函数
 - core.rs 中每个 pub fn 必须在 bridge_api.rs 有对应 #[no_mangle] pub extern "C" 导出
 - core.rs 中每个 pub fn 必须在 loader.cpp 有 NAPI 包装和注册
 - core.rs 中每个 pub fn 必须在 abi.h 有 C 声明
@@ -375,7 +381,7 @@
 
 ### 2026-06-08 大规模函数补齐经验
 
-- 从54个桥接函数扩展至369个，覆盖官方APK绝大部分wire_*函数
+- 从54个桥接函数扩展至374个，覆盖官方APK绝大部分wire_*函数
 - 添加了完整的cm_*(11个)、plugin_*(13个)、install_*(5个)、is_*(12个)函数族
 - 添加了34个缺失的session_*函数（session_add_job/session_get_audit_guid/session_handle_screenshot等）
 - 添加了main_init函数（官方初始化入口，接受app_dir和custom_client_config）
@@ -400,6 +406,8 @@
 
 | 日期 | 更新内容 |
 |------|---------|
+| 2026-06-15 | v0.22.6/core-81 本地预发布：核心新增 `captureRequired` 与 OHOS incoming frame source，App 文件授权改为 picker-first，验包脚本签名临时文件改为 GUID 名；本地构建、验包、66 项审计、无线安装和干净 hilog 均通过。 |
+| 2026-06-15 | v0.22.7/core-81 线上核心：core-81 已由 run `27563925971` 发布，11 App 强制下载线上 asset 构建 `0.22.7`，确认录屏不再唤起截屏 API，文件授权 picker-first，验包、66 项审计、无线安装和干净 hilog 均通过。 |
 | 2026-06-07 | 初始创建，汇总所有项目文档信息 |
 | 2026-06-07 | 修复并行密码+无密码连接流程、ECONNRESET重连提示；添加连接/会话经验 |
 | 2026-06-07 | 修复win图标着色(fillColor→colorFilter)、SVG path显式fill="none")；添加修改流程经验 |
@@ -408,7 +416,7 @@
 | 2026-06-07 | 修复中文输入法：send_clipboard_data()从空壳实现为发送Clipboard protobuf消息，参考screenshot.rs用法模式 |
 | 2026-06-07 | 新增工作规则：新对话"读取文档"触发全文档读取；构建脚本不可用时安装构建脚本逻辑；每次修改后安装测试验证 |
 | 2026-06-07 | 对比官方APK(365个wire_函数)与当前核心(48个bridge函数)，补齐6个缺失函数：getSessionStage/getActivePeerId/getConnectStatusSummary/getConnectDetailMessage/getConnectLastError/drainConnectEvents；NAPI注册升至58个(54桥接+4工具)；更新CORE.md完整函数说明 |
-| 2026-06-08 | 大规模函数补齐：从54个扩展至369个桥接函数，覆盖官方APK绝大部分wire_*函数；添加cm_*/plugin_*/install_*/is_*/session_*全系列；重命名main_use_texture_render→main_get_use_texture_render；添加main_init；修复生成脚本bug（String→const char*、read_c_string、ReadUtf8String）；全面重写CORE.md桥接函数说明（31个分类、369个函数详细描述）；更新函数名映射表 |
+| 2026-06-08 | 大规模函数补齐：当时从54个扩展至369个桥接函数，覆盖官方APK绝大部分wire_*函数；添加cm_*/plugin_*/install_*/is_*/session_*全系列；重命名main_use_texture_render→main_get_use_texture_render；添加main_init；修复生成脚本bug（String→const char*、read_c_string、ReadUtf8String）；后续已继续扩展到374个导出函数。 |
 | 2026-06-08 | 官方一致性验证修复：(1)abi.h删除28个旧式命名声明（set_incoming_service_enabled/connect_to_peer/send_mouse_input等），只保留新式session_*/main_*命名；(2)main_init声明从extern "C"块外移入块内，修复C++ name mangling问题；(3)添加drain_connect_events缺失声明；(4)loader.cpp中ConnectToPeer改为调用rustdesk_bridge_session_start、SetIncomingServiceEnabled改为调用rustdesk_bridge_main_start_service；(5)session_alternative_codecs→session_get_alternative_codecs与官方对齐（bridge_api.rs/core.rs/loader.cpp/index.d.ts/NativeRustDeskBridge.ts/librustdesk_bridge.d.ts全链路更新）；(6)HAP构建验证通过 |
 | 2026-06-12 | 修复AvoidAreaType.TYPE_INPUT→TYPE_KEYBOARD（OHOS SDK API重命名）；HAP构建验证通过（20.67MB）；更新AGENT_MEMORY添加ArkTS API兼容经验 |
 | 2026-06-12 | 核心项目迁移：所有核心相关文件（Rust桥接层、C++桥接层、代码生成脚本）迁移到13_librustdesk_core项目；核心构建流程改为在13项目修改→GitHub Actions在线构建→下载librustdesk_core.a→放入11项目libs；修复所有生成脚本的硬编码路径为相对路径；CMakeLists.txt路径适配13项目结构；更新README/AGENT_MEMORY/CORE文档 |
@@ -452,7 +460,7 @@
 | 2026-06-15 | 性能优化前备份和审计修复：`backup_project.ps1` 排除 `13_librustdesk_core` junction 并使用 `/XJ`，正式备份为 `rustdesk_harmonyos_20260615_000050.zip`；远控质量浮层改为基础7行+`qualityMetricItems`动态指标滚动渲染，连接链路审计恢复 `50 PASS, 0 FAIL`。 |
 | 2026-06-15 | 调试常亮临时默认开启：`debugKeepScreenAwake` 默认值改为 true，新增一次性迁移 `debug_keep_screen_awake_default_on_20260615`，升级后自动开启一次防止调试安装后手机锁屏；用户手动关闭后不再覆盖。 |
 | 2026-06-15 | USB-only/无线安装：`AUTO_BUILD_INSTALL.bat` 新增 `usb/--usb` 目标模式，只选择 USB/local HDC 目标并跳过无线；`--skip-build usb` 返回 `[Empty]` 说明 USB 未识别。用户打开无线后 `--skip-build auto` 成功安装启动 `0.20.3` 到 `192.168.11.100:36169`，`bm dump` 显示 versionCode `1000099`，进程 `26834` 存活。 |
-| 2026-06-15 | 共享录屏冲突经验：共享开关不能在核心 `incomingReady=false` 时先启动 `AVScreenCaptureRecorder`，否则只是 MP4 录屏探针却会唤起系统录屏并造成 UI 误判。处理顺序应为先写入核心选项并调用 `setIncomingServiceEnabled`，只有核心返回 `incomingReady=true` 后才启动屏幕采集；未就绪时显示 `Share requested/Requested` 和核心 detail/error。 |
+| 2026-06-15 | 共享录屏冲突经验：共享开关不能再启动 `AVScreenCaptureRecorder` 或截图 API。处理顺序应为先写入核心选项并调用 `setIncomingServiceEnabled`；核心返回 `captureRequired=true` 时启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧，只有 `incomingReady=true` 才显示共享服务真实运行。 |
 | 2026-06-15 | v0.20.5 增量验证：共享启动顺序修复后 `build_hap.bat` 通过，core-76 未变化；signed HAP `18,928,713` bytes / SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`，验包和连接链路审计通过，无线安装启动到 `192.168.11.100:36169`，设备端 `versionName=0.20.5`、versionCode `1000101`、进程 `39312` 存活。 |
 | 2026-06-15 | core-78 全量验证：13 核心聊天 ABI 与 d.ts key 修复由 run `27515510727` 发布 `core-78`，asset `131,470,442` bytes / SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`；11 App `build_full_hap.bat` 构建 `0.21.0` / versionCode `1000102`，signed HAP `18,928,728` bytes / SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`；验包、连接链路审计、无线安装启动和 hilog `coreReady` 均通过。 |
 | 2026-06-15 | v0.22.1 权限复查：共享启动去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，避免先唤起截屏/屏幕捕获授权；文件传输页和 `requestFileAccessAuthorization()` 默认走 `DocumentViewPicker` 目录授权。`build_hap.bat`、验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端 `versionName=0.22.1`、versionCode `1000104`、进程 `56711`。 |
@@ -460,6 +468,8 @@
 | 2026-06-15 | v0.22.4/core-80 入站帧缓存复查：native `OH_NativeBuffer` payload 已通过 `rustdesk_bridge_update_incoming_screen_frame` 推入核心 `incoming_screen_frame` 缓存，核心快照暴露 `incomingFramePayloadReady/incomingFrameId/incomingFrameBytes/incomingFramesSeen`。这仍不是 `incomingReady`，desktop server/video source 未接通前 UI 不能显示真实共享运行。`build_hap.bat` 强制下载线上 core-80，验包、66 项审计、无线安装和干净 hilog 均通过。 |
 | 2026-06-15 | v0.22.5/CI strict 复查：线上 Linux/release workflow 在 `PermissionService.ets` 未显式对象字面量处失败，本地修复为显式 `PermissionRequestResult`；聊天摘要分隔符修正为 ` - `，避免中文错字。强制下载 core-80 构建、验包、66 项审计、无线安装和干净 hilog 均通过。 |
 | 2026-06-15 | v0.22.5 线上发布闭环：提交 `7bdfd0d` 后 push Linux workflow run `27528676811` 成功，release workflow run `27528681007` 成功发布 `OpenRustdesk-Build-v0.22.5`；线上 signed HAP SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，release notes 已补中文说明和 core-80 标签。 |
+| 2026-06-15 | v0.22.6/core-81 本地预发布复查：共享 `captureRequired` 触发 native 录屏提供首帧但不等于 `incomingReady`；文件授权改为 `DocumentViewPicker` picker-first；验包签名临时文件使用 GUID 名。本地 core `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`，无线安装启动和干净 hilog 均通过。 |
+| 2026-06-15 | v0.22.7/core-81 线上核心复查：线上 core-81 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829` 已强制下载到 11 App；signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`，无线安装启动、静态录屏 API 扫描和干净 hilog 均通过。 |
 | 2026-06-14 | 摄像头查看入口收敛：Recent 菜单 `View Camera` 改为不可用提示，`ViewCamera.ets` 不再将本地状态伪装成 connected，等待后续真实 official view-camera session 接入。 |
 | 2026-06-14 | core-73 验证：13 核心文件传输事件和 `switch-sides` option 路由已发布为 `core-73`；11 App 全量构建、验包和无线安装通过，设备锁屏导致启动运行态待解锁后复测。 |
 | 2026-06-14 | 剪贴板/命令假成功收敛：`Send Clipboard Keys` 检查 native 返回值；一次性远控命令未被 core 处理时提示 `Command unavailable`，不再写本地 option 伪装排队。 |

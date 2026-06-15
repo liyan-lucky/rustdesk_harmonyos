@@ -21,11 +21,13 @@
 - 2026-06-15 共享录屏底层切换：`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 和临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；增量构建 `0.22.2` / versionCode `1000105`，验包、连接链路审计、无线安装启动和严格 app hilog 验证通过。
 - 2026-06-15 共享入站帧进入核心缓存：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80` 并补中文 release 说明；11 App 已同步 incoming frame C ABI/NAPI/ArkTS wrapper，native screen capture buffer 会推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false 直到 desktop server/video source 接通。强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。
 - 2026-06-15 线上 ArkTS 严格模式复查：push 后 Linux/release workflow 在 `PermissionService.ets` 对文件授权结果的未显式对象字面量处失败，已改为显式 `PermissionRequestResult`；同时修正聊天摘要中文错字。强制拉取线上 core-80 后增量构建 `0.22.5` / versionCode `1000108`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。
+- 2026-06-15 本地 core-81 预发布复查：共享启动新增 `captureRequired` 中间态，App 只在核心请求采集时启动 native `OH_AVScreenCapture_StartScreenCapture`，但真实运行态仍只认 `incomingReady=true`；文件授权服务改为先唤起 `DocumentViewPicker` 再记录普通权限位。使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`，验包、66 项审计、无线安装启动和干净 hilog 验证通过。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
+- 2026-06-15 线上 core-81 正式复查：13 核心 commit `c5b3eeb` 已由 run `27563925971` 发布 `core-81`，release 已补中文说明；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，验包、66 项连接链路审计、静态录屏 API 扫描、无线安装启动和干净 hilog 验证通过。共享录屏只由 `captureRequired` 触发 native `OH_AVScreenCapture_StartScreenCapture`，不唤起截屏 API；文件管理授权保持 picker-first。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-15 07:32`
-  - App 显示版本：`0.22.5`
-  - versionCode：`1000108`
+  - BuildInfo 编译时间：`2026-06-15 19:09`
+  - App 显示版本：`0.22.7`
+  - versionCode：`1000110`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
@@ -72,11 +74,10 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - release：`core-80`
-  - 大小：`131,624,954` bytes
-  - 编译时间/mtime：`2026-06-15 07:15`
-  - FNV-1a 1MB：`bea81e95`
-  - SHA256：`4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
+  - 最新线上 release：`core-81`
+  - 最新线上大小：`131,631,706` bytes
+  - 最新线上 SHA256：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+  - 最新线上 workflow：`27563925971`
   - 默认下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`
@@ -90,8 +91,8 @@
 共享服务启动：
 
 - **ScreenCaptureService 当前走原生屏幕采集**（2026-06-15）：ArkTS 不再使用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder`，C++ NAPI 改为 `OH_AVScreenCapture_StartScreenCapture` + native buffer 取帧统计；禁止再用 `@ohos.screenshot.capture()` 或临时 mp4 录制文件作为 fallback。
-- Toggle 回弹、ForEach key、startCapture throw、录屏失败后仍启动 incoming 等问题已修复；共享开关现在先请求 native incoming 状态，只有 `incomingReady=true` 后才启动屏幕采集，且不再预申请 `CUSTOM_SCREEN_CAPTURE`，避免录屏前先唤起截屏/屏幕捕获授权。
-- 原生 screen capture buffer 与 RustDesk desktop server/live frame 桥仍需继续对接；没有真实视频源时不得标记 `incomingReady=true`，避免其他设备连接后一直等待视频流。
+- Toggle 回弹、ForEach key、startCapture throw、录屏失败后仍启动 incoming 等问题已修复；共享开关现在先请求 native incoming 状态，看到 `captureRequired=true` 才启动屏幕采集提供首帧，且不再预申请 `CUSTOM_SCREEN_CAPTURE`，避免录屏前先唤起截屏/屏幕捕获授权。
+- 原生 screen capture buffer 已进入核心 incoming cache，线上 core-81 已让 OHOS `scrap::Capturer` 可消费该缓存；没有 desktop server/video source 真实 ready 时不得标记 `incomingReady=true`，避免其他设备连接后一直等待视频流。
 
 LAN 发现（2026-06-03）：
 
@@ -156,7 +157,7 @@ UI 交互修复（2026-06-03）：
 - 未确认 official incoming ready 时不能显示为“运行中”，避免共享服务实际不可访问但 UI 显示正常。
 - LAN 发现只在 App 打开时自动执行一次；之后需要用户手动刷新。手动刷新只清空 ArkTS/UI 发现状态并重新执行 `discoverLanPeers()` + `loadLanPeers()`，不能调用 native `removeDiscoveredPeer()` 清 LAN peers，否则会删除 RustDesk 原生发现结果。
 - 通讯录必须登录后才能添加设备；未登录时通讯录区域显示登录入口，历史记录里的添加动作也必须先弹出登录。
-- 文件访问授权必须同时申请必要权限位并唤起 `DocumentViewPicker`；文件传输页本地操作前必须走目录授权，不能只依赖远控入口提前授权。
+- 文件访问授权必须先唤起 `DocumentViewPicker`，再记录必要权限位；文件传输页本地操作前必须走目录授权，不能只依赖远控入口提前授权，也不能让普通权限预检挡住 picker 弹窗。
 
 输入和会话 UI：
 
@@ -187,7 +188,7 @@ UI 交互修复（2026-06-03）：
    - GitHub 发布规则：本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。
 
 **已迁移到 13 项目的核心文档**（`%VSCODE_ROOT%\13_librustdesk_core\docs\`）：
-- `CORE.md` — 核心架构、桥接函数完整说明（369个函数）、编译问题
+- `CORE.md` — 核心架构、桥接函数完整说明（374个函数）、编译问题
 - `BUILD_ARCHIVE.md` — 历史构建、脚本、Ubuntu路径归档
 - `CONNECTION_DEBUG_LOG.md` — 连接问题逐轮排查记录
 - `UBUNTU_CROSS_COMPILE_GUIDE.md` — Ubuntu 交叉编译指南

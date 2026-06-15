@@ -1801,6 +1801,11 @@ struct Index {
       adapter: 'official-native',
       coreReady: false,
       incomingReady: false,
+      captureRequired: false,
+      incomingFramePayloadReady: false,
+      incomingFrameId: 0,
+      incomingFrameBytes: 0,
+      incomingFramesSeen: 0,
       displayId: '',
       fingerprint: '',
       directAddress: '',
@@ -2219,8 +2224,9 @@ struct Index {
     const activePeer = this.officialCoreState.activePeerId.length > 0 ? `\nPeer: ${this.formatId(this.officialCoreState.activePeerId)}` : '';
     const coreError = this.officialCoreState.lastError.length > 0 ? `\nError: ${this.officialCoreState.lastError}` : '';
     const detail = this.officialCoreState.detailMessage.length > 0 ? `\nDetail: ${this.officialCoreState.detailMessage}` : '';
+    const incomingFrame = `\n入站帧: 采集=${this.officialCoreState.captureRequired}; 载荷=${this.officialCoreState.incomingFramePayloadReady}; 帧数=${this.officialCoreState.incomingFramesSeen}; 字节=${this.officialCoreState.incomingFrameBytes}`;
     const bridgeSummary = this.nativeBridgeSummary.trim().length > 0 ? `\n${this.nativeBridgeSummary}` : '';
-    return coreStatus + displayId + server + fingerprint + sessionStage + activePeer + coreError + detail + bridgeSummary;
+    return coreStatus + displayId + server + fingerprint + sessionStage + activePeer + coreError + detail + incomingFrame + bridgeSummary;
   }
 
   @Builder
@@ -3963,11 +3969,14 @@ struct Index {
     this.syncSharePasswordToNative(this.appData.getPassword());
     this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(enabled, this.settings);
     hilog.info(0xA03D00, 'SHARE', 'setIncomingServiceEnabled result: coreReady=%{public}s', String(this.officialCoreState.coreReady));
-    if (enabled && this.officialCoreState.incomingReady) {
+    const shouldStartNativeCapture = enabled && (this.officialCoreState.incomingReady || this.officialCoreState.captureRequired);
+    if (shouldStartNativeCapture) {
       try {
         await ScreenCaptureService.getInstance().startCapture();
         captureReady = true;
-        hilog.info(0xA03D00, 'SHARE', 'startCapture succeeded after core incoming ready');
+        hilog.info(0xA03D00, 'SHARE', 'startCapture succeeded after core capture request');
+        await this.sleep(260);
+        this.officialCoreState = await this.officialBridge.refresh(this.settings);
       } catch (error) {
         ScreenCaptureService.getInstance().stopCapture();
         NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');

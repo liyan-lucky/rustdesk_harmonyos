@@ -6,6 +6,11 @@ export interface NativeBridgeSnapshot {
   adapter?: string;
   coreReady?: boolean;
   incomingReady?: boolean;
+  captureRequired?: boolean;
+  incomingFramePayloadReady?: boolean;
+  incomingFrameId?: number;
+  incomingFrameBytes?: number;
+  incomingFramesSeen?: number;
   displayId?: string;
   fingerprint?: string;
   directAddress?: string;

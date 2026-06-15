@@ -2,6 +2,43 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.22.7 (2026-06-15)
+
+### 修复
+
+- **线上 core-81 正式接入**：13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，`librustdesk_core.a` 正式包含 OHOS incoming frame source、`captureRequired` 快照字段和共享首帧触发链路。
+- **共享录屏触发边界确认**：App 强制下载线上 core-81 后重建，`captureRequired=true` 仅用于启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧；`incomingReady=true` 仍是唯一真实共享运行态，不再唤起截屏 API，也不再使用 `AVScreenCaptureRecorder`。
+- **文件管理授权闭环确认**：文件访问继续保持 picker-first，文件管理/文件传输页不会被普通权限预检挡住 `DocumentViewPicker` 授权弹窗。
+
+### 验证
+
+- 线上 core-81 asset `131,631,706` bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`；release 已补中文说明。
+- 11 App 使用 `RUSTDESK_CORE_FORCE_DOWNLOAD=1` + 指定 SHA256 强制拉取线上 core-81 构建通过，版本 `0.22.7` / versionCode `1000110`，BuildInfo 时间 `2026-06-15 19:09`。
+- signed HAP `18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`；unsigned HAP `18,899,289` bytes，SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`。
+- `verify_native_harmonyos_hap.ps1` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
+- 静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` runtime permission request 命中。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.7`、`versionCode=1000110`，进程 `40016` 存活。
+- 干净 hilog `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt`：7252 行、app/core 相关 132 行，app fatal/panic/`exit(-1)`/signal/native core missing bad count = 0。
+
+## v0.22.6 (2026-06-15)
+
+### 修复
+
+- **文件管理主动唤起文件访问授权**：`FileAuthorizationService` 改为先唤起 `DocumentViewPicker`，再记录 `READ_WRITE_DOWNLOAD_DIRECTORY` / `FILE_ACCESS_PERSIST` 普通权限结果，避免权限预检挡住目录授权弹窗；`FileTransfer.ets` 页面进入后延迟 bootstrap，给系统 picker 留出页面 attach 时机。
+- **共享录屏启动状态拆分**：`OfficialRustDeskBridge` / `NativeRustDeskBridge` / `Index` 增加并消费 `captureRequired`、`incomingFramePayloadReady`、`incomingFrameId`、`incomingFrameBytes`、`incomingFramesSeen`。`captureRequired=true` 会启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧，但共享 UI 仍只在 `incomingReady=true` 时显示真实运行。
+- **核心 OHOS 入站帧源本地预发布**：本地 core-81 源码让 `scrap::common::ohos::Capturer` 从核心 incoming frame cache 读取最新帧，并通过 `captureRequired` 打通 App 启动采集的触发信号；`incomingReady` 继续保持严格语义，等待 desktop server/video source 真正 ready。
+- **验包脚本稳定性**：`verify_native_harmonyos_hap.ps1` 的签名证书/profile 提取临时文件改用 GUID 名，避免连续验包时固定文件名被占用导致误失败。
+
+### 验证
+
+- 13 核心本地 release 构建通过，staticlib `128,894,588` bytes，SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`。
+- 11 App 使用 `RUSTDESK_CORE_SKIP_DOWNLOAD=1` 构建通过，版本 `0.22.6` / versionCode `1000109`，BuildInfo 时间 `2026-06-15 18:00`。
+- signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；unsigned HAP `18,352,811` bytes，SHA256 `93377FB03E689004EAD1D7C8C916537D5A5092F04BDD810DA947EFA4842F1BEA`。
+- `verify_native_harmonyos_hap.ps1` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
+- 静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` 普通权限请求命中。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.6`、`versionCode=1000109`，进程 `7527` 存活。
+- 干净 hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt`：799 行、app 相关 176 行，app fatal/panic/`exit(-1)`/signal bad count = 0。
+
 ## v0.22.5 (2026-06-15)
 
 ### 修复

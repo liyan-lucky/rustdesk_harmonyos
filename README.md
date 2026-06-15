@@ -34,7 +34,7 @@ RustDesk Server / Peer
 - **staticlib + CMake直接链接**: Rust核心编译为`.a`，链接到bridge SO，无dlopen
 - **单一SO**: `librustdesk_bridge.so`包含C++桥接+Rust核心，无TEXTREL
 - **C++桥接层**: `IsCoreLoaded()=true`，直接`extern "C"`调用，约400个NAPI注册
-- **Rust C ABI**: 369个`rustdesk_bridge_*`导出函数，覆盖官方APK绝大部分`wire_*`函数
+- **Rust C ABI**: 374个`rustdesk_bridge_*`导出函数，覆盖官方APK绝大部分`wire_*`函数
 
 ### 双项目分离
 
@@ -60,7 +60,7 @@ RustDesk Server / Peer
 ### 分层原则
 
 - **保留Rust**: 协议层(relay/rendezvous/NAT/protobuf)、加密、会话管理、文件传输
-- **HarmonyOS重写**: 录屏(AVScreenCaptureRecorder)、音频(AudioRenderer)、输入(InputManager)、UI(ArkTS)、文件(@ohos.file.fs/DocumentViewPicker)
+- **HarmonyOS重写**: 录屏(native `OH_AVScreenCapture_StartScreenCapture` + native buffer)、音频(AudioRenderer)、输入(InputManager)、UI(ArkTS)、文件(@ohos.file.fs/DocumentViewPicker)
 - **裁剪**: flutter/scrap/cpal/dxgi/x11/pipewire/ffmpeg/system-tray
 
 ### 主题管理
@@ -249,11 +249,11 @@ RustDesk Server / Peer
 - 地址簿/通讯录：登录后可添加设备，在线状态同步，登录成功和刷新按钮都会触发服务器同步
 - 搜索：历史、收藏、发现、通讯录、登录、核心页面使用统一搜索入口，搜索框从图标向左悬浮展开，不挤压 tab 容器
 - 设置：官方分组顺序，Lucide stroke SVG图标，权限开关先同步再异步
-- 函数补齐：从54个扩展至369个桥接函数，覆盖官方APK绝大部分wire_*函数
+- 函数补齐：从54个扩展至374个桥接函数，覆盖官方APK绝大部分wire_*函数
 
 ### 当前限制
 
-- **共享/被控链路限制**：App 侧已改用 `@ohos.multimedia.media` 的 `AVScreenCaptureRecorder` 录屏授权/录制探测，不再使用截图 API；真实被控视频帧进入 RustDesk desktop server 仍需要核心/平台采集桥继续接入，未确认视频源前不得标记 `incomingReady=true`
+- **共享/被控链路限制**：App 侧已改用 native `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，不再使用截图 API、`AVScreenCaptureRecorder` 或临时 mp4 探测；线上 core-81 已让 OHOS `scrap::Capturer` 消费 incoming frame cache，但真实被控视频帧进入 RustDesk desktop server 仍需要继续完成 ready 闭环，未确认视频源前不得标记 `incomingReady=true`
 - 全屏会话输入法弹出时通过画面平移避让，不再挤压布局
 - `switch-sides` 已接入 official `Session::switch_sides()`；`session-action=shutdown` 仍没有官方协议字段
 

@@ -8,6 +8,11 @@ export interface OfficialCoreState {
   adapter: 'native-stub' | 'official-native';
   coreReady: boolean;
   incomingReady: boolean;
+  captureRequired: boolean;
+  incomingFramePayloadReady: boolean;
+  incomingFrameId: number;
+  incomingFrameBytes: number;
+  incomingFramesSeen: number;
   displayId: string;
   fingerprint: string;
   directAddress: string;
@@ -39,6 +44,11 @@ interface StoredOfficialCoreState {
   adapter?: 'native-stub' | 'official-native';
   coreReady?: boolean;
   incomingReady?: boolean;
+  captureRequired?: boolean;
+  incomingFramePayloadReady?: boolean;
+  incomingFrameId?: number;
+  incomingFrameBytes?: number;
+  incomingFramesSeen?: number;
   displayId?: string;
   fingerprint?: string;
   directAddress?: string;
@@ -673,6 +683,11 @@ export class OfficialRustDeskBridge {
       adapter: parsed.adapter === 'official-native' ? 'official-native' : 'native-stub',
       coreReady: parsed.coreReady === true,
       incomingReady: parsed.incomingReady === true,
+      captureRequired: parsed.captureRequired === true,
+      incomingFramePayloadReady: parsed.incomingFramePayloadReady === true,
+      incomingFrameId: typeof parsed.incomingFrameId === 'number' ? parsed.incomingFrameId : 0,
+      incomingFrameBytes: typeof parsed.incomingFrameBytes === 'number' ? parsed.incomingFrameBytes : 0,
+      incomingFramesSeen: typeof parsed.incomingFramesSeen === 'number' ? parsed.incomingFramesSeen : 0,
       displayId: parsed.displayId?.trim() ?? '',
       fingerprint: parsed.fingerprint?.trim() ?? '',
       directAddress: parsed.directAddress?.trim() ?? '',
@@ -699,6 +714,11 @@ export class OfficialRustDeskBridge {
       adapter: snapshot.adapter === 'official-native' ? 'official-native' : 'native-stub',
       coreReady: snapshot.coreReady === true,
       incomingReady: snapshot.incomingReady === true,
+      captureRequired: snapshot.captureRequired === true,
+      incomingFramePayloadReady: snapshot.incomingFramePayloadReady === true,
+      incomingFrameId: typeof snapshot.incomingFrameId === 'number' ? snapshot.incomingFrameId : 0,
+      incomingFrameBytes: typeof snapshot.incomingFrameBytes === 'number' ? snapshot.incomingFrameBytes : 0,
+      incomingFramesSeen: typeof snapshot.incomingFramesSeen === 'number' ? snapshot.incomingFramesSeen : 0,
       displayId: snapshot.displayId?.trim() ?? '',
       fingerprint: snapshot.fingerprint?.trim() ?? '',
       directAddress: snapshot.directAddress?.trim() ?? '',
@@ -807,6 +827,11 @@ export class OfficialRustDeskBridge {
       adapter: 'native-stub',
       coreReady: false,
       incomingReady: false,
+      captureRequired: false,
+      incomingFramePayloadReady: false,
+      incomingFrameId: 0,
+      incomingFrameBytes: 0,
+      incomingFramesSeen: 0,
       displayId: '',
       fingerprint: '',
       directAddress: '',
@@ -825,6 +850,11 @@ export class OfficialRustDeskBridge {
       adapter: 'official-native',
       coreReady: true,
       incomingReady: false,
+      captureRequired: false,
+      incomingFramePayloadReady: false,
+      incomingFrameId: 0,
+      incomingFrameBytes: 0,
+      incomingFramesSeen: 0,
       displayId: '',
       fingerprint: '',
       directAddress: '',
@@ -849,6 +879,11 @@ export class OfficialRustDeskBridge {
       adapter: source.adapter,
       coreReady: source.coreReady,
       incomingReady: source.incomingReady,
+      captureRequired: source.captureRequired,
+      incomingFramePayloadReady: source.incomingFramePayloadReady,
+      incomingFrameId: source.incomingFrameId,
+      incomingFrameBytes: source.incomingFrameBytes,
+      incomingFramesSeen: source.incomingFramesSeen,
       displayId: source.displayId,
       fingerprint: source.fingerprint,
       directAddress: source.directAddress,

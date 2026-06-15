@@ -2,6 +2,31 @@
 
 > Current focused record for connection and video-stream verification. Keep this file updated when device-side behavior is tested.
 
+## 2026-06-15 v0.22.7 online core-81 share/file authorization verification
+
+- Core release: 13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，release body 已补中文说明；线上 asset `131,631,706` bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`。
+- App fix status: `Index.toggleIncomingService(true)` 先请求核心 incoming service，再根据 `captureRequired=true` 或 `incomingReady=true` 启动 native `ScreenCaptureService`；`captureRequired` 只表示“核心需要 App 提供首帧”，真实共享运行态仍只认 `incomingReady=true`。
+- Recording API boundary: static scan stayed clean for `@ohos.screenshot`, `screenshot.capture`, `AVScreenCaptureRecorder`, and explicit runtime `CUSTOM_SCREEN_CAPTURE` permission requests. Current recording path is native `OH_AVScreenCapture_StartScreenCapture` + native buffer, not screenshot API.
+- File fix status: `FileAuthorizationService.requestFileAuthorization()` remains picker-first, and `FileTransfer.ets` delays bootstrap by 200ms so `DocumentViewPicker` can attach after page entry.
+- App build result: forced online core download with `RUSTDESK_CORE_FORCE_DOWNLOAD=1` and SHA256 pin; built as `0.22.7` / versionCode `1000110`, BuildInfo time `2026-06-15 19:09`.
+- HAP result: signed HAP `18,978,267` bytes, SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`; unsigned HAP `18,899,289` bytes, SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`。
+- Verification: `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native entries, runtime dependency checks, bundle/signature validation; `audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`。
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `40016`。
+- Clean hilog: `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` has `7252` lines, `132` app/core-related lines, and app-related fatal/panic/`exit(-1)`/signal/native core missing bad count `0`。
+
+## 2026-06-15 v0.22.6 local core-81 pre-release share/file authorization verification
+
+- Symptom: the share path still needed a way to start native screen recording after the core requested incoming service, without waking screenshot-style permission APIs. File management also still failed to wake the file-access picker in some flows because runtime permission precheck could return early before `DocumentViewPicker`.
+- App fix: `Index.toggleIncomingService(true)` now starts native `ScreenCaptureService` when the core snapshot reports `captureRequired=true` or `incomingReady=true`, then refreshes the core snapshot. The UI still treats the service as truly running only when `incomingReady=true`; `captureRequired` is only the signal to provide the first live frame. The static scan remains clean for `@ohos.screenshot`, `screenshot.capture`, `AVScreenCaptureRecorder`, and explicit runtime `CUSTOM_SCREEN_CAPTURE` permission requests.
+- File fix: `FileAuthorizationService.requestFileAuthorization()` now invokes `DocumentViewPicker` first and records `READ_WRITE_DOWNLOAD_DIRECTORY` / `FILE_ACCESS_PERSIST` results after that, so file management is not blocked by a permission precheck. `FileTransfer.ets` also delays its first bootstrap by 200ms after page entry so the system picker can attach to a visible page.
+- Core fix: local core-81 source adds an OHOS `scrap::common::ohos::Capturer` frame source backed by the latest incoming frame cache. `main_start_service(true)` returns `captureRequired=true` and keeps `incomingReady=false` until the desktop server/video source is genuinely ready.
+- Local core build: `powershell -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1` passed from the real 13 core project path. Local staticlib copied into this app is `128,894,588` bytes, SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`.
+- App build result: built with `RUSTDESK_CORE_SKIP_DOWNLOAD=1` as `0.22.6` / versionCode `1000109`, BuildInfo time `2026-06-15 18:00`.
+- HAP result: signed HAP `18,433,473` bytes, SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`; unsigned HAP `18,352,811` bytes, SHA256 `93377FB03E689004EAD1D7C8C916537D5A5092F04BDD810DA947EFA4842F1BEA`.
+- Verification: `verify_native_harmonyos_hap.ps1` passed native entries, runtime dependency checks, bundle/signature validation after switching certificate/profile extraction temp files to GUID names; `audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.6`, `versionCode=1000109`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `7527`.
+- Clean hilog: `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` has `799` lines, `176` app-related lines, and app-related fatal/panic/`exit(-1)`/signal bad count `0`.
+
 ## 2026-06-15 v0.22.5 ArkTS strict CI and Chinese summary verification
 
 - Symptom: after pushing `c803bee`, GitHub Actions Linux run `27528204491` and release workflow run `27528218065` both failed in `:entry:default@CompileArkTS`. The real error was `PermissionService.ets:173:14 Object literal must correspond to some explicitly declared class or interface (arkts-no-untyped-obj-literals)`.

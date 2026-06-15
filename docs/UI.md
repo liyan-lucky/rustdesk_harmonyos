@@ -14,7 +14,7 @@
 - 共享页点击启动时不能先弹 `CUSTOM_SCREEN_CAPTURE` 普通权限申请，避免用户看到截屏/屏幕捕获授权；录屏授权只允许由 native `OH_AVScreenCapture_StartScreenCapture` 采集链路在核心 ready 后触发。
 - 文件传输页必须主动唤起文件访问授权：进入页面、切到本地、刷新本地、上传/下载和本地新建/删除前都要走 `DocumentViewPicker` 目录授权。
 - 授权失败只显示短 toast，不在页面加入额外说明卡片；`Screen capture denied` 中文显示为“录屏授权拒绝”，不要再写成“截屏权限拒绝”。
-- core-80 新增的 `incomingFramePayloadReady/incomingFrameId/incomingFrameBytes/incomingFramesSeen` 只用于诊断“App native buffer 已进入核心缓存”；UI 的共享 TAB 绿点、设备 ID、一次性密码和“服务运行中”仍只能由 `incomingReady=true` 驱动，不能因为入站帧缓存有数据就显示可被远端连接。
+- core-81 已在 core-80 入站帧缓存基础上新增 `captureRequired`；`captureRequired` 只用于触发 App native 录屏提供首帧，`incomingFramePayloadReady/incomingFrameId/incomingFrameBytes/incomingFramesSeen` 只用于诊断“App native buffer 已进入核心缓存”。UI 的共享 TAB 绿点、设备 ID、一次性密码和“服务运行中”仍只能由 `incomingReady=true` 驱动，不能因为入站帧缓存有数据就显示可被远端连接。
 
 ## 顶部渐变背景
 

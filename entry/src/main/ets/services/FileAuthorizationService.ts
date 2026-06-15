@@ -25,20 +25,8 @@ export class FileAuthorizationService {
   private static atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
 
   static async requestFileAuthorization(options?: FileAuthorizationOptions): Promise<FileAuthorizationResult> {
-    const permissions: Permissions[] = [
-      'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions,
-      'ohos.permission.FILE_ACCESS_PERSIST' as Permissions
-    ];
-    const permissionResults = await FileAuthorizationService.requestPermissions(permissions);
-    const allGranted = permissionResults.every((item: FileAuthorizationPermissionResult) => item.status === 'granted');
-    if (!allGranted) {
-      return {
-        granted: false,
-        uris: [],
-        permissionResults,
-        error: 'File permissions denied'
-      };
-    }
+    let selectedUris: Array<string> = [];
+    let pickerError: string = '';
 
     try {
       const documentSelectOptions = new picker.DocumentSelectOptions();
@@ -51,22 +39,25 @@ export class FileAuthorizationService {
         documentSelectOptions.defaultFilePathUri = options.defaultFilePathUri.trim();
       }
       const documentPicker = new picker.DocumentViewPicker();
-      const selectedUris: Array<string> = await documentPicker.select(documentSelectOptions);
-      return {
-        granted: selectedUris !== undefined && selectedUris.length > 0,
-        uris: selectedUris ?? [],
-        permissionResults,
-        error: ''
-      };
+      selectedUris = await documentPicker.select(documentSelectOptions);
     } catch (error) {
       console.error('Request file access authorization failed:', error);
-      return {
-        granted: false,
-        uris: [],
-        permissionResults,
-        error: error instanceof Error ? error.message : String(error)
-      };
+      pickerError = error instanceof Error ? error.message : String(error);
     }
+
+    const permissions: Permissions[] = [
+      'ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY' as Permissions,
+      'ohos.permission.FILE_ACCESS_PERSIST' as Permissions
+    ];
+    const permissionResults = await FileAuthorizationService.requestPermissions(permissions);
+    const pickerGranted = selectedUris !== undefined && selectedUris.length > 0;
+
+    return {
+      granted: pickerGranted,
+      uris: selectedUris ?? [],
+      permissionResults,
+      error: pickerGranted ? '' : (pickerError.length > 0 ? pickerError : 'File authorization cancelled or denied')
+    };
   }
 
   private static async requestPermissions(permissions: Permissions[]): Promise<FileAuthorizationPermissionResult[]> {

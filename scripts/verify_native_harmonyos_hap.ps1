@@ -339,14 +339,9 @@ if (-not [string]::IsNullOrWhiteSpace($BundleName)) {
 if (-not $SkipSignatureCheck) {
   $verifyDir = Join-Path $buildRoot "windows_verify_direct_signed"
   New-Item -ItemType Directory -Force -Path $verifyDir | Out-Null
-  $certChainPath = Join-Path $verifyDir "cert-chain.cer"
-  $profilePath = Join-Path $verifyDir "profile.p7b"
-  if (Test-Path -LiteralPath $certChainPath) {
-    Remove-Item -LiteralPath $certChainPath -Force
-  }
-  if (Test-Path -LiteralPath $profilePath) {
-    Remove-Item -LiteralPath $profilePath -Force
-  }
+  $verifyNonce = [Guid]::NewGuid().ToString("N")
+  $certChainPath = Join-Path $verifyDir "cert-chain-$verifyNonce.cer"
+  $profilePath = Join-Path $verifyDir "profile-$verifyNonce.p7b"
 
   $verifyCommand = @(
     (Quote-CmdArgument -Value ([string]$paths.Java)),

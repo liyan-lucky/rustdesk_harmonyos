@@ -11,7 +11,7 @@
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-15 07:32`，App 显示版本 `0.22.5`，versionCode `1000108`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-15 19:09`，App 显示版本 `0.22.7`，versionCode `1000110`。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
@@ -30,27 +30,26 @@
 - Native core 已采用 `staticlib + CMake 直接链接`，HAP 内通过 `librustdesk_bridge.so` 调用 Rust C ABI。
 - 当前已验证 native core：
   - `entry/src/main/libs/arm64/librustdesk_core.a`
-  - 最新 native core 已从 GitHub Releases 下载：
+  - 最新线上 native core 已从 GitHub Releases 下载：
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-  - release：`core-80`
-  - 大小：`131,624,954` bytes (`125.53 MB`)
-  - mtime/compile time：`2026-06-15 07:32`
-  - FNV-1a 1MB：`bea81e95`
-  - SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
+  - 最新线上 release：`core-81`
+  - 最新线上大小：`131,631,706` bytes (`125.53 MB`)
+  - 最新线上 SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+  - 最新线上 workflow：`27563925971`
 - 当前已验证 HAP：
-  - 本地 BuildInfo 编译时间：`2026-06-15 07:32`
-  - 本地 App 显示版本：`0.22.5`
-  - 本地 versionCode：`1000108`
+  - 本地 BuildInfo 编译时间：`2026-06-15 19:09`
+  - 本地 App 显示版本：`0.22.7`
+  - 本地 versionCode：`1000110`
   - bundle：`com.open.rundesk`
   - 最新线上 release：`harmonyos-20260612-065038`
-  - signed HAP：`entry-default-signed.hap`，`18,968,203` bytes，SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`
+  - signed HAP：`entry-default-signed.hap`，`18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
   - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
 - 2026-06-14 共享状态复查：共享页已把本机屏幕采集状态和核心 `incomingReady` 拆开。录屏/采集探测 active 只显示黄色 `Recording Probe` 并保留停止按钮，不再展示“服务运行中”、设备 ID 或一次性密码；真正运行态、共享 TAB 绿点和密码展示只由 `settings.serviceEnabled && officialCoreState.incomingReady` 决定。
-- 2026-06-15 共享启动顺序修复：`Index.toggleIncomingService(true)` 不再先启动本机录屏探针，改为先写入核心选项并调用 `setIncomingServiceEnabled`；只有核心返回 `incomingReady=true` 后才启动屏幕采集。核心未就绪时显示 `Share requested/Requested` 和核心 detail/error，避免录屏 API 与共享状态判断冲突。
+- 2026-06-15 共享启动顺序修复：`Index.toggleIncomingService(true)` 不再先启动本机录屏探针，改为先写入核心选项并调用 `setIncomingServiceEnabled`；核心返回 `captureRequired=true` 时启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧，只有 `incomingReady=true` 后才显示共享服务真实运行。核心未 ready 时显示 `Recording waiting` / `Share requested` 和核心 detail/error，避免录屏 API 与共享状态判断冲突。
 - 2026-06-13 core-70 复测：13 项目 run `27459455573` 成功发布 `core-70`；11 项目下载后 HAP 构建、native/signature 校验和无线安装通过。设备锁屏导致 `aa start` 返回 `Error Code:10106102`，App 未运行，本轮抓到的 hilog 没有 `coreReady`/`video-frame` 证据；视频流需解锁后继续复测。
 - 2026-06-13 UI/UX优化轮：核心详情弹窗精简(18→8行)、聊天浮窗优化(宽度/位置/可调整大小)、构建脚本智能核心检测(HTTP HEAD比对)、全量图标主题匹配(10处colorFilter→fillColor)、scan_frame主题匹配、账户菜单修正(登录提供方图标)、会话菜单布局统一(图标左/文字中/选项右)、菜单面板优化(无关闭按钮/四角圆角/半透背景)、显示质量面板精简(7项/140宽/全透)、键盘输入优化(仅远程输入时画面平移/computeKeyboardOffset重叠量计算)、质量监控连接后不显示修复、工具栏底部安全区避让(margin+avoidNavigationBarHeight)、聊天按钮可关闭面板、设置页开关统一逻辑(applySessionOption+setLocalOption)、画面平移边界限制(clampPanOffset/gap=4px/竖向左右可到屏幕边缘)、显示设置标题旋转按钮(opt_rotate.svg/PanelHeaderAction)、质量面板新增编码行/连接标签改为"连接"、关于页检查更新禁用/指纹行点击复制、ID卡片连接模式per-card化(PreferenceStore peer_connect_modes)。版本0.16.4，HAP构建验证通过。
 - 2026-06-13 15项问题清单修复轮：1.输入法特殊符号(isAlphanumericText/sessionInputString)；2.中键滚动速度(步长20px)；3.横向显示切换系统屏幕方向(setLandscape)；4.聊天功能链路(C++ SendChatMessage读args[2]/ChatService匹配chat_client_mode)；5.聊天输入区高度(Chat.ets 36→22/RemoteControl 34→20)；6.扫描优化(成功自动复制+导入+退出)；7.核心按钮改为启动/停止2个；8.核心详情弹窗运行行拆分(Status/Summary/Error/Detail)；9.ID输入框自动激活修复；10.ID卡片搜索确认已有；11.通讯录同步添加服务器API调用；12.ID输入悬浮匹配建议；13.平台图标修复(resolvePlatformForDevice)；14.共享页启动服务修复(startCapture异常后仍启动incoming)；15.聊天消息时间优化(shouldShowTimestamp 5分钟内同发送者只显示最后一条)。额外修复：scan_frame.svg替换、输入法关闭修复(onBlur延迟300ms+键盘按钮状态同步)、computeKeyboardOffset方向反转修复(maxShift取Math.max(0,imageTop))、调试日志清理(3条[IME])。版本0.16.4，HAP构建验证通过，无线安装验证通过。
@@ -80,6 +79,8 @@
 - 2026-06-15 core-80 共享入站帧缓存接入：13 核心 commit `12ad723` 已由 GitHub Actions run `27526413545` 发布 `core-80`，线上 asset `131,624,954` bytes / SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`，release body 已补中文说明。11 App C++ drain loop 会将 `OH_NativeBuffer` payload 推入核心 `incoming_screen_frame` 缓存并暴露 metadata/copy/clear wrapper；`incomingReady` 仍保持 false，避免未接 desktop server/video source 时假共享。强制下载线上 core 后增量构建 `0.22.4` / versionCode `1000107` 通过，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活，app fatal/panic/`exit(-1)` 为 0。
 - 2026-06-15 线上 ArkTS strict 与中文摘要修正：push 后 Linux run `27528204491` 和发布 run `27528218065` 均在 `PermissionService.ets:173` 因 `arkts-no-untyped-obj-literals` 失败；已将文件授权结果映射为显式 `PermissionRequestResult`，并把聊天摘要中的错字分隔符修为 ` - `。强制下载线上 core-80 后增量构建 `0.22.5` / versionCode `1000108` 通过，signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活，app fatal/panic/`exit(-1)`/app signal 均为 0。
 - 2026-06-15 线上发布闭环：修复提交 `7bdfd0d` 推送后，Linux push workflow run `27528676811` 成功，发布 workflow run `27528681007` 成功创建 `OpenRustdesk-Build-v0.22.5` 并补中文 release notes；线上 signed HAP `20,856,465` bytes / SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，unsigned HAP `20,786,035` bytes / SHA256 `825690f819dd59fde8706693fe5ce879e3a2b3f0939c81f45b037099743c4220`。
+- 2026-06-15 v0.22.6/core-81 本地预发布复查：13 核心本地构建 `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`，新增 `captureRequired` 与 OHOS `scrap::Capturer` incoming frame source；11 App 使用本地 staticlib 构建 `0.22.6` / versionCode `1000109`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`。文件授权改为 picker-first；共享启动由 `captureRequired` 触发 native 录屏提供首帧，但 `incomingReady` 仍严格表示真实服务 ready。验包、66 项审计、无线安装启动和干净 app hilog 均通过，设备端进程 `7527` 存活。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
+- 2026-06-15 v0.22.7/core-81 线上核心复查：13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`，release notes 已补中文说明；11 App 强制下载线上 core-81 构建 `0.22.7` / versionCode `1000110`，signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`。验包、66 项审计、静态录屏 API 扫描、无线安装启动和干净 app hilog 均通过，设备端进程 `40016` 存活。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
@@ -159,7 +160,7 @@
 ## 当前重点问题
 
 - **设置页已按官方分组重排（2026-06-03）**：`Settings` Tab 对齐官方菜单顺序：账户、设置、硬件编解码、录屏、2FA、共享屏幕、显示设置、增强功能、关于。设置页 `Share Screen` 分组只保留长期偏好（LAN 发现、白名单 IP、自适应码率、允许录制会话、IP 直接访问、自动关闭不活跃会话），不再放与共享页重复的录屏/输入/文件/剪贴板运行时授权入口。
-- **共享服务启动**：Screen Capture 开关现在只在核心 incoming ready 后启动 native `OH_AVScreenCapture_StartScreenCapture` 屏幕采集；若 native 采集或 incoming 未就绪必须回滚状态并记录 hilog，不能显示假运行。
+- **共享服务启动**：Screen Capture 开关现在根据核心 `captureRequired=true` 启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧；真实运行态、共享 TAB 绿点、设备 ID 和一次性密码仍只由 `incomingReady=true` 驱动，若 desktop server/video source 未就绪不能显示假运行。
 - 连接过程中需要继续确认：是否还会在成功前先弹重试对话框。
 - 连接成功后需要确认：访问端是否稳定持续显示远程画面。
 - ID 卡片第二行需要继续确认：所有来源都显示官方格式 `用户名@设备名`。
@@ -178,7 +179,7 @@
 
 ## 后续优化方向
 
-- **共享服务启动**：当前 App 侧已改用 C++ NAPI `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，禁止回退截图 API，也禁止再使用 `AVScreenCaptureRecorder`/临时 mp4 做当前共享探测；后续重点是把 native buffer frame 与 RustDesk desktop server 的被控视频源桥接起来，并在无视频源时继续保持 `incomingReady=false`。
+- **共享服务启动**：当前 App 侧已改用 C++ NAPI `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，禁止回退截图 API，也禁止再使用 `AVScreenCaptureRecorder`/临时 mp4 做当前共享探测；线上 core-81 已让 OHOS `scrap::Capturer` 消费 incoming frame cache，后续重点是完成 RustDesk desktop server/video source ready 闭环，并在无真实服务源时继续保持 `incomingReady=false`。
 - HAP 体积优化：strip、LTO、减少未用 crate feature，目标 < 25MB。
 - 构建流程自动化：串联 native core 构建、HAP 构建、安装、启动、日志采集。
 - 音频功能验证：确认 opus/staticlib 状态后再启用远程音频。

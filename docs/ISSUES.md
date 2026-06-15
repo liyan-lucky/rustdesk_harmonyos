@@ -2,6 +2,48 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-15 文件访问授权被普通权限预检挡住
+
+### `DocumentViewPicker` 必须先唤起，不能等权限位全部通过后才弹
+
+**现象**：文件管理/文件传输页进入后仍可能没有唤醒文件访问授权，用户看不到系统目录选择器；后续本地列表、上传/下载或新建/删除操作会继续依赖未确认的本地目录访问状态。
+
+**根因**：`FileAuthorizationService.requestFileAuthorization()` 先请求/检查普通权限结果，一旦 `READ_WRITE_DOWNLOAD_DIRECTORY` 或 `FILE_ACCESS_PERSIST` 在系统侧未立即返回 granted，就可能提前返回 false，导致真正能授权目录 URI 的 `DocumentViewPicker` 没有机会弹出。
+
+**解决**：文件授权服务改为 picker-first：先调用 `DocumentViewPicker` 获取文件/目录 URI，再记录普通权限位状态。`FileTransfer.ets` 页面进入时延迟 200ms 再 bootstrap，避免页面尚未可见时系统 picker 被吞掉。
+
+**验证**：线上 core-81 + App `0.22.7` 构建通过；signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`；验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端 `versionName=0.22.7`、进程 `40016` 存活。
+
+**教训**：文件访问授权不是普通权限位的同义词。目录/文件 URI 授权必须由 `DocumentViewPicker` 主动唤起，普通权限结果只能作为补充记录，不能作为阻止 picker 的前置条件。
+
+## 2026-06-15 共享录屏应由 `captureRequired` 触发，不能伪装 ready
+
+### `captureRequired=true` 是“请 App 提供首帧”，不是共享服务运行中
+
+**现象**：core-80 之后 App 已能把 native buffer payload 推入核心缓存，但 `incomingReady=false` 时 App 不会启动 native screen capture；如果只等 `incomingReady=true` 才开始采集，就会形成“核心等首帧、App 等核心 ready”的死锁。反过来，如果因为本机有采集帧就把 `incomingReady=true`，又会把尚未接通 desktop server/video source 的共享伪装成可用。
+
+**根因**：共享链路需要一个介于“核心请求服务”和“服务真正 ready”之间的状态。`incomingReady` 只能表示远端可连接的真实被控服务；它不能同时承担“请启动本机录屏提供帧”的触发信号。
+
+**解决**：线上 core-81 新增 `captureRequired` 快照字段，`main_start_service(true)` 返回 `captureRequired=true`、`incomingReady=false`，并等待 App native `OH_AVScreenCapture_StartScreenCapture` 推送首帧。App 看到 `captureRequired=true` 会启动 native `ScreenCaptureService`，但 UI 的服务运行态、共享 TAB 绿点、设备 ID 和一次性密码仍只由 `incomingReady=true` 驱动。
+
+**验证**：线上核心 `core-81` 构建 `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`；App `0.22.7` 强制拉取线上核心构建、验包、66 项审计、无线安装启动和干净 app hilog 均通过。静态扫描无 `@ohos.screenshot`、`screenshot.capture`、`AVScreenCaptureRecorder` 或显式 `CUSTOM_SCREEN_CAPTURE` runtime permission request。
+
+**教训**：共享状态至少分三层：`captureRequired` 触发本机采集，`incomingFramePayloadReady` 证明核心有帧缓存，`incomingReady` 才能表示远端可访问的被控服务。三者不能互相替代。
+
+## 2026-06-15 HAP 签名验证临时文件不能复用固定文件名
+
+### 反复验包时证书/profile 提取文件要使用唯一名
+
+**现象**：`verify_native_harmonyos_hap.ps1` 一度通过 native 检查后在签名验证清理/复用阶段失败，原因是 `%VSCODE_ROOT%\99_Temp\...` 下固定名 `cert-chain.cer` 或 `profile.p7b` 仍被上一次进程占用或权限拒绝。
+
+**根因**：验包脚本使用固定临时输出名，连续验证或异常中断后，旧文件可能仍处于不可删除状态；这会把工具清理问题误报为 HAP 签名失败。
+
+**解决**：证书链和 profile 提取临时文件改为带 GUID 的唯一文件名，例如 `cert-chain-<guid>.cer`、`profile-<guid>.p7b`。
+
+**验证**：修复后重新运行 `scripts\verify_native_harmonyos_hap.ps1` 通过 native library、runtime dependency、bundle 和 signature verification，输出 `verify-app success`。
+
+**教训**：验证脚本的临时文件失败不能混淆为包体失败；连续验包的中间产物应使用唯一名，尤其是外部工具可能短暂持有文件句柄时。
+
 ## 2026-06-15 GitHub Actions ArkTS strict 未显式对象字面量
 
 ### 本地构建能过不代表线上 strict ArkTS 能过，map 返回对象必须显式类型

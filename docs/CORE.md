@@ -24,6 +24,8 @@
 - 2026-06-15 App 屏幕采集底层继续验证为 `0.22.2` / versionCode `1000105`：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
 - 2026-06-15 core-80 入站帧缓存已发布并在 11 App 验证：13 核心 commit `12ad723` / run `27526413545` 发布 `core-80`，新增 `updateIncomingScreenFrame/getIncomingScreenFrameMetadata/copyIncomingScreenFrame/clearIncomingScreenFrame`；11 App 强制拉取线上 core-80 构建 `0.22.4` / versionCode `1000107`，验包、66 项连接链路审计、无线安装启动和干净 hilog 验证通过。当前只接通 native buffer 到核心缓存，`incomingReady` 仍不能置 true。
 - 2026-06-15 App 侧 CI strict 修正已验证为 `0.22.5` / versionCode `1000108`：线上 Linux/release workflow 在 `PermissionService.ets` 未显式对象字面量处失败，本地已改为显式 `PermissionRequestResult` 并修正聊天摘要中文错字；core 仍为 `core-80`，增量构建、验包、66 项连接链路审计、无线安装启动和干净 hilog 均通过。
+- 2026-06-15 本地 core-81 预发布验证已通过：13 核心新增 OHOS `scrap::common::ohos::Capturer` incoming frame source，并让 `main_start_service(true)` 返回 `captureRequired=true`、`incomingReady=false`，由 App 启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧；App `0.22.6` 已用本地 staticlib 构建、验包、66 项审计、无线安装和干净 hilog 验证通过。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
+- 2026-06-15 线上 core-81 验证已通过：13 核心 commit `c5b3eeb` / run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，验包、66 项审计、静态录屏 API 扫描、无线安装和干净 hilog 验证通过。
 
 ## 架构总览
 
@@ -71,16 +73,18 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-80`
-- Size: `131,624,954` bytes (`125.53 MB`)
-- SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
+- Latest online size: `131,631,706` bytes (`125.53 MB`)
+- Latest online SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27563925971`
 
 HAP:
 
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a`
 - Wireless target: `192.168.11.100:36169`
-- Latest validation: 2026-06-15 强制下载线上 `core-80` 后增量 HAP 构建通过；signed HAP `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；`verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.4`、`versionCode=1000107`，`pidof com.open.rundesk` 返回 `14881`。干净 app hilog `coreReady=4`、`query-onlines-result=8`，app fatal/panic/`exit(-1)` 为 0，app 相关 `signal` 为 0；日志中的 `signal` 命中来自系统 Wi-Fi 服务 `HandleSignalPollChangedMsg unsupported`，非本应用崩溃。
+- Latest local pre-release validation: 2026-06-15 使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`；signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；`verify_native_harmonyos_hap.ps1` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.6`、`versionCode=1000109`，`pidof com.open.rundesk` 返回 `7527`。干净 app hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` 中 app fatal/panic/`exit(-1)`/signal bad count 为 0。
+- Latest validation: 2026-06-15 强制下载线上 `core-81` 后增量 HAP 构建通过；signed HAP `18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`；unsigned HAP `18,899,289` bytes，SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`；`verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.7`、`versionCode=1000110`，`pidof com.open.rundesk` 返回 `40016`。干净 app hilog `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` 中 app/core 相关 132 行，app fatal/panic/`exit(-1)`/signal/native core missing bad count 为 0。
 
 ## Native core 构建来源
 
@@ -152,7 +156,7 @@ Pop-Location
 - 共享服务默认停止
 - 停止状态下不显示设备 ID 和密码
 - 只有核心返回 `incomingReady=true` 后才显示设备 ID 和一次性密码；本机 native 屏幕采集处于 active 时不得展示为服务运行中。
-- **当前限制**：App 侧已可用 `OH_AVScreenCapture_StartScreenCapture` 启动原生屏幕采集并统计 native buffer 帧，但录屏 live frame 到 RustDesk desktop server 的桥仍需继续接入。
+- **当前限制**：线上 core-81 已让 OHOS `scrap::Capturer` 可消费核心 incoming frame cache，App 看到 `captureRequired=true` 会启动原生屏幕采集并推首帧；但 `incomingReady` 仍需等 RustDesk desktop server/video source 真实 ready 后才能置 true。
 - 2026-06-12 起，录屏/被控视频源不可用时共享服务不得进入假运行状态：App 侧回滚 `serviceEnabled/allowRemoteControl`，native core `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
 - 2026-06-14 复查：共享页 UI 已把“录屏探测 active”和“核心 incoming ready”拆开，录屏探测只显示黄色 `Recording Probe` 状态并保留停止按钮，真实共享运行态只由 `settings.serviceEnabled && officialCoreState.incomingReady` 决定。
 
@@ -192,15 +196,15 @@ Pop-Location
 
 - Upstream compatibility: `RustDesk 1.4.7`
 - Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-80`
-- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27516993020`
-- Native core commit: `bc36b1df590b173650a152d4902be9363dec9c73` (`Return status for Harmony session commands`)
-- Native core size: `131,493,470` bytes (`125.40 MB`)
-- Native core SHA256: `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`
-- HAP build verified: version `0.22.4`, versionCode `1000107`, signed HAP `18,968,380` bytes, SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`
+- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
+- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27563925971`
+- Native core commit: `c5b3eeb` (`Add OHOS incoming capture source`)
+- Native core size: `131,631,706` bytes (`125.53 MB`)
+- Native core SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+- HAP build verified: version `0.22.7`, versionCode `1000110`, signed HAP `18,978,267` bytes, SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
 - Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
-- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.4`, `versionCode=1000107`, native library path `entry/libs/arm64`
-- Launch/runtime status: `aa start` succeeded, process `14881` stayed alive; `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt` recorded `coreReady` 4 times, `query-onlines-result` 8 times, app fatal/panic/`exit(-1)` all 0, app-related `signal` 0. The remaining `signal` text hits in that log are Wi-Fi service status lines, not `com.open.rundesk` crashes.
+- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`
+- Launch/runtime status: `aa start` succeeded, process `40016` stayed alive; `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` recorded 7252 lines, 132 app/core-related lines, and app fatal/panic/`exit(-1)`/signal/native core missing bad count 0.
 
 ## 2026-06-14 verified core-76
 

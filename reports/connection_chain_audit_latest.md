@@ -1,6 +1,6 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-15 07:33:15
+- Generated: 2026-06-15 19:11:48
 - Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
 - HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
 - Summary: 66 PASS, 0 FAIL, 0 SKIP
@@ -14,10 +14,10 @@
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
 | 7 | PASS | Native core archive exists | F:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 131624954 bytes |
+| 8 | PASS | Native core archive size is plausible | 131631706 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=131624954 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=131631706 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829 |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |

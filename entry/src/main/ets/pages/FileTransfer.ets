@@ -31,6 +31,7 @@ struct FileTransfer {
     }
   };
   private fileAccessRequestPromise: Promise<boolean> | null = null;
+  private bootstrapTimer: number = -1;
 
   @State deviceId: string = '';
   @State deviceName: string = '';
@@ -55,10 +56,16 @@ struct FileTransfer {
     this.deviceName = this.appData.getDisplayName(this.deviceId);
     this.fileTransferService.addEventListener(this.transferListener);
     this.refreshTransferTasks();
-    void this.bootstrapFileTransferPage();
+    this.bootstrapTimer = setTimeout(() => {
+      void this.bootstrapFileTransferPage();
+    }, 200);
   }
 
   aboutToDisappear() {
+    if (this.bootstrapTimer !== -1) {
+      clearTimeout(this.bootstrapTimer);
+      this.bootstrapTimer = -1;
+    }
     this.fileTransferService.removeEventListener(this.transferListener);
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
