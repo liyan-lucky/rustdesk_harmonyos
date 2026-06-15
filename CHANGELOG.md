@@ -18,6 +18,7 @@
 - 当前代码静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` 普通权限请求命中。
 - `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.5`、`versionCode=1000108`，进程 `20911` 存活。
 - 清空 hilog 后重新抓取 `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt`：`coreReady=4`、`query-onlines-result=8`、app fatal/panic/`exit(-1)` = 0，app 相关 `signal` = 0。
+- 线上 push Linux workflow run `27528676811` 成功；发布 workflow run `27528681007` 成功创建 `OpenRustdesk-Build-v0.22.5`，release notes 已补中文说明。线上 signed HAP `20,856,465` bytes，SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`。
 
 ## v0.22.4 (2026-06-15)
 

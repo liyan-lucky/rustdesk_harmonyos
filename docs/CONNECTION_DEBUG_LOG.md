@@ -11,6 +11,7 @@
 - Verification: native/signature verifier passed; connection chain audit passed `66 PASS, 0 FAIL, 0 SKIP`; current code scan has no `AVScreenCaptureRecorder`, `@ohos.screenshot`, `screenshot.capture`, or explicit `CUSTOM_SCREEN_CAPTURE` runtime permission request.
 - Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.5`, `versionCode=1000108`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `20911`.
 - Clean hilog: after `hilog -r` and 18s wait, `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt` recorded `coreReady=4`, `query-onlines-result=8`, app fatal/panic/`exit(-1)` = 0, app-related signal = 0.
+- Online result: push Linux run `27528676811` passed; release run `27528681007` passed and created `OpenRustdesk-Build-v0.22.5` with Chinese release notes. Online signed HAP is `20,856,465` bytes, SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`; unsigned HAP is `20,786,035` bytes, SHA256 `825690f819dd59fde8706693fe5ce879e3a2b3f0939c81f45b037099743c4220`.
 
 ## 2026-06-15 v0.22.4 core-80 incoming frame bridge verification
 

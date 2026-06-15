@@ -107,8 +107,8 @@
 - 2026-06-15 共享录屏底层切换复查：11 App 增量构建 `0.22.2` / versionCode `1000105`，signed HAP `18,946,878` bytes / SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`；`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 native `OH_AVScreenCapture_StartScreenCapture` + `OH_AVScreenCapture_AcquireVideoBuffer` 统计。验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `62121` 存活。
 - 2026-06-15 core-80 入站帧缓存复查：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80`，release body 已补中文说明；11 App 强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；`OH_NativeBuffer` payload 已推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false。验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活。
 - 2026-06-15 CI strict/中文摘要修正复查：push 后 Linux run `27528204491` 和发布 run `27528218065` 曾因 `PermissionService.ets:173` 未显式对象字面量失败；已改为显式 `PermissionRequestResult` 并修正聊天摘要错字。11 App 强制拉取线上 core-80 后增量构建 `0.22.5` / versionCode `1000108`，signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、66 项链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活。
-- 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-- 最新线上 App workflow：run `27528204491` / `27528218065` 失败，原因已定位并在本地 `0.22.5` 修复；下一次推送后必须重跑 Linux build 和 release workflow，并补中文 release 说明。
+- 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.5`
+- 最新线上 App workflow：push run `27528676811` 成功，release run `27528681007` 成功；线上 signed HAP `20,856,465` bytes / SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，release notes 已补中文说明。
 - coreReady=true，adapter=official-native
 - LAN 发现实机验证通过
 - 函数覆盖：core.rs 367 pub fn，bridge_api.rs 374 导出，NAPI 约400注册
@@ -459,6 +459,7 @@
 | 2026-06-15 | v0.22.2 共享录屏底层复查：`AVScreenCaptureRecorder` 和临时 mp4 探测文件已从当前 `ScreenCaptureService` 移除，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 `OH_AVScreenCapture_AcquireVideoBuffer` 统计帧。构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端 `versionName=0.22.2`、versionCode `1000105`、进程 `62121`。 |
 | 2026-06-15 | v0.22.4/core-80 入站帧缓存复查：native `OH_NativeBuffer` payload 已通过 `rustdesk_bridge_update_incoming_screen_frame` 推入核心 `incoming_screen_frame` 缓存，核心快照暴露 `incomingFramePayloadReady/incomingFrameId/incomingFrameBytes/incomingFramesSeen`。这仍不是 `incomingReady`，desktop server/video source 未接通前 UI 不能显示真实共享运行。`build_hap.bat` 强制下载线上 core-80，验包、66 项审计、无线安装和干净 hilog 均通过。 |
 | 2026-06-15 | v0.22.5/CI strict 复查：线上 Linux/release workflow 在 `PermissionService.ets` 未显式对象字面量处失败，本地修复为显式 `PermissionRequestResult`；聊天摘要分隔符修正为 ` - `，避免中文错字。强制下载 core-80 构建、验包、66 项审计、无线安装和干净 hilog 均通过。 |
+| 2026-06-15 | v0.22.5 线上发布闭环：提交 `7bdfd0d` 后 push Linux workflow run `27528676811` 成功，release workflow run `27528681007` 成功发布 `OpenRustdesk-Build-v0.22.5`；线上 signed HAP SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，release notes 已补中文说明和 core-80 标签。 |
 | 2026-06-14 | 摄像头查看入口收敛：Recent 菜单 `View Camera` 改为不可用提示，`ViewCamera.ets` 不再将本地状态伪装成 connected，等待后续真实 official view-camera session 接入。 |
 | 2026-06-14 | core-73 验证：13 核心文件传输事件和 `switch-sides` option 路由已发布为 `core-73`；11 App 全量构建、验包和无线安装通过，设备锁屏导致启动运行态待解锁后复测。 |
 | 2026-06-14 | 剪贴板/命令假成功收敛：`Send Clipboard Keys` 检查 native 返回值；一次性远控命令未被 core 处理时提示 `Command unavailable`，不再写本地 option 伪装排队。 |
