@@ -13,6 +13,7 @@
 - Verification: `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native entries, runtime dependency checks, bundle/signature validation; `audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`。
 - Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `40016`。
 - Clean hilog: `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` has `7252` lines, `132` app/core-related lines, and app-related fatal/panic/`exit(-1)`/signal/native core missing bad count `0`。
+- Online result: push Linux run `27567811582` passed; release run `27568044749` passed and created `OpenRustdesk-Build-v0.22.7` with Chinese release notes. Online signed HAP is `20,870,632` bytes, SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`; unsigned HAP is `20,790,546` bytes, SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`.
 
 ## 2026-06-15 v0.22.6 local core-81 pre-release share/file authorization verification
 
@@ -249,7 +250,7 @@ The core-76 artifact and HAP packaging path are valid. Build, package verificati
 
 ## Online app build status
 
-- Latest app release: `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
+- Latest app release: `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7`
 - Latest app workflow run checked: `https://github.com/liyan-lucky/rustdesk_harmonyos/actions/runs/27443845710`
 - Run state: failed on old commit `0000da60074323447862ac75774b6ebe26a95ea3`; it does not include the locally verified core-76, staged-signing/HAP-only, and staging junction fixes
 - Required next online verification: push current app changes, trigger `Build HarmonyOS HAP Linux`, confirm artifact/release contains only `.hap`

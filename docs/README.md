@@ -31,10 +31,11 @@
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
-  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/harmonyos-20260612-065038`
-  - 最新 push run：`27528676811` 成功（提交 `7bdfd0d`）
-  - 最新发布 run：`27528681007` 成功，发布 `OpenRustdesk-Build-v0.22.5`
-  - 最新线上 signed HAP：`20,856,465` bytes，SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`
+  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7`
+  - 最新 push run：`27567811582` 成功（提交 `42f9b8e`）
+  - 最新发布 run：`27568044749` 成功，发布 `OpenRustdesk-Build-v0.22.7`
+  - 最新线上 signed HAP：`20,870,632` bytes，SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`
+  - 最新线上 unsigned HAP：`20,790,546` bytes，SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`
   - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：

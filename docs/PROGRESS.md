@@ -41,7 +41,7 @@
   - 本地 App 显示版本：`0.22.7`
   - 本地 versionCode：`1000110`
   - bundle：`com.open.rundesk`
-  - 最新线上 release：`harmonyos-20260612-065038`
+  - 最新线上 release：`OpenRustdesk-Build-v0.22.7`
   - signed HAP：`entry-default-signed.hap`，`18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
   - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
   - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
@@ -81,6 +81,7 @@
 - 2026-06-15 线上发布闭环：修复提交 `7bdfd0d` 推送后，Linux push workflow run `27528676811` 成功，发布 workflow run `27528681007` 成功创建 `OpenRustdesk-Build-v0.22.5` 并补中文 release notes；线上 signed HAP `20,856,465` bytes / SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`，unsigned HAP `20,786,035` bytes / SHA256 `825690f819dd59fde8706693fe5ce879e3a2b3f0939c81f45b037099743c4220`。
 - 2026-06-15 v0.22.6/core-81 本地预发布复查：13 核心本地构建 `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`，新增 `captureRequired` 与 OHOS `scrap::Capturer` incoming frame source；11 App 使用本地 staticlib 构建 `0.22.6` / versionCode `1000109`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`。文件授权改为 picker-first；共享启动由 `captureRequired` 触发 native 录屏提供首帧，但 `incomingReady` 仍严格表示真实服务 ready。验包、66 项审计、无线安装启动和干净 app hilog 均通过，设备端进程 `7527` 存活。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
 - 2026-06-15 v0.22.7/core-81 线上核心复查：13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`，release notes 已补中文说明；11 App 强制下载线上 core-81 构建 `0.22.7` / versionCode `1000110`，signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`。验包、66 项审计、静态录屏 API 扫描、无线安装启动和干净 app hilog 均通过，设备端进程 `40016` 存活。
+- 2026-06-15 v0.22.7 线上发布闭环：提交 `42f9b8e` 推送后，Linux push workflow run `27567811582` 成功，发布 workflow run `27568044749` 成功创建 `OpenRustdesk-Build-v0.22.7` 并补中文 release notes；线上 signed HAP `20,870,632` bytes / SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`，unsigned HAP `20,790,546` bytes / SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
@@ -97,8 +98,8 @@
 - 当前 GitHub secrets/vars 关键值：
   - `RUSTDESK_CORE_URL` 可留空，默认使用 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
   - `RUSTDESK_CORE_SHA256` 默认留空以跟随 latest；需要固定核心时再设置。
-- 已删除失败草稿 release `harmonyos-20260612-015538`；当前最新 App release 为 `harmonyos-20260612-065038`，`harmonyos-20260612-020111` 仅作为历史成功 release 保留。
-- 2026-06-14 线上 App 状态：最新 release 仍是 `harmonyos-20260612-065038`；最新 workflow run `27443845710` 是旧提交 `0000da6` 的失败 run，尚未包含本地已验证的 core-80/incoming frame/direct session/permission/HAP-only/staged signing/staging junction 修正。发布前需推送并重跑 workflow。
+- 已删除失败草稿 release `harmonyos-20260612-015538`；当前最新 App release 为 `OpenRustdesk-Build-v0.22.7`，`harmonyos-20260612-065038` 和 `harmonyos-20260612-020111` 仅作为历史成功 release 保留。
+- 2026-06-15 线上 App 状态：最新 push workflow `27567811582` 成功，最新 release workflow `27568044749` 成功，已发布 `OpenRustdesk-Build-v0.22.7`，包含 core-81 `captureRequired`、文件授权 picker-first、验包脚本 GUID 临时文件和相关中文说明。
 
 ## 已完成
 
