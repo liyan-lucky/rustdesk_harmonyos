@@ -564,34 +564,26 @@ export class ChatService {
   static formatTimestamp(timestamp: number): string {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
-    // 如果是今天，只显示时间
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return timeStr;
     }
 
-    // 如果是昨天
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
-      return '昨天 ' + date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return `昨天 ${timeStr}`;
     }
 
-    // 其他日期
-    return date.toLocaleDateString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit'
-    }) + ' ' + date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const currentYear = now.getFullYear();
+    if (year === currentYear) {
+      return `${month}-${day} ${timeStr}`;
+    }
+    return `${year}-${month}-${day} ${timeStr}`;
   }
 
   static shouldShowTimestamp(messages: ChatMessage[], index: number): boolean {

@@ -8,5 +8,5 @@ export class CoreBuildInfo {
   static readonly HASH_FNV1A_1MB: string = "85d50f4d";
   static readonly HASH_SHA256: string = "64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829";
   static readonly COMPATIBLE_OFFICIAL_VERSION: string = "1.4.7";
-  static readonly GENERATED_AT: string = "2026-06-15 19:09";
+  static readonly GENERATED_AT: string = "2026-06-15 20:58";
 }

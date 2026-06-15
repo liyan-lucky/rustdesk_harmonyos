@@ -713,6 +713,7 @@ export class I18nService {
     this.translations.set('Screen recording probe is active, but the core incoming video source is not ready.', '录屏探测已启动，但核心被控视频源未就绪。');
     this.translations.set('Recording Probe', '录屏探测');
     this.translations.set('Share requested', '共享已请求');
+    this.translations.set('Core video source not ready', '核心被控视频源未就绪');
     this.translations.set('Incoming service requested, waiting for core readiness.', '已请求开启被控服务，正在等待核心就绪。');
     this.translations.set('Requested', '已请求');
     this.translations.set('Not configured', '未配置');
@@ -1260,6 +1261,7 @@ export class I18nService {
     this.translations.set('Screen recording probe is active, but the core incoming video source is not ready.', 'Screen recording probe is active, but the core incoming video source is not ready.');
     this.translations.set('Recording Probe', 'Recording Probe');
     this.translations.set('Share requested', 'Share requested');
+    this.translations.set('Core video source not ready', 'Core video source not ready');
     this.translations.set('Incoming service requested, waiting for core readiness.', 'Incoming service requested, waiting for core readiness.');
     this.translations.set('Requested', 'Requested');
     this.translations.set('Not configured', 'Not configured');

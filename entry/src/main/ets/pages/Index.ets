@@ -614,14 +614,25 @@ struct Index {
               .justifyContent(FlexAlign.Center)
             } else {
               ForEach(this.chatMessages, (message: ChatMessage, index?: number) => {
-                Row() {
-                  if (message.sender === 'remote') {
-                    this.buildChatMessageBubble(message, false, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
-                    Blank().layoutWeight(1)
-                  } else {
-                    Blank().layoutWeight(1)
-                    this.buildChatMessageBubble(message, true, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
+                Column({ space: 4 }) {
+                  if (ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0)) {
+                    Text(ChatService.formatTimestamp(message.timestamp))
+                      .fontSize(10)
+                      .fontColor(this.theme_TEXT_TERTIARY)
+                      .width('100%')
+                      .textAlign(TextAlign.Center)
+                      .padding({ top: 2, bottom: 2 })
                   }
+                  Row() {
+                    if (message.sender === 'remote') {
+                      this.buildChatMessageBubble(message, false)
+                      Blank().layoutWeight(1)
+                    } else {
+                      Blank().layoutWeight(1)
+                      this.buildChatMessageBubble(message, true)
+                    }
+                  }
+                  .width('100%')
                 }
                 .width('100%')
               }, (message: ChatMessage) => message.id)
@@ -2331,19 +2342,29 @@ struct Index {
           this.buildSettingsInfoSettingRow(this.lt('Device name'), this.localDevice.alias)
         }
         .width('100%')
-        if (this.isShareServiceRunning()) {
+        if (this.settings.serviceEnabled) {
           this.buildCopyableInfoRow(
             this.lt('Device ID'),
             this.getShareDisplayId().length > 0 ? this.formatId(this.getShareDisplayId()) : this.lt('Waiting for core init'),
             this.getShareDisplayId(),
             this.lt('Device ID copied')
           )
-          this.buildCopyableInfoRow(
-            this.lt('One-time password'),
-            this.oneTimePassword,
-            this.oneTimePassword,
-            this.lt('Password copied')
-          )
+          if (this.oneTimePassword.length > 0) {
+            this.buildCopyableInfoRow(
+              this.lt('One-time password'),
+              this.oneTimePassword,
+              this.oneTimePassword,
+              this.lt('Password copied')
+            )
+          }
+          if (!this.officialCoreState.incomingReady) {
+            Text(this.lt('Core video source not ready'))
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_TERTIARY)
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .margin({ top: ThemeConfig.SPACING_XS })
+          }
         }
 
         Row({ space: ThemeConfig.SPACING_SM }) {
@@ -2362,7 +2383,7 @@ struct Index {
                 void this.checkScreenCapturePermissionAndToggle();
               }
             })
-          if (this.isShareServiceRunning()) {
+          if (this.settings.serviceEnabled) {
             Button(this.lt('Generate password'))
               .layoutWeight(1)
               .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
@@ -4609,7 +4630,7 @@ struct Index {
   }
 
   @Builder
-  private buildChatMessageBubble(message: ChatMessage, local: boolean, showTime: boolean) {
+  private buildChatMessageBubble(message: ChatMessage, local: boolean) {
     Column() {
       Text(message.type === ChatMessageType.FILE
         ? `${message.fileName ?? this.lt('Attachment')}${message.fileSize ? ' ' + ChatService.formatFileSize(message.fileSize) : ''}`
@@ -4618,12 +4639,6 @@ struct Index {
         .fontColor(local ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
         .maxLines(10)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-      if (showTime) {
-        Text(ChatService.formatTimestamp(message.timestamp))
-          .fontSize(11)
-          .fontColor(local ? '#AAFFFFFF' : this.theme_TEXT_TERTIARY)
-          .margin({ top: 4 })
-      }
     }
     .padding({ left: 12, right: 12, top: 8, bottom: 8 })
     .constraintSize({ maxWidth: '75%' })

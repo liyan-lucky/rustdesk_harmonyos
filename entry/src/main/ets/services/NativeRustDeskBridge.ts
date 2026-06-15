@@ -600,7 +600,7 @@ export class NativeRustDeskBridge {
 
     const resolvedFn = NativeRustDeskBridge.resolveFunction<[string, string, string, string, string, string], void>(
       nativeModule,
-      ['connectToPeer', 'connect_to_peer', 'rustdesk_bridge_connect_to_peer']
+      ['connectToPeer', 'connect_to_peer', 'rustdesk_bridge_connect_to_peer', 'sessionStart', 'session_start', 'rustdesk_bridge_session_start']
     );
     if (resolvedFn) {
       connectFn = resolvedFn;
@@ -1347,7 +1347,7 @@ export class NativeRustDeskBridge {
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const setIncomingServiceEnabledFn = NativeRustDeskBridge.resolveFunction<[boolean, string, string, string, string], NativePayload>(
       nativeModule,
-      ['setIncomingServiceEnabled', 'set_incoming_service_enabled', 'rustdesk_bridge_set_incoming_service_enabled']
+      ['setIncomingServiceEnabled', 'set_incoming_service_enabled', 'rustdesk_bridge_set_incoming_service_enabled', 'mainStartService', 'main_start_service', 'rustdesk_bridge_main_start_service']
     );
     if (!setIncomingServiceEnabledFn) {
       return null;
@@ -3103,6 +3103,10 @@ export class NativeRustDeskBridge {
     );
     if (!fn) return '';
     try { return fn() || ''; } catch { return ''; }
+  }
+
+  static getTemporaryPassword(): string {
+    return NativeRustDeskBridge.mainGetTemporaryPassword();
   }
 
   static mainSetPermanentPasswordWithResult(password: string): boolean {

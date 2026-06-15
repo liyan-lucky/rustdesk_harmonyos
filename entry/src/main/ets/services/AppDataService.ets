@@ -675,6 +675,11 @@ export class AppDataService {
   }
 
   getPassword(): string {
+    const corePassword = NativeRustDeskBridge.getTemporaryPassword();
+    if (corePassword.length > 0) {
+      this.password = corePassword;
+      PreferenceStore.setPassword(this.password);
+    }
     return this.password;
   }
 

@@ -543,6 +543,9 @@ export class OfficialRustDeskBridge {
       nextState.statusSummary = nextState.activePeerId.length > 0
         ? `Connected ${nextState.activePeerId}`
         : 'Connected';
+      if (nextState.activePeerId.length > 0) {
+        NativeRustDeskBridge.markSessionConnected(nextState.activePeerId);
+      }
       changed = true;
     } else if (event.kind === 'session-error') {
       nextState.sessionStage = 'error';
@@ -550,6 +553,7 @@ export class OfficialRustDeskBridge {
       nextState.statusSummary = OfficialSessionTextFormatter.deriveErrorSummary(normalizedDetail);
       if (normalizedDetail.length > 0) {
         nextState.detailMessage = normalizedDetail;
+        NativeRustDeskBridge.markSessionError(normalizedDetail);
       }
       changed = true;
     } else if (event.kind === 'session-closed' || event.kind === 'closed') {

@@ -63,8 +63,9 @@
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- **当前本地核心 SHA256**：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`（线上 `core-81`）
+- 当前本地核心 SHA256**：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`（线上 `core-81`）
 - **最新核心更新**：13 核心 `core-81` 已发布，新增 OHOS `scrap::common::ohos::Capturer` incoming frame source，并让共享启动通过 `captureRequired=true` 请求 App 提供首帧；11 App 已强制拉取线上 core-81 构建 `0.22.7` 并无线安装验证。
+- **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
 

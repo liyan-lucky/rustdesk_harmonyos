@@ -1628,14 +1628,25 @@ struct RemoteControl {
               EmptyState($rawfile('chat.svg'), this.lt('No messages yet.'))
             } else {
               ForEach(this.chatMessages, (message: ChatMessage, index?: number) => {
-                Row() {
-                  if (message.sender === 'remote') {
-                    this.buildChatMessageBubble(message, false, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
-                    Blank().layoutWeight(1)
-                  } else {
-                    Blank().layoutWeight(1)
-                    this.buildChatMessageBubble(message, true, ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0))
+                Column({ space: 4 }) {
+                  if (ChatService.shouldShowTimestamp(this.chatMessages, index ?? 0)) {
+                    Text(ChatService.formatTimestamp(message.timestamp))
+                      .fontSize(10)
+                      .fontColor(this.theme_TEXT_TERTIARY)
+                      .width('100%')
+                      .textAlign(TextAlign.Center)
+                      .padding({ top: 2, bottom: 2 })
                   }
+                  Row() {
+                    if (message.sender === 'remote') {
+                      this.buildChatMessageBubble(message, false)
+                      Blank().layoutWeight(1)
+                    } else {
+                      Blank().layoutWeight(1)
+                      this.buildChatMessageBubble(message, true)
+                    }
+                  }
+                  .width('100%')
                 }
                 .width('100%')
               }, (message: ChatMessage) => message.id)
@@ -1723,17 +1734,11 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildChatMessageBubble(message: ChatMessage, isLocal: boolean, showTime: boolean) {
+  private buildChatMessageBubble(message: ChatMessage, isLocal: boolean) {
     Column({ space: 4 }) {
       Text(this.getChatMessageBody(message))
         .fontSize(14)
         .fontColor(isLocal ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      if (showTime) {
-        Text(ChatService.formatTimestamp(message.timestamp))
-          .fontSize(10)
-          .fontColor(isLocal ? this.theme_ACCENT_TEXT : this.theme_TEXT_TERTIARY)
-          .opacity(0.72)
-      }
     }
     .alignItems(HorizontalAlign.Start)
     .padding({ left: 12, right: 12, top: 9, bottom: 9 })
