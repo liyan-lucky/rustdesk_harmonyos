@@ -49,10 +49,12 @@ export class OfficialSessionTransport {
 
   static sendChatMessage(peerId: string, messageType: string, content: string, timestamp: number): boolean {
     hilog.error(0xA03D00, 'Transport', 'sendChatMessage: peerId=' + peerId + ' type=' + messageType + ' contentLen=' + content.length + ' content=[' + content.substring(0, 30) + ']');
-    const sessionResult = NativeRustDeskBridge.sessionSendChat(content);
-    hilog.error(0xA03D00, 'Transport', 'sessionSendChat returned: ' + sessionResult);
-    if (sessionResult) {
-      return true;
+    if (messageType !== 'file') {
+      const sessionResult = NativeRustDeskBridge.sessionSendChat(content);
+      hilog.error(0xA03D00, 'Transport', 'sessionSendChat returned: ' + sessionResult);
+      if (sessionResult) {
+        return true;
+      }
     }
     const fallbackResult = NativeRustDeskBridge.sendChatMessage(peerId, messageType, content, timestamp);
     hilog.error(0xA03D00, 'Transport', 'sendChatMessage fallback returned: ' + fallbackResult);

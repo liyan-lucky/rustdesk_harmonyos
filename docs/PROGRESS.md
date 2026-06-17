@@ -32,19 +32,15 @@
   - `entry/src/main/libs/arm64/librustdesk_core.a`
   - 最新线上 native core 已从 GitHub Releases 下载：
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-  - 最新线上 release：`core-81`
-  - 最新线上大小：`131,631,706` bytes (`125.53 MB`)
-  - 最新线上 SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
-  - 最新线上 workflow：`27563925971`
+  - 最新线上 release：`core-9`
+  - 最新线上大小：`132,720,900` bytes
+  - 包含：被控端连接链路 + 重连稳定性 + Connecting重连修复 + 设备指纹修复
 - 当前已验证 HAP：
-  - 本地 BuildInfo 编译时间：`2026-06-15 19:09`
-  - 本地 App 显示版本：`0.22.7`
-  - 本地 versionCode：`1000110`
+  - 本地 App 显示版本：`0.23.17`
+  - 本地 versionCode：`1000140`
   - bundle：`com.open.rundesk`
-  - 最新线上 release：`OpenRustdesk-Build-v0.22.7`
-  - signed HAP：`entry-default-signed.hap`，`18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
-  - 2026-06-09 无线安装启动成功，hilog 确认 `coreReady=true`、`adapter=official-native`，无崩溃。
-  - 2026-06-09 官方一致性修复后实机验证：HAP 安装启动成功，`coreReady=true`，Bridge 在线查询正常（onlines: 2），远程控制连接建立（加密中继），handshake 诊断正常（fingerprint、connection-type、quality-status），核心详情页新增属性（桥接函数数、NAPI注册数、核心版本、设备ID、指纹）已集成。
+  - signed HAP：本地核心构建
+  - 2026-06-17 无线安装启动成功，设备指纹正确显示（`6b3c ef42 ...`），远程连接画面正常
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
@@ -87,6 +83,7 @@
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
 - 自定义键盘已改为会话画面顶部覆盖显示。
+- 2026-06-17 v0.23.x 会话体验修复轮：1) 删除 RemoteControl.ets 旧 `showPasswordDialog`/`buildPasswordDialog()`，与 OS Password 弹窗彻底分离；2) 新增 `showOsPasswordDialog`/`osPassword`/`osAutoLogin` 状态和 `buildOsPasswordDialog()` 方法，OS Password 支持记住密码（PreferenceStore `peer_os_passwords`）；3) 修复多余闭合花括号导致100+级联编译错误；4) 清理死代码（`continueWaitingWithoutPassword`/`updatePasswordDialogState`/`buildPasswordPromptToken`/`shouldPromptForPassword`/`activePasswordPromptToken`/`suppressedPasswordPromptToken`）；5) 修复 `showPwd=${false}` 硬编码日志→`showOsPwd=${this.showOsPasswordDialog}`；6) 质量显示菜单精简为7项固定行（尺寸/帧率/延迟/速度/连接/缩放/编码），删除 `ForEach(qualityMetricItems)` 动态行和重复项，标签宽度96→36px，面板宽度180→160px；7) I18n翻译补全9项（Retry/Retrying connection/Connection Error/Connection lost/Reconnecting through relay/Use relay line/Waiting for password.../Waiting for video stream.../Auto login...），Resolution→尺寸、Codec→编码；8) 画面平移边界修复：移除gap容差，放大后平移范围改为对称 `[-(renderedW-pw)/2, (renderedW-pw)/2]`，修复向右平移不了的问题；9) PinchGesture更新时同步clamp panOffset；10) 3处msgbox自动重连（`parseKeyValueDetail`/`autoRetry`/`retrySessionConnection`）；11) peerClosed守卫；12) ClipboardService集成。
 
 ## 2026-06-12 Linux 在线构建结论
 
@@ -181,7 +178,15 @@
 
 ## 后续优化方向
 
-- **共享服务启动**：当前 App 侧已改用 C++ NAPI `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，禁止回退截图 API，也禁止再使用 `AVScreenCaptureRecorder`/临时 mp4 做当前共享探测；线上 core-81 已让 OHOS `scrap::Capturer` 消费 incoming frame cache，后续重点是完成 RustDesk desktop server/video source ready 闭环，并在无真实服务源时继续保持 `incomingReady=false`。
+- **OHOS 被控端完整连接链路**（已实现，待实机验证）：
+  - ✅ 已完成：信令连接（RendezvousMediator）、PunchHole/RequestRelay 处理、VPX 编解码器、OHOS Capturer（从 incoming frame cache 读帧）
+  - ✅ 已完成：Service trait + ServiceTmpl + Subscriber（OHOS 版）、video_service（从 Capturer 读帧→编码→推送）、Connection::start（接受远端连接→握手→认证→订阅服务→主循环）、accept_connection/create_relay_connection 实际连接建立、密码验证（verify_h1/validate_password）
+  - ✅ 已完成：重连稳定性修复（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试、session_reconnect 帧缓存清理）
+  - ✅ 已完成：set_incoming_service_started()、OHOS Frame::to()、Encoder 缺失方法补齐
+  - ❌ 待验证：CI 构建成功→下载核心→构建 HAP→实机验证被控端连接
+  - ❌ 待修复：Connecting 状态下拒绝重连（需 App 侧修改 `ui_session_interface.rs`）、自动重连机制
+  - **核心函数名称和官方保持一致**，不自造
+  - 官方架构参考：server.rs（Server/accept_connection/create_relay_connection）、service.rs（Service/Subscriber/ServiceTmpl）、connection.rs（Connection::start/ConnInner::send）、video_service.rs（VideoService/run/get_capturer）
 - HAP 体积优化：strip、LTO、减少未用 crate feature，目标 < 25MB。
 - 构建流程自动化：串联 native core 构建、HAP 构建、安装、启动、日志采集。
 - 音频功能验证：确认 opus/staticlib 状态后再启用远程音频。
@@ -625,3 +630,20 @@
 - **项目备份**：`99_Temp/rustdesk_harmonyos_backups/rustdesk_harmonyos_20260607_201953.zip`
 
 - **待验证**：实机构建验证中文输入、重连对话框弹出、远端关闭显示"会话已关闭"
+
+## 2026-06-17 被控端连接链路 + 设备指纹 + 重连修复
+
+- **核心 core-9 已发布**：包含被控端完整连接链路（Service/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证）、重连稳定性修复（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试）、Connecting 状态拒绝重连修复、设备指纹不显示修复
+- **设备指纹不显示修复**（6处）：
+  1. `get_core_snapshot_json` 用 `Config::get_id()` 替换 `get_local_option("id")`
+  2. `fingerprint` 从 `pk_to_fingerprint(Config::get_key_pair().1)` 计算（原硬编码空串）
+  3. `gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"` 走随机 ID 路径（原走桌面 MAC 地址路径）
+  4. `initialize_runtime` 设置 `APP_DIR` 后调用 `get_id()` + `get_key_pair()`
+  5. `main_init` 调用 `initialize_runtime`（原为空函数）
+  6. `main_get_fingerprint` 用 `pk_to_fingerprint` 替换 `Config::get_option("fingerprint")`
+- **Connecting 状态拒绝重连修复**：`ui_session_interface.rs` 的 `ConnectionState::Connecting => return` 改为 `self.send(Data::Close)`
+- **自动重连机制**：App 侧 `RemoteControl.ets` 三处 msgbox 处理增加 `retry=true` 检测，自动调用 `retrySessionConnection(false)`
+- **屏幕录制与服务启动关联修复**：`toggleIncomingService(true)` 不再先 `stopCapture()`，Screen Capture 开关绑定 `serviceEnabled && isCapturingActive()`
+- **C++ OH_AVScreenCapture 无法获取帧**（搁置）：`OH_CAPTURE_HOME_SCREEN` 模式在非系统应用上无法工作——`StartScreenCapture` 返回成功但服务端状态不是 STARTED（`state:1`），`AcquireVideoBuffer` 持续失败。根因是 `ohos.permission.CAPTURE_SCREEN` 是系统核心权限（system_core），普通应用无法声明。**待调研 ArkTS `@ohos.screenCapture` API 替代方案**
+- **远程连接后自动回到连接页面**（已修复）：根因1——核心侧 `set_peer_info` 的 else 分支重复调用 `update_connect_state("connected", ...)` 导致大量重复 `session-connected` 事件涌入（同一毫秒10+个）；根因2——App 侧 `handleTerminalBridgeEvent` 中 `peerClosed` 时直接 `finishTerminalSession`，但连接可能还没真正建立（`hasReceivedFrame=false`）；根因3——App 侧密码弹窗在连接已建立后仍会被重复事件触发。修复：核心去掉 else 分支冗余调用、App 侧 `peerClosed && hasReceivedFrame` 才关闭会话、密码弹窗渲染层加 `!hasReceivedFrame && !isConnected` 硬性守卫
+- 当前版本：`0.23.17` / versionCode `1000140`，线上核心 `core-9`，本地核心含事件去重修复

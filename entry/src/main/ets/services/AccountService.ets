@@ -5,6 +5,7 @@ import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { AppContextService } from './AppContextService';
 import { AppDataService, AddressBookEntry } from './AppDataService';
 import { PreferenceStore } from './PreferenceStore';
+import { I18nService } from './I18nService';
 
 export interface OAuthProvider {
   id: string;
@@ -170,14 +171,14 @@ export class AccountService {
     try {
       const result = await this.httpClient.oidcAuth(provider, true);
       if (!result.success || !result.data) {
-        this.appState.setAccount({ status: 'error', lastError: result.error ?? '认证请求失败' });
+        this.appState.setAccount({ status: 'error', lastError: result.error ?? I18nService.getInstance().translate('Auth request failed') });
         return false;
       }
 
       const code = result.data.code ?? '';
       const url = result.data.url;
       if (!url) {
-        this.appState.setAccount({ status: 'error', lastError: '未获取到认证URL' });
+        this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Auth URL not received') });
         return false;
       }
 
@@ -187,7 +188,7 @@ export class AccountService {
 
       const opened = await this.openBrowser(url);
       if (!opened) {
-        this.appState.setAccount({ status: 'error', lastError: '无法打开浏览器' });
+        this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Cannot open browser') });
         return false;
       }
 
@@ -195,7 +196,7 @@ export class AccountService {
       return true;
     } catch (e) {
       console.error('[AccountService] loginWithOAuth error:', e);
-      this.appState.setAccount({ status: 'error', lastError: '认证请求异常' });
+      this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Auth request error') });
       return false;
     }
   }
@@ -209,7 +210,7 @@ export class AccountService {
       this.pollCount++;
       if (this.pollCount >= this.MAX_POLL) {
         this.stopPolling();
-        this.appState.setAccount({ status: 'error', lastError: '认证超时' });
+        this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Auth timeout') });
         return;
       }
 
@@ -266,7 +267,7 @@ export class AccountService {
     this.syncApiServerFromSettings();
     const result = await this.httpClient.login(username, password, true);
     if (!result.success || !result.data) {
-      this.eventBus.emit(EventType.SESSION_ERROR, { error: result.error ?? '登录失败' });
+      this.eventBus.emit(EventType.SESSION_ERROR, { error: result.error ?? I18nService.getInstance().translate('Login failed') });
       const r = new PasswordLoginResultImpl();
       r.success = false;
       return r;

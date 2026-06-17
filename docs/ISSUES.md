@@ -2,6 +2,28 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-17 OHOS 被控端编译经验汇总
+
+### 核心 Rust 编译常见坑
+
+**现象**：实现 OHOS 被控端服务链路时遇到多个编译错误。
+
+**经验清单**：
+1. `TargetAddr` 不是 `Copy`，传给 `FramedSocket::send()` 需要用 `addr.clone()`
+2. `bytes::Bytes` 不实现 `Display`，用 `String::from_utf8_lossy()` 转换
+3. `Server::id_count` 是私有字段，需要 `pub id_count` 或构造函数
+4. `SupportedEncoding` protobuf 没有 `vp9` 字段（只有 `h264`/`h265`/`vp8`/`av1`/`i444`）
+5. `with_context()` 需要 `use hbb_common::anyhow::Context` trait import
+6. `hbb_common::tcp::Stream` 不存在，正确类型是 `hbb_common::stream::Stream`
+7. `NatType::from_i32()` 需要 `use hbb_common::protobuf::Enum as _` trait import
+8. `Config::get_relay_server()` 不存在，官方用 `Config::get_option("relay-server")` + fallback
+9. `VpxEncoder` 的 `id`/`ctx`/`width`/`height`/`yuvfmt` 是私有字段，`calc_q_values`/`bitrate`/`get_yuvfmt`/`create_frame` 是私有方法
+10. 避免启动 IPC（`ipc::start("")`），这是之前 appspawn 崩溃的主因
+11. **核心函数名称必须和官方保持一致**，不要自造函数名
+12. **OHOS 文件已重构到 `harmony_bridge/` 子目录**，旧路径 `src/server_ohos.rs` 等已不存在
+
+**教训**：修改核心前必须重读核心文件了解用户更新；函数命名对照官方源码。
+
 ## 2026-06-15 文件访问授权被普通权限预检挡住
 
 ### `DocumentViewPicker` 必须先唤起，不能等权限位全部通过后才弹

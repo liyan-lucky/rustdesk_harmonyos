@@ -10,7 +10,8 @@
 - 不再使用 `dlopen` 加载 Rust 核心，避免 TEXTREL 和运行时加载问题。
 - **核心构建已迁移到独立项目 `%VSCODE_ROOT%\13_librustdesk_core`**：
   - Rust 桥接层、C++ 桥接层、代码生成脚本均在 13 项目维护
-  - 核心修改流程：13 项目修改 → git push → GitHub Actions 构建 → 下载 → 放入 11 项目
+  - 核心修改流程：13 项目修改 → git push → GitHub Actions（Windows runner）自动构建 → 下载 → 放入 11 项目
+  - 也可本地构建：`13_librustdesk_core\scripts\build_native_bridge.ps1`
   - GitHub Releases：`https://github.com/liyan-lucky/librustdesk_core/releases`
 - 当前页面应显示三个核心状态入口：`Adapter`、`Native Module`、`Native Core`
 - 当前核心已经接入真实 RustDesk 会话路径
@@ -26,6 +27,22 @@
 - 2026-06-15 App 侧 CI strict 修正已验证为 `0.22.5` / versionCode `1000108`：线上 Linux/release workflow 在 `PermissionService.ets` 未显式对象字面量处失败，本地已改为显式 `PermissionRequestResult` 并修正聊天摘要中文错字；core 仍为 `core-80`，增量构建、验包、66 项连接链路审计、无线安装启动和干净 hilog 均通过。
 - 2026-06-15 本地 core-81 预发布验证已通过：13 核心新增 OHOS `scrap::common::ohos::Capturer` incoming frame source，并让 `main_start_service(true)` 返回 `captureRequired=true`、`incomingReady=false`，由 App 启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧；App `0.22.6` 已用本地 staticlib 构建、验包、66 项审计、无线安装和干净 hilog 验证通过。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
 - 2026-06-15 线上 core-81 验证已通过：13 核心 commit `c5b3eeb` / run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，验包、66 项审计、静态录屏 API 扫描、无线安装和干净 hilog 验证通过。
+- 2026-06-17 OHOS 被控端完整连接链路已实现：13 核心项目两次 commit 已推送：
+  - `7681b0d`：实现 OHOS 被控端完整连接链路（Service trait/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证），`server_ohos.rs` 从146行stub扩展到1461行
+  - `6b228d7`：修复重连稳定性（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试、session_reconnect 帧缓存清理）
+  - `e8317b7`：修复 Connecting 状态拒绝重连（`ConnectionState::Connecting => self.send(Data::Close)`）
+  - `f2833c3` + `123f823`：修复设备指纹不显示（`Config::get_id()` 替换 `get_local_option("id")`、`pk_to_fingerprint` 计算指纹、`gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"`、`initialize_runtime` 设置 `APP_DIR` 后调用公开 API、`main_init` 调用 `initialize_runtime`）
+  - CI 构建 core-9 已成功发布，132,720,900 bytes
+  - 本地核心额外修复：`set_peer_info` 不再重复触发 `session-connected` 事件（去掉 else 分支冗余 `update_connect_state`）
+  - 11 App 已用本地核心构建 `0.23.9` / versionCode `1000132`，无线安装启动验证通过
+- 2026-06-17 会话体验修复轮（v0.23.17 / versionCode 1000140）：
+  - 删除旧 `showPasswordDialog`/`buildPasswordDialog()`，新增 `buildOsPasswordDialog()` + OS密码记住功能（PreferenceStore `peer_os_passwords`）
+  - 修复多余闭合花括号导致100+级联编译错误
+  - 清理死代码6处，修复硬编码日志
+  - 质量菜单精简7项（尺寸/帧率/延迟/速度/连接/缩放/编码），标签36px，面板160px
+  - I18n翻译补全9项，Resolution→尺寸，Codec→编码
+  - 画面平移边界修复：对称范围 `[-(renderedSize-previewSize)/2, (renderedSize-previewSize)/2]`
+  - 3处msgbox自动重连、peerClosed守卫、ClipboardService集成
 
 ## 架构总览
 
@@ -73,10 +90,10 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
-- Latest online size: `131,631,706` bytes (`125.53 MB`)
-- Latest online SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
-- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27563925971`
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-6`
+- Latest online size: `132,744,466` bytes (`126.55 MB`)
+- Latest online SHA256: `C9435DD89B4A0FC2DA5D502E307EDC5AD9B94A095C7D593B1DD6DD48A57C36FC`
+- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27662916996`
 
 HAP:
 

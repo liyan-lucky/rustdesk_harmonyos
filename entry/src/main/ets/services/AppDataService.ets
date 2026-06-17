@@ -1,6 +1,7 @@
 import { PreferenceStore } from './PreferenceStore';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
+import { I18nService } from './I18nService';
 import deviceInfo from '@ohos.deviceInfo';
 
 export interface RecentSession {
@@ -307,7 +308,7 @@ export class AppDataService {
 
   createRecentSession(id: string, platform: string = 'RustDesk', online: boolean = true, hostname: string = '', username: string = ''): RecentSession {
     const normalizedId = DeviceIdFormatter.parse(id);
-    const defaultName = `远程 ${DeviceIdFormatter.format(normalizedId)}`;
+    const defaultName = `${I18nService.getInstance().translate('Remote')} ${DeviceIdFormatter.format(normalizedId)}`;
     const peerInfo = NativeRustDeskBridge.getPeerInfo(normalizedId);
     let displayName = '';
     if (hostname.trim().length > 0) {
@@ -651,7 +652,7 @@ export class AppDataService {
         return this.cloneRecentSession(session);
       }
       const nextSession = this.cloneRecentSession(session);
-      nextSession.name = `远程 ${DeviceIdFormatter.format(id)}`;
+      nextSession.name = `${I18nService.getInstance().translate('Remote')} ${DeviceIdFormatter.format(id)}`;
       return nextSession;
     });
     this.persistRecentSessions();
@@ -754,7 +755,7 @@ export class AppDataService {
 
   setServiceEnabled(enabled: boolean): LocalDeviceProfile {
     this.updateSettings({ serviceEnabled: enabled });
-    this.localDevice.status = enabled ? '服务已就绪，可接收传入连接' : '服务已停止';
+    this.localDevice.status = enabled ? I18nService.getInstance().translate('Service ready, can receive incoming connections') : I18nService.getInstance().translate('Service stopped');
     return this.getLocalDevice();
   }
 
@@ -771,9 +772,9 @@ export class AppDataService {
 
   getTerminalSnippets(): TerminalSnippet[] {
     return [
-      { id: 'health', title: '健康检查', command: 'uname -a && df -h && free -m', description: '查看系统版本、磁盘和内存使用情况。' },
-      { id: 'logs', title: '最近日志', command: 'tail -n 200 /var/log/syslog', description: '检查最近的服务日志输出。' },
-      { id: 'network', title: '网络状态', command: 'ip addr && netstat -tunlp', description: '查看网卡、监听端口和当前连接。' }
+      { id: 'health', title: I18nService.getInstance().translate('Health Check'), command: 'uname -a && df -h && free -m', description: I18nService.getInstance().translate('Check system version, disk and memory usage.') },
+      { id: 'logs', title: I18nService.getInstance().translate('Recent Logs'), command: 'tail -n 200 /var/log/syslog', description: I18nService.getInstance().translate('Check recent service log output.') },
+      { id: 'network', title: I18nService.getInstance().translate('Network Status'), command: 'ip addr && netstat -tunlp', description: I18nService.getInstance().translate('View network interfaces, listening ports and connections.') }
     ];
   }
 
@@ -886,7 +887,7 @@ export class AppDataService {
     const normalizedId = DeviceIdFormatter.parse(entry.id);
     const normalizedAlias = entry.alias.trim().length > 0
       ? entry.alias.trim()
-      : `远程 ${DeviceIdFormatter.format(normalizedId)}`;
+      : `${I18nService.getInstance().translate('Remote')} ${DeviceIdFormatter.format(normalizedId)}`;
     const normalizedGroup = this.normalizeAddressBookGroup(entry.group);
     return {
       id: normalizedId,
@@ -946,7 +947,7 @@ export class AppDataService {
 
   private cloneRecentSession(session: RecentSession): RecentSession {
     const normalizedId = DeviceIdFormatter.parse(session.id);
-    const defaultName = `远程 ${DeviceIdFormatter.format(normalizedId)}`;
+    const defaultName = `${I18nService.getInstance().translate('Remote')} ${DeviceIdFormatter.format(normalizedId)}`;
     const normalizedName = this.normalizeRecentSessionName(session.name);
     const finalName = normalizedName.trim().length > 0 ? normalizedName : defaultName;
     return {
@@ -961,13 +962,14 @@ export class AppDataService {
 
   private cloneAddressBookEntry(entry: AddressBookEntry): AddressBookEntry {
     const normalizedId = DeviceIdFormatter.parse(entry.id);
-    const remoteLabel = `远程 ${DeviceIdFormatter.format(normalizedId)}`;
-    const remoteDeviceLabel = `远程设备 ${DeviceIdFormatter.format(normalizedId)}`;
+    const remotePrefix = I18nService.getInstance().translate('Remote');
+    const remoteLabel = `${remotePrefix} ${DeviceIdFormatter.format(normalizedId)}`;
+    const remoteDeviceLabel = `${I18nService.getInstance().translate('Remote Device')} ${DeviceIdFormatter.format(normalizedId)}`;
     return {
       id: normalizedId,
-      alias: entry.alias === `远程 ${normalizedId}`
+      alias: (entry.alias === `远程 ${normalizedId}` || entry.alias === `Remote ${normalizedId}`)
         ? remoteLabel
-        : (entry.alias === `远程设备 ${normalizedId}` ? remoteDeviceLabel : this.normalizeAddressBookAlias(entry.alias)),
+        : (entry.alias === `远程设备 ${normalizedId}` || entry.alias === `Remote Device ${normalizedId}` ? remoteDeviceLabel : this.normalizeAddressBookAlias(entry.alias)),
       note: this.normalizeAddressBookNote(entry.note),
       group: this.normalizeAddressBookGroup(entry.group),
       online: entry.online,
@@ -977,7 +979,7 @@ export class AppDataService {
   }
 
   private formatRelativeNow(): string {
-    return '刚刚';
+    return I18nService.getInstance().translate('Just now');
   }
 
   private normalizeRecentSessionName(name: string): string {
@@ -1015,16 +1017,16 @@ export class AppDataService {
 
   private normalizeRecentSessionTime(time: string): string {
     if (time === 'Just now') {
-      return '刚刚';
+      return I18nService.getInstance().translate('Just now');
     }
     if (time === '2 min ago') {
-      return '2 分钟前';
+      return I18nService.getInstance().translate('2 min ago');
     }
     if (time === '18 min ago') {
-      return '18 分钟前';
+      return I18nService.getInstance().translate('18 min ago');
     }
     if (time === 'Yesterday') {
-      return '昨天';
+      return I18nService.getInstance().translate('Yesterday');
     }
     return time;
   }
@@ -1040,7 +1042,7 @@ export class AppDataService {
   private normalizeAddressBookGroup(group: string): string {
     const normalizedGroup = group.trim();
     if (normalizedGroup.length === 0) {
-      return '未分组';
+      return I18nService.getInstance().translate('Ungrouped');
     }
     return normalizedGroup;
   }
@@ -1119,12 +1121,12 @@ export class AppDataService {
   private static createDefaultLocalDevice(): LocalDeviceProfile {
     return {
       id: '',
-      alias: 'HarmonyOS 平板',
+      alias: I18nService.getInstance().translate('HarmonyOS Tablet'),
       platform: 'HarmonyOS 6.0',
       ip: '192.168.1.36',
-      status: '等待官方 RustDesk 原生核心',
-      fingerprint: '等待官方原生核心',
-      directAddress: '等待官方原生核心'
+      status: I18nService.getInstance().translate('Waiting for official RustDesk native core'),
+      fingerprint: I18nService.getInstance().translate('Waiting for official native core'),
+      directAddress: I18nService.getInstance().translate('Waiting for official native core')
     };
   }
 }

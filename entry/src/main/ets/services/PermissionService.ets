@@ -106,7 +106,12 @@ export class PermissionService {
 
   async checkPermission(permission: Permissions): Promise<PermissionStatus> {
     try {
-      const grantStatus = await this.atManager.checkAccessToken(0, permission);
+      const context = AppContextService.getContext();
+      if (!context) {
+        return PermissionStatus.NOT_REQUESTED;
+      }
+      const tokenID = context.applicationInfo.accessTokenId;
+      const grantStatus = await this.atManager.checkAccessToken(tokenID, permission);
       if (grantStatus === abilityAccessCtrl.GrantStatus.PERMISSION_GRANTED) {
         return PermissionStatus.GRANTED;
       }

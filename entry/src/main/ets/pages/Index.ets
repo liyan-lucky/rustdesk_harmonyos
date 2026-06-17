@@ -24,6 +24,7 @@ import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { PreferenceStore } from '../services/PreferenceStore';
 import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
+import { AppContextService } from '../services/AppContextService';
 import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
 import { WindowChromeService } from '../services/WindowChromeService';
 import { BuildInfo } from '../common/BuildInfo';
@@ -1098,7 +1099,14 @@ struct Index {
   }
 
   private getScreenRecordingDirectory(): string {
-    return '/storage/media/100/local/files/Download/RustDesk/ScreenRecord';
+    try {
+      const context = AppContextService.getContext();
+      if (context && typeof context.filesDir === 'string' && context.filesDir.trim().length > 0) {
+        return context.filesDir.trim() + '/ScreenRecord';
+      }
+    } catch (_error) {
+    }
+    return '/data/storage/el2/base/files/ScreenRecord';
   }
 
   @Builder
@@ -2501,12 +2509,12 @@ struct Index {
       this.buildSettingsSectionLabel(this.lt('Permissions'))
       CardContainer() {
         Column({ space: 0 }) {
-          this.buildToggleRow(this.lt('Screen Capture'), this.settings.serviceEnabled, (value: boolean) => {
+          this.buildToggleRow(this.lt('Screen Capture'), this.settings.serviceEnabled && ScreenCaptureService.getInstance().isCapturingActive(), (value: boolean) => {
             if (value) {
-              this.updateSettings({ serviceEnabled: true });
-              void this.checkScreenCapturePermissionAndToggle();
+              void this.toggleIncomingService(true);
             } else {
-              void this.toggleIncomingService(false);
+              ScreenCaptureService.getInstance().stopCapture();
+              NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
             }
           }, false, 'settings_monitor.svg')
           this.buildToggleRow(this.lt('Input Control'), this.settings.allowRemoteControl, (value: boolean) => {
@@ -3975,7 +3983,6 @@ struct Index {
     hilog.info(0xA03D00, 'SHARE', 'toggleIncomingService: enabled=%{public}s', String(enabled));
     let captureReady = false;
     if (enabled) {
-      ScreenCaptureService.getInstance().stopCapture();
       NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'Y');
     } else {
       ScreenCaptureService.getInstance().stopCapture();
@@ -3990,7 +3997,9 @@ struct Index {
     this.syncSharePasswordToNative(this.appData.getPassword());
     this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(enabled, this.settings);
     hilog.info(0xA03D00, 'SHARE', 'setIncomingServiceEnabled result: coreReady=%{public}s', String(this.officialCoreState.coreReady));
-    const shouldStartNativeCapture = enabled && (this.officialCoreState.incomingReady || this.officialCoreState.captureRequired);
+    const shouldStartNativeCapture = enabled &&
+      (this.officialCoreState.incomingReady || this.officialCoreState.captureRequired) &&
+      !ScreenCaptureService.getInstance().isCapturingActive();
     if (shouldStartNativeCapture) {
       try {
         await ScreenCaptureService.getInstance().startCapture();
@@ -6003,7 +6012,7 @@ struct Index {
       if (this.showConnectTabVisibilityMenu) {
         this.buildConnectTabVisibilityMenu()
       }
-      if (this.showPasswordDialog) {
+      if (this.showPasswordDialog && this.pendingPeerId.trim().length > 0) {
         this.buildPasswordDialog()
       }
       if (this.showServerDialog) {

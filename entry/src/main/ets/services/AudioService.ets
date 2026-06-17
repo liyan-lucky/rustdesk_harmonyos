@@ -6,6 +6,7 @@
 import audio from '@ohos.multimedia.audio';
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { SessionAudioCodec, SessionAudioFrame, SessionAudioFrameImpl } from './OfficialSessionTypes';
+import { I18nService } from './I18nService';
 
 /**
  * 音频录制配置
@@ -143,9 +144,9 @@ export class AudioService {
       console.error('Failed to start audio capture:', error);
       const event = new AudioEventImpl();
       event.type = 'error';
-      event.error = '音频录制启动失败: ' + error;
+      event.error = I18nService.getInstance().translate('Audio capture start failed') + ': ' + error;
       this.dispatchEvent(event);
-      throw new Error('音频录制启动失败: ' + error);
+      throw new Error(I18nService.getInstance().translate('Audio capture start failed') + ': ' + error);
     }
   }
 
@@ -181,13 +182,14 @@ export class AudioService {
     try {
       const bufferSize = this.config.bufferSize;
 
+      let consecutiveErrors = 0;
+
       while (this.isRecording) {
         try {
-          // 读取音频数据
           const buffer = await this.audioCapturer.read(bufferSize, true);
+          consecutiveErrors = 0;
 
           if (buffer && buffer.byteLength > 0) {
-            // 创建音频帧
             const audioFrame = new SessionAudioFrameImpl();
             audioFrame.codec = this.config.codec;
             audioFrame.sampleRate = this.config.sampleRate;
@@ -195,26 +197,29 @@ export class AudioService {
             audioFrame.data = buffer;
             audioFrame.timestamp = Date.now();
 
-            // 分发事件
             OfficialSessionTransport.sendAudioFrameMetadata(audioFrame);
 
             const event = new AudioEventImpl();
             event.type = 'audio_captured';
             event.data = audioFrame;
             this.dispatchEvent(event);
+          } else {
+            await new Promise<void>((resolve: Function) => setTimeout(resolve, 10));
           }
         } catch (error) {
+          consecutiveErrors++;
           console.error('Read audio data failed:', error);
-          if (!this.isRecording) {
+          if (!this.isRecording || consecutiveErrors > 10) {
             break;
           }
+          await new Promise<void>((resolve: Function) => setTimeout(resolve, Math.min(100 * consecutiveErrors, 1000)));
         }
       }
     } catch (error) {
       console.error('Start reading audio data failed:', error);
       this.dispatchEvent({
         type: 'error',
-        error: '读取音频数据失败: ' + error
+        error: I18nService.getInstance().translate('Audio read failed') + ': ' + error
       });
     }
   }
@@ -222,13 +227,12 @@ export class AudioService {
   /**
    * 更新录制配置
    */
-  updateConfig(config: Partial<AudioCaptureConfig>): void {
+  async updateConfig(config: Partial<AudioCaptureConfig>): Promise<void> {
     this.applyConfig(config);
 
-    // 如果正在录制，需要重启以应用新配置
     if (this.isRecording) {
-      this.stopCapture();
-      this.startCapture(this.config);
+      await this.stopCapture();
+      await this.startCapture(this.config);
     }
   }
 
@@ -311,24 +315,24 @@ export class AudioService {
     
     if (!AudioService.getSupportedSampleRates().includes(config.sampleRate)) {
       result.valid = false;
-      result.message = '不支持的采样率';
+      result.message = I18nService.getInstance().translate('Unsupported sample rate');
       return result;
     }
 
     if (!AudioService.getSupportedChannels().includes(config.channels)) {
       result.valid = false;
-      result.message = '不支持的声道数';
+      result.message = I18nService.getInstance().translate('Unsupported channel count');
       return result;
     }
 
     if (!AudioService.getSupportedBitRates().includes(config.bitRate)) {
       result.valid = false;
-      result.message = '不支持的比特率';
+      result.message = I18nService.getInstance().translate('Unsupported bitrate');
       return result;
     }
 
     result.valid = true;
-    result.message = '配置有效';
+    result.message = I18nService.getInstance().translate('Configuration valid');
     return result;
   }
 

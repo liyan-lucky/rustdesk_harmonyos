@@ -25,8 +25,6 @@ interface DeviceRouteParams {
   deviceId: string;
   deviceName?: string;
   clearChat?: string;
-  showPasswordDialog?: boolean;
-  passwordPromptProactive?: boolean;
 }
 
 interface RemoteTouchPoint {
@@ -150,9 +148,6 @@ struct RemoteControl {
   private readonly dragStartThresholdPx: number = 12;
   private longPressTimer: number = -1;
   private longPressTriggered: boolean = false;
-  private activePasswordPromptToken: string = '';
-  private suppressedPasswordPromptToken: string = '';
-  private passwordPromptProactive: boolean = false;
   private touchDownAt: number = 0;
   private touchDownPreviewX: number = 0;
   private touchDownPreviewY: number = 0;
@@ -179,20 +174,16 @@ struct RemoteControl {
     }
     this.captureBridgeEvent(event);
     if (event.kind === 'msgbox') {
-      if (this.shouldPromptForPasswordText(event.detail)) {
-        if (!this.showPasswordDialog && !this.hasReceivedFrame) {
-          const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : this.officialBridge.getCoreState().activePeerId.trim();
-          const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
-          if (savedPassword.trim().length === 0) {
-            this.showPasswordDialog = true;
-            this.passwordPromptProactive = false;
-            hilog.info(0xA03D00, 'RC', `bridgeListener msgbox: password prompt detected, showPasswordDialog=true`);
-          }
-        }
-      }
       if (!this.sessionCloseRequestedLocally && !this.sessionExitScheduled &&
           this.isRetryableDisconnectText(event.detail) && this.shouldShowReconnectPromptNow(event.detail)) {
         console.warn(`[RemoteControl] msgbox with retryable disconnect: ${event.detail.substring(0, 100)}`);
+        const msgValues = this.parseKeyValueDetail(event.detail);
+        const autoRetry = (msgValues['retry'] ?? '').trim() === 'true';
+        if (autoRetry && !this.isRetryingConnection) {
+          console.info('[RemoteControl] auto-reconnecting due to retry=true');
+          void this.retrySessionConnection(false);
+          return;
+        }
         this.showReconnectDialogFromState(this.lt('Connection Error'), event.detail);
         return;
       }
@@ -251,7 +242,9 @@ struct RemoteControl {
   @State hasReceivedFrame: boolean = false;
   @State sessionPassword: string = '';
   @State isSubmittingPassword: boolean = false;
-  @State showPasswordDialog: boolean = false;
+  @State showOsPasswordDialog: boolean = false;
+  @State osPassword: string = '';
+  @State osAutoLogin: boolean = true;
   @State showReconnectDialog: boolean = false;
   @StorageLink('avoidKeyboardHeight') @Watch('onAvoidKeyboardHeightChange') avoidKeyboardHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
@@ -492,12 +485,6 @@ struct RemoteControl {
     if (params !== null && params.deviceId !== undefined) {
       this.deviceId = params.deviceId;
       this.deviceName = this.formatRemoteTitle(params.deviceId);
-      if (params.showPasswordDialog === true) {
-        this.showPasswordDialog = true;
-        this.passwordPromptProactive = params.passwordPromptProactive === true;
-      } else {
-        this.passwordPromptProactive = false;
-      }
     }
     this.disposeRenderedFrame();
     this.settings = this.appData.getSettings();
@@ -568,6 +555,9 @@ struct RemoteControl {
     }
     this.initAudioPlayback();
     this.startAudioFrameRefresh();
+    if (!this.disableClipboard) {
+      void ClipboardService.getInstance().startMonitoring();
+    }
   }
 
   aboutToDisappear() {
@@ -576,6 +566,7 @@ struct RemoteControl {
     this.stopBridgeRefresh();
     this.stopFrameRefresh();
     this.disposeRenderedFrame();
+    ClipboardService.getInstance().stopMonitoring();
     WindowChromeService.getInstance().exitImmersiveMode();
     void WindowChromeService.getInstance().setKeepScreenOn(false);
     this.stopAudioFrameRefresh();
@@ -698,7 +689,7 @@ struct RemoteControl {
               const nextHeight = Number(newValue.height);
               this.previewWidth = nextWidth > 0 ? nextWidth : 0;
               this.previewHeight = nextHeight > 0 ? nextHeight : 0;
-              this.applySuggestedViewTransform();
+              this.applySuggestedViewTransform(true);
             })
             .parallelGesture(
               GestureGroup(GestureMode.Parallel,
@@ -711,6 +702,9 @@ struct RemoteControl {
                   .onActionUpdate((event: PinchGestureEvent) => {
                     const newScale = this.lastPinchScale * event.scale;
                     this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, newScale));
+                    const clamped = this.clampPanOffset(this.panOffsetX, this.panOffsetY);
+                    this.panOffsetX = clamped[0];
+                    this.panOffsetY = clamped[1];
                   })
                   .onActionEnd(() => {
                     this.lastPinchScale = this.pinchScale;
@@ -735,7 +729,7 @@ struct RemoteControl {
         .layoutWeight(1);
       }
 
-      if (this.showConnectionInfo && (this.isConnected || this.hasReceivedFrame)) {
+      if (this.showConnectionInfo) {
         this.buildConnectionInfoPanel();
       }
 
@@ -820,15 +814,15 @@ struct RemoteControl {
         this.buildFloatingChatPanel();
       }
 
-      if (this.showPasswordDialog) {
-        this.buildPasswordDialog();
+      if (this.showOsPasswordDialog) {
+        this.buildOsPasswordDialog();
       }
 
       if (this.showReconnectDialog) {
         this.buildReconnectDialog();
       }
 
-      if (!this.showPasswordDialog) {
+      if (!this.showOsPasswordDialog) {
         this.buildImeProxyInput();
       }
     }
@@ -1039,47 +1033,44 @@ struct RemoteControl {
   private buildConnectionInfoPanel() {
     Column() {
       Scroll() {
-        Column({ space: 8 }) {
+        Column({ space: 4 }) {
           this.buildConnectionInfoRow(this.lt('Resolution'), this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('FPS'), this.connectionFps > 0 ? `${this.connectionFps}` : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Latency'), this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--', this.getLatencyColor())
           this.buildConnectionInfoRow(this.lt('Speed'), this.connectionSpeedDisplay, this.theme_CONTRAST_TEXT)
-          this.buildConnectionInfoRow(this.lt('Codec'), this.connectionCodec.length > 0 ? this.connectionCodec : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Connection'), this.connectionType.length > 0 ? this.connectionType : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Zoom'), `${Math.round(this.getCurrentZoom() * 100)}%`, this.theme_CONTRAST_TEXT)
-          ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
-            this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT)
-          }, (item: QualityMetricItem) => item.key)
+          this.buildConnectionInfoRow(this.lt('Codec'), this.connectionCodec.length > 0 ? this.connectionCodec : '--', this.theme_CONTRAST_TEXT)
         }
         .width('100%')
       }
       .scrollable(ScrollDirection.Vertical)
       .scrollBar(BarState.Off)
       .width('100%')
-      .height(this.qualityMetricItems.length > 0 ? 260 : 184)
+      .height(170)
     }
-    .width(180)
-    .padding(10)
+    .width(150)
+    .padding({ left: 6, right: 6, top: 6, bottom: 6 })
     .backgroundColor(Color.Transparent)
     .borderRadius(8)
     .position({ x: '100%', y: 60 })
-    .translate({ x: -188 })
+    .translate({ x: -156 })
   }
 
   @Builder
   private buildConnectionInfoRow(label: string, value: string, valueColor: string) {
-    Row({ space: 8 }) {
+    Row() {
       Text(label)
-        .fontSize(12)
+        .fontSize(10)
         .fontColor(this.theme_DISABLED_TEXT)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .width(96);
+        .width(32);
       Text(value.length > 0 ? value : '--')
-        .fontSize(12)
+        .fontSize(10)
         .fontColor(valueColor)
         .textAlign(TextAlign.End)
-        .maxLines(6)
+        .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1);
     }
@@ -1574,7 +1565,7 @@ struct RemoteControl {
 
       Scroll() {
         Column({ space: 0 }) {
-          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; this.showPasswordDialog = true; this.passwordPromptProactive = false; }, false, 'menu_key.svg');
+          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; const peerId = this.deviceId.trim(); this.osPassword = peerId.length > 0 ? (PreferenceStore.getPeerOsPassword(peerId) ?? '') : ''; this.showOsPasswordDialog = true; }, false, 'menu_key.svg');
           this.buildMenuRow(this.lt('Send Clipboard Keys'), () => { this.showMoreMenu = false; this.sendClipboardToRemote(); }, false, 'menu_clipboard.svg');
           this.buildMenuRow(this.lt('Reset Canvas'), () => { this.showMoreMenu = false; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; void this.showToast(this.lt('Reset')); }, false, 'menu_reset.svg');
           this.buildMenuRow(this.lt('Insert Ctrl+Alt+Del'), () => { this.showMoreMenu = false; if (this.sendCtrlAltDel()) { void this.showToast(this.lt('Inserted Ctrl+Alt+Del')); } }, false, 'menu_key.svg');
@@ -1911,19 +1902,15 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildPasswordDialog() {
+  private buildOsPasswordDialog() {
     Column() {
       Column({ space: 20 }) {
-        Text(this.lt('Enter RustDesk password'))
+        Text(this.lt('OS Password'))
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.theme_TEXT_PRIMARY);
+          .fontColor(this.theme_TEXT_PRIMARY)
 
-        Text(this.lt('If you know the remote password, enter it to connect directly. A no-password request has also been sent — if the remote side approves, the connection will be established automatically.'))
-          .fontSize(14)
-          .fontColor(this.theme_TEXT_SECONDARY);
-
-        TextInput({ placeholder: this.lt('RustDesk password (optional)'), text: this.sessionPassword })
+        TextInput({ placeholder: this.lt('Enter Password'), text: this.osPassword })
           .height(48)
           .fontSize(16)
           .fontColor(this.theme_TEXT_PRIMARY)
@@ -1933,51 +1920,70 @@ struct RemoteControl {
           .type(InputType.Password)
           .defaultFocus(true)
           .onChange((value: string) => {
-            this.sessionPassword = value;
+            this.osPassword = value;
           })
 
-        Row({ space: 12 }) {
-          Button(this.lt('Wait for confirmation'))
-            .layoutWeight(1)
-            .height(44)
-            .fontSize(14)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INACTIVE_BG)
-            .borderRadius(8)
-            .onClick(() => {
-              this.continueWaitingWithoutPassword();
-            });
+        Row() {
+          Checkbox()
+            .select(this.osAutoLogin)
+            .onChange((checked: boolean) => {
+              this.osAutoLogin = checked;
+            })
+            .width(18)
+            .height(18)
 
-          Button(this.lt('Save password'))
-            .layoutWeight(1)
-            .height(44)
-            .fontSize(14)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INACTIVE_BG)
-            .borderRadius(8)
-            .onClick(() => {
-              this.savePeerPassword();
-            });
+          Text(this.lt('Auto login (effective only when lock after disconnect is set)'))
+            .fontSize(13)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .margin({ left: 8 })
         }
-        .width('100%');
+        .width('100%')
+        .onClick(() => {
+          this.osAutoLogin = !this.osAutoLogin;
+        })
 
-        Button(this.isSubmittingPassword ? this.lt('Submitting...') : this.lt('Submit password'))
-          .width('100%')
-          .height(44)
-          .fontSize(16)
-          .fontColor(this.theme_ACCENT_TEXT)
-          .backgroundColor(this.theme_ACCENT)
-          .borderRadius(8)
-          .onClick(() => {
-            this.submitSessionPassword();
-          });
+        Row({ space: 12 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .backgroundColor(this.theme_INACTIVE_BG)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showOsPasswordDialog = false;
+              this.osPassword = '';
+            })
+
+          Button(this.lt('Confirm'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(this.theme_ACCENT)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showOsPasswordDialog = false;
+              const password = this.osPassword.trim();
+              this.osPassword = '';
+              if (password.length > 0) {
+                const peerId = this.deviceId.trim();
+                if (peerId.length > 0) {
+                  PreferenceStore.setPeerOsPassword(peerId, password);
+                }
+                NativeRustDeskBridge.sessionInputOsPassword(password);
+              }
+            })
+        }
+        .width('100%')
       }
       .width('85%')
       .padding(24)
       .backgroundColor(this.theme_CARD_BG)
       .borderRadius(16)
       .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 });
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
     }
     .width('100%')
     .height('100%')
@@ -2064,8 +2070,6 @@ struct RemoteControl {
     }
     this.isConnected = false;
     this.isSubmittingPassword = false;
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
     this.statusText = this.lt('Session closed');
     this.videoStatus = this.lt('Disconnecting...');
     if (this.isLandscapeMode) {
@@ -2547,7 +2551,12 @@ struct RemoteControl {
         await this.audioService.stopCapture();
         void this.showToast(this.lt('Local Audio Stopped'));
       } else {
-        void this.showToast(this.lt('Audio upload unavailable'));
+        await this.audioService.startCapture();
+        if (this.audioService.isCapturingActive()) {
+          void this.showToast(this.lt('Local Audio Started'));
+        } else {
+          void this.showToast(this.lt('Audio upload unavailable'));
+        }
       }
     } catch (error) {
       console.error('[RemoteControl] Toggle audio capture failed:', error);
@@ -2603,21 +2612,6 @@ struct RemoteControl {
       return;
     }
     this.applyBridgeState(coreState);
-    if (!this.showPasswordDialog && !this.isConnected && !this.hasReceivedFrame) {
-      const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
-      if (peerId.length > 0) {
-        const savedPassword = PreferenceStore.getPeerPassword(peerId) ?? '';
-        if (savedPassword.trim().length === 0) {
-          const shouldPrompt = coreState.sessionStage === 'connecting' ||
-            (coreState.sessionStage === 'error' && this.shouldPromptForPasswordText(coreState.lastError || coreState.detailMessage));
-          if (shouldPrompt) {
-            this.showPasswordDialog = true;
-            this.passwordPromptProactive = coreState.sessionStage === 'connecting';
-            hilog.info(0xA03D00, 'RC', `syncBridgeState: showing password dialog for ${peerId} stage=${coreState.sessionStage}`);
-          }
-        }
-      }
-    }
     if (coreState.sessionStage === 'connected') {
       this.maybeHandleStaleConnectedSession(coreState);
       if (this.sessionExitScheduled) {
@@ -2630,7 +2624,7 @@ struct RemoteControl {
   }
 
   private applyBridgeState(coreState: OfficialCoreState): void {
-    hilog.info(0xA03D00, 'RC', `applyBridgeState stage=${coreState.sessionStage} showPwd=${this.showPasswordDialog} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} err=${coreState.lastError.substring(0, 60)}`);
+    hilog.info(0xA03D00, 'RC', `applyBridgeState stage=${coreState.sessionStage} showOsPwd=${this.showOsPasswordDialog} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} err=${coreState.lastError.substring(0, 60)}`);
     if (this.sessionExitScheduled) {
       return;
     }
@@ -2666,8 +2660,6 @@ struct RemoteControl {
     }
 
     if (coreState.sessionStage === 'connected') {
-      const keepPasswordFallback = this.passwordPromptProactive && !this.hasReceivedFrame;
-      hilog.info(0xA03D00, 'RC', `applyBridgeState connected: keepPasswordFallback=${keepPasswordFallback} passwordPromptProactive=${this.passwordPromptProactive} hasFrame=${this.hasReceivedFrame}`);
       this.sessionBecameActive = true;
       if (this.sessionBecameActiveAt <= 0) {
         this.sessionBecameActiveAt = Date.now();
@@ -2676,14 +2668,6 @@ struct RemoteControl {
       this.showReconnectDialog = false;
       this.isConnected = true;
       this.isSubmittingPassword = false;
-      if (keepPasswordFallback) {
-        this.showPasswordDialog = true;
-      } else {
-        this.showPasswordDialog = false;
-        this.passwordPromptProactive = false;
-        this.activePasswordPromptToken = '';
-        this.suppressedPasswordPromptToken = '';
-      }
       if (!this.hasReceivedFrame) {
         this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connected');
         this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Session connected, waiting for first frame...');
@@ -2704,16 +2688,7 @@ struct RemoteControl {
     if (coreState.sessionStage === 'error') {
       const detail = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
       const isPasswordPrompt = this.shouldPromptForPasswordText(detail);
-      if (isPasswordPrompt && !this.hasReceivedFrame) {
-        if (!this.showPasswordDialog) {
-          const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
-          const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
-          if (savedPassword.trim().length === 0) {
-            this.showPasswordDialog = true;
-            this.passwordPromptProactive = false;
-            hilog.info(0xA03D00, 'RC', `applyBridgeState error: password prompt, showing dialog`);
-          }
-        }
+    if (isPasswordPrompt && !this.hasReceivedFrame && !this.isConnected && !this.showReconnectDialog && !this.isRetryingConnection) {
         this.isConnected = false;
         this.isSubmittingPassword = false;
         if (detail.length > 0) {
@@ -2721,9 +2696,7 @@ struct RemoteControl {
         }
         return;
       }
-      const isPasswordPromptOnly = this.showPasswordDialog &&
-        !this.isRetryableDisconnectText(detail) &&
-        isPasswordPrompt;
+      const isPasswordPromptOnly = false;
       if (!this.sessionCloseRequestedLocally && !isPasswordPromptOnly && this.shouldShowReconnectPromptNow(detail)) {
         console.warn(`[RemoteControl] applyBridgeState terminal error -> reconnect prompt: ${detail.substring(0, 100)}`);
         this.showReconnectDialogFromState(
@@ -2737,14 +2710,6 @@ struct RemoteControl {
         this.isSubmittingPassword = false;
         this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connection failed');
         this.videoStatus = detail;
-        return;
-      }
-      if (this.showPasswordDialog) {
-        this.isConnected = false;
-        this.isSubmittingPassword = false;
-        if (detail.length > 0) {
-          this.videoStatus = detail;
-        }
         return;
       }
       if (!this.sessionCloseRequestedLocally && this.shouldAutoCloseTerminalSession()) {
@@ -2787,27 +2752,11 @@ struct RemoteControl {
       }
       if (!this.sessionCloseRequestedLocally) {
         const detail = coreState.detailMessage.length > 0 ? coreState.detailMessage : coreState.lastError.length > 0 ? coreState.lastError : this.lt('Session ended');
-        if (this.shouldPromptForPasswordText(detail) && !this.hasReceivedFrame) {
-          if (!this.showPasswordDialog) {
-            const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
-            const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
-            if (savedPassword.trim().length === 0) {
-              this.showPasswordDialog = true;
-              this.passwordPromptProactive = false;
-              hilog.info(0xA03D00, 'RC', `applyBridgeState idle: password prompt, showing dialog`);
-            }
-          }
+        if (this.shouldPromptForPasswordText(detail) && !this.hasReceivedFrame && !this.isConnected && !this.showReconnectDialog && !this.isRetryingConnection) {
           this.isConnected = false;
           this.isSubmittingPassword = false;
           this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
           this.videoStatus = this.lt('Waiting for password...');
-          return;
-        }
-        if (this.showPasswordDialog) {
-          this.isConnected = false;
-          this.isSubmittingPassword = false;
-          this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connecting...');
-          this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Waiting for password...');
           return;
         }
         if (this.isRetryableDisconnectText(detail) ||
@@ -2830,8 +2779,6 @@ struct RemoteControl {
 
     this.isConnected = false;
     this.isSubmittingPassword = false;
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
     this.statusText = coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Session closed');
     this.videoStatus = coreState.detailMessage.length > 0 ? coreState.detailMessage : this.lt('Session ended');
   }
@@ -2895,12 +2842,10 @@ struct RemoteControl {
         this.sessionBecameActiveAt = Date.now();
       }
       this.isConnected = true;
-      this.showPasswordDialog = false;
-      this.passwordPromptProactive = false;
-      this.activePasswordPromptToken = '';
-      this.suppressedPasswordPromptToken = '';
       this.updateFps();
-      this.applySuggestedViewTransform();
+      if (!this.hasReceivedFrame) {
+        this.applySuggestedViewTransform(true);
+      }
       this.statusText = this.lt('Connected');
       this.videoStatus = '';
       this.isSubmittingPassword = false;
@@ -3156,8 +3101,13 @@ struct RemoteControl {
       return;
     }
     console.warn(`[RemoteControl] maybeShowReconnectDialogForEvent kind=${event.kind} title=${prompt.title} detail=${prompt.text.substring(0, 100)}`);
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
+    const msgValues = this.parseKeyValueDetail(event.detail);
+    const autoRetry = (msgValues['retry'] ?? '').trim() === 'true';
+    if (autoRetry && !this.isRetryingConnection) {
+      console.info('[RemoteControl] maybeShowReconnectDialogForEvent: auto-reconnecting due to retry=true');
+      void this.retrySessionConnection(false);
+      return;
+    }
     this.showReconnectDialog = true;
     this.reconnectDialogTitle = prompt.title;
     this.reconnectDialogText = prompt.text;
@@ -3186,26 +3136,7 @@ struct RemoteControl {
       ? eventDetail
       : (stateDetail.length > 0 ? stateDetail : this.lt('Session ended'));
     const isPasswordPrompt = this.shouldPromptForPasswordText(detail);
-    if (this.showPasswordDialog) {
-      if (isPasswordPrompt) {
-        hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password dialog open + password prompt, keeping dialog`);
-        return true;
-      }
-      if (!this.hasReceivedFrame && !this.isConnected) {
-        hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password dialog open + no frame, keeping dialog kind=${event.kind}`);
-        return true;
-      }
-    }
     if (isPasswordPrompt && !this.hasReceivedFrame) {
-      if (!this.showPasswordDialog) {
-        const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
-        const savedPassword = peerId.length > 0 ? (PreferenceStore.getPeerPassword(peerId) ?? '') : '';
-        if (savedPassword.trim().length === 0) {
-          this.showPasswordDialog = true;
-          this.passwordPromptProactive = false;
-          hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent: password prompt from ${event.kind}, showing dialog`);
-        }
-      }
       return true;
     }
     const retryable = this.isRetryableDisconnectText(detail) || event.kind === 'session-closed' || event.kind === 'closed';
@@ -3215,8 +3146,15 @@ struct RemoteControl {
     console.warn(`[RemoteControl] handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} retryable=${retryable} peerClosed=${peerClosed} detail=${detail.substring(0, 100)}`);
     hilog.info(0xA03D00, 'RC', `handleTerminalBridgeEvent kind=${event.kind} hasFrame=${this.hasReceivedFrame} retryable=${retryable} peerClosed=${peerClosed} detail=${detail.substring(0, 80)}`);
     if (retryable && !peerClosed) {
-      this.showReconnectDialogFromState(this.lt('Connection lost'), detail);
-    } else if (peerClosed) {
+      const msgValues = this.parseKeyValueDetail(event.detail);
+      const autoRetry = (msgValues['retry'] ?? '').trim() === 'true';
+      if (autoRetry && !this.isRetryingConnection) {
+        console.info('[RemoteControl] handleTerminalBridgeEvent: auto-reconnecting due to retry=true');
+        void this.retrySessionConnection(false);
+      } else {
+        this.showReconnectDialogFromState(this.lt('Connection lost'), detail);
+      }
+    } else if (peerClosed && this.hasReceivedFrame) {
       this.finishTerminalSession(this.lt('Session closed'), detail, 420);
     } else {
       this.showReconnectDialogFromState(this.lt('Connection Error'), detail);
@@ -3227,8 +3165,6 @@ struct RemoteControl {
   private prepareReconnectPromptSurface(): void {
     this.isConnected = false;
     this.isSubmittingPassword = false;
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
     this.remoteCursorVisible = false;
     this.pointerActive = false;
     this.leftButtonActive = false;
@@ -3240,8 +3176,6 @@ struct RemoteControl {
     this.prepareReconnectPromptSurface();
     this.isConnected = false;
     this.isSubmittingPassword = false;
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
     this.showReconnectDialog = true;
     this.reconnectDialogTitle = title.trim().length > 0 ? title : this.lt('Connection Error');
     this.reconnectDialogText = detail.trim().length > 0 ? detail : this.lt('Session ended');
@@ -4051,7 +3985,6 @@ struct RemoteControl {
   }
 
   private clampPanOffset(x: number, y: number): number[] {
-    const gap = 4;
     const renderedW = this.resolveRenderedImageWidth();
     const renderedH = this.resolveRenderedImageHeight();
     const pw = this.previewWidth;
@@ -4059,34 +3992,32 @@ struct RemoteControl {
     if (pw <= 0 || ph <= 0) return [x, y];
 
     const isPortrait = ph > pw;
-    let minX: number, maxX: number, minY: number, maxY: number;
+    let clampedX: number;
+    let clampedY: number;
 
     if (renderedW > pw) {
-      minX = pw - renderedW + gap;
-      maxX = -gap;
-    } else if (isPortrait) {
-      minX = 0;
-      maxX = pw - renderedW;
+      const half = (renderedW - pw) / 2;
+      clampedX = Math.max(-half, Math.min(half, x));
     } else {
-      minX = -gap;
-      maxX = renderedW - pw + gap;
+      if (isPortrait) {
+        clampedX = 0;
+      } else {
+        clampedX = 0;
+      }
     }
 
     if (renderedH > ph) {
-      minY = ph - renderedH + gap;
-      maxY = -gap;
-    } else if (!isPortrait) {
-      minY = 0;
-      maxY = ph - renderedH;
+      const half = (renderedH - ph) / 2;
+      clampedY = Math.max(-half, Math.min(half, y));
     } else {
-      minY = -gap;
-      maxY = renderedH - ph + gap;
+      if (!isPortrait) {
+        clampedY = 0;
+      } else {
+        clampedY = 0;
+      }
     }
 
-    return [
-      Math.max(minX, Math.min(maxX, x)),
-      Math.max(minY, Math.min(maxY, y))
-    ];
+    return [clampedX, clampedY];
   }
 
   private resolveDisplayScale(): number {
@@ -4119,8 +4050,13 @@ struct RemoteControl {
     return normalized < 0 ? normalized + 360 : normalized;
   }
 
-  private applySuggestedViewTransform(): void {
-    return;
+  private applySuggestedViewTransform(force: boolean = false): void {
+    if (!force && this.pinchScale !== 1) {
+      return;
+    }
+    this.pinchScale = 1;
+    this.panOffsetX = 0;
+    this.panOffsetY = 0;
   }
 
   private resolvePointerScale(): number {
@@ -4191,14 +4127,6 @@ struct RemoteControl {
     return combined.includes('密码') || combined.includes('password');
   }
 
-  private continueWaitingWithoutPassword(): void {
-    this.suppressedPasswordPromptToken = this.activePasswordPromptToken;
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
-    this.statusText = this.lt('Connecting...');
-    this.videoStatus = this.lt('Connection request continuing...');
-  }
-
   private savePeerPassword(): void {
     const peerId = this.deviceId.trim();
     const password = this.sessionPassword.trim();
@@ -4221,20 +4149,10 @@ struct RemoteControl {
     }
     const password = this.sessionPassword.trim();
     if (password.length === 0) {
-      if (this.showPasswordDialog) {
-        this.continueWaitingWithoutPassword();
-        return;
-      }
       this.videoStatus = this.lt('Please enter RustDesk password before submitting.');
       return;
     }
     this.isSubmittingPassword = true;
-    this.showPasswordDialog = false;
-    if (this.passwordPromptProactive) {
-      this.passwordPromptProactive = false;
-      this.reconnectWithPassword(password);
-      return;
-    }
     const submitted = this.officialBridge.submitSessionPassword(password, false);
     if (!submitted) {
       this.isSubmittingPassword = false;
@@ -4249,13 +4167,9 @@ struct RemoteControl {
   private reconnectWithPassword(password: string): void {
     const peerId = this.deviceId.trim();
     if (peerId.length === 0) {
-      this.showPasswordDialog = true;
-      this.passwordPromptProactive = false;
       this.videoStatus = this.lt('Cannot submit password yet...');
       return;
     }
-    this.showPasswordDialog = false;
-    this.passwordPromptProactive = false;
     this.isConnected = false;
     this.statusText = this.lt('Switching to password connection...');
     this.videoStatus = this.lt('Reconnecting with password...');
@@ -4280,64 +4194,10 @@ struct RemoteControl {
     }, 300);
   }
 
-  private updatePasswordDialogState(coreState: OfficialCoreState): void {
-    const nextToken = this.buildPasswordPromptToken(coreState);
-    this.activePasswordPromptToken = nextToken;
-    if (nextToken.length === 0 || this.hasReceivedFrame) {
-      this.showPasswordDialog = false;
-      this.passwordPromptProactive = false;
-      if (nextToken.length === 0) {
-        this.suppressedPasswordPromptToken = '';
-      }
-      return;
-    }
-    if (nextToken === this.suppressedPasswordPromptToken) {
-      this.showPasswordDialog = false;
-      this.passwordPromptProactive = false;
-      return;
-    }
-    this.showPasswordDialog = true;
-    this.passwordPromptProactive = false;
-    if (this.sessionPassword.trim().length === 0) {
-      const peerId = this.deviceId.trim().length > 0 ? this.deviceId.trim() : coreState.activePeerId.trim();
-      const savedPassword = PreferenceStore.getPeerPassword(peerId);
-      if (savedPassword) {
-        this.sessionPassword = savedPassword;
-      }
-    }
-  }
-
-  private buildPasswordPromptToken(coreState: OfficialCoreState): string {
-    if (!this.shouldPromptForPassword(coreState)) {
-      return '';
-    }
-    const parts: string[] = [];
-    if (coreState.statusSummary.length > 0) {
-      parts.push(coreState.statusSummary);
-    }
-    if (coreState.detailMessage.length > 0) {
-      parts.push(coreState.detailMessage);
-    }
-    if (coreState.lastError.length > 0) {
-      parts.push(coreState.lastError);
-    }
-    return parts.join('\n').trim();
-  }
-
-  private shouldPromptForPassword(coreState: OfficialCoreState): boolean {
-    const combined = `${coreState.statusSummary}\n${coreState.detailMessage}\n${coreState.lastError}`.toLowerCase();
-    return combined.includes('密码') ||
-      combined.includes('认证') ||
-      combined.includes('password') ||
-      combined.includes('input-password') ||
-      combined.includes('re-input-password') ||
-      combined.includes('auth');
-  }
-
   private shouldPromptForPasswordText(text: string): boolean {
     const combined = text.toLowerCase();
-    return combined.includes('\u5bc6\u7801') ||
-      combined.includes('\u8ba4\u8bc1') ||
+    return combined.includes('密码') ||
+      combined.includes('认证') ||
       combined.includes('password') ||
       combined.includes('input-password') ||
       combined.includes('re-input-password') ||
@@ -4840,7 +4700,6 @@ struct RemoteControl {
   private finishTerminalSession(statusText: string, videoStatus: string, delayMs: number): void {
     this.isConnected = false;
     this.isSubmittingPassword = false;
-    this.showPasswordDialog = false;
     this.remoteCursorVisible = false;
     this.pointerActive = false;
     this.statusText = statusText;

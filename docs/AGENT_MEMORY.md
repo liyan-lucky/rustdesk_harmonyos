@@ -53,7 +53,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.22.7`，versionCode：`1000110`
+- 当前本地版本：`0.23.17`，versionCode：`1000140`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -63,8 +63,8 @@
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- 当前本地核心 SHA256**：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`（线上 `core-81`）
-- **最新核心更新**：13 核心 `core-81` 已发布，新增 OHOS `scrap::common::ohos::Capturer` incoming frame source，并让共享启动通过 `captureRequired=true` 请求 App 提供首帧；11 App 已强制拉取线上 core-81 构建 `0.22.7` 并无线安装验证。
+- 当前本地核心 SHA256**：core-9（线上最新），132,720,900 bytes；本地构建核心 129,943,444 bytes（含事件去重修复）
+- **最新核心更新**：13 核心 `core-9` 已发布，包含：1) OHOS 被控端完整连接链路（Service/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证）；2) 重连稳定性修复（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试）；3) Connecting 状态拒绝重连修复（`ConnectionState::Connecting => self.send(Data::Close)`）；4) 设备指纹不显示修复（`Config::get_id()` 替换 `get_local_option("id")`、`pk_to_fingerprint` 计算指纹、`gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"`、`initialize_runtime` 设置 `APP_DIR` 后调用 `get_id()` + `get_key_pair()`、`main_init` 调用 `initialize_runtime`）。本地核心额外修复：5) `set_peer_info` 不再重复触发 `session-connected` 事件（去掉 else 分支冗余 `update_connect_state`）。11 App 已用本地核心构建 `0.23.9` / versionCode `1000132`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
@@ -76,7 +76,7 @@
 - NAPI 桥接：`entry/src/main/ets/services/NativeRustDeskBridge.ts`
 - 数据管理：`entry/src/main/ets/services/AppDataService.ets`
 - **核心项目**：`%VSCODE_ROOT%\13_librustdesk_core`（所有核心函数修改在此进行）
-- Rust core：`13_librustdesk_core/rustdesk-master/src/harmony_bridge/core.rs`（367 pub fn）
+- Rust core：`13_librustdesk_core/rustdesk-master/src/harmony_bridge/core.rs`（1500+ pub fn，含 HarmonyHandler 完整 InvokeUiSession 实现、main_start_service 5参数版、apply_server_options）
 - Rust ABI：`13_librustdesk_core/native_rust_core/src/bridge_api.rs`（374 导出函数）
 - C++ 桥接：`13_librustdesk_core/cpp/rustdesk_bridge_loader.cpp`（约400 NAPI注册）
 - C++ ABI 声明：`13_librustdesk_core/cpp/rustdesk_bridge_abi.h`
@@ -84,21 +84,36 @@
 - 本项目 C++ 桥接（从核心项目同步）：`entry/src/main/cpp/`
 - 本项目核心静态库（从 GitHub Releases 下载）：`entry/src/main/libs/arm64/librustdesk_core.a`
 
+### 核心 OHOS 文件（13 项目）
+- `src/harmony_bridge/core.rs` — 主桥接层，HarmonyHandler 实现 InvokeUiSession，main_start_service 5参数版，apply_server_options
+- `src/harmony_bridge/server_ohos.rs` — OHOS 被控端完整实现：Server/ConnInner/Connection、Service trait/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证（verify_h1/validate_password），从146行stub扩展到1461行
+- `src/harmony_bridge/rendezvous_mediator_ohos.rs` — OHOS 信令连接，register_peer/register_pk，PunchHole/RequestRelay 处理，create_relay
+- `src/harmony_bridge/ipc_ohos.rs` — OHOS IPC 替代（不可用，bail）
+- `src/harmony_bridge/clipboard_ohos.rs` — OHOS 剪贴板
+- `src/harmony_bridge/clipboard_master_ohos.rs` — OHOS 剪贴板监控
+- `src/harmony_bridge/keyboard_ohos.rs` — OHOS 键盘
+- `src/harmony_bridge/platform_ohos.rs` — OHOS 平台
+- `src/harmony_bridge/ui_interface_ohos.rs` — OHOS UI 接口
+- `src/harmony_bridge/clipboard_file_ohos.rs` — OHOS 文件剪贴板
+- `src/harmony_bridge/mod.rs` — 模块声明（pub mod core; pub use self::core::*;）
+- `libs/scrap/src/common/harmony_bridge/codec_ohos.rs` — OHOS VPX 编解码器（Encoder/Decoder，base_bitrate，Quality）
+- `libs/scrap/src/common/harmony_bridge/ohos.rs` — OHOS Capturer/Display/PixelBuffer（从 incoming frame cache 读帧）
+- `libs/scrap/src/common/harmony_bridge/record_ohos.rs` — OHOS 录制 stub
+- `libs/scrap/src/common/harmony_bridge/mod.rs` — 模块声明（pub mod ohos;）
+- `src/lib.rs` — OHOS 条件编译路由（9处 `#[cfg(target_env = "ohos")]`）
+
 ### 当前重点问题
-1. 并行密码+无密码连接流程：已修复待实机验证（2026-06-07）
-2. ECONNRESET 后重连对话框：已修复（2026-06-07）
-3. LAN 发现不了设备：已修复并实机验证通过（2026-06-07）
-4. 远端主动关闭会话：已修复（2026-06-07）
-5. 中文输入法无法输入：已修复（2026-06-07）
-6. 共享服务 App 侧已改为 C++ NAPI `OH_AVScreenCapture_StartScreenCapture` 原生屏幕采集和 native buffer 统计；录屏 live frame/desktop server 未接入时不得标记 `incomingReady=true`，UI 的“服务运行中”、共享 TAB 绿点、设备 ID 和一次性密码展示也必须只由 `incomingReady=true` 驱动，禁止回退截图 API，也禁止再用 `AVScreenCaptureRecorder`/临时 mp4 当作当前共享录屏方案
-7. 桥接函数已补齐至374个（2026-06-15）：从54个持续扩展，覆盖官方APK绝大部分wire_*函数，并新增 incoming screen frame 缓存桥接口
-8. 远控会话录制不能再调用本机 `ScreenCaptureService`/`CUSTOM_SCREEN_CAPTURE`；它是远端会话命令，必须走 `NativeRustDeskBridge.sessionRecordScreen()` 并依赖核心 `record-status` 回流。共享页的本机录屏探测只属于入站被控链路。
-9. 文件管理/文件传输授权必须 picker-first：先唤起 `DocumentViewPicker`，再记录 `READ_WRITE_DOWNLOAD_DIRECTORY` / `FILE_ACCESS_PERSIST`；普通权限预检不能挡住文件访问授权弹窗。
+1. **C++ OH_AVScreenCapture 无法获取帧**（P0级，搁置待调研）：`OH_CAPTURE_HOME_SCREEN` 模式在非系统应用上无法工作——`StartScreenCapture` 返回成功但服务端状态不是 STARTED（`state:1`），`AcquireVideoBuffer` 持续失败。根因是 `ohos.permission.CAPTURE_SCREEN` 是系统核心权限（system_core），普通应用无法声明。`OH_CAPTURE_SPECIFIED_SCREEN` 也需要此权限。**解决方案**：改用 ArkTS 层 `@ohos.screenCapture` API 获取帧，通过 NAPI 传给核心。C++ 层已增加 `video_buffer_ready` 原子变量等待回调，但回调从未触发。
+2. **远程连接后自动回到连接页面**（已修复）：根因1——核心侧 `set_peer_info` 的 else 分支重复调用 `update_connect_state("connected", ...)` 导致大量重复 `session-connected` 事件涌入；根因2——App 侧 `handleTerminalBridgeEvent` 中 `peerClosed` 时直接 `finishTerminalSession`，但连接可能还没真正建立（`hasReceivedFrame=false`）；根因3——App 侧密码弹窗在连接已建立后仍会被重复事件触发。修复：核心去掉 else 分支冗余调用、App 侧 `peerClosed && hasReceivedFrame` 才关闭会话、密码弹窗渲染层加 `!hasReceivedFrame && !isConnected` 硬性守卫。
+3. **设备指纹不显示**（已修复）：6处修复，本地构建验证通过。
+4. **Connecting 状态拒绝重连**（已修复）：`ConnectionState::Connecting => self.send(Data::Close)`。
+5. **自动重连机制**（已实现）：App 侧三处 msgbox 处理增加 `retry=true` 自动重连。
 
 ### 已验证状态
-- 当前本地 native core：`librustdesk_core.a`，131,631,706 bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
-- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
-- 最新本地构建版本：`0.22.7`，versionCode `1000110`，构建时间 `2026-06-15 19:09`
+- 当前本地 native core：本地构建 `librustdesk_core.a`，129,943,444 bytes（含事件去重修复）；线上 core-9 `132,720,900` bytes
+- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-9`
+- 最新本地构建版本：`0.23.9`，versionCode `1000132`，构建时间 `2026-06-17`
+- 2026-06-17 core-9 + 本地核心修复验证：11 App 下载 core-9 后构建 `0.23.8`，验证设备指纹正确显示（`6b3c ef42 ...`）；随后本地核心修复 `set_peer_info` 事件去重 + App 侧修复 `peerClosed` 不再直接关闭会话 + 密码弹窗渲染层硬性守卫，构建 `0.23.9`，无线安装启动成功。
 - 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
 - 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
 - 2026-06-14 core-76 全量构建和安装验证：`scripts\build_full_hap.bat` 下载 latest core-76 并构建 `0.20.0` / versionCode `1000096`；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；验包通过，`192.168.11.100:36169` 安装成功且 `bm dump` 显示 `0.20.0`。当前设备密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续。
@@ -110,7 +125,7 @@
 - 2026-06-15 core-80 入站帧缓存复查：13 核心 commit `12ad723` 已由 run `27526413545` 发布 `core-80`，release body 已补中文说明；11 App 强制拉取线上 core-80 后增量构建 `0.22.4` / versionCode `1000107`，signed HAP `18,968,380` bytes / SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`；`OH_NativeBuffer` payload 已推入核心 `incoming_screen_frame` 缓存，但 `incomingReady` 仍保持 false。验包、66 项连接链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `14881` 存活。
 - 2026-06-15 CI strict/中文摘要修正复查：push 后 Linux run `27528204491` 和发布 run `27528218065` 曾因 `PermissionService.ets:173` 未显式对象字面量失败；已改为显式 `PermissionRequestResult` 并修正聊天摘要错字。11 App 强制拉取线上 core-80 后增量构建 `0.22.5` / versionCode `1000108`，signed HAP `18,968,203` bytes / SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`；验包、66 项链路审计、无线安装启动和干净 app hilog 均通过，设备端进程 `20911` 存活。
 - 2026-06-15 v0.22.6/core-81 本地预发布复查：13 核心本地构建 `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`；11 App 使用本地 staticlib 构建 `0.22.6` / versionCode `1000109`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`。文件授权改为 picker-first；共享启动由 `captureRequired` 触发 native 录屏提供首帧，但 `incomingReady` 仍严格表示真实服务 ready。验包、66 项审计、无线安装启动和干净 app hilog 均通过，设备端进程 `7527` 存活。
-- 2026-06-15 v0.22.7/core-81 线上核心复查：13 核心 commit `c5b3eeb` 已由 run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`，release notes 已补中文说明；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`。验包、66 项审计、静态录屏 API 扫描、无线安装启动和干净 app hilog 均通过，设备端进程 `40016` 存活。
+- 2026-06-17 core-6 被控端连接链路验证：13 核心实现 OHOS 被控端完整连接链路（Service/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证）+ 重连稳定性修复；CI 经3轮修复（EncoderApi私有引用→子模块类型引用→Frame导入）后构建成功，run `27662916996` 发布 `core-6`，线上 asset `132,744,466` bytes / SHA256 `C9435DD89B4A0FC2DA5D502E307EDC5AD9B94A095C7D593B1DD6DD48A57C36FC`；11 App 全量构建 `0.23.0` / versionCode `1000123`，signed HAP `19,254,376` bytes。实机验证待进行。
 - 最新线上 App release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7`
 - 最新线上 App workflow：push run `27567811582` 成功，release run `27568044749` 成功；线上 signed HAP `20,870,632` bytes / SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`，unsigned HAP `20,790,546` bytes / SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`，release notes 已补中文说明。
 - coreReady=true，adapter=official-native
@@ -133,6 +148,7 @@
 - hilog %{public} 格式在 OHOS 5/6 上可能被隐私过滤不输出，用字符串拼接代替
 - OHOS SDK 中 Window 对象没有 `getWindowClassType()` 和 `isWindowKeepScreenOn()` 方法，不要在诊断代码中使用不存在的 API
 - ArkTS 一个花括号错误可导致数千级联语法错误，先看第一个错误位置
+- ArkTS 画面平移在 Stack Alignment.Center 基础上用 translate 偏移，panOffset 范围是对称的 `[-(renderedSize-previewSize)/2, (renderedSize-previewSize)/2]`，不是 `[previewSize-renderedSize, 0]`
 - animateTo({ iterations: -1 }) 在 ArkTS 中不生效，必须用 setInterval 驱动动画
 - @State 角度变量绑定 rotate 始终绑定（角度0=不旋转），不要用条件判断
 - **@Builder 方法中不能有 const/let 声明**（arkts-no-obj-literals-as-types），必须内联调用或用接口类型
@@ -197,6 +213,37 @@
 - 文件授权必须 picker-first：`DocumentViewPicker` 是文件/目录 URI 授权入口，普通权限位只是补充记录；`READ_WRITE_DOWNLOAD_DIRECTORY` 或 `FILE_ACCESS_PERSIST` 未立即 granted 不能让授权函数提前返回，否则文件管理页不会唤醒授权弹窗。
 - 文件管理/文件传输页不能只依赖远控入口提前授权；页面进入、切到本地、刷新本地、上传/下载、本地新建/删除前都要走 `DocumentViewPicker` 目录授权。`PermissionService.requestFileAccessAuthorization()` 默认使用 `{ folder: true, authMode: true }`，聊天/导入这类选单文件仍直接调用 `requestFileAuthorization({ maxSelectNumber: 1 })`。
 - 密码框被覆盖回 false 的常见原因：applyBridgeState connected 分支、monitorConnectionWhileWaiting 轮询、syncBridgeState 周期刷新
+
+### OHOS 被控端服务链路经验
+- `TargetAddr` 不是 `Copy`，传给 `FramedSocket::send()` 需要用 `addr.clone()`
+- `bytes::Bytes` 不实现 `Display`，用 `String::from_utf8_lossy()` 转换
+- `Server::id_count` 是私有字段，需要 `pub id_count` 或构造函数
+- `SupportedEncoding` protobuf 没有 `vp9` 字段（只有 `h264`/`h265`/`vp8`/`av1`/`i444`），不能写 `encoding.vp9`
+- `with_context()` 需要 `use hbb_common::anyhow::Context` trait import
+- `call_vpx!` 宏在失败时 `return Err(...)`，函数签名必须返回 `Result` 类型
+- `hbb_common::tcp::Stream` 不存在，正确类型是 `hbb_common::stream::Stream`
+- `NatType::from_i32()` 需要 `use hbb_common::protobuf::Enum as _` trait import
+- `Config::get_relay_server()` 不存在，官方用 `Config::get_option("relay-server")` + fallback
+- `VpxEncoder` 的 `id`/`ctx`/`width`/`height`/`yuvfmt` 是私有字段，`calc_q_values`/`bitrate`/`get_yuvfmt`/`create_frame` 是私有方法
+- 避免启动 IPC（`ipc::start("")`），这是之前 appspawn 崩溃的主因
+- **核心函数名称必须和官方保持一致**，不要自造函数名
+- **下次再改核心时需要重读核心文件**，用户做了些更新（OHOS 文件全部移到 `harmony_bridge/` 子目录）
+- **构建安装必须全部用脚本**（bat/ps1），不要手动拼接 hdc 命令
+- **版本自增功能已存在且正常工作**：`run_hvigor_with_sdk_patch.js` 的 `bumpVersionName()` 处理 incremental/full 模式
+
+### 官方架构参考（实现 OHOS 被控端时对照）
+- `server.rs::Server` 有 `connections: ConnMap` + `services: HashMap<String, Box<dyn Service>>`
+- `server.rs::new()` 初始化时添加 audio_service、display_service、clipboard_service 等
+- `server.rs::add_connection()` 遍历 services 调用 `on_subscribe(conn)`
+- `server.rs::accept_connection()` → `accept_connection_()` → `create_tcp_connection()` → `Connection::start()`
+- `server.rs::create_relay_connection()` → `create_relay_connection_()` → 连接 relay server → `create_tcp_connection()`
+- `service.rs::Service` trait: name/on_subscribe/on_unsubscribe/is_subed/join/get_option/set_option/ok
+- `service.rs::Subscriber` trait: id()/send()
+- `service.rs::ServiceTmpl<T>` 实现 Service，含 repeat()/run() 启动服务线程
+- `connection.rs::Connection::start()` 创建 tx/rx channels，构造 Connection，on_open()，主循环 select!
+- `connection.rs::ConnInner` 实现 Subscriber，send() 按 VideoFrame/SwitchDisplay 走 tx_video
+- `video_service.rs::new()` 创建 VideoService + GenericService::run()，run() 从 Capturer 读帧编码推送
+- `video_service.rs::run()` 主循环：get_capturer → c.frame(spf) → encode → sp.send_video_frame()
 - **重连对话框最大bug：buildReconnectDialog()定义了但从未在build()中渲染，showReconnectDialog=true不会显示对话框，只显示statusText状态文本**
 - **修复：在build()的Stack中添加 if(showReconnectDialog) buildReconnectDialog()**
 - **syncBridgeState/applyBridgeState 中 showReconnectDialog=true && stage=connected && hasReceivedFrame=true 时会错误覆盖showReconnectDialog=false，需加 !sessionCloseRequestedLocally && !isRetryingConnection 检查保持重连框**
@@ -231,6 +278,7 @@
 - **删除LAN设备时必须调 NativeRustDeskBridge.removeDiscoveredPeer() 清除 Rust 侧 LanPeers 文件，否则下次 discover 读回旧数据**
 
 ### 构建经验
+- **构建安装必须全部用脚本**：Windows 上 bat/ps1 脚本均可，不要手动拼接 hdc 命令；HAP 构建用 `scripts\build_hap.bat`/`build_full_hap.bat`，安装验证用 `scripts\AUTO_BUILD_INSTALL.bat`，核心构建用 `scripts\build_native_bridge.ps1`
 - U 盘上 .hvigor/、entry/build/、entry/.cxx/ 有权限残留，构建必须用 staging 副本
 - staging 副本的 build-profile.json5 签名路径必须重新计算：项目根用 ../99_Temp/，staging 用 ./signing/ 并复制签名材料到 staging/signing/
 - Hvigor 不允许签名路径在项目目录之外（如 ../../99_Temp/），必须用项目内相对路径
@@ -294,7 +342,8 @@
 
 ### 核心项目迁移经验
 - **核心构建已迁移到独立项目 `13_librustdesk_core`**：所有 Rust 桥接层、C++ 桥接层、代码生成脚本均在此项目维护
-- **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions 在线构建并发布 latest → 11 项目构建脚本自动下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
+- **核心修改流程**：在 13_librustdesk_core 修改 → git push → GitHub Actions（Windows runner）自动构建并发布 latest → 11 项目构建脚本自动下载 librustdesk_core.a → 放入 11 项目 `entry/src/main/libs/arm64/`
+- **也可本地构建**：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - **本地核心链接**：`11_Rustdesk_harmonyos/13_librustdesk_core` 是 NTFS Junction，指向同级 `%VSCODE_ROOT%\13_librustdesk_core`；该链接只方便从 App 项目内访问核心仓库，已加入 `.git/info/exclude`，不要提交为仓库文件
 - **当前核心下载规则**：11 项目构建前默认强制刷新 `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`；只有需要固定版本时才设置 `RUSTDESK_CORE_URL` 和 `RUSTDESK_CORE_SHA256` → **已改为智能检测**：通过 HTTP HEAD 请求比对 ETag/Content-Length/Last-Modified，线上核心无变化时跳过下载，有变化才下载覆盖；元数据缓存到 `99_Temp/librustdesk_core/librustdesk_core.meta.json`；`-Force` 参数仍可强制下载
 - **11 项目保留的核心相关文件**：`entry/src/main/cpp/`（C++桥接层，从13项目同步）、`entry/src/main/libs/arm64/librustdesk_core.a`（从 GitHub Releases 下载）

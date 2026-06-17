@@ -57,6 +57,7 @@ struct MyDevice {
       Scroll() {
         Column({ space: ThemeConfig.SPACING_LG }) {
           this.buildIdentityCard()
+          this.buildServiceCard()
           this.buildApprovalCard()
           this.buildCapabilityCard()
         }

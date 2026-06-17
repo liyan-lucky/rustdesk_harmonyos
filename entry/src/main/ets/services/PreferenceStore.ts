@@ -19,6 +19,7 @@ export class PreferenceStore {
   private static readonly INCOMING_SERVICE_DEFAULT_OFF_MIGRATION_KEY: string = 'incoming_service_default_off_migration_20260602';
   private static readonly DEBUG_KEEP_SCREEN_AWAKE_DEFAULT_ON_MIGRATION_KEY: string = 'debug_keep_screen_awake_default_on_20260615';
   private static readonly PEER_CONNECT_MODES_KEY: string = 'peer_connect_modes';
+  private static readonly PEER_OS_PASSWORDS_KEY: string = 'peer_os_passwords';
 
   private static getStore(): preferences.Preferences | undefined {
     const context = AppContextService.getContext();
@@ -203,6 +204,38 @@ export class PreferenceStore {
     }
     map[peerId] = mode;
     PreferenceStore.setString(PreferenceStore.PEER_CONNECT_MODES_KEY, JSON.stringify(map));
+  }
+
+  public static getPeerOsPassword(peerId: string): string | undefined {
+    const raw = PreferenceStore.getString(PreferenceStore.PEER_OS_PASSWORDS_KEY);
+    if (!raw) {
+      return undefined;
+    }
+    try {
+      const map = JSON.parse(raw) as Record<string, string>;
+      const value = map[peerId];
+      return value && value.length > 0 ? value : undefined;
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  public static setPeerOsPassword(peerId: string, password: string): void {
+    const raw = PreferenceStore.getString(PreferenceStore.PEER_OS_PASSWORDS_KEY);
+    let map: Record<string, string> = {};
+    if (raw) {
+      try {
+        map = JSON.parse(raw) as Record<string, string>;
+      } catch (error) {
+        map = {};
+      }
+    }
+    if (password.trim().length > 0) {
+      map[peerId] = password.trim();
+    } else {
+      delete map[peerId];
+    }
+    PreferenceStore.setString(PreferenceStore.PEER_OS_PASSWORDS_KEY, JSON.stringify(map));
   }
 
   private static getString(key: string): string | undefined {

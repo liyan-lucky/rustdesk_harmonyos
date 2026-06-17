@@ -74,9 +74,9 @@ export class ScreenCaptureService {
       await this.startScreenCaptureSession();
 
       this.isCapturing = true;
-      const intervalMs = Math.max(500, 1000 / Math.max(1, this.config.frameRate));
+      const intervalMs = Math.max(2000, 5000);
       this.captureInterval = setInterval(() => {
-        this.captureFrame();
+        this.pollCaptureHealth();
       }, intervalMs);
     } catch (error) {
       console.error('Failed to start screen capture:', error);
@@ -119,13 +119,19 @@ export class ScreenCaptureService {
     }
   }
 
-  private async captureFrame(): Promise<void> {
+  private pollCaptureHealth(): void {
     try {
       if (!this.isCapturing) {
         return;
       }
+      if (!NativeRustDeskBridge.isNativeScreenCaptureActive()) {
+        this.dispatchEvent({
+          type: 'error',
+          error: 'Native screen capture became inactive'
+        });
+      }
     } catch (error) {
-      console.error('Capture frame failed:', error);
+      console.error('Capture health check failed:', error);
       this.dispatchEvent({
         type: 'error',
         error: error instanceof Error ? error.message : String(error)

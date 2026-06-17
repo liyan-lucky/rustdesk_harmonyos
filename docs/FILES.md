@@ -178,7 +178,7 @@
 
 | 资产 | 作用 |
 |------|------|
-| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前智能刷新，当前 latest release `core-78`，SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD` |
+| `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a` | 当前默认 RustDesk OHOS native core 来源；构建前智能刷新，当前 latest release `core-81`，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829` |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7` | 当前最新线上 App release；已包含 core-81 `captureRequired`、文件授权 picker-first、共享录屏 native buffer 触发和验包脚本 GUID 临时文件修复；push workflow `27567811582` 与 release workflow `27568044749` 均成功 |

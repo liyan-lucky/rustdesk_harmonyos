@@ -1,6 +1,7 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
 import { PreferenceStore } from './PreferenceStore';
+import { I18nService } from './I18nService';
 import hilog from '@ohos.hilog';
 
 /**
@@ -573,7 +574,7 @@ export class ChatService {
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     if (date.toDateString() === yesterday.toDateString()) {
-      return `昨天 ${timeStr}`;
+      return `${I18nService.getInstance().translate('Yesterday')} ${timeStr}`;
     }
 
     const year = date.getFullYear();

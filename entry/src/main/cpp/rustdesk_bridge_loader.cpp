@@ -107,6 +107,7 @@ struct NativeScreenCaptureState {
   OH_AVScreenCapture *capture = nullptr;
   std::thread worker;
   std::atomic_bool running{false};
+  std::atomic_bool video_buffer_ready{false};
   bool active = false;
   int width = 0;
   int height = 0;
@@ -163,7 +164,9 @@ void NativeScreenCaptureOnAudioBuffer(OH_AVScreenCapture *capture, bool isReady,
 
 void NativeScreenCaptureOnVideoBuffer(OH_AVScreenCapture *capture, bool isReady) {
   (void)capture;
-  if (!isReady) {
+  if (isReady) {
+    g_native_screen_capture.video_buffer_ready.store(true);
+  } else {
     NativeScreenCaptureSetError("OH_AVScreenCapture video buffer is not ready", 0);
   }
 }
@@ -195,6 +198,9 @@ const char *NativeScreenCaptureFormatName(int32_t format) {
 
 void NativeScreenCaptureDrainLoop(OH_AVScreenCapture *capture, int frame_rate) {
   const int sleep_ms = frame_rate > 0 ? std::max(16, 1000 / frame_rate) : 100;
+  while (g_native_screen_capture.running.load() && !g_native_screen_capture.video_buffer_ready.load()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
   while (g_native_screen_capture.running.load()) {
     int32_t fence = 0;
     int64_t timestamp = 0;
@@ -327,6 +333,7 @@ bool NativeScreenCaptureStart(int width, int height, int frame_rate) {
     g_native_screen_capture.last_error.clear();
     g_native_screen_capture.last_error_code = 0;
     g_native_screen_capture.running.store(true);
+    g_native_screen_capture.video_buffer_ready.store(false);
   }
   g_native_screen_capture.worker = std::thread(NativeScreenCaptureDrainLoop, capture, capture_fps);
   OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,

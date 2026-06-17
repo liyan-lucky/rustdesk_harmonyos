@@ -440,7 +440,7 @@ export class I18nService {
     this.translations.set('Session closed', '会话已关闭');
     this.translations.set('Session ended', '会话已结束');
     this.translations.set('Connection Info', '连接信息');
-    this.translations.set('Resolution', '分辨率');
+    this.translations.set('Resolution', '尺寸');
     this.translations.set('FPS', '帧率');
     this.translations.set('Latency', '延迟');
     this.translations.set('Connection Type', '连接类型');
@@ -713,6 +713,12 @@ export class I18nService {
     this.translations.set('Screen recording probe is active, but the core incoming video source is not ready.', '录屏探测已启动，但核心被控视频源未就绪。');
     this.translations.set('Recording Probe', '录屏探测');
     this.translations.set('Share requested', '共享已请求');
+    this.translations.set('Yesterday', '昨天');
+    this.translations.set('Auth request failed', '认证请求失败');
+    this.translations.set('Auth URL not received', '未获取到认证URL');
+    this.translations.set('Cannot open browser', '无法打开浏览器');
+    this.translations.set('Auth request error', '认证请求异常');
+    this.translations.set('Auth timeout', '认证超时');
     this.translations.set('Core video source not ready', '核心被控视频源未就绪');
     this.translations.set('Incoming service requested, waiting for core readiness.', '已请求开启被控服务，正在等待核心就绪。');
     this.translations.set('Requested', '已请求');
@@ -925,6 +931,15 @@ export class I18nService {
     this.translations.set('Enter Password', '输入密码');
     this.translations.set('Remember Password', '记住密码');
     this.translations.set('Confirm', '确认');
+    this.translations.set('Retry', '重试');
+    this.translations.set('Retrying connection', '重连中');
+    this.translations.set('Connection Error', '连接错误');
+    this.translations.set('Connection lost', '连接断开');
+    this.translations.set('Reconnecting through relay', '通过中继重连');
+    this.translations.set('Use relay line', '使用中继');
+    this.translations.set('Waiting for password...', '等待密码...');
+    this.translations.set('Waiting for video stream...', '等待视频流...');
+    this.translations.set('Auto login (effective only when lock after disconnect is set)', '自动登录（仅在断开后锁定生效）');
     this.translations.set('Self-Hosted Service', '自建服务');
     this.translations.set('Direct Mode', '直连模式');
     this.translations.set('Apply', '应用');
@@ -988,7 +1003,7 @@ export class I18nService {
     this.translations.set('Bitrate', '码率');
     this.translations.set('Image Quality', '画质');
     this.translations.set('Display Mode', '显示方式');
-    this.translations.set('Codec', '编解码');
+    this.translations.set('Codec', '编码');
     this.translations.set('Monitor', '显示器');
     this.translations.set('Single Monitor', '单显示器');
     this.translations.set('Hide Keyboard', '隐藏键盘');
@@ -1137,6 +1152,25 @@ export class I18nService {
     this.translations.set('Two-factor authentication required', '需要双因素认证');
     this.translations.set('Type', '类型');
     this.translations.set('or', '或');
+    this.translations.set('Service ready, can receive incoming connections', '服务已就绪，可接收传入连接');
+    this.translations.set('Service stopped', '服务已停止');
+    this.translations.set('Health Check', '健康检查');
+    this.translations.set('Recent Logs', '最近日志');
+    this.translations.set('Network Status', '网络状态');
+    this.translations.set('Check system version, disk and memory usage.', '查看系统版本、磁盘和内存使用情况。');
+    this.translations.set('Check recent service log output.', '检查最近的服务日志输出。');
+    this.translations.set('View network interfaces, listening ports and connections.', '查看网卡、监听端口和当前连接。');
+    this.translations.set('2 min ago', '2 分钟前');
+    this.translations.set('18 min ago', '18 分钟前');
+    this.translations.set('HarmonyOS Tablet', 'HarmonyOS 平板');
+    this.translations.set('Waiting for official RustDesk native core', '等待官方 RustDesk 原生核心');
+    this.translations.set('Waiting for official native core', '等待官方原生核心');
+    this.translations.set('Audio capture start failed', '音频录制启动失败');
+    this.translations.set('Audio read failed', '读取音频数据失败');
+    this.translations.set('Unsupported sample rate', '不支持的采样率');
+    this.translations.set('Unsupported channel count', '不支持的声道数');
+    this.translations.set('Unsupported bitrate', '不支持的比特率');
+    this.translations.set('Configuration valid', '配置有效');
   }
 
   private loadEnglishTranslations(): void {
@@ -1261,6 +1295,12 @@ export class I18nService {
     this.translations.set('Screen recording probe is active, but the core incoming video source is not ready.', 'Screen recording probe is active, but the core incoming video source is not ready.');
     this.translations.set('Recording Probe', 'Recording Probe');
     this.translations.set('Share requested', 'Share requested');
+    this.translations.set('Yesterday', 'Yesterday');
+    this.translations.set('Auth request failed', 'Auth request failed');
+    this.translations.set('Auth URL not received', 'Auth URL not received');
+    this.translations.set('Cannot open browser', 'Cannot open browser');
+    this.translations.set('Auth request error', 'Auth request error');
+    this.translations.set('Auth timeout', 'Auth timeout');
     this.translations.set('Core video source not ready', 'Core video source not ready');
     this.translations.set('Incoming service requested, waiting for core readiness.', 'Incoming service requested, waiting for core readiness.');
     this.translations.set('Requested', 'Requested');
@@ -2111,6 +2151,25 @@ this.translations.set('About', 'About');
     this.translations.set('Two-factor authentication required', 'Two-factor authentication required');
     this.translations.set('Type', 'Type');
     this.translations.set('or', 'or');
+    this.translations.set('Service ready, can receive incoming connections', 'Service ready, can receive incoming connections');
+    this.translations.set('Service stopped', 'Service stopped');
+    this.translations.set('Health Check', 'Health Check');
+    this.translations.set('Recent Logs', 'Recent Logs');
+    this.translations.set('Network Status', 'Network Status');
+    this.translations.set('Check system version, disk and memory usage.', 'Check system version, disk and memory usage.');
+    this.translations.set('Check recent service log output.', 'Check recent service log output.');
+    this.translations.set('View network interfaces, listening ports and connections.', 'View network interfaces, listening ports and connections.');
+    this.translations.set('2 min ago', '2 min ago');
+    this.translations.set('18 min ago', '18 min ago');
+    this.translations.set('HarmonyOS Tablet', 'HarmonyOS Tablet');
+    this.translations.set('Waiting for official RustDesk native core', 'Waiting for official RustDesk native core');
+    this.translations.set('Waiting for official native core', 'Waiting for official native core');
+    this.translations.set('Audio capture start failed', 'Audio capture start failed');
+    this.translations.set('Audio read failed', 'Audio read failed');
+    this.translations.set('Unsupported sample rate', 'Unsupported sample rate');
+    this.translations.set('Unsupported channel count', 'Unsupported channel count');
+    this.translations.set('Unsupported bitrate', 'Unsupported bitrate');
+    this.translations.set('Configuration valid', 'Configuration valid');
   }
 }
 

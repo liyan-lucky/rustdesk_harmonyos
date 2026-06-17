@@ -43,22 +43,11 @@ export class SessionDiagnostic {
   private startDiagnostic(): void {
     console.log('[SessionDiagnostic] Starting session diagnostic');
     
-    // 监听所有事件
-    const originalListener = OfficialRustDeskBridge.getInstance().getEventListener();
-    OfficialRustDeskBridge.getInstance().setEventListener((event: OfficialSessionEvent) => {
-      // 调用原始监听器
-      if (originalListener) {
-        originalListener(event);
-      }
-      
-      // 记录事件
+    OfficialRustDeskBridge.getInstance().addEventListener((event: OfficialSessionEvent) => {
       this.recordEvent(event);
-      
-      // 诊断事件
       this.diagnoseEvent(event);
     });
     
-    // 定期检查会话状态
     setInterval(() => {
       this.checkSessionHealth();
     }, 5000);

@@ -1,3 +1,5 @@
+import { I18nService } from '../services/I18nService';
+
 export class DeviceIdFormatter {
   static parse(value: string): string {
     return value.replace(/\s+/g, '').trim();
@@ -22,11 +24,12 @@ export class DeviceIdFormatter {
     return `${groups.join(' ')}${suffix}`;
   }
 
-  static formatRemoteLabel(deviceId: string, prefix: string = '远程'): string {
+  static formatRemoteLabel(deviceId: string, prefix?: string): string {
+    const effectivePrefix = prefix ?? I18nService.getInstance().translate('Remote');
     const formattedId = DeviceIdFormatter.format(deviceId);
     if (formattedId.length === 0) {
-      return prefix;
+      return effectivePrefix;
     }
-    return `${prefix} ${formattedId}`;
+    return `${effectivePrefix} ${formattedId}`;
   }
 }

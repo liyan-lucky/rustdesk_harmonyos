@@ -1,5 +1,7 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
+import { AppContextService } from './AppContextService';
+import { I18nService } from './I18nService';
 import fileFs from '@ohos.file.fs';
 
 export interface FileInfo {
@@ -82,7 +84,7 @@ export class FileTransferService {
   private eventListeners: Array<(event: FileTransferEvent) => void> = [];
   private activeTransfers: Set<string> = new Set();
   private maxConcurrentTransfers: number = 3;
-  private readonly rootLocalPath: string = '/storage/Users/currentUser/Download';
+  private readonly rootLocalPath: string = FileTransferService.resolveRootLocalPath();
   private readonly rootRemotePath: string = '/remote';
   private remoteFiles: FileInfo[] = [];
 
@@ -98,6 +100,17 @@ export class FileTransferService {
       FileTransferService.instance = new FileTransferService();
     }
     return FileTransferService.instance;
+  }
+
+  private static resolveRootLocalPath(): string {
+    try {
+      const context = AppContextService.getContext();
+      if (context && typeof context.filesDir === 'string' && context.filesDir.trim().length > 0) {
+        return context.filesDir.trim();
+      }
+    } catch (_error) {
+    }
+    return '/data/storage/el2/base/files';
   }
 
   async listDirectory(path: string): Promise<FileInfo[]> {
@@ -383,7 +396,7 @@ export class FileTransferService {
   private seedRemoteFiles(): void {
     const now = Date.now();
     this.remoteFiles = [
-      { path: this.rootRemotePath, name: '远程', size: 0, isDirectory: true, modifiedTime: now }
+      { path: this.rootRemotePath, name: I18nService.getInstance().translate('Remote'), size: 0, isDirectory: true, modifiedTime: now }
     ];
   }
 

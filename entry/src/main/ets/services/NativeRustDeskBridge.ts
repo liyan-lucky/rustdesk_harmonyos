@@ -1428,10 +1428,18 @@ export class NativeRustDeskBridge {
   static sendClipboardData(content: string, timestamp: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendClipboardData) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string, number], boolean>(
+      nativeModule,
+      ['sendClipboardData', 'send_clipboard_data']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendClipboardData(content, timestamp) === true;
+    try {
+      return fn(content, timestamp) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static sendVideoFrameMetadata(
@@ -1444,10 +1452,18 @@ export class NativeRustDeskBridge {
   ): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendVideoFrameMetadata) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number, number, boolean, number], boolean>(
+      nativeModule,
+      ['sendVideoFrameMetadata', 'send_video_frame_metadata']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendVideoFrameMetadata(codec, width, height, timestamp, keyFrame, dataLength) === true;
+    try {
+      return fn(codec, width, height, timestamp, keyFrame, dataLength) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static getIncomingScreenFrameMetadata(sinceFrameId: number): string | null {
@@ -1534,10 +1550,18 @@ export class NativeRustDeskBridge {
   ): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendAudioFrameMetadata) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number, number, number], boolean>(
+      nativeModule,
+      ['sendAudioFrameMetadata', 'send_audio_frame_metadata']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendAudioFrameMetadata(codec, sampleRate, channels, timestamp, dataLength) === true;
+    try {
+      return fn(codec, sampleRate, channels, timestamp, dataLength) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static startNativeScreenCapture(width: number, height: number, frameRate: number): boolean {
@@ -1614,13 +1638,22 @@ export class NativeRustDeskBridge {
   static sendChatMessage(peerId: string, messageType: string, content: string, timestamp: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendChatMessage) {
-      hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: nativeModule.sendChatMessage is null');
+    const fn = NativeRustDeskBridge.resolveFunction<[string, string, string, number], boolean>(
+      nativeModule,
+      ['sendChatMessage', 'send_chat_message']
+    );
+    if (!fn) {
+      hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: resolveFunction failed');
       return false;
     }
-    const result = nativeModule.sendChatMessage(peerId, messageType, content, timestamp) === true;
-    hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: returned ' + result + ' contentLen=' + content.length);
-    return result;
+    try {
+      const result = fn(peerId, messageType, content, timestamp) === true;
+      hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: returned ' + result + ' contentLen=' + content.length);
+      return result;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'sendChatMessage: ' + NativeRustDeskBridge.describeError(error));
+      return false;
+    }
   }
 
   static sendFileTransferRequest(
@@ -1632,82 +1665,154 @@ export class NativeRustDeskBridge {
   ): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendFileTransferRequest) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string, string, string, number, string], boolean>(
+      nativeModule,
+      ['sendFileTransferRequest', 'send_file_transfer_request']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendFileTransferRequest(taskId, peerId, fileName, totalBytes, direction) === true;
+    try {
+      return fn(taskId, peerId, fileName, totalBytes, direction) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static openTerminal(terminalId: number, rows: number, cols: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.openTerminal) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number], boolean>(
+      nativeModule,
+      ['openTerminal', 'open_terminal']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.openTerminal(terminalId, rows, cols) === true;
+    try {
+      return fn(terminalId, rows, cols) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static sendTerminalInput(terminalId: number, data: string): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.sendTerminalInput) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, string], boolean>(
+      nativeModule,
+      ['sendTerminalInput', 'send_terminal_input']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.sendTerminalInput(terminalId, data) === true;
+    try {
+      return fn(terminalId, data) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static resizeTerminal(terminalId: number, rows: number, cols: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.resizeTerminal) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number, number, number], boolean>(
+      nativeModule,
+      ['resizeTerminal', 'resize_terminal']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.resizeTerminal(terminalId, rows, cols) === true;
+    try {
+      return fn(terminalId, rows, cols) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static closeTerminal(terminalId: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.closeTerminal) {
+    const fn = NativeRustDeskBridge.resolveFunction<[number], boolean>(
+      nativeModule,
+      ['closeTerminal', 'close_terminal']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.closeTerminal(terminalId) === true;
+    try {
+      return fn(terminalId) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static readRemoteDirectory(path: string, includeHidden: boolean): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.readRemoteDirectory) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string, boolean], boolean>(
+      nativeModule,
+      ['readRemoteDirectory', 'read_remote_directory']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.readRemoteDirectory(path, includeHidden) === true;
+    try {
+      return fn(path, includeHidden) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static createRemoteDirectory(path: string): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.createRemoteDirectory) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string], boolean>(
+      nativeModule,
+      ['createRemoteDirectory', 'create_remote_directory']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.createRemoteDirectory(path) === true;
+    try {
+      return fn(path) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static deleteRemotePath(path: string, isDirectory: boolean): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.deleteRemotePath) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string, boolean], boolean>(
+      nativeModule,
+      ['deleteRemotePath', 'delete_remote_path']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.deleteRemotePath(path, isDirectory) === true;
+    try {
+      return fn(path, isDirectory) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   static startFileTransfer(path: string, to: string, isRemote: boolean): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
     NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
-    if (!nativeModule?.startFileTransfer) {
+    const fn = NativeRustDeskBridge.resolveFunction<[string, string, boolean], boolean>(
+      nativeModule,
+      ['startFileTransfer', 'start_file_transfer']
+    );
+    if (!fn) {
       return false;
     }
-    return nativeModule.startFileTransfer(path, to, isRemote) === true;
+    try {
+      return fn(path, to, isRemote) === true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   private static setDebugSummary(summary: string): void {
