@@ -2,6 +2,54 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-17 多余花括号导致100+级联编译错误
+
+### ArkTS 一个花括号错误可导致整个文件解析崩溃
+
+**现象**：RemoteControl.ets 编译时报 107 个 ArkTS 错误（arkts-no-implicit-return-types、arkts-identifiers-as-prop-names 等），看似需要逐个修复返回类型注解。
+
+**根因**：删除 `showPasswordDialog` 时，`if (!this.showOsPasswordDialog)` 块多了一个闭合花括号 `}`，导致类结构被破坏。编译器从该位置开始无法正确解析后续代码，所有方法都被误认为在类外部，产生级联错误。
+
+**解决**：修复多余的花括号，所有 107 个错误立即消失。
+
+**教训**：ArkTS 编译器遇到结构错误时会产生大量级联报错。遇到几十上百个错误时，先检查第一个错误位置附近的括号匹配，不要逐个修复。
+
+## 2026-06-17 画面平移边界范围计算错误
+
+### Stack Alignment.Center 基础上 translate 偏移范围是对称的
+
+**现象**：放大画面后只能向左平移，不能向右平移。
+
+**根因**：`clampPanOffset` 中 `minX = pw - renderedW`（负值），`maxX = 0`，导致 panOffsetX 只能在负值范围。但画面在 Stack `Alignment.Center` 中居中，panOffsetX=0 时画面居中，向右平移需要正值偏移。
+
+**解决**：panOffset 范围改为对称 `[-(renderedSize - previewSize)/2, (renderedSize - previewSize)/2]`。
+
+**教训**：Stack 居中定位 + translate 偏移时，panOffset=0 对应居中位置，正负偏移分别对应向右/向左。范围计算必须考虑居中基准。
+
+## 2026-06-17 质量菜单连接时不显示
+
+### 渲染条件守卫过严导致状态变化后不刷新
+
+**现象**：质量菜单开启后，连接建立前显示空面板，连接建立后需要关闭再重新打开才能看到数据。
+
+**根因**：`if (this.showConnectionInfo && (this.isConnected || this.hasReceivedFrame))` 条件中，`isConnected`/`hasReceivedFrame` 变化时 ArkTS 不会重新评估外层 if 条件，导致面板不渲染。
+
+**解决**：去掉渲染条件中的连接状态守卫，改为面板内部处理空值显示（`--`）。
+
+**教训**：ArkTS @Builder 条件渲染中，内层 @State 变化不会触发外层 if 条件重新求值。数据可用性应在面板内部处理，不要用外层守卫阻断渲染。
+
+## 2026-06-17 I18n 翻译缺失导致中文状态显示英文
+
+### 新增 UI 文本必须同步添加 I18nService 翻译
+
+**现象**：质量菜单、重试按钮、OS Password 弹窗等在中文状态下显示英文（Retry、Auto login、Connection Error 等）。
+
+**根因**：新增 `this.lt('...')` 调用时未在 I18nService 中添加对应中文翻译。RemoteControl.ets 有 9 个 lt() key 缺少中文翻译。
+
+**解决**：补全 9 项翻译（Retry→重试、Retrying connection→重连中、Connection Error→连接错误等），同时修正 Resolution→尺寸、Codec→编码。
+
+**教训**：每次新增 `this.lt()` 调用时，必须同步检查 I18nService 是否有对应翻译。禁止在 UI 代码中硬编码中文字符串。
+
 ## 2026-06-17 OHOS 被控端编译经验汇总
 
 ### 核心 Rust 编译常见坑
