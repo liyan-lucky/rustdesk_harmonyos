@@ -36,8 +36,44 @@ target_include_directories(rustdesk_bridge PRIVATE
 )
 
 set(RUST_CORE_A ${CMAKE_CURRENT_SOURCE_DIR}/../libs/arm64/librustdesk_core.a)
+set(RUST_CORE_A_X86_64 ${CMAKE_CURRENT_SOURCE_DIR}/../libs/x86_64/librustdesk_core.a)
+set(RUST_CORE_STUB ${CMAKE_CURRENT_SOURCE_DIR}/rustdesk_core_stub.cpp)
 
-if(EXISTS ${RUST_CORE_A})
+if(OHOS_ARCH STREQUAL "x86_64" AND EXISTS ${RUST_CORE_A_X86_64})
+  file(SIZE ${RUST_CORE_A_X86_64} RUST_CORE_A_X86_64_SIZE)
+  math(EXPR RUST_CORE_A_X86_64_SIZE_MB "${RUST_CORE_A_X86_64_SIZE} / 1024 / 1024")
+  message(STATUS "=== x86_64 REAL CORE MODE ===")
+  message(STATUS "Rust core staticlib (x86_64): ${RUST_CORE_A_X86_64_SIZE_MB} MB")
+  target_link_libraries(rustdesk_bridge PUBLIC
+    ${log-lib}
+    ${napi-lib}
+    ${cpp_shared-lib}
+    ${native_avscreen_capture_lib}
+    ${native_buffer_lib}
+    ${RUST_CORE_A_X86_64}
+    m
+  )
+  target_link_options(rustdesk_bridge PRIVATE
+    "-Wl,--as-needed"
+    "-Wl,--unresolved-symbols=ignore-all"
+  )
+elseif(OHOS_ARCH STREQUAL "x86_64")
+  message(STATUS "=== x86_64 STUB MODE ===")
+  message(STATUS "No real x86_64 core found; using stub for emulator UI debugging")
+  target_sources(rustdesk_bridge PRIVATE ${RUST_CORE_STUB})
+  target_link_libraries(rustdesk_bridge PUBLIC
+    ${log-lib}
+    ${napi-lib}
+    ${cpp_shared-lib}
+    ${native_avscreen_capture_lib}
+    ${native_buffer_lib}
+    m
+  )
+  target_link_options(rustdesk_bridge PRIVATE
+    "-Wl,--as-needed"
+    "-Wl,--unresolved-symbols=ignore-all"
+  )
+elseif(EXISTS ${RUST_CORE_A})
   file(SIZE ${RUST_CORE_A} RUST_CORE_A_SIZE)
   math(EXPR RUST_CORE_A_SIZE_MB "${RUST_CORE_A_SIZE} / 1024 / 1024")
   message(STATUS "Rust core staticlib: ${RUST_CORE_A_SIZE_MB} MB")

@@ -2,6 +2,56 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-19 连接请求发送后立即自动关闭
+
+### handleConnectWithPassword 在 connectToPeer 返回后立即导航到 RemoteControl，连接尚未完成
+
+**现象**：用户输入ID点击连接后，连接请求刚发送完就被关闭/取消，无法等待远端响应。
+
+**根因**：
+1. `handleConnectWithPassword` 在 `connectToPeer` 返回后立即调用 `openRemoteControlForPendingSession`，但 `connectToPeer` 只是发起了连接请求（调用原生函数），不代表连接已完成。`sessionStage` 可能仍是 `connecting` 或 `idle`，导航到 RemoteControl 后页面可能因状态不正确而关闭
+2. `closeRequestedByUser` 标志时序问题：如果之前用户关闭过会话（`closeRequestedByUser = true`），`handleConnect` 中的 `refresh()` 会将原生层返回的状态强制覆盖为 `idle`，导致连接状态判断错误
+3. `applyEventToState` 中 `closeRequestedByUser = true` 时会丢弃 `session-connected`、`peer-info`、`msgbox` 等关键事件，但连接事件（`connect-requested`、`session-connected`）应该无条件重置 `closeRequestedByUser`
+4. `isPendingConnectionAlive` 在 `sessionStage = 'idle'` 且 `isConnecting = true` 时错误返回 `false`，3秒后判定连接不存活并关闭
+5. **x86_64 stub 核心返回空字符串**：`rustdesk_core_stub.cpp` 中 `getCoreSnapshot`、`pullSessionEvents`、`initializeRuntime`、`bootstrapCoreSnapshot` 返回空字符串，导致 App 无法获取核心状态和连接事件，所有连接状态判断失败
+
+**解决**：
+1. `handleConnectWithPassword` 在 `connectToPeer` 返回后，只在 `sessionStage === 'connected'` 时才导航到 RemoteControl，否则通过 `monitorConnectionWhileWaiting` 等待连接完成
+2. `handleConnect` 在调用 `refresh()` 之前先调用 `resetCloseRequestedFlag()` 重置关闭标志
+3. `applyEventToState` 在收到连接事件（`connect-requested`、`session-connected` 等）时先重置 `closeRequestedByUser`，再进行事件过滤
+4. `isPendingConnectionAlive` 增加 `isConnecting && pendingPeerId === peerId` 的检查，在连接刚发起时不会误判为不存活
+5. `rustdesk_core_stub.cpp` 修复：`getCoreSnapshot`/`getCoreSnapshotJson`/`bootstrapCoreSnapshot` 返回有效 JSON（`coreReady:true`），`pullSessionEvents`/`pullSessionEventsJson` 返回 `[]`，`initializeRuntime` 返回 `NativeBridgeSnapshot` 格式 JSON
+
+**验证**：全量构建成功，HAP 安装到模拟器通过，hilog 确认 `coreReady:true`、`getCoreSnapshot ok`。
+
+**教训**：`connectToPeer` 是异步发起连接，不代表连接已完成。连接状态应通过 `monitorConnectionWhileWaiting` 或 `refresh()` 轮询等待 `sessionStage === 'connected'`，而不是在 `connectToPeer` 返回后立即导航。`closeRequestedByUser` 必须在新连接发起时无条件重置。**stub 核心必须返回有效的 JSON，不能返回空字符串**——空字符串会导致 `parseJsonPayload` 失败，App 无法获取任何核心状态。
+
+## 2026-06-19 环境迁移后签名配置不匹配
+
+### 迁移后 build-profile.json5 签名路径、别名和密码必须全部更新
+
+**现象**：环境迁移后执行 HAP 构建，签名步骤失败（密码解密失败或 `spawn java ENOENT`）。
+
+**根因**：
+1. 签名目录文件名变化（`debug_hos.cer` → `oh_rustdesk_certchain.cer`，`debug_hos.p12` → `OpenHarmony.p12`，`debug_hos.p7b` → `oh_rustdesk_urlsafe.p7b`），但 `build-profile.json5` 仍引用旧文件名
+2. p12 密码变更（旧密码无法解密），`keyPassword`/`storePassword` 加密值需要用新密码重新生成
+3. `keyAlias` 不匹配（旧值 `debugKey`，实际 p12 中别名是 `rustdesk_debug`）
+4. `DEVECO_SDK_HOME` 环境变量未设置，Hvigor 报 `00303217 Configuration Error`
+5. `JAVA_HOME` 环境变量未设置，签名步骤报 `spawn java ENOENT`
+
+**解决**：
+1. 更新 `build-profile.json5` 的 `signingConfigs.material` 路径为实际文件名
+2. 用 `material/` 目录下的密钥材料重新加密密码（Node.js 脚本使用 `crypto.createCipheriv('aes-128-gcm')` + `material` 中的 `ac/ce/fd` 密钥）
+3. 更新 `keyAlias` 为 `rustdesk_debug`
+4. 设置 `DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk\default`
+5. 设置 `JAVA_HOME=C:\Program Files\Huawei\DevEco Studio\jbr` 并将 `%JAVA_HOME%\bin` 加入 PATH
+6. 用 `export_deveco_signing_command.js --show-secrets` 验证签名配置解密正确
+7. 用 `check_harmony_signing_profile.ps1` 验证 profile bundleName 和有效期
+
+**验证**：增量构建和全量构建均成功生成签名 HAP，`verify_native_harmonyos_hap.ps1` 验包通过，连接链路审计 63 PASS / 2 FAIL（2 FAIL 为质量面板 UI 审计，不影响编译环境）。
+
+**教训**：环境迁移后必须检查三项：签名文件路径/名称、签名密码/别名、SDK/Java 环境变量。`export_deveco_signing_command.js --show-secrets` 是验证签名配置正确性的关键工具。
+
 ## 2026-06-17 多余花括号导致100+级联编译错误
 
 ### ArkTS 一个花括号错误可导致整个文件解析崩溃
@@ -426,6 +476,39 @@
 **解决**：旧规则下发布前将每个 `.app` 压缩为同名 `.app.zip`。当前新规则已取消 APP 产物，线上 release 只上传 `.hap`。
 
 **教训**：✅ 如果未来重新启用 APP，release 资产不能直接上传裸 `.app`；✅ 当前 HAP-only 规则下不要再生成 `.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
+
+## 2026-06-20 核心详情弹窗状态始终显示"停止"
+
+### `getSelectedCoreModuleField()` 缺少 `statusActive` case 导致返回空字符串
+
+**现象**：核心选项卡点击模块查看详情弹窗时，Status 行始终显示"停止"，即使核心实际在运行中；外侧列表 StatusBadge 和 Share TAB 绿点显示正常。
+
+**根因**：`Index.ets` 第 2036 行弹窗状态判断用 `getSelectedCoreModuleField('statusActive') === 'true'`，但 `getSelectedCoreModuleField()` 方法（第 2072-2095 行）没有 `statusActive` 的 case 分支，返回空字符串 `''`。`'' === 'true'` 永远为 `false`，所以弹窗始终显示"停止"。
+
+**解决**：在 `getSelectedCoreModuleField()` 中添加 `if (field === 'statusActive') return String(mod.statusActive);`。
+
+**验证**：增量构建 `0.29.1` / versionCode `1000168` 通过，signed HAP `19,528,271` bytes。
+
+**教训**：`getSelectedCoreModuleField()` 是字符串返回值的通用字段查询方法，新增字段时必须同步添加 case 分支；布尔字段要用 `String()` 转换。弹窗和列表使用不同的数据路径时容易出现状态不一致。
+
+## 2026-06-20 虚拟设备"等待核心初始化"问题
+
+### x86_64 模拟器使用 stub 核心无法真正初始化
+
+**现象**：在 x86_64 虚拟设备上安装 HAP 后，核心状态显示"等待核心初始化"，`officialCoreState.displayId` 为空。
+
+**根因**：虚拟设备是 x86_64 架构，当前 HAP 中 x86_64 使用 stub 模式（`rustdesk_core_stub.cpp`），核心没有真正初始化，所以 `officialCoreState.displayId` 为空。需要 x86_64 真实核心才能解决。
+
+**解决**：
+1. 13 核心项目 `build_native_bridge.ps1` 已修改支持 x86_64-unknown-linux-ohos target
+2. CI workflow 已改为 matrix strategy 同时构建 arm64 + x86_64 双架构核心
+3. CI Release 同时发布 `librustdesk_core.a` 和 `librustdesk_core_x86_64.a`
+4. 11 App 的 `fetch_native_core.ps1` 已支持 x86_64 核心下载
+5. `CMakeLists.txt` 三分支逻辑：x86_64 有真实核心 → 链接真实核心；x86_64 无真实核心 → stub；arm64 正常链接
+
+**验证**：CI 首次 x86_64 构建在 libopus configure 步骤失败（x86_64 交叉编译 configure 检测 SIMD 特性失败），已添加 `--disable-asm` 和缓存变量修复，等待 CI 重新构建。
+
+**教训**：x86_64 交叉编译 libopus 时，configure 会尝试运行测试程序检测 CPU 特性（SSE4.1 等），但交叉编译时无法运行目标程序。需要添加 `--disable-asm` 和 `ac_cv_func_malloc_0_nonnull=yes` 等缓存变量跳过运行时检测。
 
 ## 顽固问题 (未解决)
 

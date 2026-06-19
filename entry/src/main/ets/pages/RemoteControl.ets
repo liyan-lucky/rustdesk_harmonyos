@@ -1033,7 +1033,7 @@ struct RemoteControl {
   private buildConnectionInfoPanel() {
     Column() {
       Scroll() {
-        Column({ space: 4 }) {
+        Column({ space: 8 }) {
           this.buildConnectionInfoRow(this.lt('Resolution'), this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('FPS'), this.connectionFps > 0 ? `${this.connectionFps}` : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Latency'), this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--', this.getLatencyColor())
@@ -1041,6 +1041,9 @@ struct RemoteControl {
           this.buildConnectionInfoRow(this.lt('Connection'), this.connectionType.length > 0 ? this.connectionType : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Zoom'), `${Math.round(this.getCurrentZoom() * 100)}%`, this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Codec'), this.connectionCodec.length > 0 ? this.connectionCodec : '--', this.theme_CONTRAST_TEXT)
+          ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
+            this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT)
+          }, (item: QualityMetricItem) => item.key)
         }
         .width('100%')
       }

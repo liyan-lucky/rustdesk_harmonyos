@@ -487,6 +487,16 @@ export class OfficialRustDeskBridge {
   }
 
   private applyEventToState(event: OfficialSessionEvent): void {
+    if (event.kind === 'connect-requested' ||
+      event.kind === 'login-requested' ||
+      event.kind === 'login' ||
+      event.kind === 'reconnect' ||
+      event.kind === 'reconnect-relay' ||
+      event.kind === 'session-connected' ||
+      event.kind === 'connection-ready') {
+      this.closeRequestedByUser = false;
+    }
+
     if (this.closeRequestedByUser &&
       (event.kind === 'session-error' ||
         event.kind === 'session-connected' ||

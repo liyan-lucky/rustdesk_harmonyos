@@ -2090,6 +2090,7 @@ struct Index {
       if (field === 'deviceId') return mod.deviceId;
       if (field === 'fingerprint') return mod.fingerprint;
       if (field === 'upstreamVersion') return mod.upstreamVersion;
+      if (field === 'statusActive') return String(mod.statusActive);
     }
     return '';
   }
@@ -3840,6 +3841,9 @@ struct Index {
     if (coreState.sessionStage === 'connecting') {
       return true;
     }
+    if (this.isConnecting && this.pendingPeerId.trim() === peerId) {
+      return true;
+    }
     const promptSource = `${coreState.statusSummary}\n${coreState.detailMessage}\n${coreState.lastError}`;
     return this.shouldPromptForPassword(promptSource);
   }
@@ -3869,6 +3873,7 @@ struct Index {
       this.chatMessages = this.chatService.getMessages(targetId);
     }
 
+    this.officialBridge.resetCloseRequestedFlag();
     const coreState = await this.officialBridge.refresh(this.settings);
     this.officialCoreState = coreState;
     if (!coreState.coreReady) {
@@ -5606,14 +5611,17 @@ struct Index {
     this.pendingPeerId = peerId;
     this.showPasswordDialog = false;
     this.isConnecting = true;
-    let openedSession: boolean = false;
     this.setStatusMessage("connecting", peerId);
 
     try {
       await this.officialBridge.connectToPeer(peerId, password, this.settings);
       this.officialCoreState = this.officialBridge.getCoreState();
-      this.openRemoteControlForPendingSession(peerId, this.officialCoreState);
-      openedSession = true;
+      if (this.officialCoreState.sessionStage === 'connected') {
+        this.openRemoteControlForPendingSession(peerId, this.officialCoreState);
+      } else {
+        this.isConnecting = false;
+        void this.monitorConnectionWhileWaiting();
+      }
       return;
     } catch (error) {
       const nextState = await this.officialBridge.refresh(this.settings);
@@ -5626,11 +5634,7 @@ struct Index {
         this.setStatusMessage("connection_failed");
       }
     } finally {
-      this.isConnecting = false;
       this.pendingPassword = '';
-      if (!openedSession) {
-        this.pendingPeerId = '';
-      }
     }
   }
 

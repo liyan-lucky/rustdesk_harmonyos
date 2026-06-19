@@ -4,8 +4,11 @@ set -euo pipefail
 ARTIFACT_TYPE="hap"
 VERSION_BUMP="incremental"
 DEFAULT_CORE_URL="https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a"
+DEFAULT_CORE_X86_64_URL="https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a"
 CORE_URL="${RUSTDESK_CORE_URL:-$DEFAULT_CORE_URL}"
+CORE_X86_64_URL="${RUSTDESK_CORE_X86_64_URL:-$DEFAULT_CORE_X86_64_URL}"
 EXPECTED_CORE_SHA256="${RUSTDESK_CORE_SHA256:-}"
+EXPECTED_CORE_X86_64_SHA256="${RUSTDESK_CORE_X86_64_SHA256:-}"
 SIGNING_ZIP_B64="${RUSTDESK_SIGNING_ZIP_B64:-}"
 ARTIFACTS_DIR=""
 MIN_CORE_BYTES=52428800
@@ -198,19 +201,39 @@ print('Removed signingConfig from build-profile.json5 (unsigned build)')
 fi
 
 CORE_PATH="$PROJECT_ROOT/entry/src/main/libs/arm64/librustdesk_core.a"
+CORE_X86_64_PATH="$PROJECT_ROOT/entry/src/main/libs/x86_64/librustdesk_core.a"
 
 if [[ "${RUSTDESK_CORE_SKIP_DOWNLOAD:-}" =~ ^(1|true|yes)$ ]]; then
   echo "Native core download skipped by RUSTDESK_CORE_SKIP_DOWNLOAD."
 elif [[ -n "$CORE_URL" ]]; then
   DOWNLOAD_DIR="$TEMP_ROOT/librustdesk_core"
   TMP_CORE="$DOWNLOAD_DIR/librustdesk_core_$(date -u +%Y%m%d%H%M%S).a.tmp"
-  echo "Downloading native core."
+  echo "Downloading native core (arm64)."
   echo "  URL: $CORE_URL"
   echo "  To : $TMP_CORE"
   mkdir -p "$(dirname "$CORE_PATH")"
   mkdir -p "$DOWNLOAD_DIR"
   curl -L --fail --retry 3 --retry-delay 5 -o "$TMP_CORE" "$CORE_URL"
   mv -f "$TMP_CORE" "$CORE_PATH"
+fi
+
+if [[ "${RUSTDESK_CORE_SKIP_DOWNLOAD:-}" =~ ^(1|true|yes)$ ]]; then
+  echo "Native x86_64 core download skipped by RUSTDESK_CORE_SKIP_DOWNLOAD."
+elif [[ -n "$CORE_X86_64_URL" ]]; then
+  DOWNLOAD_DIR="$TEMP_ROOT/librustdesk_core"
+  TMP_CORE="$DOWNLOAD_DIR/librustdesk_core_x86_64_$(date -u +%Y%m%d%H%M%S).a.tmp"
+  echo "Downloading native core (x86_64)."
+  echo "  URL: $CORE_X86_64_URL"
+  echo "  To : $TMP_CORE"
+  mkdir -p "$(dirname "$CORE_X86_64_PATH")"
+  mkdir -p "$DOWNLOAD_DIR"
+  if curl -L --fail --retry 3 --retry-delay 5 -o "$TMP_CORE" "$CORE_X86_64_URL" 2>/dev/null; then
+    mv -f "$TMP_CORE" "$CORE_X86_64_PATH"
+    echo "x86_64 core downloaded successfully."
+  else
+    echo "x86_64 core download failed; will use stub mode for x86_64."
+    rm -f "$TMP_CORE" 2>/dev/null || true
+  fi
 fi
 
 if [[ ! -f "$CORE_PATH" ]]; then

@@ -29,6 +29,10 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
+if not defined DEVECO_SDK_HOME if exist "C:\Program Files\Huawei\DevEco Studio\sdk\default" set "DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk\default"
+if not defined JAVA_HOME if exist "C:\Program Files\Huawei\DevEco Studio\jbr\bin\java.exe" set "JAVA_HOME=C:\Program Files\Huawei\DevEco Studio\jbr"
+if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
+
 call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1"
 if errorlevel 1 exit /b 1
 

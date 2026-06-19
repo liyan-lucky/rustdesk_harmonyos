@@ -57,7 +57,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.23.17`，versionCode：`1000140`
+- 当前本地版本：`0.29.1`，versionCode：`1000168`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -67,7 +67,9 @@
 - 一键构建安装：`scripts\AUTO_BUILD_INSTALL.bat auto`
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- 当前本地核心 SHA256**：core-9（线上最新），132,720,900 bytes；本地构建核心 129,943,444 bytes（含事件去重修复）
+- **x86_64 核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
+- **2026-06-20 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 改为 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心；虚拟设备（x86_64）将使用真实核心而非 stub 模式，解决"等待核心初始化"问题。CI 首次 x86_64 构建在 libopus configure 失败（x86_64 交叉编译 SIMD 检测失败），已添加 `--disable-asm` + `ac_cv_func_malloc_0_nonnull=yes` 缓存变量修复，等待 CI 重新构建。
+- 当前本地核心 SHA256**：本地构建核心 130,804,584 bytes（SHA256 `F783BDC7693B479B6C34FBCCFE95388B14F94F053EC50A0B5179635F0DA411B7`）；线上 core-9 `132,720,900` bytes
 - **最新核心更新**：13 核心 `core-9` 已发布，包含：1) OHOS 被控端完整连接链路（Service/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证）；2) 重连稳定性修复（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试）；3) Connecting 状态拒绝重连修复（`ConnectionState::Connecting => self.send(Data::Close)`）；4) 设备指纹不显示修复（`Config::get_id()` 替换 `get_local_option("id")`、`pk_to_fingerprint` 计算指纹、`gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"`、`initialize_runtime` 设置 `APP_DIR` 后调用 `get_id()` + `get_key_pair()`、`main_init` 调用 `initialize_runtime`）。本地核心额外修复：5) `set_peer_info` 不再重复触发 `session-connected` 事件（去掉 else 分支冗余 `update_connect_state`）。11 App 已用本地核心构建 `0.23.9` / versionCode `1000132`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
@@ -143,6 +145,18 @@
 - **选项卡** = ID输入框下方的子选项（历史/收藏/发现/通讯录/登录/核心），对应 `currentConnectTab: ConnectTab`
 - 两处经常混淆，必须严格区分
 
+### 环境迁移经验（2026-06-19）
+- **签名文件名必须与 build-profile.json5 一致**：迁移后签名目录文件名可能变化（如 `debug_hos.cer` → `oh_rustdesk_certchain.cer`），必须同步更新 `build-profile.json5` 的 `signingConfigs.material` 路径
+- **签名密码需要重新加密**：p12 密码变更后，`build-profile.json5` 中的 `keyPassword`/`storePassword` 必须用 `material/` 目录下的密钥材料重新加密；可用 `export_deveco_signing_command.js --show-secrets` 验证解密是否正确
+- **keyAlias 必须与 p12 中实际别名一致**：用 `keytool -list -keystore xxx.p12 -storepass xxx` 查看实际别名（如 `rustdesk_debug`）
+- **DEVECO_SDK_HOME 必须设置**：Hvigor 内部 `Property.getHosSdkDir()` 检查此环境变量，不设置会报 `00303217 Configuration Error`；应设为 `C:\Program Files\Huawei\DevEco Studio\sdk\default`
+- **JAVA_HOME 必须设置**：HAP 签名步骤 `SignHap` 需要 `java` 命令，不设置会报 `spawn java ENOENT`；应设为 `C:\Program Files\Huawei\DevEco Studio\jbr`
+- **签名 profile 验证**：`check_harmony_signing_profile.ps1` 会校验 profile 的 bundleName 和有效期，通过后签名才能正常工作
+- **hvigor-config.json5 不能用相对路径**：`hvigorCacheDir` 使用 `../99_Temp/harmonyos_cache` 等相对路径会超出项目根目录，DevEco Studio 的 `ProjectOutputJsonParser` 解析 `output.json` 时 `hvigorCacheDir` 为 null，导致同步失败；必须改为绝对路径
+- **deviceTypes 必须用 "phone"**：DevEco Studio 6.1 的 `ModuleJson5Parser` 期望 `"phone"`，使用 `"default"` 会导致同步报错
+- **Hvigor 构建会修改 build-profile.json5**：构建过程会删除 `signingConfigs` 和 `compileSdkVersion`，`run_hvigor_with_sdk_patch.js` 中实现了 `saveBuildProfile`/`restoreBuildProfile` 在构建前后保存恢复
+- **PATH 修改在 Node.js 中会导致 spawn cmd.exe ENOENT**：在 `run_hvigor_with_sdk_patch.js` 中修改 `process.env.PATH` 会导致 Hvigor worker 无法找到 `cmd.exe`，必须在 bat 脚本中设置 PATH
+
 ### ArkTS 开发经验
 - Toggle isOn 值绑定导致异步权限请求期间回弹：onChange 中必须先同步 updateSettings 更新状态，再执行异步操作
 - direct session function 不能只看 NAPI 函数存在：必须确认 Rust bridge、C ABI、C++ NAPI、d.ts、ArkTS wrapper、UI 调用路径全部返回/消费同一个 bool，并检查核心事件是否回流到页面状态。
@@ -195,6 +209,9 @@
 - 参考 screenshot.rs 中 Clipboard 的用法模式
 
 ### 连接/会话经验
+- **connectToPeer 是异步发起连接，不代表连接已完成**：`handleConnectWithPassword` 不能在 `connectToPeer` 返回后立即导航到 RemoteControl，必须通过 `monitorConnectionWhileWaiting` 等待 `sessionStage === 'connected'` 后再导航
+- **closeRequestedByUser 必须在新连接发起时无条件重置**：`handleConnect` 在调用 `refresh()` 之前必须调用 `resetCloseRequestedFlag()`；`applyEventToState` 在收到连接事件（`connect-requested`、`session-connected` 等）时必须先重置 `closeRequestedByUser` 再进行事件过滤
+- **isPendingConnectionAlive 必须考虑 isConnecting 状态**：连接刚发起时 `sessionStage` 可能仍为 `idle`，如果 `isConnecting = true` 且 `pendingPeerId` 匹配，应认为连接仍在进行中
 - **ID卡片连接模式per-card化**：PreferenceStore新增peer_connect_modes存储，getPeerConnectMode/setPeerConnectMode按peerId读写；中继重连后自动更新per-peer模式为relay；菜单其他功能已确认per-card
 - **native connectToPeer无forceRelay参数**：首次连接中继通过临时关闭enableDirectIp实现；reconnectSession(forceRelay)有显式参数
 - 密码提示优先级必须高于自动关闭/重连逻辑
@@ -290,6 +307,9 @@
 - 99_Temp 下的签名文件名（default_rustdesk_harmonyos_...）与项目根（debug_hos.*）不同，需统一
 - robocopy 排除 .cxx/build 目录避免 U 盘权限卡死，加 /R:0 /W:0 避免无限重试
 - hdc install 路径拼接有 bug，需从 HAP 所在目录执行或用相对路径
+- **x86_64 双架构构建**：`entry/build-profile.json5` 的 `abiFilters` 添加 `"x86_64"` 后，CMake 会为两个 ABI 各编译一个 `librustdesk_bridge.so`；x86_64 无真实核心时使用 `rustdesk_core_stub.cpp` stub 模式
+- **x86_64 stub 模式**：`CMakeLists.txt` 通过 `OHOS_ARCH` 变量检测架构，x86_64 优先检查 `entry/src/main/libs/x86_64/librustdesk_core.a` 是否存在，存在则链接真实核心，否则编译 stub；stub 覆盖所有 ABI 函数返回空/默认值，仅用于模拟器 UI 调试
+- **模拟器安装**：x86_64 模拟器 `hdc shell uname -m` 返回 `x86_64`，HAP 必须包含 x86_64 ABI 的 .so 才能安装，否则报 `install parse native so failed`
 - **关键：代码修改必须改项目根源文件！staging 只是构建副本，全量 robocopy 会从项目根覆盖 staging，导致修改丢失**
 - 版本降级安装失败时，需先 `hdc shell bm uninstall -n com.open.rundesk` 卸载旧版，再安装新版
 - 2026-06-09 官方一致性修复后实机验证通过：coreReady=true，Bridge 在线查询正常，远程控制连接建立（加密中继），handshake 诊断正常

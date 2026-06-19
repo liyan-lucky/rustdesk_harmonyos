@@ -90,18 +90,27 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-6`
-- Latest online size: `132,744,466` bytes (`126.55 MB`)
-- Latest online SHA256: `C9435DD89B4A0FC2DA5D502E307EDC5AD9B94A095C7D593B1DD6DD48A57C36FC`
-- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27662916996`
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-9`
+- Latest online size: `132,720,900` bytes (`126.55 MB`)
+- Latest online SHA256: (见 GitHub Releases)
+- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/`
+- Current local core: `130,804,584` bytes, SHA256 `F783BDC7693B479B6C34FBCCFE95388B14F94F053EC50A0B5179635F0DA411B7`
+
+x86_64 native core:
+
+- 文件：`entry/src/main/libs/x86_64/librustdesk_core.a`
+- Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
+- 状态：CI 双架构构建已配置，x86_64 首次构建 libopus configure 失败已修复，等待 CI 重新构建
+- 无 x86_64 真实核心时自动降级为 stub 模式（`rustdesk_core_stub.cpp`）
 
 HAP:
 
 - Bundle: `com.open.rundesk`
-- ABI: `arm64-v8a`
+- ABI: `arm64-v8a` + `x86_64`
 - Wireless target: `192.168.11.100:36169`
+- Virtual device target: `127.0.0.1:5555` (x86_64 模拟器)
 - Latest local pre-release validation: 2026-06-15 使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`；signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；`verify_native_harmonyos_hap.ps1` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.6`、`versionCode=1000109`，`pidof com.open.rundesk` 返回 `7527`。干净 app hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` 中 app fatal/panic/`exit(-1)`/signal bad count 为 0。
-- Latest validation: 2026-06-15 强制下载线上 `core-81` 后增量 HAP 构建通过；signed HAP `18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`；unsigned HAP `18,899,289` bytes，SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`；`verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.7`、`versionCode=1000110`，`pidof com.open.rundesk` 返回 `40016`。干净 app hilog `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` 中 app/core 相关 132 行，app fatal/panic/`exit(-1)`/signal/native core missing bad count 为 0。
+- Latest validation: 2026-06-19 环境迁移后全量构建 `0.27.0` / versionCode `1000147`；signed HAP `18,915,605` bytes；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `63 PASS, 2 FAIL, 1 SKIP`（2 FAIL 为质量面板 UI 审计，不影响编译环境）。签名配置已更新为实际文件名（`oh_rustdesk_certchain.cer`/`OpenHarmony.p12`/`oh_rustdesk_urlsafe.p7b`，别名 `rustdesk_debug`）。
 
 ## Native core 构建来源
 

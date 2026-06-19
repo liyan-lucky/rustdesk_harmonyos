@@ -87,8 +87,8 @@ const portableHvigorConfigContent = `{
   "modelVersion": "6.1.1",
   "dependencies": {},
   "properties": {
-    "hvigor.cacheDir": "../99_Temp/harmonyos_cache",
-    "ohos.buildDir": "../99_Temp/harmonyos_build"
+    "hvigor.cacheDir": "${path.resolve(tempRoot, 'harmonyos_cache').replace(/\\/g, '/')}",
+    "ohos.buildDir": "${path.resolve(tempRoot, 'harmonyos_build').replace(/\\/g, '/')}"
   }
 }
 `;
@@ -147,6 +147,34 @@ const devecoToolsRoot = firstExistingPath([
   localProperties['npm.dir'] && path.resolve(localProperties['npm.dir'], '..'),
   defaultDevEcoToolsRoot,
 ]) || defaultDevEcoToolsRoot;
+const defaultDevEcoRoot = path.resolve('C:/Program Files/Huawei/DevEco Studio');
+if (!process.env.DEVECO_SDK_HOME) {
+  const sdkCandidates = [
+    localProperties['sdk.dir'] && path.resolve(localProperties['sdk.dir'], '..'),
+    localProperties['hwsdk.dir'],
+    path.resolve(defaultDevEcoRoot, 'sdk/default'),
+  ].filter(Boolean);
+  for (const candidate of sdkCandidates) {
+    if (fs.existsSync(candidate)) {
+      process.env.DEVECO_SDK_HOME = candidate;
+      break;
+    }
+  }
+}
+if (!process.env.JAVA_HOME) {
+  const javaCandidates = [
+    path.resolve(devecoToolsRoot, '..', 'jbr'),
+    path.resolve(defaultDevEcoRoot, 'jbr'),
+  ].filter(Boolean);
+  for (const candidate of javaCandidates) {
+    const javaExe = path.resolve(candidate, 'bin', 'java.exe');
+    if (fs.existsSync(javaExe)) {
+      process.env.JAVA_HOME = candidate;
+      break;
+    }
+  }
+}
+
 const hvigorRoot = path.resolve(devecoToolsRoot, 'hvigor');
 const platformSdksPath = path.resolve(
   hvigorRoot,
@@ -453,8 +481,33 @@ function writeCoreBuildInfo(coreBuildInfoPath) {
   console.log(`[CoreBuildInfo] Updated native core info: size=${info.fileSize || 'unknown'}, mtime=${info.compileTime || 'unknown'}, fnv1a=${info.hashFnv1a1Mb || 'unknown'}`);
 }
 
+const buildProfilePath = path.resolve(projectRoot, 'build-profile.json5');
+let savedBuildProfileContent = '';
+
+function saveBuildProfile() {
+  try {
+    if (fs.existsSync(buildProfilePath)) {
+      savedBuildProfileContent = fs.readFileSync(buildProfilePath, 'utf8');
+    }
+  } catch (_error) {}
+}
+
+function restoreBuildProfile() {
+  if (!savedBuildProfileContent) {
+    return;
+  }
+  try {
+    const currentContent = fs.readFileSync(buildProfilePath, 'utf8');
+    if (currentContent !== savedBuildProfileContent) {
+      fs.writeFileSync(buildProfilePath, savedBuildProfileContent, 'utf8');
+      console.log('[BuildProfile] Restored build-profile.json5 after Hvigor build');
+    }
+  } catch (_error) {}
+}
+
 if (require.main === module) {
   prepareHvigorConfigForCurrentWorkspace();
+  saveBuildProfile();
 
   const buildInfoPath = path.resolve(projectRoot, 'entry/src/main/ets/common/BuildInfo.ets');
   const coreBuildInfoPath = path.resolve(projectRoot, 'entry/src/main/ets/common/CoreBuildInfo.ets');
@@ -508,6 +561,10 @@ if (require.main === module) {
   }
   process.argv = hvigorArgs.concat(requestedTasks);
 
-  hvigorRequire(hvigorEntry);
+  try {
+    hvigorRequire(hvigorEntry);
+  } finally {
+    restoreBuildProfile();
+  }
 
 }

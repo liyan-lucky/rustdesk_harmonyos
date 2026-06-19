@@ -10,8 +10,9 @@
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
-- HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-15 19:09`，App 显示版本 `0.22.7`，versionCode `1000110`。
+- HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。2026-06-19 环境迁移后签名文件名已更新为 `oh_rustdesk_certchain.cer`/`OpenHarmony.p12`/`oh_rustdesk_urlsafe.p7b`，别名 `rustdesk_debug`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-19 08:56`，App 显示版本 `0.27.2`，versionCode `1000149`。
+- 2026-06-19 SDK 版本匹配手机 API 6.1.0(23)：`compileSdkVersion` 保持 `6.1.1(24)`（当前安装的 SDK），`targetSdkVersion` 改为 `6.1.0(23)`（匹配手机），`compatibleSdkVersion` 改为 `6.0.0(20)`。`compileSdkVersion` 不能设为 API 23——Hvigor 报 `Unsupported compileSdkVersion`，必须用已安装的 SDK API 版本编译。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
   - `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
@@ -35,12 +36,26 @@
   - 最新线上 release：`core-9`
   - 最新线上大小：`132,720,900` bytes
   - 包含：被控端连接链路 + 重连稳定性 + Connecting重连修复 + 设备指纹修复
+- 2026-06-19 x86_64 双架构支持：
+  - `entry/build-profile.json5` 的 `abiFilters` 已添加 `"x86_64"`，HAP 同时包含 `arm64-v8a` 和 `x86_64` 两个 ABI
+  - `CMakeLists.txt` 三分支逻辑：x86_64 有真实核心 → 链接真实核心；x86_64 无真实核心 → 使用 `rustdesk_core_stub.cpp` stub 模式（仅 UI 调试）；arm64 正常链接
+  - x86_64 真实核心路径：`entry/src/main/libs/x86_64/librustdesk_core.a`
+  - x86_64 stub 核心：`entry/src/main/cpp/rustdesk_core_stub.cpp`（覆盖所有 ABI 函数，返回空/默认值）
+  - 模拟器（x86_64）安装验证通过：`hdc install` 成功，HAP 包含 `arm64-v8a/librustdesk_bridge.so`（36 MB，真实核心）和 `x86_64/librustdesk_bridge.so`（356 KB，stub）
+  - `fetch_native_core.ps1` 已支持 x86_64 核心下载（`-CoreX86_64Url`、`-ExpectedX86_64Sha256`、`-SkipX86_64` 参数）
+  - `github_build_harmonyos_linux.sh` 已支持 x86_64 核心下载（`RUSTDESK_CORE_X86_64_URL`、`RUSTDESK_CORE_X86_64_SHA256` 环境变量，下载失败自动降级为 stub）
+  - `.github/workflows/build-harmonyos.yml` 已添加 `RUSTDESK_CORE_X86_64_URL` 和 `RUSTDESK_CORE_X86_64_SHA256` 变量
+  - 13 核心项目 `build_native_bridge.ps1` 已修改支持 x86_64-unknown-linux-ohos target
+  - 13 核心项目 CI workflow 已改为 matrix strategy 同时构建 arm64 + x86_64 双架构核心
+  - 13 核心项目 CI Release 同时发布 `librustdesk_core.a` 和 `librustdesk_core_x86_64.a`
+  - 13 核心项目 commit `dd8ebbf` 已推送，CI 首次 x86_64 构建在 libopus configure 失败（已修复 `--disable-asm` + 缓存变量，commit `30ebf8d`），等待 CI 重新构建
 - 当前已验证 HAP：
-  - 本地 App 显示版本：`0.23.17`
-  - 本地 versionCode：`1000140`
+  - 本地 App 显示版本：`0.29.1`
+  - 本地 versionCode：`1000168`
   - bundle：`com.open.rundesk`
   - signed HAP：本地核心构建
-  - 2026-06-17 无线安装启动成功，设备指纹正确显示（`6b3c ef42 ...`），远程连接画面正常
+  - 2026-06-20 核心详情弹窗状态修复：`getSelectedCoreModuleField()` 添加 `statusActive` case 分支，弹窗状态不再始终显示"停止"
+  - 2026-06-20 双架构核心 CI 修复：x86_64 libopus 交叉编译添加 `--disable-asm` + 缓存变量，等待 CI 构建成功
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
