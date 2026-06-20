@@ -120,6 +120,7 @@
 - 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-25`
 - 最新本地构建版本：`0.29.2`，versionCode `1000169`，构建时间 `2026-06-20 00:57`
 - 2026-06-20 core-25 双架构验证：`scripts\build_hap.bat` 强制下载 latest core-25 arm64/x86_64 并构建成功；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；验包、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、无线安装启动到 `192.168.11.100:36169` 均通过，设备端 `versionName=0.29.2`、`versionCode=1000169`、进程 `11717` 存活。
+- 2026-06-20 App 线上 push 验证：commit `fb13e7a` 触发 GitHub Actions run `27854059963`（Build HarmonyOS HAP Linux）并成功完成，`Build HarmonyOS package` 与 `Upload HarmonyOS artifacts` 均为 success；上传 artifact `harmonyos-hap` 大小 `65,698,344` bytes。
 - 2026-06-17 core-9 + 本地核心修复验证：11 App 下载 core-9 后构建 `0.23.8`，验证设备指纹正确显示（`6b3c ef42 ...`）；随后本地核心修复 `set_peer_info` 事件去重 + App 侧修复 `peerClosed` 不再直接关闭会话 + 密码弹窗渲染层硬性守卫，构建 `0.23.9`，无线安装启动成功。
 - 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
 - 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
