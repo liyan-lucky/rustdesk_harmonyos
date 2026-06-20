@@ -34,6 +34,12 @@
 | `GIT_PUBLISH.md` | GitHub 发布说明。本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。 |
 | `FUNCTION_LOGIC_AUDIT_2026-06-06.md` | 最新 100 轮全功能逻辑检查、已修问题和后续补齐清单。 |
 
+## 脚本补充 (scripts/)
+
+| 文件 | 作用 |
+|------|------|
+| `switch_deveco_paths.ps1` | 在 portable `../99_Temp/...` 配置与 DevEco Studio 绝对路径配置之间切换；提交、脚本构建和换电脑前必须切回 portable |
+
 ## C++桥接层 (entry/src/main/cpp/)
 
 > **注意**：核心相关文件已迁移到 `%VSCODE_ROOT%\13_librustdesk_core` 项目。本目录的 C++ 桥接层文件从 13 项目的 `cpp/` 目录同步。核心修改在 13 项目进行，修改后需同步到本目录并重新构建 HAP。

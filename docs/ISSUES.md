@@ -50,6 +50,8 @@
 
 **验证**：增量构建和全量构建均成功生成签名 HAP，`verify_native_harmonyos_hap.ps1` 验包通过，连接链路审计 63 PASS / 2 FAIL（2 FAIL 为质量面板 UI 审计，不影响编译环境）。
 
+**2026-06-19 复核**：当前仓库标准已恢复为 portable `../99_Temp/rustdesk_harmonyos_signing/debug_hos.*`，别名 `debugKey`。`.ohos/config/default_...` 和 `oh_rustdesk_*` 属于机器/迁移场景，不能作为根目录提交状态；DevEco Studio 如需绝对路径，用 `switch_deveco_paths.ps1 -Mode DevEco` 临时切换，提交前切回 portable。
+
 **教训**：环境迁移后必须检查三项：签名文件路径/名称、签名密码/别名、SDK/Java 环境变量。`export_deveco_signing_command.js --show-secrets` 是验证签名配置正确性的关键工具。
 
 ## 2026-06-17 多余花括号导致100+级联编译错误
@@ -477,7 +479,7 @@
 
 **教训**：✅ 如果未来重新启用 APP，release 资产不能直接上传裸 `.app`；✅ 当前 HAP-only 规则下不要再生成 `.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 
-## 2026-06-20 核心详情弹窗状态始终显示"停止"
+## 2026-06-19 核心详情弹窗状态始终显示"停止"
 
 ### `getSelectedCoreModuleField()` 缺少 `statusActive` case 导致返回空字符串
 
@@ -491,7 +493,7 @@
 
 **教训**：`getSelectedCoreModuleField()` 是字符串返回值的通用字段查询方法，新增字段时必须同步添加 case 分支；布尔字段要用 `String()` 转换。弹窗和列表使用不同的数据路径时容易出现状态不一致。
 
-## 2026-06-20 虚拟设备"等待核心初始化"问题
+## 2026-06-19 虚拟设备"等待核心初始化"问题
 
 ### x86_64 模拟器使用 stub 核心无法真正初始化
 
@@ -506,9 +508,9 @@
 4. 11 App 的 `fetch_native_core.ps1` 已支持 x86_64 核心下载
 5. `CMakeLists.txt` 三分支逻辑：x86_64 有真实核心 → 链接真实核心；x86_64 无真实核心 → stub；arm64 正常链接
 
-**验证**：CI 首次 x86_64 构建在 libopus configure 步骤失败（x86_64 交叉编译 configure 检测 SIMD 特性失败），已添加 `--disable-asm` 和缓存变量修复，等待 CI 重新构建。
+**验证**：旧 CI run `27848481305` 的 x86_64 失败点已确认为 libvpx 把 nasm/yasm 风格的 `-f elf64` 参数传给 OHOS SDK clang；修复后又暴露 Opus 未安装到 `VCPKG_ROOT\installed\<triplet>`。13 核心 run `27853110949` 已成功发布 `core-25` 双资产；11 App 下载 latest core-25 后构建、验包、66 项审计和无线安装启动均通过。
 
-**教训**：x86_64 交叉编译 libopus 时，configure 会尝试运行测试程序检测 CPU 特性（SSE4.1 等），但交叉编译时无法运行目标程序。需要添加 `--disable-asm` 和 `ac_cv_func_malloc_0_nonnull=yes` 等缓存变量跳过运行时检测。
+**教训**：x86_64 OHOS 交叉编译不能直接沿用桌面 x86 汇编路径；libvpx 需要禁用 x86 SIMD/汇编选项，Opus 需要安装到 `VCPKG_ROOT\installed\<triplet>`，并且 release job 必须等 arm64/x86_64 两个 artifact 都存在且大小合理后才能发布。
 
 ## 顽固问题 (未解决)
 
@@ -1426,3 +1428,11 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **根因**: (1)buildFillTabItem中.layoutWeight(1)被误改为.width('100%')，Row中多个width('100%')子项只有第一个可见；(2)buildOfficialConnectPanel外层从Column改为Stack导致面板高度异常。
 **修复**: (1)buildFillTabItem还原为.layoutWeight(1)；(2)buildOfficialConnectPanel外层还原为Column，悬浮窗改用.overlay()属性实现（不影响流式布局）。
 **教训**: ✅Row中多个子项应该用layoutWeight(1)平分宽度，不能用width('100%')；✅悬浮窗用.overlay()比Stack+position更安全，不影响父容器布局。
+
+### DevEco Studio 绝对路径污染根目录配置 (2026-06-19发现, 已修复)
+
+**现象**: 远端拉取后 `build-profile.json5` 中签名文件路径指向 `.ohos/config/default_11_Rustdesk_harmonyos_...`，`hvigor/hvigor-config.json5` 中 cache/build 目录写死到某台机器的绝对路径；换目录或换电脑后签名验证和脚本构建不可复现。
+**根因**: DevEco Studio 为当前工程写入了本机绝对路径，但项目要求根目录配置可携带；staged build 与 wrapper 构建已有临时改写机制，根配置不应永久保存本机路径。
+**修复**: 根配置恢复为 `../99_Temp/...`；新增 `scripts\switch_deveco_paths.ps1`，需要 DevEco Studio 绝对路径时用 `-Mode DevEco` 临时切换，提交/脚本构建前用 `-Mode Portable` 切回。
+**验证**: `switch_deveco_paths.ps1 -Mode DevEco/-Mode Portable` 均能切换；两种模式下 `export_deveco_signing_command.js --show-secrets` 和 `check_harmony_signing_profile.ps1` 均通过。
+**教训**: ✅根目录配置默认 portable；✅DevEco Studio 兼容性用脚本切换，不把个人路径提交；✅每次路径变更后同时验证签名解密和 profile/cert 匹配。

@@ -32,7 +32,7 @@
   - `6b228d7`：修复重连稳定性（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试、session_reconnect 帧缓存清理）
   - `e8317b7`：修复 Connecting 状态拒绝重连（`ConnectionState::Connecting => self.send(Data::Close)`）
   - `f2833c3` + `123f823`：修复设备指纹不显示（`Config::get_id()` 替换 `get_local_option("id")`、`pk_to_fingerprint` 计算指纹、`gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"`、`initialize_runtime` 设置 `APP_DIR` 后调用公开 API、`main_init` 调用 `initialize_runtime`）
-  - CI 构建 core-9 已成功发布，132,720,900 bytes
+  - CI 构建 core-25 已成功发布，arm64 `132,777,178` bytes，x86_64 `130,416,964` bytes
   - 本地核心额外修复：`set_peer_info` 不再重复触发 `session-connected` 事件（去掉 else 分支冗余 `update_connect_state`）
   - 11 App 已用本地核心构建 `0.23.9` / versionCode `1000132`，无线安装启动验证通过
 - 2026-06-17 会话体验修复轮（v0.23.17 / versionCode 1000140）：
@@ -90,17 +90,17 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-9`
-- Latest online size: `132,720,900` bytes (`126.55 MB`)
-- Latest online SHA256: (见 GitHub Releases)
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-25`
+- Latest online size: `132,777,178` bytes (`126.63 MB`)
+- Latest online SHA256: `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`
 - Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/`
-- Current local core: `130,804,584` bytes, SHA256 `F783BDC7693B479B6C34FBCCFE95388B14F94F053EC50A0B5179635F0DA411B7`
+- Current local core: `132,777,178` bytes, SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`
 
 x86_64 native core:
 
 - 文件：`entry/src/main/libs/x86_64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
-- 状态：CI 双架构构建已配置，x86_64 首次构建 libopus configure 失败已修复，等待 CI 重新构建
+- 状态：CI 双架构构建已完成，`core-25` release 含真实 x86_64 核心；latest x86_64 asset `130,416,964` bytes，SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。
 - 无 x86_64 真实核心时自动降级为 stub 模式（`rustdesk_core_stub.cpp`）
 
 HAP:
@@ -110,7 +110,8 @@ HAP:
 - Wireless target: `192.168.11.100:36169`
 - Virtual device target: `127.0.0.1:5555` (x86_64 模拟器)
 - Latest local pre-release validation: 2026-06-15 使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`；signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；`verify_native_harmonyos_hap.ps1` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.6`、`versionCode=1000109`，`pidof com.open.rundesk` 返回 `7527`。干净 app hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` 中 app fatal/panic/`exit(-1)`/signal bad count 为 0。
-- Latest validation: 2026-06-19 环境迁移后全量构建 `0.27.0` / versionCode `1000147`；signed HAP `18,915,605` bytes；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `63 PASS, 2 FAIL, 1 SKIP`（2 FAIL 为质量面板 UI 审计，不影响编译环境）。签名配置已更新为实际文件名（`oh_rustdesk_certchain.cer`/`OpenHarmony.p12`/`oh_rustdesk_urlsafe.p7b`，别名 `rustdesk_debug`）。
+- Latest validation: 2026-06-19 环境迁移后全量构建 `0.27.0` / versionCode `1000147`；signed HAP `18,915,605` bytes；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `63 PASS, 2 FAIL, 1 SKIP`（2 FAIL 为质量面板 UI 审计，不影响编译环境）。2026-06-19 路径复核后当前仓库标准签名配置为 `debug_hos.cer`/`debug_hos.p12`/`debug_hos.p7b`，别名 `debugKey`；DevEco Studio 绝对路径只通过 `switch_deveco_paths.ps1` 临时切换。
+- Latest validation: 2026-06-20 下载 latest core-25 双架构核心后增量构建 `0.29.2` / versionCode `1000169`；signed HAP `34,687,476` bytes，SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；验包 native/signature 通过，`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备端版本一致，`pidof com.open.rundesk` 返回 `11717`。
 
 ## Native core 构建来源
 

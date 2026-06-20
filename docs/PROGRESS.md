@@ -10,7 +10,7 @@
 ## 当前状态快照
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
-- HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。2026-06-19 环境迁移后签名文件名已更新为 `oh_rustdesk_certchain.cer`/`OpenHarmony.p12`/`oh_rustdesk_urlsafe.p7b`，别名 `rustdesk_debug`。
+- HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。2026-06-19 路径复核后当前仓库标准为 `debug_hos.cer`/`debug_hos.p12`/`debug_hos.p7b`，别名 `debugKey`；DevEco Studio 需要绝对路径时使用 `scripts\switch_deveco_paths.ps1 -Mode DevEco` 临时切换。
 - HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-19 08:56`，App 显示版本 `0.27.2`，versionCode `1000149`。
 - 2026-06-19 SDK 版本匹配手机 API 6.1.0(23)：`compileSdkVersion` 保持 `6.1.1(24)`（当前安装的 SDK），`targetSdkVersion` 改为 `6.1.0(23)`（匹配手机），`compatibleSdkVersion` 改为 `6.0.0(20)`。`compileSdkVersion` 不能设为 API 23——Hvigor 报 `Unsupported compileSdkVersion`，必须用已安装的 SDK API 版本编译。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
@@ -33,9 +33,9 @@
   - `entry/src/main/libs/arm64/librustdesk_core.a`
   - 最新线上 native core 已从 GitHub Releases 下载：
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-  - 最新线上 release：`core-9`
-  - 最新线上大小：`132,720,900` bytes
-  - 包含：被控端连接链路 + 重连稳定性 + Connecting重连修复 + 设备指纹修复
+  - 最新线上 release：`core-25`
+  - 最新线上大小：arm64 `132,777,178` bytes，x86_64 `130,416,964` bytes
+  - 包含：被控端连接链路 + 重连稳定性 + Connecting重连修复 + 设备指纹修复 + 双架构真实核心 + IPv4/IPv6 地址族候选修复
 - 2026-06-19 x86_64 双架构支持：
   - `entry/build-profile.json5` 的 `abiFilters` 已添加 `"x86_64"`，HAP 同时包含 `arm64-v8a` 和 `x86_64` 两个 ABI
   - `CMakeLists.txt` 三分支逻辑：x86_64 有真实核心 → 链接真实核心；x86_64 无真实核心 → 使用 `rustdesk_core_stub.cpp` stub 模式（仅 UI 调试）；arm64 正常链接
@@ -48,14 +48,14 @@
   - 13 核心项目 `build_native_bridge.ps1` 已修改支持 x86_64-unknown-linux-ohos target
   - 13 核心项目 CI workflow 已改为 matrix strategy 同时构建 arm64 + x86_64 双架构核心
   - 13 核心项目 CI Release 同时发布 `librustdesk_core.a` 和 `librustdesk_core_x86_64.a`
-  - 13 核心项目 commit `dd8ebbf` 已推送，CI 首次 x86_64 构建在 libopus configure 失败（已修复 `--disable-asm` + 缓存变量，commit `30ebf8d`），等待 CI 重新构建
+  - 13 核心项目 commit `3b83189` 已推送；旧 run `27848481305` 的 x86_64 失败根因是 libvpx x86 汇编参数 `-f elf64` 传给 OHOS SDK clang，后续 Opus 路径缺失也已修复；run `27853110949` 成功发布 `core-25` 双资产，且空 `core-24` release/tag 已删除
 - 当前已验证 HAP：
-  - 本地 App 显示版本：`0.29.1`
-  - 本地 versionCode：`1000168`
+  - 本地 App 显示版本：`0.29.2`
+  - 本地 versionCode：`1000169`
   - bundle：`com.open.rundesk`
   - signed HAP：本地核心构建
-  - 2026-06-20 核心详情弹窗状态修复：`getSelectedCoreModuleField()` 添加 `statusActive` case 分支，弹窗状态不再始终显示"停止"
-  - 2026-06-20 双架构核心 CI 修复：x86_64 libopus 交叉编译添加 `--disable-asm` + 缓存变量，等待 CI 构建成功
+  - 2026-06-19 核心详情弹窗状态修复：`getSelectedCoreModuleField()` 添加 `statusActive` case 分支，弹窗状态不再始终显示"停止"
+  - 2026-06-20 双架构核心 CI 修复：x86_64 libvpx 禁用 x86 SIMD/汇编路径，Opus 安装到 `VCPKG_ROOT\installed\<triplet>`；`core-25` 已发布 arm64/x86_64 双资产，App 下载 latest 后 HAP 构建、验包、66 项审计、无线安装启动均通过
 - 核心已经接入真实 RustDesk session 路径，历史文档中的"仅模拟连接 / 真实网络未实现"不是当前状态。
 - 上一轮实机验证曾确认控制端收到真实视频帧，截图显示远程画面，不再只是等待视频流占位。
 - 2026-06-12 等待视频流复查：出站控制端仍有真实 `on_rgba -> video-frame` 路径；入站被控端因 Harmony `ScreenCaptureService`/desktop server 未接入，不能再对外标记 `incomingReady=true`。11 端共享开关已在录屏失败时回滚，13 端核心 `main_start_service(true)` 已改为返回 `incomingReady=false` 和明确错误，避免其他设备连接后一直等待视频流。
@@ -662,3 +662,13 @@
 - **C++ OH_AVScreenCapture 无法获取帧**（搁置）：`OH_CAPTURE_HOME_SCREEN` 模式在非系统应用上无法工作——`StartScreenCapture` 返回成功但服务端状态不是 STARTED（`state:1`），`AcquireVideoBuffer` 持续失败。根因是 `ohos.permission.CAPTURE_SCREEN` 是系统核心权限（system_core），普通应用无法声明。**待调研 ArkTS `@ohos.screenCapture` API 替代方案**
 - **远程连接后自动回到连接页面**（已修复）：根因1——核心侧 `set_peer_info` 的 else 分支重复调用 `update_connect_state("connected", ...)` 导致大量重复 `session-connected` 事件涌入（同一毫秒10+个）；根因2——App 侧 `handleTerminalBridgeEvent` 中 `peerClosed` 时直接 `finishTerminalSession`，但连接可能还没真正建立（`hasReceivedFrame=false`）；根因3——App 侧密码弹窗在连接已建立后仍会被重复事件触发。修复：核心去掉 else 分支冗余调用、App 侧 `peerClosed && hasReceivedFrame` 才关闭会话、密码弹窗渲染层加 `!hasReceivedFrame && !isConnected` 硬性守卫
 - 当前版本：`0.23.17` / versionCode `1000140`，线上核心 `core-9`，本地核心含事件去重修复
+
+## 2026-06-19 路径配置与双架构核心修复
+
+- 拉取远端最新状态后发现根目录包含 DevEco Studio 本机绝对路径。已恢复为 portable `../99_Temp/...`，并新增 `scripts\switch_deveco_paths.ps1` 在 DevEco 绝对路径模式和 portable 模式之间切换。
+- `run_hvigor_with_sdk_patch.js` 继续支持构建时临时绝对路径，退出时恢复 portable 配置，避免换电脑或 staged 构建失败。
+- 核心仓库已修复 x86_64 OHOS 构建：libvpx 禁用 x86 SIMD/汇编路径以避开 `clang -f elf64` 参数错误，脚本补齐 Opus 1.5.2 静态库到 vcpkg installed root。
+- 核心 release workflow 改为只有双架构 build 全成功才发布，下载两个 artifact 不再 `continue-on-error`，发布前强制检查 arm64 与 x86_64 两个 `.a` 文件存在且大小在预期范围内，避免 x86 失败时发布空标签或半成品。
+- 本地验证：`x86_64-unknown-linux-ohos` release 产物 `128,712,156` bytes / SHA256 `7D0AA289F050AD7D4D06B21516E0B39707570C08A28C700259245EFDA113A1CB`；`aarch64-unknown-linux-ohos` release 产物 `130,215,616` bytes / SHA256 `E82E9FE47557EE9771FA5E9C7539EF09670326038F59E8E5748481AE53352B30`。
+- 线上验证：核心 run `27853110949` 成功发布 `core-25`，arm64 asset `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 asset `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`；此前空 `core-24` release/tag 已删除。
+- App 验证：`scripts\build_hap.bat` 下载 latest core-25 双架构核心并构建 `0.29.2` / versionCode `1000169`；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs`、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、`AUTO_BUILD_INSTALL.bat --skip-build auto` 到 `192.168.11.100:36169` 均通过，设备端进程 `11717`。

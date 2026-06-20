@@ -87,8 +87,8 @@ const portableHvigorConfigContent = `{
   "modelVersion": "6.1.1",
   "dependencies": {},
   "properties": {
-    "hvigor.cacheDir": "${path.resolve(tempRoot, 'harmonyos_cache').replace(/\\/g, '/')}",
-    "ohos.buildDir": "${path.resolve(tempRoot, 'harmonyos_build').replace(/\\/g, '/')}"
+    "hvigor.cacheDir": "../99_Temp/harmonyos_cache",
+    "ohos.buildDir": "../99_Temp/harmonyos_build"
   }
 }
 `;

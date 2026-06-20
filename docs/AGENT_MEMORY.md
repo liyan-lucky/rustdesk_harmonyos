@@ -57,7 +57,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.29.1`，versionCode：`1000168`
+- 当前本地版本：`0.29.2`，versionCode：`1000169`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -68,9 +68,9 @@
 - **核心构建已迁移到独立项目**：`%VSCODE_ROOT%\13_librustdesk_core`
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - **x86_64 核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
-- **2026-06-20 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 改为 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心；虚拟设备（x86_64）将使用真实核心而非 stub 模式，解决"等待核心初始化"问题。CI 首次 x86_64 构建在 libopus configure 失败（x86_64 交叉编译 SIMD 检测失败），已添加 `--disable-asm` + `ac_cv_func_malloc_0_nonnull=yes` 缓存变量修复，等待 CI 重新构建。
-- 当前本地核心 SHA256**：本地构建核心 130,804,584 bytes（SHA256 `F783BDC7693B479B6C34FBCCFE95388B14F94F053EC50A0B5179635F0DA411B7`）；线上 core-9 `132,720,900` bytes
-- **最新核心更新**：13 核心 `core-9` 已发布，包含：1) OHOS 被控端完整连接链路（Service/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证）；2) 重连稳定性修复（SEC30 30s→60s、SEND_TIMEOUT_VIDEO 12s→30s + 5次重试）；3) Connecting 状态拒绝重连修复（`ConnectionState::Connecting => self.send(Data::Close)`）；4) 设备指纹不显示修复（`Config::get_id()` 替换 `get_local_option("id")`、`pk_to_fingerprint` 计算指纹、`gen_id`/`get_auto_id` cfg 加 `target_env = "ohos"`、`initialize_runtime` 设置 `APP_DIR` 后调用 `get_id()` + `get_key_pair()`、`main_init` 调用 `initialize_runtime`）。本地核心额外修复：5) `set_peer_info` 不再重复触发 `session-connected` 事件（去掉 else 分支冗余 `update_connect_state`）。11 App 已用本地核心构建 `0.23.9` / versionCode `1000132`。
+- **2026-06-19 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 使用 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心。旧 run `27848481305` 的 x86_64 失败根因是 libvpx 把 nasm/yasm 的 `-f elf64` 参数传给 OHOS SDK clang，后续还暴露 Opus 未安装到 `VCPKG_ROOT\installed\<triplet>`；`core-25` / run `27853110949` 已成功发布双资产。
+- 当前本地核心 SHA256：arm64 `132,777,178` bytes / `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。
+- **最新核心更新**：13 核心 `core-25` 已发布，包含既有 OHOS 被控端完整连接链路/重连/设备指纹修复，并追加 x86_64 真实核心构建、release 防空标签修复、IPv4-only 手机访问双栈客户端的地址族候选修复。11 App 已下载 core-25 构建 `0.29.2` / versionCode `1000169`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
@@ -116,9 +116,10 @@
 5. **自动重连机制**（已实现）：App 侧三处 msgbox 处理增加 `retry=true` 自动重连。
 
 ### 已验证状态
-- 当前本地 native core：本地构建 `librustdesk_core.a`，129,943,444 bytes（含事件去重修复）；线上 core-9 `132,720,900` bytes
-- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-9`
-- 最新本地构建版本：`0.23.9`，versionCode `1000132`，构建时间 `2026-06-17`
+- 当前本地 native core：core-25 arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`
+- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-25`
+- 最新本地构建版本：`0.29.2`，versionCode `1000169`，构建时间 `2026-06-20 00:57`
+- 2026-06-20 core-25 双架构验证：`scripts\build_hap.bat` 强制下载 latest core-25 arm64/x86_64 并构建成功；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；验包、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、无线安装启动到 `192.168.11.100:36169` 均通过，设备端 `versionName=0.29.2`、`versionCode=1000169`、进程 `11717` 存活。
 - 2026-06-17 core-9 + 本地核心修复验证：11 App 下载 core-9 后构建 `0.23.8`，验证设备指纹正确显示（`6b3c ef42 ...`）；随后本地核心修复 `set_peer_info` 事件去重 + App 侧修复 `peerClosed` 不再直接关闭会话 + 密码弹窗渲染层硬性守卫，构建 `0.23.9`，无线安装启动成功。
 - 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
 - 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
@@ -152,7 +153,7 @@
 - **DEVECO_SDK_HOME 必须设置**：Hvigor 内部 `Property.getHosSdkDir()` 检查此环境变量，不设置会报 `00303217 Configuration Error`；应设为 `C:\Program Files\Huawei\DevEco Studio\sdk\default`
 - **JAVA_HOME 必须设置**：HAP 签名步骤 `SignHap` 需要 `java` 命令，不设置会报 `spawn java ENOENT`；应设为 `C:\Program Files\Huawei\DevEco Studio\jbr`
 - **签名 profile 验证**：`check_harmony_signing_profile.ps1` 会校验 profile 的 bundleName 和有效期，通过后签名才能正常工作
-- **hvigor-config.json5 不能用相对路径**：`hvigorCacheDir` 使用 `../99_Temp/harmonyos_cache` 等相对路径会超出项目根目录，DevEco Studio 的 `ProjectOutputJsonParser` 解析 `output.json` 时 `hvigorCacheDir` 为 null，导致同步失败；必须改为绝对路径
+- **hvigor-config.json5 的路径模式要区分场景**：仓库根配置默认使用 `../99_Temp/harmonyos_cache` 和 `../99_Temp/harmonyos_build` 保持可携带；如果 DevEco Studio 同步因相对路径失败，用 `scripts\switch_deveco_paths.ps1 -Mode DevEco` 临时切到绝对路径，提交/脚本构建前再用 `-Mode Portable` 切回。
 - **deviceTypes 必须用 "phone"**：DevEco Studio 6.1 的 `ModuleJson5Parser` 期望 `"phone"`，使用 `"default"` 会导致同步报错
 - **Hvigor 构建会修改 build-profile.json5**：构建过程会删除 `signingConfigs` 和 `compileSdkVersion`，`run_hvigor_with_sdk_patch.js` 中实现了 `saveBuildProfile`/`restoreBuildProfile` 在构建前后保存恢复
 - **PATH 修改在 Node.js 中会导致 spawn cmd.exe ENOENT**：在 `run_hvigor_with_sdk_patch.js` 中修改 `process.env.PATH` 会导致 Hvigor worker 无法找到 `cmd.exe`，必须在 bat 脚本中设置 PATH
@@ -304,7 +305,7 @@
 - staging 副本的 build-profile.json5 签名路径必须重新计算：项目根用 ../99_Temp/，staging 用 ./signing/ 并复制签名材料到 staging/signing/
 - Hvigor 不允许签名路径在项目目录之外（如 ../../99_Temp/），必须用项目内相对路径
 - 签名 material 目录必须与 .cer/.p12/.p7b 一起复制，否则 SignHap 报 "Signing material error"
-- 99_Temp 下的签名文件名（default_rustdesk_harmonyos_...）与项目根（debug_hos.*）不同，需统一
+- 历史迁移时 99_Temp 下可能出现 `default_rustdesk_harmonyos_...` 签名文件名；当前标准名是 `debug_hos.*`。如果新环境只带 default 命名文件，需复制/重命名或用路径切换脚本选择实际文件名后再验证。
 - robocopy 排除 .cxx/build 目录避免 U 盘权限卡死，加 /R:0 /W:0 避免无限重试
 - hdc install 路径拼接有 bug，需从 HAP 所在目录执行或用相对路径
 - **x86_64 双架构构建**：`entry/build-profile.json5` 的 `abiFilters` 添加 `"x86_64"` 后，CMake 会为两个 ABI 各编译一个 `librustdesk_bridge.so`；x86_64 无真实核心时使用 `rustdesk_core_stub.cpp` stub 模式
@@ -319,7 +320,7 @@
 - CMakeLists.txt 添加 `-Wl,--as-needed` 可移除未使用的动态库依赖，但 wayland 符号引用仍在，必须从 Rust 侧排除
 - 密码输入框 TextInput 需要添加 `.defaultFocus(true)` 才能自动唤醒输入法
 - staging 的 material 目录不能混入项目根的旧 material 文件，签名会失败
-- **99_Temp 签名文件名与 build-profile.json5 引用名不匹配**：99_Temp 下实际文件名为 `default_rustdesk_harmonyos_XXX=.cer/p12/p7b`，但 build-profile.json5 引用 `debug_hos.cer/p12/p7b`。需手动复制/重命名为 debug_hos.*，否则 SignHap 报 "Invalid storeFile value"
+- **99_Temp 签名文件名与 build-profile.json5 引用名不匹配**：历史环境中 99_Temp 可能只有 `default_rustdesk_harmonyos_XXX=.cer/p12/p7b`，而 build-profile.json5 引用 `debug_hos.cer/p12/p7b`。当前标准是保留 `debug_hos.*`；若新机器文件名不同，先复制/重命名或用 `switch_deveco_paths.ps1` 选择实际签名文件，再跑签名验证。
 - **直接在项目根构建（RUSTDESK_HARMONY_DISABLE_STAGE=1）时签名路径 `../99_Temp/` 可正确解析**，但前提是签名文件名必须匹配
 - **Staged build 签名路径必须在 staged 项目内**：`stage_project_for_build.ps1` 需要把 `99_Temp/rustdesk_harmonyos_signing` 复制到 staged `signing/`，并把 staged `build-profile.json5` 的签名路径改为 `./signing/`；不要把项目根配置永久改成绝对路径。
 - **HDC `[Empty]` 不是设备**：`hdc list targets` 无设备时输出 `[Empty]`，脚本必须过滤入参、`RUSTDESK_HARMONY_USB_TARGET`、无线目标和 fallback 列表中的 `[Empty]`。
@@ -559,3 +560,11 @@
 | 2026-06-14 | 聊天对话框放大20%：100x130→120x156；再放大20%：120x156→144x187，最小值同步调整。ID输入框悬浮匹配框改为只在输入法激活时显示：新增`deviceIdInputFocused`状态，TextInput的onFocus设true/onBlur设false，onChange中`showIdSuggestions = deviceIdInputFocused && raw.length >= 3`，onBlur时隐藏匹配框。增量HAP构建通过。 |
 | 2026-06-14 | ID输入框修复：(1)悬浮匹配框左右居中：overlay align改为Alignment.Top，去掉x偏移；(2)X/→按钮点击无反应：Stack中左侧Column width('100%')覆盖右侧按钮，给左侧Column加right:60 padding留出按钮空间，右侧Row加zIndex(20)确保在overlay之上，按钮加hitTestBehavior(Block)和padding扩大点击区域，X按钮先关闭匹配框再清空避免状态竞争。增量HAP构建通过，卸载重装验证通过。 |
 | 2026-06-14 | ID输入框状态提示优化：(1)所有提示文本不超过8个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码等；(2)resolveStatusMessage不再拼接目标ID，改用短key如Connecting/Enter ID/ID incorrect/Conn failed/Pwd required；(3)setStatusMessageRaw加8字截断；(4)所有权限拒绝提示缩短：截屏权限拒绝、输入权限拒绝等；(5)去掉按钮padding避免图标视觉变小。增量HAP构建通过，卸载重装验证通过。 |
+
+## 2026-06-19 DevEco 路径与双架构核心经验
+
+- App 根目录配置必须默认保持可携带：`hvigor/hvigor-config.json5` 使用 `../99_Temp/harmonyos_cache` 和 `../99_Temp/harmonyos_build`，`build-profile.json5` 使用 `../99_Temp/rustdesk_harmonyos_signing/debug_hos.*`。不要提交 DevEco 自动写入的 `.ohos/config/default_...` 或某台机器专属绝对路径。
+- DevEco Studio 如需绝对路径才能同步，使用 `scripts\switch_deveco_paths.ps1 -Mode DevEco` 临时切换；提交、脚本构建、换电脑前使用 `-Mode Portable` 切回。`-Mode Status` 可快速检查当前模式。
+- `run_hvigor_with_sdk_patch.js` 运行中可以临时写入绝对 cache/build 路径以满足 Hvigor，退出时必须恢复 portable 配置。
+- 签名验证顺序：`node scripts\export_deveco_signing_command.js --show-secrets`，再跑 `powershell -ExecutionPolicy Bypass -File scripts\check_harmony_signing_profile.ps1 -Path build-profile.json5`。当前可用签名文件为 `debug_hos.cer/.p12/.p7b`，别名 `debugKey`。
+- 核心双架构构建经验保存在 `13_librustdesk_core/docs/LESSONS_LEARNED.md`：x86_64 OHOS 的 libvpx 不能让 SDK clang 接收 nasm/yasm 的 `-f elf64` 参数，需要在脚本中禁用 x86 SIMD 汇编路径；Opus 要安装到 `VCPKG_ROOT\installed\<triplet>`，否则 `magnum-opus` 会找不到 `opus/opus_multistream.h`。

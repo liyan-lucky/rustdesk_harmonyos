@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-19 09:28:00
-- Project: E:\Visual_Studio_Code\11_Rustdesk_harmonyos
-- HAP: E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 65 PASS, 0 FAIL, 1 SKIP
+- Generated: 2026-06-20 00:59:07
+- Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
+- HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
+- Summary: 66 PASS, 0 FAIL, 0 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -13,11 +13,11 @@
 | 4 | PASS | GitHub online workflow exists | .github\workflows\build-harmonyos.yml |
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
-| 7 | PASS | Native core archive exists | E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 130804584 bytes |
+| 7 | PASS | Native core archive exists | F:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
+| 8 | PASS | Native core archive size is plausible | 132777178 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=130804584 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=F783BDC7693B479B6C34FBCCFE95388B14F94F053EC50A0B5179635F0DA411B7 |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=132777178 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314 |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |
@@ -55,8 +55,8 @@
 | 46 | PASS | Quality parser captures target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches target_bitrate |
 | 47 | PASS | Quality parser captures codec format | entry\src\main\ets\pages\RemoteControl.ets matches codec_format |
 | 48 | PASS | Speed summary falls back to target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches targetBitrateDisplay |
-| 49 | PASS | Built HAP contains required native libraries | E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
-| 50 | SKIP | Packaged native bridge has no missing time service dependency | readelf/llvm-readelf not found |
+| 49 | PASS | Built HAP contains required native libraries | F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
+| 50 | PASS | Packaged native bridge has no missing time service dependency | NEEDED set excludes libtime_service_ndk.so and includes NAPI/Hilog |
 | 51 | PASS | CMake links native screen capture library | entry\src\main\cpp\CMakeLists.txt matches native_avscreen_capture |
 | 52 | PASS | CMake links native buffer library | entry\src\main\cpp\CMakeLists.txt matches native_buffer |
 | 53 | PASS | Screen capture service starts native capture through bridge | entry\src\main\ets\services\ScreenCaptureService.ets matches NativeRustDeskBridge\.startNativeScreenCapture |
