@@ -16,6 +16,8 @@
 - `99_Temp\librustdesk_core`：Core target、工具缓存和 Core 构建临时内容；按明确子目录清理，不能连带其他项目。
 - `99_Temp\rustdesk_harmonyos_device_validation`：本项目真机截图/交互临时证据；确认文档已记录无隐私结论后可删除。严禁保留一次性密码截图。
 - `99_Temp\release_inspect\11_Rustdesk_harmonyos` 与 `...\13_librustdesk_core`：线上资产下载和哈希复验，保留到发布记录完成。
+  - 当前保留：`13_librustdesk_core\core-34` 的两个 `.a`；`11_Rustdesk_harmonyos\OpenRustdesk-Build-v0.33.6\entry-default-signed.hap`（SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`）。这些是最终线上证据，不作为可随意清理的普通 cache。
+  - 2026-06-22 00:31 最终本地输出只保留 `harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`；`.cxx`、unsigned HAP、source map、`pack.info` 已删除，共释放 `39,919,723` bytes。保留 HAP SHA256 仍为 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`。
 - `99_Temp\rustdesk_harmonyos_backups`、`99_Temp\rustdesk_core_backups`：两个仓库各自备份目录，各仅保留最新 2 份完整备份和校验文件；不要再创建通用 `99_Temp\backups`。
 - 工作区根 `_tmp_rustdesk_1_4_7_src`：历史上为 RustDesk 1.4.7 上游源包的临时解压/对照树，不是第三仓库，也不是构建输入；完成差异确认后应删除，不能继续作为源码来源。
 
@@ -65,8 +67,8 @@ F:\Visual_Studio_Code
 | 最新 signed HAP | `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap` (`34,284,688` bytes, BuildInfo `0.33.6 / 2026-06-21 23:46`, phone-installed) | `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2` |
 | arm64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\aarch64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D` |
 | x86_64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\x86_64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD` |
-| App 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\rustdesk_harmonyos_20260621_235131.zip` (`1,434,138` bytes) | `CBD47DA1E03A54CF0EAB5FF47E1C18EF7BC6D17C7D8FE0BC244C4F589739F40A` |
-| Core 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_core_backups\rustdesk_core_20260621_235131.zip` (`3,592,925` bytes) | `E2CFF8937F62325BF7A8AD0081935D3347F9B62192E5490F52FAEB552D09875B` |
+| App 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\rustdesk_harmonyos_20260622_003605.zip` (`1,440,526` bytes) | `D386142694D53E1E1154535818AB0573EEDE591AFE906242F84E14FA7D85E037` |
+| Core 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_core_backups\rustdesk_core_20260622_003605.zip` (`3,596,189` bytes) | `208346582AC4FAD62B20402DD256BC4519F33414969AE599F22AA5232773D949` |
 
 当前 `%VSCODE_ROOT%\99_Temp` 中本项目保留以下目录（2026-06-21 23:41 实测；同级 TabSSH 目录和全部 APK 属于共享根其他保留内容，不列入本项目清单）：
 

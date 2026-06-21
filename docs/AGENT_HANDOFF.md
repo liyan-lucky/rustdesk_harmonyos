@@ -1,23 +1,35 @@
 # 当前任务交接入口
 
 > 更新时间：2026-06-21 17:06（Europe/Berlin）  
-> 最终本地收口：2026-06-21 23:48（Europe/Berlin）  
+> 最终线上收口：2026-06-22 00:30（Europe/Berlin）
 
-## 2026-06-21 23:48 最新接力摘要（最高优先级）
+## 2026-06-22 00:30 最新接力摘要（最高优先级）
 
-本地功能实现、固定哈希真机验证、精准清理和双仓库备份已收口，后续第一执行序列只剩：复核两仓库完整 diff → 提交、推送 → 等待并验证线上 Core Release 与 HarmonyOS HAP → 把线上 run/asset/hash 证据回写全部相关文档并推送文档收尾提交。不得回滚或覆盖当前未提交修改。
+功能实现、本地固定哈希真机验证、精准清理、双仓库备份、代码/文档提交推送、线上 Core Release/HAP，以及线上 HAP 的 arm64 真机与 x86_64 虚拟机复装均已收口。下一接手第一执行序列固定为：先核对双仓库 clean/ahead-behind=0、Release tag 仍指冻结的构建提交、最终备份各 2 份和 `99_Temp` 3 个 APK 不变；无新增需求时不得重建、重发、回滚已发布提交或用旧 Release 资产覆盖当前线上包。
+
+线上最终链路：Core commit `a7f77950d108f57b7f871eddf2c360db114d1c6d`，Windows 双架构 run `27920089950` 全绿，Release/tag `core-34` 指向该提交。arm64 asset `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`；x86_64 asset `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。两份线上 archive 均通过 `llvm-ar`，并包含共享画面、文件传输、终端和编码切换关键导出符号。
+
+App 功能 commit `f7fbf217500347f50510a144f88e69d2eaa44c35`，线上来源修复 commit `3ebdc726960ecf2e6176322cecb78ffb8e459842`。最终发布 run `27920708116` 全绿，Release/tag `OpenRustdesk-Build-v0.33.6` 已重指 `3ebdc726`。线上 signed HAP `35,067,077` bytes / SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`；包内 `module.json` 和 `modules.abc` 确认 `0.33.6`、arm64 `90A283… / 133495306`、x86_64 `E58746… / 131336988` 和 `X86_64_HASH_SHA256`。验签、四个双架构 native entries 和两架构 runtime dependency 均通过。
+
+必须保留的纠错记录：第一次 run `27920529277` 虽然绿色，但包内 arm64 被旧隐藏 secret 覆盖成 2026-06-12 的 `A200A8…`，而 x86_64 已是新 `E58746…`，因此整包作废并由同名 Release 的新 asset 替换。两套 workflow 现已移除 secret/var URL 的静默优先级，默认 latest，并支持 dispatch 显式传入两架构 URL+SHA256；审计 84 专门防止复发。
+
+最终线上 HAP 已从 Release 下载后安装到真机 `192.168.11.102:36169`：`versionName=0.33.6`、`versionCode=1000182`、`updateTime=1782084275314`（2026-06-22 00:24:35.314 +01:00）、PID `45951`；冷启动 hilog 为 NAPI 413 functions、`coreReady=true`、LAN discovery/在线查询正常，fatal/panic/signal 0。最终静态审计：100 轮、每轮 154 PASS / 0 FAIL / 1 预期 SKIP，合计 15400 PASS / 0 FAIL / 100 SKIP；连接链 84 PASS / 0 FAIL / 0 SKIP。
+
+同一线上 HAP 随后安装到在线虚拟机 `127.0.0.1:5555`：`uname -m=x86_64`、`versionName=0.33.6`、`versionCode=1000182`、`updateTime=1782084584518`、冷启动 PID `694`。hilog 显示 NAPI 413 functions，初始化后 `coreReady=true`，LAN discovery 与在线轮询正常；应用 PID 未见 fatal/panic/signal。虚拟机仅补充 x86_64 安装/启动证据，不替代真机共享画面与交互证据。
 
 最终本地候选 HAP：`F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`，大小 `34,284,688`，mtime `2026-06-21 23:46:38.466 +01:00`，SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `VERSION=0.33.6 / BUILD_TIME=2026-06-21 23:46`。CoreBuildInfo 同时记录 arm64 `131,091,732 / E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D / 9cbd45a1` 与 x86_64 `130,090,572 / DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD / 38bf9990`。两架构均为 2026-06-21 本地同源码基线构建；此前 `0.33.4` 的 x86_64 被默认 latest 下载覆盖为 2026-06-20 线上资产，已发现并废弃，不得发布。
 
 真机 `192.168.11.102:36169` 已安装上述精确 HAP；`bm dump` 为 `versionName=0.33.6`、`versionCode=1000182`、`updateTime=1782082072534`（2026-06-21 23:47:52.534 +01:00）、`cpuAbi=arm64-v8a`。强制停止后冷启动 PID `29233`，hilog 见 NAPI 413 functions、`coreReady=true`、LAN discovery 与在线查询正常，筛选日志未见 fatal/panic/signal。不能仅凭版本号判定新旧，必须同时核对本段 HAP 哈希、mtime、BuildInfo、双架构 CoreBuildInfo、设备 updateTime 和 hilog。
 
-固定哈希最终审计：`reports/full_function_audit_latest.md` 为 100 轮、每轮 152 PASS / 0 FAIL / 1 个预期 SKIP（合计 15200 PASS / 0 FAIL / 100 SKIP）；`reports/connection_chain_audit_latest.md` 为 83 PASS / 0 FAIL / 0 SKIP，其中新增 x86_64 文件、大小、SHA256/CoreBuildInfo 强制断言；签名、两架构 native entries 和两架构 runtime dependencies 验包通过；`git diff --check` 通过，仅有 Git 的 LF→CRLF 提示。
+固定哈希最终审计：`reports/full_function_audit_latest.md` 为 100 轮、每轮 154 PASS / 0 FAIL / 1 个预期 SKIP（合计 15400 PASS / 0 FAIL / 100 SKIP）；`reports/connection_chain_audit_latest.md` 为 84 PASS / 0 FAIL / 0 SKIP，其中包括 x86_64 文件、大小、SHA256/CoreBuildInfo 和线上 workflow Core 来源强制断言；签名、两架构 native entries 和两架构 runtime dependencies 验包通过；`git diff --check` 通过，仅有 Git 的 LF→CRLF 提示。
 
 真机 UI 已复验：数字 ID 分组保留且中部连续编辑光标不再跳到结尾；悬浮建议点击会完整写入并关闭；输入 `192.` 能匹配并写入 IP 卡片。ID 卡片菜单宽度收窄、管理员项仅显示“管理员”、未实现项点击统一提示“开发中”；重试对话框按钮高度降低且中间按钮为“中继”。共享页去掉重复的“屏幕共享服务”和 OTP 下方 Core 报错文本，服务/录屏状态联动刷新；文件传输和终端按设置菜单的主题、分界、滑动起止位置收口。
 
 华为手机作为被控端的远程输入/操控和 accessibility 已按用户决定搁置，不作为 P0 或发布失败。一次性密码只能存在测试运行内存，严禁写入源码、日志、文档、截图或提交说明。
 
-23:51 最终清理与备份：前两次可计量白名单清理释放 `1,348,092,177` bytes，最终双架构审计后又删除重新生成的 stage/intermediates/cache/generated；只触及本项目可再生内容、旧 `windows_hap`、真机临时截图/布局和残留 `.tmp`。共享 `99_Temp` 的 3 个 APK 数量/大小/哈希前后一致，`_tmp_rustdesk_1_4_7_src` 已确认不存在。App 最新备份 `rustdesk_harmonyos_20260621_235131.zip`（`1,434,138` bytes，SHA256 `CBD47DA1E03A54CF0EAB5FF47E1C18EF7BC6D17C7D8FE0BC244C4F589739F40A`）；Core 最新备份 `rustdesk_core_20260621_235131.zip`（`3,592,925` bytes，SHA256 `E2CFF8937F62325BF7A8AD0081935D3347F9B62192E5490F52FAEB552D09875B`）；各目录均仅保留最新 2 份 zip 及对应 `.sha256`。
+最终清理与备份：前两次可计量白名单清理释放 `1,348,092,177` bytes，最终双架构审计后又删除重新生成的 stage/intermediates/cache/generated；只触及本项目可再生内容、旧 `windows_hap`、真机临时截图/布局和残留 `.tmp`。共享 `99_Temp` 的 3 个 APK 数量/大小/哈希前后一致，`_tmp_rustdesk_1_4_7_src` 已确认不存在。App 最新备份 `rustdesk_harmonyos_20260622_003605.zip`（`1,440,526` bytes，SHA256 `D386142694D53E1E1154535818AB0573EEDE591AFE906242F84E14FA7D85E037`）；Core 最新备份 `rustdesk_core_20260622_003605.zip`（`3,596,189` bytes，SHA256 `208346582AC4FAD62B20402DD256BC4519F33414969AE599F22AA5232773D949`）；sidecar 内容与实算哈希一致，各目录均仅保留最新 2 份 zip 及对应 `.sha256`。
+
+00:31 线上包虚拟机补验后再次精准清理：从本地 HAP 输出目录删除 `.cxx`、unsigned HAP、source map 和 `pack.info` 共 `39,919,723` bytes，只保留最终 signed HAP；保留文件 SHA256 复核仍为 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`。`release_inspect` 的最终线上 HAP/Core assets、构建依赖缓存、签名材料以及共享根全部 3 个 APK 均保留。
 > 新对话必须先完整读取本文件，再按“必读顺序”读取项目文档并继续执行。不要重置、回滚或覆盖当前未提交改动。
 
 ## 2026-06-21 17:06 华为手机被控操控搁置与其他功能收口规则（最高优先级）

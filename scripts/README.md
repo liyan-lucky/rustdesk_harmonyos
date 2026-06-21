@@ -4,6 +4,8 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 
 > 2026-06-21 23:23：统一测试为 100 轮，每 5 轮增量检查点、每 10 轮全量检查点，第 100 轮后对固定 HAP 哈希做最终签名/双 ABI/BuildInfo/CoreBuildInfo/真机 updateTime/hilog/连接链验证。`99_Temp` 为多项目共享目录，脚本只能写入或清理本项目命名子目录，且任何 APK 都不得删除。
 
+> 2026-06-22 线上规则：HAP workflow 的两架构 Core URL/SHA256 必须通过显式 dispatch 输入固定，或留空使用 latest；不得重新引入 `secrets/vars.RUSTDESK_CORE*_URL` 的隐藏优先级。Release 验收必须扫描包内双架构 CoreBuildInfo。最终审计为每轮 155 项（154 PASS + 1 预期 SKIP），连接链 84/84。
+
 ## Workspace and temporary output rule
 
 All build, package, verification, HDC, backup, and temporary outputs must live under `%VSCODE_ROOT%/99_Temp` (current machine: `F:\Visual_Studio_Code\99_Temp`). See `docs/WORKSPACE_PATHS.md` for the authoritative directory map.

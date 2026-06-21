@@ -4,6 +4,8 @@
 
 > 2026-06-21 23:23 收口补充：`Index.ets` 负责 ID/IP 悬浮建议、格式化光标、官方对齐菜单、共享状态和未实现提示；`RemoteControl.ets` 负责会话菜单与紧凑重试对话框；`FileTransfer.ets` / `Terminal.ets` 已按设置页主题和滑动边界统一；`dvr.svg` 只用于设置页上方“显示设置”分组标题，下面同名条目继续使用原图标；输入控制继续使用原 `opt_mouse.svg`。最终产物和证据见 `AGENT_HANDOFF.md`。
 
+> 2026-06-22 线上构建文件职责：`.github/workflows/build-harmonyos*.yml` 只能从显式 dispatch 输入或 latest Release 获取两架构 Core，禁止隐藏 secret/var URL 静默覆盖；`run_hvigor_with_sdk_patch.js` 把 arm64/x86_64 大小与 SHA256 一并写入 `CoreBuildInfo.ets`；两个审计脚本必须核对这些字段和 workflow 来源规则。
+
 > 2026-06-21 更新：路径职责以 `docs/WORKSPACE_PATHS.md` 为准。所有构建、测试、缓存、日志和备份必须统一放在 `F:\Visual_Studio_Code\99_Temp` / `%VSCODE_ROOT%\99_Temp`，不要再使用 `F:\99_Temp`、`C:\99_Temp`、仓库内 `.codex_*` 或散落备份目录。
 
 ## 工作区项目匹配

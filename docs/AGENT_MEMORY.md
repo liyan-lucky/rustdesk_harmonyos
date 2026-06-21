@@ -2,7 +2,11 @@
 
 > **2026-06-21 路径与隐私硬规则**：所有构建、测试、验包、日志、备份和临时证据统一放在 `%VSCODE_ROOT%\99_Temp`，当前为 `F:\Visual_Studio_Code\99_Temp`。详细职责见 `docs/WORKSPACE_PATHS.md`。不要再使用 `F:\99_Temp`、`C:\99_Temp`、仓库内 `.codex_*`、工作区根 `_tmp_*` 作为长期工作区；如果工具临时生成，交接前清理或迁移。16:26 已完成二次清理，当前允许保留的 ignored 项只限 App 的 Core junction/native libs/local.properties/signing，以及 Core 的 entry/rdev-fork/version.rs。一次性密码只允许在测试脚本内存中使用，绝不写入源码、日志、文档、截图或提交说明。
 
-> **2026-06-21 23:48 固定候选记忆**：最终本地 HAP SHA256 为 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `0.33.6 / 2026-06-21 23:46`，真机 `updateTime=1782082072534`；100 轮全功能审计 0 FAIL、连接链 83/83。CoreBuildInfo 和审计现已强制核对 arm64/x86_64 两套大小与 SHA256，严禁再让默认线上 latest x86_64 覆盖本地新构建。必须以哈希、mtime、BuildInfo、双架构 CoreBuildInfo、updateTime、hilog 联合判新旧。共享 `99_Temp` 不能整体清空且任何 APK 都不得删除；仅清理明确属于本项目且可再生的目录。华为被控输入已搁置。后续从 `docs/AGENT_HANDOFF.md` 最新摘要继续。
+> **2026-06-21 23:48 固定候选记忆**：最终本地 HAP SHA256 为 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `0.33.6 / 2026-06-21 23:46`，真机 `updateTime=1782082072534`；最终 100 轮审计 15400 PASS / 0 FAIL / 100 预期 SKIP、连接链 84/84。CoreBuildInfo 和审计现已强制核对 arm64/x86_64 两套大小与 SHA256，严禁再让默认线上 latest x86_64 覆盖本地新构建。必须以哈希、mtime、BuildInfo、双架构 CoreBuildInfo、updateTime、hilog 联合判新旧。共享 `99_Temp` 不能整体清空且任何 APK 都不得删除；仅清理明确属于本项目且可再生的目录。华为被控输入已搁置。后续从 `docs/AGENT_HANDOFF.md` 最新摘要继续。
+
+> **2026-06-22 00:25 线上最终记忆**：最终 Release HAP SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`，Core assets 为 arm64 `90A283…` / x86_64 `E58746…`；App tag 指向 `3ebdc726`，Core tag 指向 `a7f7795`。线上包真机 `updateTime=1782084275314`、PID `45951`、hilog 无 fatal/panic/signal。第一次绿色线上包因旧 arm64 secret 混入 `A200A8…` 已作废；以后必须扫描包内双架构 CoreBuildInfo，不能只信 workflow 绿色或 Release 名称。
+
+> **2026-06-22 00:30 虚拟机补验记忆**：同一线上 HAP 已在 `127.0.0.1:5555` 的 x86_64 虚拟机安装并冷启动，`0.33.6 / 1000182`、`updateTime=1782084584518`、PID `694`、NAPI 413 functions，初始化后 `coreReady=true`；未持久化测试凭据或原始 hilog。
 
 > **2026-06-21 17:06 华为手机被控操控搁置**：用户确认华为手机不支持本项目需要的被控端远程操控/输入注入。该能力不再作为 P0、发布阻塞项或 100% 完成条件；`entry/src/main/module.json5` 已移除 accessibility extension 与 `ohos.permission.INPUT_MONITORING`，CMake 不再链接 `ohinput`，ArkTS accessibility service 已删除，仅在 `ohos_stubs.cpp` 保留固定返回 `201` 的 native 链接兼容符号。继续收口其他功能时要区分：手机作为访问端控制远端 PC 的会话菜单仍需验证，手机作为被控端被 Windows 操控已搁置。
 

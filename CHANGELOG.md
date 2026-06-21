@@ -4,11 +4,15 @@
 
 ## 0.33.6 release candidate (2026-06-21 23:48)
 
+- Published and verified online on 2026-06-22: Core run `27920089950` / `core-34`; HAP run `27920708116` / `OpenRustdesk-Build-v0.33.6`. Final online signed HAP SHA256 is `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`.
+- Fixed online-build provenance after detecting that a stale hidden arm64 URL could override the latest Core while x86_64 used the new Release. Both workflows now default to latest and accept explicit dual-architecture URL/SHA256 inputs; the final HAP embeds `90A283…` arm64 and `E58746…` x86_64 metadata.
+
 - Final signed dual-ABI HAP: `34,284,688` bytes, SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`, BuildInfo `2026-06-21 23:46`; both Core architectures are local 2026-06-21 builds from the same source baseline and their size/SHA256 values are embedded in CoreBuildInfo.
 - Finalized themed file-transfer and terminal pages, compact official-aligned ID-card menu, development toasts for unavailable functions, compact retry dialog (`中继`), corrected settings/title icons, share-service/capture linkage and live state refresh.
 - Restored numeric ID grouping without forcing the caret to the end; floating suggestions now fill the complete ID and include IP-address cards.
 - Removed duplicate share-status text and core readiness error text; OTP remains runtime-memory-only and is never written to source, logs, documents, screenshots, or commits.
-- Huawei controlled-side input/accessibility is explicitly shelved as unsupported; all remaining local release checks passed: 100 × 153 audit checks with 0 failures and connection-chain 83/83.
+- Huawei controlled-side input/accessibility is explicitly shelved as unsupported; all remaining release checks passed: 100 rounds × 155 checks (154 PASS + 1 expected SKIP per round), 0 failures, and connection-chain 84/84.
+- Installed the exact online signed HAP on the x86_64 emulator: `0.33.6 / 1000182`, `updateTime=1782084584518`, PID `694`, NAPI 413 functions, `coreReady=true`, normal LAN/online polling, and no app-process fatal/panic/signal.
 
 ## Unreleased (2026-06-20 handoff)
 

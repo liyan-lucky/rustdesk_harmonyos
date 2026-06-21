@@ -2,7 +2,11 @@
 
 > 修改方向必须符合这些设计要求，避免偏离。新接手开发请先读 `docs/README.md`，再按文档阅读顺序继续。
 
-> 2026-06-21 23:48 最终本地候选：版本 `0.33.6`，签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，已安装到 `192.168.11.102:36169`，设备 `updateTime=1782082072534`。arm64/x86_64 均来自 6 月 21 日本地同一源码基线并写入 CoreBuildInfo；固定哈希包完成 100 轮全功能审计（15200 PASS、0 FAIL、100 个预期 SKIP）与连接链审计（83 PASS、0 FAIL）。华为手机作为被控端的远程输入能力按用户决定搁置，不是发布阻塞项。完整证据和接力顺序见 `docs/AGENT_HANDOFF.md`。
+> 2026-06-21 23:48 最终本地候选：版本 `0.33.6`，签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，已安装到 `192.168.11.102:36169`，设备 `updateTime=1782082072534`。arm64/x86_64 均来自 6 月 21 日本地同一源码基线并写入 CoreBuildInfo；最终冻结审计为 100 轮共 15400 PASS、0 FAIL、100 个预期 SKIP，连接链 84/84。华为手机作为被控端的远程输入能力按用户决定搁置，不是发布阻塞项。完整证据和接力顺序见 `docs/AGENT_HANDOFF.md`。
+
+> 2026-06-22 00:25 线上最终发布：Core `a7f7795` / run `27920089950` / Release `core-34`；App `3ebdc726` / run `27920708116` / Release `OpenRustdesk-Build-v0.33.6`。线上 signed HAP `35,067,077` bytes，SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`，包内 CoreBuildInfo 对齐线上 arm64 `90A283…` 与 x86_64 `E58746…`，已下载、验签、双 ABI/依赖核验并真机复装，`updateTime=1782084275314`、PID `45951`、fatal/panic/signal 为 0。最终静态审计为 100 轮共 15400 PASS / 0 FAIL / 100 预期 SKIP，连接链 84/84。
+
+> 2026-06-22 00:30 虚拟机补验：同一线上 signed HAP 已安装到 `127.0.0.1:5555`（`x86_64`），包信息 `0.33.6 / 1000182`、`updateTime=1782084584518`，冷启动 PID `694`；NAPI 413 functions、`coreReady=true`、LAN discovery 与在线轮询正常，应用进程未见 fatal/panic/signal。
 
 > 2026-06-21 路径规范：所有构建、测试、验包、日志、备份和临时证据统一写入 `%VSCODE_ROOT%\99_Temp`（当前 `F:\Visual_Studio_Code\99_Temp`），详见 `docs/WORKSPACE_PATHS.md`。该目录由多个项目共享，禁止整体清空且全部 APK 必须保留；本项目只清理文档列明的 RustDesk 专属可再生子目录。不要使用盘符根 `F:\99_Temp`、仓库内 `.codex_*` 或工作区根 `_tmp_*` 作为长期目录。
 

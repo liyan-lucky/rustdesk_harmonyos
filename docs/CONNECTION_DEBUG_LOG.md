@@ -1,5 +1,12 @@
 # Connection Debug Log
 
+## 2026-06-22 00:25 final online-release device verification
+
+- Core run `27920089950` / tag `core-34`: arm64 `90A28361...` (`133,495,306` bytes), x86_64 `E587465E...` (`131,336,988` bytes); both archives contain required sharing/file/terminal/codec symbols.
+- App run `27920708116`, commit/tag `3ebdc726`, online signed HAP `35,067,077` bytes / SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`. Package memory scan confirmed version `0.33.6` and both exact online Core hashes/sizes.
+- Downloaded online HAP passed signature, arm64/x86_64 entries and runtime-dependency verification, then installed to `192.168.11.102:36169`: `updateTime=1782084275314`, PID `45951`, `coreReady=true`, LAN/online queries normal, fatal/panic/signal `0`.
+- Superseded run `27920529277` was rejected despite green status because it mixed historical arm64 `A200A8...` with new x86_64 `E58746...`; workflow inputs and audits now prevent hidden stale URL overrides.
+
 > Current focused record for connection and video-stream verification. Keep this file updated when device-side behavior is tested.
 
 ## 2026-06-21 23:48 fixed-hash final device verification
@@ -7,7 +14,13 @@
 - Installed HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`, size `34,284,688`, BuildInfo `0.33.6 / 2026-06-21 23:46` on `192.168.11.102:36169`.
 - Device evidence: `versionCode=1000182`, `updateTime=1782082072534`, `cpuAbi=arm64-v8a`; forced cold-start PID `29233`; hilog reported NAPI 413 functions, `coreReady=true` and successful LAN/online queries, with no selected fatal/panic/signal record.
 - Architecture consistency correction: arm64 `E4614B...` and x86_64 `DB0283...` are both local 2026-06-21 builds from the current Core source. The superseded `0.33.4` candidate used a 2026-06-20 latest-release x86_64 asset and is not releasable.
-- Exact package passed signature/dual-ABI/dependency verification, 100-round full audit (`15200 PASS / 0 FAIL / 100 expected SKIP`) and connection-chain audit (`83 PASS / 0 FAIL / 0 SKIP`); x86_64 size and SHA256 are now enforced against CoreBuildInfo.
+- Exact package passed signature/dual-ABI/dependency verification and the final frozen audit: `15400 PASS / 0 FAIL / 100 expected SKIP`, connection chain `84 PASS / 0 FAIL / 0 SKIP`; x86_64 size and SHA256 plus online workflow Core sources are enforced against CoreBuildInfo.
+
+## 2026-06-22 00:30 online HAP x86_64 emulator verification
+
+- Installed the exact Release HAP SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C` on `127.0.0.1:5555`; target architecture is `x86_64`.
+- Package metadata: `versionName=0.33.6`, `versionCode=1000182`, `updateTime=1782084584518`; cold-start PID `694`.
+- Safe filtered hilog showed NAPI 413 functions, runtime initialization, LAN discovery and repeated online polling with `coreReady=true`. No fatal/panic/signal line belonged to the app PID. Raw hilog and runtime credentials were not persisted.
 - UI device checks passed for complete ID suggestion insertion, IP-card matching/insertion and mid-string grouped-number caret preservation. Controlled-side Huawei input remains intentionally shelved.
 
 ## 2026-06-21 phone real-video verification and input boundary
