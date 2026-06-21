@@ -1,15 +1,23 @@
 # 项目接手说明
 
+> 2026-06-20 跨对话继续任务时，第一入口改为 `docs/AGENT_HANDOFF.md`；读完后再按本文阅读顺序补齐长期项目背景。
+
+> 2026-06-21 23:23：功能源码本地收口和固定哈希真机验证已完成。先完整阅读 `AGENT_HANDOFF.md` 的 23:23 最新摘要，再读 `WORKSPACE_PATHS.md`；不要重复修改或重建已验证包，除非发现源码问题。当前只剩精准清理、备份、推送、线上产物验证与最终文档回写。
+
 > 新开对话先读本文，再按“阅读顺序”查看对应文档。本文只写当前状态和文档结构，不记录长篇历史。
+
+> 2026-06-21 路径规则更新：所有构建、测试、验包、日志、备份和临时证据统一写入 `%VSCODE_ROOT%\99_Temp`（当前为 `F:\Visual_Studio_Code\99_Temp`）。它是多项目共享根，禁止整体清空且任何 APK 都不得删除；只清理 `docs/WORKSPACE_PATHS.md` 列明的本项目专属可再生路径。不要再使用 `F:\99_Temp`、仓库内 `.codex_*`、工作区根 `_tmp_*` 或个人临时目录。
 
 ## 当前项目状态
 
 - 项目：RustDesk HarmonyOS 客户端。
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 当前 USB 测试设备：由 `RUSTDESK_HARMONY_USB_TARGET` 指定，文档不记录硬件编号。
-- 当前无线测试设备：`192.168.11.100:36169`
+- 当前无线测试设备：`192.168.11.102:36169`
 - 包名：`com.open.rundesk`
 - 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
+- 2026-06-21 最新本地构建/验包 HAP：SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `0.33.6 / 2026-06-21 23:46`，签名、双 ABI 和两架构依赖验包通过并已安装真机；设备 `updateTime=1782082072534`，强制冷启动 PID `29233`，hilog `coreReady=true`、LAN/在线查询正常且 fatal/panic/signal 为 0。判断新旧必须看 hash/updateTime/BuildInfo/双架构 CoreBuildInfo/hilog，不能只看版本号。
+- 真机被控共享已验证到 Windows 端真实手机画面持续刷新；华为手机被控端输入/操控已按用户确认搁置，不再阻塞本轮收口。文件传输、五编码、远程光标和全部访问端会话菜单还未完成端到端回归。
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 2026-06-14 13 项目源码已补齐终端 official Session 调用和终端事件回流，修正音频空队列返回 `[]`，并同步 C++ 聊天四参 content 参数读取；commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并发布 `core-71`，11 项目已下载后完成 HAP 全量构建、验包、安装启动和 hilog 验证。
 - 2026-06-14 13 项目继续补齐文件传输事件回流和 `switch-sides` option 路由；commit `275b231e11aefd4a2e51050fc74fbdeba9c566bd` 已由 run `27485061967` 发布 `core-73`。11 项目已下载 core-73 并完成全量 HAP 构建、验包和无线安装；设备当前锁屏导致 `aa start` 被系统拒绝，运行态 hilog 待解锁后继续复测。
@@ -48,6 +56,8 @@
 
 `%VSCODE_ROOT%` 表示包含 `11_Rustdesk_harmonyos/` 和 `99_Temp/` 的工作区根目录；当前 U 盘环境会按项目位置自动检测该根目录，后续借用不同电脑时盘符可能变化。项目文档、构建脚本和发布流程都不应再绑定某个固定盘符，而应按当前项目位置向上匹配同级 `99_Temp`。
 
+完整路径职责、清理边界和废弃路径见 `docs/WORKSPACE_PATHS.md`。当前明确禁止继续使用盘符根 `F:\99_Temp` / `\99_Temp`，也不要把构建 target、Hvigor 输出、HDC dump 或临时截图留在 App/Core 仓库根。
+
 当前匹配关系：
 
 - App 项目：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
@@ -67,7 +77,7 @@
 2. DevEco Studio 路径如不在默认位置，更新 `local.properties` 的 `sdk.dir`、`hwsdk.dir`、`npm.dir`，或设置 `DEVECO_SDK_HOME`、`DEVECO_TOOLS_HOME`、`DEVECO_NODE_EXE`、`HDC_EXE`。
 3. U 盘文件系统可能触发 Git dubious ownership；临时查看可用 `git -c safe.directory=<当前11_Rustdesk_harmonyos路径> status`，不要为了消除提示执行普通 `git pull`。
 
-当前 U 盘上存在历史生成目录权限残留：项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/`，以及旧内层 `rustdesk_harmonyos/` 空缓存壳可能无法删除。构建脚本会先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor cache、HAP 输出和 Native `.cxx` 放到 `%VSCODE_ROOT%\99_Temp`；日常使用 `scripts\build_hap.bat` 或 `scripts\build_full_hap.bat`，不要直接运行 DevEco/Hvigor 内置 clean。`scripts\clean_project.ps1 -IncludeExternalBuild` 清理外部 build/stage 产物；只有明确需要深度清理时才额外加 `-IncludeHvigorCache`。
+历史上 U 盘曾出现项目内 `.hvigor/`、`entry/build/`、`entry/.cxx/` 和旧内层 `rustdesk_harmonyos/` 空缓存壳。2026-06-21 16:26 清理后这些本地缓存已清掉；后续构建脚本可按需重新生成 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，并把 Hvigor cache、HAP 输出和 Native `.cxx` 放到 `%VSCODE_ROOT%\99_Temp`。日常使用 `scripts\build_hap.bat` 或 `scripts\build_full_hap.bat`，不要直接运行 DevEco/Hvigor 内置 clean。`scripts\clean_project.ps1 -IncludeExternalBuild` 清理外部 build/stage 产物；只有明确需要深度清理时才额外加 `-IncludeHvigorCache`。
 
 ## 当前核心状态
 
@@ -171,25 +181,28 @@ UI 交互修复（2026-06-03）：
 
 1. `AGENT_MEMORY.md`
    - AI 助手记忆：工作规则、用户偏好、项目经验、处理流程。新对话必须先读。
-2. `README.md`
+2. `WORKSPACE_PATHS.md`
+   - 构建/测试/备份/清理的唯一目录规范。换电脑或清理前必须先读。
+3. `README.md`
    - 当前接手入口，说明项目状态、问题结构、文档用途。
-3. `CORE.md`
+4. `CORE.md`
    - 核心状态、HAP 构建安装、运行验证清单。核心架构和桥接函数详见 13 项目 `docs/CORE.md`。
-4. `PROGRESS.md`
+5. `PROGRESS.md`
    - 当前功能完成度、已完成事项、当前重点问题。
-5. `ISSUES.md`
+6. `ISSUES.md`
    - 问题库和易复发坑，修改前查这里。
-6. `FILES.md`
+7. `FILES.md`
    - 文件职责和外部依赖目录说明。
-7. `README.md`（项目根，设计要求）
+8. `README.md`（项目根，设计要求）
    - 架构、UI、构建、真机测试设计约束。原 `docs/DESIGN.md` 已合并到项目根 `README.md`。
-8. `UI.md`
+9. `UI.md`
    - UI 布局、图标、核心页面卡片细节。
-9. `GIT_PUBLISH.md`
+10. `GIT_PUBLISH.md`
    - GitHub 发布规则：本地和远端均为项目根结构；包含正常提交推送流程和生成物禁止项。
 
 **已迁移到 13 项目的核心文档**（`%VSCODE_ROOT%\13_librustdesk_core\docs\`）：
 - `CORE.md` — 核心架构、桥接函数完整说明（374个函数）、编译问题
+- `WORKSPACE_PATHS.md` — Core 构建/测试/备份路径规范，必须与 App 文档保持一致
 - `BUILD_ARCHIVE.md` — 历史构建、脚本、Ubuntu路径归档
 - `CONNECTION_DEBUG_LOG.md` — 连接问题逐轮排查记录
 - `UBUNTU_CROSS_COMPILE_GUIDE.md` — Ubuntu 交叉编译指南
@@ -239,7 +252,7 @@ publish_release: true
 
 2026-06-14 本地 core-74 验证：`librustdesk_core.a` 从 `core-74` release 下载，HAP 全量构建为 `0.19.0` / versionCode `1000090`，signed HAP `18,828,000` bytes / SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，无线设备安装成功；`bm dump` 显示 `versionName=0.19.0`。手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活；hilog `coreReady= true` 5 次、`query-onlines-result` 6 次，app fatal/panic/signal 为 0。
 
-2026-06-14 追加复核：文档更新后手机再次解锁，执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169` 复装并启动成功；`pidof com.open.rundesk` 返回 `12565`。`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
+2026-06-14 追加复核：文档更新后手机再次解锁，执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.102:36169` 复装并启动成功；`pidof com.open.rundesk` 返回 `12565`。`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
 
 2026-06-14 core-76 本地验证：`librustdesk_core.a` 从 `core-76` release 下载，HAP 全量构建为 `0.20.0` / versionCode `1000096`，signed HAP `18,909,325` bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`。`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，无线设备安装成功，`bm dump` 显示 `versionName=0.20.0`、`versionCode=1000096`；当前设备锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续复测。
 
@@ -253,7 +266,7 @@ publish_release: true
 - 修改 ArkTS/UI 后至少重新构建 HAP 并安装验证。
 - 多目标 HDC 环境必须显式加 `-t <target>`。
 - 当前优先使用 `RUSTDESK_HARMONY_USB_TARGET` 指定的 USB 目标。
-- 历史无线目标 `192.168.11.100:36169` 仅备用。
+- 历史无线目标 `192.168.11.102:36169` 仅备用。
 - GitHub 仓库展示结构和本地工作结构一致：项目根为 `%VSCODE_ROOT%\11_Rustdesk_harmonyos`，直接从当前项目根提交并推送；发布前先读 `docs/GIT_PUBLISH.md`。
 
 ## 2026-06-03 当前补充

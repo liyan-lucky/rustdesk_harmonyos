@@ -1,8 +1,8 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
 import { AppContextService } from './AppContextService';
-import { I18nService } from './I18nService';
 import fileFs from '@ohos.file.fs';
+import environment from '@ohos.file.environment';
 
 export interface FileInfo {
   path: string;
@@ -36,9 +36,19 @@ export interface FileTransferTask {
 }
 
 export interface FileTransferEvent {
-  type: 'task_started' | 'task_progress' | 'task_completed' | 'task_failed' | 'task_cancelled' | 'error' | 'remote_fs_changed';
+  type: 'task_started' | 'task_progress' | 'task_completed' | 'task_failed' | 'task_cancelled' |
+    'error' | 'remote_fs_changed' | 'override_required';
   task?: FileTransferTask;
   error?: string;
+  overrideRequest?: FileOverrideRequest;
+}
+
+export interface FileOverrideRequest {
+  jobId: number;
+  fileNumber: number;
+  targetPath: string;
+  isUpload: boolean;
+  isIdentical: boolean;
 }
 
 interface FileTransferStartPayload {
@@ -77,6 +87,12 @@ interface RemoteDirectoryPayload {
   entries?: RemoteDirectoryEntryPayload[];
 }
 
+interface PendingRemoteDirectoryRequest {
+  requestedPath: string;
+  timer: number;
+  resolve: (files: FileInfo[]) => void;
+}
+
 export class FileTransferService {
   private static instance: FileTransferService;
   private officialBridge: OfficialRustDeskBridge = OfficialRustDeskBridge.getInstance();
@@ -85,11 +101,14 @@ export class FileTransferService {
   private activeTransfers: Set<string> = new Set();
   private maxConcurrentTransfers: number = 3;
   private readonly rootLocalPath: string = FileTransferService.resolveRootLocalPath();
-  private readonly rootRemotePath: string = '/remote';
+  private rootRemotePath: string = '';
+  private lastRemoteDirectoryPath: string = '';
+  private pendingRemoteDirectoryRequest: PendingRemoteDirectoryRequest | null = null;
   private remoteFiles: FileInfo[] = [];
 
   private constructor() {
-    this.seedRemoteFiles();
+    this.rootRemotePath = this.normalizePath(OfficialSessionTransport.getRemoteDirectory());
+    this.lastRemoteDirectoryPath = this.rootRemotePath;
     this.officialBridge.addEventListener((event: OfficialSessionEvent) => {
       this.handleOfficialEvent(event);
     });
@@ -103,6 +122,13 @@ export class FileTransferService {
   }
 
   private static resolveRootLocalPath(): string {
+    try {
+      const downloadDir = environment.getUserDownloadDir();
+      if (typeof downloadDir === 'string' && downloadDir.trim().length > 0) {
+        return downloadDir.trim();
+      }
+    } catch (_error) {
+    }
     try {
       const context = AppContextService.getContext();
       if (context && typeof context.filesDir === 'string' && context.filesDir.trim().length > 0) {
@@ -118,11 +144,81 @@ export class FileTransferService {
   }
 
   async listRemoteDirectory(path: string): Promise<FileInfo[]> {
-    if (!OfficialSessionTransport.readRemoteDirectory(path, false)) {
-      this.dispatchEvent({ type: 'error', error: 'official remote directory entry unavailable' });
-      return Promise.resolve([]);
+    const requestedPath = this.normalizePath(path);
+    if (this.pendingRemoteDirectoryRequest !== null) {
+      clearTimeout(this.pendingRemoteDirectoryRequest.timer);
+      this.pendingRemoteDirectoryRequest.resolve(
+        this.getCachedRemoteDirectory(this.pendingRemoteDirectoryRequest.requestedPath)
+      );
+      this.pendingRemoteDirectoryRequest = null;
     }
-    return Promise.resolve(this.listVirtualDirectory(this.remoteFiles, path));
+    return new Promise<FileInfo[]>((resolve: (files: FileInfo[]) => void) => {
+      const timer = setTimeout(() => {
+        if (this.pendingRemoteDirectoryRequest?.requestedPath === requestedPath) {
+          const files = this.getCachedRemoteDirectory(requestedPath);
+          this.pendingRemoteDirectoryRequest = null;
+          resolve(files);
+        }
+      }, 5000);
+      this.pendingRemoteDirectoryRequest = {
+        requestedPath,
+        timer,
+        resolve
+      };
+      if (!OfficialSessionTransport.readRemoteDirectory(requestedPath, false)) {
+        clearTimeout(timer);
+        this.pendingRemoteDirectoryRequest = null;
+        this.dispatchEvent({ type: 'error', error: 'official remote directory entry unavailable' });
+        resolve([]);
+      }
+    });
+  }
+
+  getLocalRootPath(): string {
+    return this.rootLocalPath;
+  }
+
+  getRemoteRootPath(): string {
+    return this.rootRemotePath;
+  }
+
+  getLastRemoteDirectoryPath(): string {
+    return this.lastRemoteDirectoryPath;
+  }
+
+  getCachedRemoteDirectory(path: string): FileInfo[] {
+    const normalized = this.normalizePath(path);
+    const resolved = normalized.length > 0 ? normalized : this.lastRemoteDirectoryPath;
+    return this.listVirtualDirectory(this.remoteFiles, resolved);
+  }
+
+  joinPath(basePath: string, name: string): string {
+    const base = this.normalizePath(basePath);
+    const separator = this.pathSeparator(base);
+    if (base.length === 0) {
+      return name;
+    }
+    if (base.endsWith('/') || base.endsWith('\\')) {
+      return `${base}${name}`;
+    }
+    return `${base}${separator}${name}`;
+  }
+
+  parentPath(path: string, rootPath: string): string {
+    const normalized = this.normalizePath(path);
+    const root = this.normalizePath(rootPath);
+    if (normalized.length === 0 || normalized === root) {
+      return root;
+    }
+    const lastSlash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+    if (lastSlash < 0) {
+      return root;
+    }
+    if (lastSlash === 2 && /^[A-Za-z]:/.test(normalized)) {
+      return normalized.substring(0, 3);
+    }
+    const parent = normalized.substring(0, lastSlash);
+    return parent.length > 0 ? parent : root;
   }
 
   async createDirectory(path: string): Promise<void> {
@@ -236,6 +332,9 @@ export class FileTransferService {
     if (!task || task.status !== FileTransferStatus.TRANSFERRING) {
       return;
     }
+    if (typeof task.officialJobId === 'number') {
+      OfficialSessionTransport.cancelFileTransfer(task.officialJobId);
+    }
     task.status = FileTransferStatus.PAUSED;
     this.activeTransfers.delete(taskId);
   }
@@ -244,6 +343,9 @@ export class FileTransferService {
     const task = this.transferTasks.get(taskId);
     if (!task) {
       return;
+    }
+    if (typeof task.officialJobId === 'number') {
+      OfficialSessionTransport.cancelFileTransfer(task.officialJobId);
     }
     task.status = FileTransferStatus.CANCELLED;
     this.activeTransfers.delete(taskId);
@@ -275,6 +377,27 @@ export class FileTransferService {
 
   getMaxConcurrentTransfers(): number {
     return this.maxConcurrentTransfers;
+  }
+
+  respondToOverride(request: FileOverrideRequest, action: 'replace' | 'skip' | 'cancel'): void {
+    if (action === 'cancel') {
+      OfficialSessionTransport.cancelFileTransfer(request.jobId);
+      const task = this.findTaskByOfficialJobId(request.jobId);
+      if (task) {
+        task.status = FileTransferStatus.CANCELLED;
+        task.speed = 0;
+        this.activeTransfers.delete(task.id);
+        this.dispatchEvent({ type: 'task_cancelled', task });
+      }
+      return;
+    }
+    OfficialSessionTransport.confirmFileOverride(
+      request.jobId,
+      request.fileNumber,
+      action === 'replace',
+      false,
+      request.isUpload
+    );
   }
 
   static formatFileSize(bytes: number): string {
@@ -346,7 +469,22 @@ export class FileTransferService {
 
   private listVirtualDirectory(source: FileInfo[], path: string): FileInfo[] {
     const normalized = this.normalizePath(path);
-    const prefix = normalized.endsWith('/') ? normalized : `${normalized}/`;
+    if (normalized.length === 0) {
+      return source.filter((item: FileInfo) => {
+        const itemPath = item.path.trim();
+        return /^[A-Za-z]:[\\/]?$/.test(itemPath) ||
+          (itemPath.indexOf('/') === -1 && itemPath.indexOf('\\') === -1);
+      }).sort((a: FileInfo, b: FileInfo) => {
+        if (a.isDirectory !== b.isDirectory) {
+          return a.isDirectory ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    }
+    const separator = this.pathSeparator(normalized);
+    const prefix = normalized.endsWith('/') || normalized.endsWith('\\')
+      ? normalized
+      : `${normalized}${separator}`;
     return source.filter((item: FileInfo) => {
       if (item.path === normalized) {
         return false;
@@ -355,7 +493,7 @@ export class FileTransferService {
         return false;
       }
       const remainder = item.path.substring(prefix.length);
-      return remainder.length > 0 && remainder.indexOf('/') === -1;
+      return remainder.length > 0 && remainder.indexOf('/') === -1 && remainder.indexOf('\\') === -1;
     }).sort((a: FileInfo, b: FileInfo) => {
       if (a.isDirectory !== b.isDirectory) {
         return a.isDirectory ? -1 : 1;
@@ -366,7 +504,7 @@ export class FileTransferService {
 
   private removeVirtualItem(source: FileInfo[], path: string): FileInfo[] {
     const normalized = this.normalizePath(path);
-    const prefix = `${normalized}/`;
+    const prefix = `${normalized}${this.pathSeparator(normalized)}`;
     return source.filter((item: FileInfo) => item.path !== normalized && !item.path.startsWith(prefix));
   }
 
@@ -382,22 +520,24 @@ export class FileTransferService {
   private normalizePath(path: string): string {
     const trimmed = path.trim();
     if (trimmed.length === 0) {
-      return '/';
+      return '';
     }
-    return trimmed.endsWith('/') && trimmed.length > 1 ? trimmed.substring(0, trimmed.length - 1) : trimmed;
+    if (/^[A-Za-z]:[\\/]$/.test(trimmed) || trimmed === '/') {
+      return trimmed;
+    }
+    return (trimmed.endsWith('/') || trimmed.endsWith('\\'))
+      ? trimmed.substring(0, trimmed.length - 1)
+      : trimmed;
   }
 
   private getBaseName(path: string): string {
     const normalized = this.normalizePath(path);
-    const segments = normalized.split('/');
-    return segments[segments.length - 1] || '';
+    const lastSlash = Math.max(normalized.lastIndexOf('/'), normalized.lastIndexOf('\\'));
+    return lastSlash >= 0 ? normalized.substring(lastSlash + 1) : normalized;
   }
 
-  private seedRemoteFiles(): void {
-    const now = Date.now();
-    this.remoteFiles = [
-      { path: this.rootRemotePath, name: I18nService.getInstance().translate('Remote'), size: 0, isDirectory: true, modifiedTime: now }
-    ];
+  private pathSeparator(path: string): string {
+    return path.includes('\\') || /^[A-Za-z]:/.test(path) ? '\\' : '/';
   }
 
   private generateTaskId(): string {
@@ -433,6 +573,14 @@ export class FileTransferService {
     }
     if (event.kind === 'job-error' || event.kind === 'file-transfer-unsupported') {
       this.applyTransferErrorEvent(event.detail);
+      return;
+    }
+    if (event.kind === 'override-file-confirm') {
+      this.applyOverrideFileConfirmEvent(event.detail);
+      return;
+    }
+    if (event.kind === 'file-transfer-error') {
+      this.dispatchEvent({ type: 'error', error: event.detail });
       return;
     }
     if (event.kind === 'create-remote-dir' || event.kind === 'delete-remote-path') {
@@ -558,12 +706,16 @@ export class FileTransferService {
     try {
       const payload = JSON.parse(detail) as RemoteDirectoryPayload;
       const path = this.normalizePath(payload.path ?? this.rootRemotePath);
+      if (this.rootRemotePath.length === 0 && path.length > 0) {
+        this.rootRemotePath = path;
+      }
+      this.lastRemoteDirectoryPath = path;
       const entries = Array.isArray(payload.entries) ? payload.entries : [];
       const nextChildren: FileInfo[] = entries.map((entry: RemoteDirectoryEntryPayload): FileInfo => {
         const name = entry.name?.trim() ?? '';
         const entryType = typeof entry.entry_type === 'number' ? entry.entry_type : 4;
         const isDirectory = entryType !== 4 && entryType !== 5;
-        const fullPath = path === '/' ? `/${name}` : `${path}/${name}`;
+        const fullPath = this.joinPath(path, name);
         return {
           path: fullPath,
           name,
@@ -574,19 +726,47 @@ export class FileTransferService {
       }).filter((entry: FileInfo) => entry.name.length > 0);
 
       this.remoteFiles = this.remoteFiles.filter((item: FileInfo) => {
-        const prefix = path.endsWith('/') ? path : `${path}/`;
+        const separator = this.pathSeparator(path);
+        const prefix = path.endsWith('/') || path.endsWith('\\') ? path : `${path}${separator}`;
         if (!item.path.startsWith(prefix)) {
           return true;
         }
         const remainder = item.path.substring(prefix.length);
-        return remainder.includes('/');
+        return remainder.includes('/') || remainder.includes('\\');
       });
       nextChildren.forEach((entry: FileInfo) => {
         this.upsertVirtualFile(this.remoteFiles, entry);
       });
+      const pending = this.pendingRemoteDirectoryRequest;
+      if (pending !== null && (pending.requestedPath === path || pending.requestedPath.length === 0)) {
+        clearTimeout(pending.timer);
+        this.pendingRemoteDirectoryRequest = null;
+        pending.resolve(this.listVirtualDirectory(this.remoteFiles, path));
+      }
       this.dispatchEvent({ type: 'remote_fs_changed' });
     } catch (error) {
       console.error('applyRemoteDirectoryEvent failed', JSON.stringify(error));
+    }
+  }
+
+  private applyOverrideFileConfirmEvent(detail: string): void {
+    try {
+      const payload = JSON.parse(detail) as Record<string, Object | string | number | boolean>;
+      const jobId = Number(payload['id']);
+      const fileNumber = Number(payload['file_num']);
+      if (!Number.isFinite(jobId) || !Number.isFinite(fileNumber)) {
+        return;
+      }
+      const request: FileOverrideRequest = {
+        jobId: Math.round(jobId),
+        fileNumber: Math.round(fileNumber),
+        targetPath: String(payload['to'] ?? ''),
+        isUpload: payload['is_upload'] === true,
+        isIdentical: payload['is_identical'] === true
+      };
+      this.dispatchEvent({ type: 'override_required', overrideRequest: request });
+    } catch (error) {
+      console.error('applyOverrideFileConfirmEvent failed', JSON.stringify(error));
     }
   }
 

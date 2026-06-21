@@ -237,6 +237,7 @@ $abiPath = "entry\src\main\cpp\rustdesk_bridge_abi.h"
 $bridgeDtsPath = "entry\src\main\cpp\types\librustdesk_bridge\index.d.ts"
 $stubsPath = "entry\src\main\cpp\ohos_stubs.cpp"
 $corePath = Get-RepoPath "entry\src\main\libs\arm64\librustdesk_core.a"
+$x86CorePath = Get-RepoPath "entry\src\main\libs\x86_64\librustdesk_core.a"
 $hapResolvedPath = Resolve-HapPath
 
 Invoke-AuditCheck 1 "Hvigor build wrapper exists" { Test-FileExists "scripts\run_hvigor_with_sdk_patch.js" }
@@ -325,7 +326,25 @@ Invoke-AuditCheck 41 "Quality status is cached even when panel is hidden" {
 Invoke-AuditCheck 42 "Quality cache state exists" { Test-TextMatch $remoteControlPath "qualityMetricItems" }
 Invoke-AuditCheck 43 "Quality cache updater exists" { Test-TextMatch $remoteControlPath "updateQualityDetailCache" }
 Invoke-AuditCheck 44 "Connection info panel is scrollable" { Test-TextMatch $remoteControlPath "Scroll\(\)\s*\{\s*Column\(\{\s*space:\s*8\s*\}\)" }
-Invoke-AuditCheck 45 "Quality panel renders dynamic metric rows" { Test-TextMatch $remoteControlPath "ForEach\(this\.qualityMetricItems" }
+Invoke-AuditCheck 45 "Quality panel keeps seven fixed rows and refreshes cached values" {
+  $text = Read-TextFile (Get-RepoPath $remoteControlPath)
+  if ($null -eq $text) {
+    return New-CheckResult "FAIL" "RemoteControl missing"
+  }
+  if ($text -match "ForEach\(this\.qualityMetricItems") {
+    return New-CheckResult "FAIL" "quality panel still renders duplicate dynamic metric rows"
+  }
+  $requiredRows = @("Resolution", "FPS", "Latency", "Speed", "Connection", "Zoom", "Codec")
+  foreach ($label in $requiredRows) {
+    if ($text -notmatch "buildConnectionInfoRow\(this\.lt\('$([regex]::Escape($label))'\)") {
+      return New-CheckResult "FAIL" "missing fixed quality row: $label"
+    }
+  }
+  if ($text -notmatch "startConnectionInfoRefresh" -or $text -notmatch "qualityRefreshTick") {
+    return New-CheckResult "FAIL" "quality cache refresh timer is missing"
+  }
+  return New-CheckResult "PASS" "seven fixed rows, no dynamic ForEach, cached-value refresh enabled"
+}
 Invoke-AuditCheck 46 "Quality parser captures target bitrate" { Test-TextMatch $remoteControlPath "target_bitrate" }
 Invoke-AuditCheck 47 "Quality parser captures codec format" { Test-TextMatch $remoteControlPath "codec_format" }
 Invoke-AuditCheck 48 "Speed summary falls back to target bitrate" { Test-TextMatch $remoteControlPath "targetBitrateDisplay" }
@@ -396,6 +415,107 @@ Invoke-AuditCheck 64 "File transfer page bootstraps local access authorization" 
 Invoke-AuditCheck 65 "File transfer local operations use access authorization guard" { Test-TextMatch $fileTransferPath "ensureLocalFileAccessAuthorization" }
 Invoke-AuditCheck 66 "File access authorization uses folder auth mode" {
   Test-TextMatch $permissionPath "requestFileAuthorization\(\s*\{\s*folder:\s*true,\s*authMode:\s*true\s*\}\s*\)"
+}
+Invoke-AuditCheck 67 "Password is submitted to the active handshake" {
+  Test-TextMatch $indexPath "submitSessionPassword\(password,\s*this\.rememberPassword\)"
+}
+Invoke-AuditCheck 68 "Proactive password confirmation does not close the active handshake" {
+  Test-TextNotMatch $indexPath "pendingPasswordDialogProactive\s*\)\s*\{[\s\S]{0,320}resetPendingConnectionState"
+}
+Invoke-AuditCheck 69 "Password dialog moves above the software keyboard" {
+  Test-TextMatch $indexPath "translate\(\{\s*y:\s*this\.avoidKeyboardHeight"
+}
+Invoke-AuditCheck 70 "ID suggestions are not attached as a panel overlay" {
+  Test-TextNotMatch $indexPath "\.overlay\(this\.buildIdSuggestions"
+}
+Invoke-AuditCheck 71 "ID suggestions float without stealing command hit targets" {
+  $text = Read-TextFile (Get-RepoPath $indexPath)
+  if ($null -eq $text) {
+    return New-CheckResult "FAIL" "Index missing"
+  }
+  $match = [regex]::Match($text, "private\s+buildIdSuggestions\(\)[\s\S]*?private\s+buildOfficialLoginEntry")
+  if (-not $match.Success) {
+    return New-CheckResult "FAIL" "buildIdSuggestions block not found"
+  }
+  if ($match.Value -notmatch "\.position\(" -or $match.Value -notmatch "\.zIndex\(35\)" -or
+      $match.Value -notmatch "\.width\('calc\(100% - 116vp\)'\)" -or
+      $match.Value -notmatch "\.hitTestBehavior\(HitTestMode\.Block\)") {
+    return New-CheckResult "FAIL" "suggestion popup is not a tightly bounded positioned hit target"
+  }
+  $panelMatch = [regex]::Match($text, "private\s+buildOfficialConnectPanel\(\)[\s\S]*?private\s+buildConnectSearchAnchor")
+  if (-not $panelMatch.Success -or $panelMatch.Value -notmatch "\.zIndex\(40\)" -or
+      $panelMatch.Value -notmatch "this\.buildIdSuggestions\(\)") {
+    return New-CheckResult "FAIL" "clear/connect command row is not above the suggestion popup"
+  }
+  return New-CheckResult "PASS" "positioned popup overlays lower content, leaves command area outside its bounds, buttons stay above it"
+}
+Invoke-AuditCheck 72 "Best-speed quality uses the official low value" {
+  Test-TextMatch $remoteControlPath "2:\s*'low'"
+}
+Invoke-AuditCheck 73 "Harmony codec menu and native decoder expose all official codecs" {
+  $text = Read-TextFile (Get-RepoPath $remoteControlPath)
+  foreach ($codec in @("VP8", "VP9", "AV1", "H264", "H265")) {
+    if ($text -notmatch "\{ value: '$codec' \}") {
+      return New-CheckResult "FAIL" "missing codec choice: $codec"
+    }
+  }
+  $decoderPath = Get-RepoPath "entry\src\main\cpp\ohos_video_decoder.cpp"
+  $decoderText = Read-TextFile $decoderPath
+  if ($null -eq $decoderText -or $decoderText -notmatch "OH_VideoDecoder_CreateByMime" -or
+      $decoderText -notmatch "video/av01" -or $decoderText -notmatch "video/avc" -or
+      $decoderText -notmatch "video/hevc") {
+    return New-CheckResult "FAIL" "native AV1/H264/H265 decoder chain is incomplete"
+  }
+  $cmakeText = Read-TextFile (Get-RepoPath $cmakePath)
+  if ($null -eq $cmakeText -or $cmakeText -notmatch "ohos_video_decoder\.cpp" -or
+      $cmakeText -notmatch "native_media_codecbase") {
+    return New-CheckResult "FAIL" "native video decoder is not compiled and linked"
+  }
+  return New-CheckResult "PASS" "VP8/VP9/AV1/H264/H265 menu and native decoder chain are present"
+}
+Invoke-AuditCheck 74 "Keyboard menu checks target mode support" {
+  Test-TextMatch $remoteControlPath "sessionIsKeyboardModeSupported\('map'\)"
+}
+Invoke-AuditCheck 75 "Unsupported local-audio upload is not shown" {
+  Test-TextNotMatch $remoteControlPath "Send Local Audio|toggleLocalAudioCapture"
+}
+Invoke-AuditCheck 76 "Terminal errors remain visible after request cleanup" {
+  Test-TextMatch $indexPath "resetConnectionUiAfterTerminalEvent\(finalError\)"
+}
+Invoke-AuditCheck 77 "Block-input UI follows confirmed core state" {
+  Test-TextMatch $remoteControlPath "event\.kind === 'block-input-state'"
+}
+Invoke-AuditCheck 78 "Terminal persistence uses the official option key" {
+  Test-TextMatch $indexPath "applySessionAndLocalToggleOption\('terminal-persistent'"
+}
+Invoke-AuditCheck 79 "Unsupported Harmony default display options are hidden" {
+  Test-TextNotMatch $indexPath "applySessionAndLocalToggleOption\('(follow-remote-cursor|follow-remote-window|true-color-444|keep-terminal-on-disconnect)'"
+}
+Invoke-AuditCheck 80 "Clipboard toggle controls the local monitor lifecycle" {
+  Test-TextMatch $remoteControlPath "toggleClipboardSync[\s\S]{0,700}stopMonitoring\(\)[\s\S]{0,250}startMonitoring\(\)"
+}
+Invoke-AuditCheck 81 "x86_64 native core archive exists and is plausible" {
+  if (-not (Test-Path -LiteralPath $x86CorePath)) {
+    return New-CheckResult "FAIL" "missing x86_64 native core archive: $x86CorePath"
+  }
+  $size = (Get-Item -LiteralPath $x86CorePath).Length
+  if ($size -lt $MinCoreBytes) {
+    return New-CheckResult "FAIL" "$size bytes is below $MinCoreBytes"
+  }
+  return New-CheckResult "PASS" "$size bytes"
+}
+Invoke-AuditCheck 82 "CoreBuildInfo x86_64 size matches native core" {
+  if (-not (Test-Path -LiteralPath $x86CorePath)) {
+    return New-CheckResult "FAIL" "x86_64 native core archive missing"
+  }
+  Test-CoreBuildInfoValue "X86_64_FILE_SIZE" "$((Get-Item -LiteralPath $x86CorePath).Length)"
+}
+Invoke-AuditCheck 83 "CoreBuildInfo x86_64 SHA256 matches native core" {
+  if (-not (Test-Path -LiteralPath $x86CorePath)) {
+    return New-CheckResult "FAIL" "x86_64 native core archive missing"
+  }
+  $sha = (Get-FileHash -LiteralPath $x86CorePath -Algorithm SHA256).Hash.ToUpperInvariant()
+  Test-CoreBuildInfoValue "X86_64_HASH_SHA256" $sha
 }
 
 $passCount = @($results | Where-Object { $_.Status -eq "PASS" }).Count

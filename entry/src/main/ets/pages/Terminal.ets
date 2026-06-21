@@ -66,11 +66,14 @@ struct Terminal {
     }
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
+  @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
+  @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2C3343';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
   @StorageProp('theme_CONTRAST_TEXT') theme_CONTRAST_TEXT: string = '#F8FAFC';
+  @StorageProp('theme_ERROR_BG') theme_ERROR_BG: string = '#3B1D24';
   @StorageProp('theme_ERROR_TEXT') theme_ERROR_TEXT: string = '#FCA5A5';
   @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
   @StorageProp('theme_INPUT_BG') theme_INPUT_BG: string = '#232835';
@@ -91,10 +94,20 @@ struct Terminal {
           this.buildOutputPanel()
         }
         .width('100%')
-        .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD, top: 56 + 40, bottom: this.extraKeysVisible ? 190 : 120 })
+        .padding({
+          left: ThemeConfig.SPACING_MD,
+          right: ThemeConfig.SPACING_MD,
+          top: ThemeConfig.SPACING_MD,
+          bottom: ThemeConfig.SPACING_LG
+        })
       }
       .width('100%')
       .height('100%')
+      .align(Alignment.TopStart)
+      .padding({
+        top: 80,
+        bottom: this.avoidNavigationBarHeight + (this.extraKeysVisible ? 190 : 136)
+      })
       .scrollBar(BarState.Off)
 
       Column() {
@@ -102,19 +115,31 @@ struct Terminal {
           this.goBack();
         })
       }
+      .width('100%')
       .padding({ top: this.avoidStatusBarHeight })
-      .backgroundColor(this.themeIsDark ? '#802D3139' : '#80F8FAFC')
+      .linearGradient({
+        angle: 180,
+        colors: this.themeIsDark
+          ? [['#BB171A1E', 0.0], ['#99171A1E', 0.22], ['#66171A1E', 0.58], ['#00171A1E', 1.0]]
+          : [['#C0F0F4FA', 0.0], ['#A0F0F4FA', 0.22], ['#70F0F4FA', 0.58], ['#00F0F4FA', 1.0]]
+      })
 
       Column() {
         Blank().layoutWeight(1)
-        this.buildSessionBar()
-        if (this.extraKeysVisible) {
-          this.buildExtraKeys()
+        Column() {
+          this.buildSessionBar()
+          if (this.extraKeysVisible) {
+            this.buildExtraKeys()
+          }
+          this.buildInputBar()
         }
-        this.buildInputBar()
+        .width('100%')
+        .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+        .backgroundColor(this.theme_CARD_BG)
       }
       .width('100%')
       .height('100%')
+      .padding({ bottom: this.avoidNavigationBarHeight })
     }
     .width('100%')
     .height('100%')
@@ -124,14 +149,18 @@ struct Terminal {
 
   @Builder
   private buildSessionBar() {
-    Row({ space: 8 }) {
+    Flex({ direction: FlexDirection.Row, wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
       this.buildInfoPill(this.lt('Official Terminal'), this.theme_PANEL_BG, this.theme_CONTRAST_TEXT)
       this.buildInfoPill(this.sessionStatus, this.theme_ACCENT, this.theme_ACCENT_TEXT)
-      this.buildInfoPill(this.extraKeysVisible ? this.lt('Extra keys enabled') : this.lt('Extra keys disabled'), this.theme_ACCENT, this.theme_ACCENT_TEXT)
+      this.buildInfoPill(
+        this.extraKeysVisible ? this.lt('Extra keys enabled') : this.lt('Extra keys disabled'),
+        this.theme_ACCENT_SURFACE,
+        this.theme_ACCENT
+      )
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 10, bottom: 8 })
-    .backgroundColor(this.theme_INPUT_BG)
+    .backgroundColor(this.theme_CARD_BG)
   }
 
   @Builder
@@ -142,6 +171,7 @@ struct Terminal {
       .backgroundColor(color)
       .borderRadius(999)
       .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+      .margin({ right: 8, bottom: 4 })
   }
 
   @Builder
@@ -153,8 +183,9 @@ struct Terminal {
           Button(command)
             .height(32)
             .fontSize(11)
-            .backgroundColor(this.theme_CARD_BG)
+            .backgroundColor(this.theme_INPUT_BG)
             .fontColor(this.theme_TEXT_PRIMARY)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(12)
             .onClick(() => {
               this.commandInput = command;
@@ -163,6 +194,10 @@ struct Terminal {
       }
     }
     .width('100%')
+    .padding(12)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
@@ -204,6 +239,7 @@ struct Terminal {
           }
           .padding(16)
           .backgroundColor(this.theme_CARD_BG)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .borderRadius(18)
         }, (snippet: TerminalSnippet) => snippet.id)
       }
@@ -221,6 +257,7 @@ struct Terminal {
           .fontSize(11)
           .backgroundColor(this.theme_INPUT_BG)
           .fontColor(this.theme_TEXT_PRIMARY)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .borderRadius(10)
           .onClick(() => {
             this.extraKeysVisible = !this.extraKeysVisible;
@@ -232,7 +269,7 @@ struct Terminal {
         this.buildPanelAction(this.lt('Copy Output'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
           void this.copyOutput();
         })
-        this.buildPanelAction(this.lt('Clear'), this.theme_ERROR_TEXT, this.theme_CONTRAST_TEXT, () => {
+        this.buildPanelAction(this.lt('Clear'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
           this.outputLines = [];
         })
       }
@@ -251,10 +288,16 @@ struct Terminal {
         }
         .width('100%')
         .padding(16)
-        .backgroundColor(this.theme_PANEL_BG)
+        .backgroundColor(this.theme_INPUT_BG)
+        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
         .borderRadius(18)
       }
     }
+    .width('100%')
+    .padding(12)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
@@ -265,6 +308,7 @@ struct Terminal {
       .fontSize(11)
       .backgroundColor(color)
       .fontColor(fontColor)
+      .border({ width: 1, color: color === this.theme_ERROR_BG ? this.theme_ERROR_TEXT : color })
       .borderRadius(10)
       .onClick(action)
   }
@@ -280,7 +324,8 @@ struct Terminal {
       this.buildExtraKey(this.lt('Right'))
     }
     .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .backgroundColor(this.theme_INPUT_BG)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
   }
 
   @Builder
@@ -291,6 +336,7 @@ struct Terminal {
       .fontSize(12)
       .backgroundColor(this.theme_CARD_BG)
       .fontColor(this.theme_TEXT_PRIMARY)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
       .borderRadius(10)
       .onClick(() => {
         if (this.terminalId === -1) {
@@ -345,6 +391,7 @@ struct Terminal {
       .layoutWeight(1)
       .height(46)
       .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
       .borderRadius(12)
       .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
@@ -370,7 +417,8 @@ struct Terminal {
       })
     }
     .padding(16)
-    .backgroundColor(this.theme_INPUT_BG)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
   }
 
   private runCommand(command: string): void {

@@ -1,4 +1,4 @@
 export class BuildInfo {
-  static readonly BUILD_TIME: string = '2026-06-20 00:57';
-  static readonly VERSION: string = '0.29.2';
+  static readonly BUILD_TIME: string = '2026-06-21 23:46';
+  static readonly VERSION: string = '0.33.6';
 }

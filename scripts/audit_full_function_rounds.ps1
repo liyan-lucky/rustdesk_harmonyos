@@ -142,17 +142,20 @@ function Add-Check {
 
 function Add-FileCheck {
   param([string]$Name, [string]$RelativePath)
-  Add-Check $Name ({ Test-FileExists -RelativePath $RelativePath }.GetNewClosure())
+  $test = ${function:Test-FileExists}
+  Add-Check $Name ({ & $test -RelativePath $RelativePath }.GetNewClosure())
 }
 
 function Add-PatternCheck {
   param([string]$Name, [string]$RelativePath, [string]$Pattern)
-  Add-Check $Name ({ Test-Pattern -RelativePath $RelativePath -Pattern $Pattern }.GetNewClosure())
+  $test = ${function:Test-Pattern}
+  Add-Check $Name ({ & $test -RelativePath $RelativePath -Pattern $Pattern }.GetNewClosure())
 }
 
 function Add-NotPatternCheck {
   param([string]$Name, [string]$RelativePath, [string]$Pattern)
-  Add-Check $Name ({ Test-NotPattern -RelativePath $RelativePath -Pattern $Pattern }.GetNewClosure())
+  $test = ${function:Test-NotPattern}
+  Add-Check $Name ({ & $test -RelativePath $RelativePath -Pattern $Pattern }.GetNewClosure())
 }
 
 function Get-CoreInfoValue {
@@ -217,6 +220,18 @@ Add-Check "native core archive exists and is plausible" {
   return New-Result "PASS" "$size bytes"
 }
 
+Add-Check "x86_64 native core archive exists and is plausible" {
+  $path = Get-RepoPath "entry\src\main\libs\x86_64\librustdesk_core.a"
+  if (-not (Test-Path -LiteralPath $path)) {
+    return New-Result "FAIL" "x86_64 native core archive missing"
+  }
+  $size = (Get-Item -LiteralPath $path).Length
+  if ($size -lt $MinCoreBytes) {
+    return New-Result "FAIL" "$size bytes below $MinCoreBytes"
+  }
+  return New-Result "PASS" "$size bytes"
+}
+
 Add-Check "CoreBuildInfo size and hash match native core" {
   $corePath = Get-RepoPath "entry\src\main\libs\arm64\librustdesk_core.a"
   $infoText = Read-RepoText "entry\src\main\ets\common\CoreBuildInfo.ets"
@@ -232,6 +247,25 @@ Add-Check "CoreBuildInfo size and hash match native core" {
   }
   if ($declaredSha -ne $sha) {
     return New-Result "FAIL" "HASH_SHA256 mismatch"
+  }
+  return New-Result "PASS" "$size bytes $sha"
+}
+
+Add-Check "CoreBuildInfo x86_64 size and hash match native core" {
+  $corePath = Get-RepoPath "entry\src\main\libs\x86_64\librustdesk_core.a"
+  $infoText = Read-RepoText "entry\src\main\ets\common\CoreBuildInfo.ets"
+  if (-not (Test-Path -LiteralPath $corePath) -or $null -eq $infoText) {
+    return New-Result "FAIL" "x86_64 core file or CoreBuildInfo missing"
+  }
+  $size = (Get-Item -LiteralPath $corePath).Length
+  $sha = (Get-FileHash -LiteralPath $corePath -Algorithm SHA256).Hash.ToUpperInvariant()
+  $declaredSize = Get-CoreInfoValue -Text $infoText -Name "X86_64_FILE_SIZE"
+  $declaredSha = (Get-CoreInfoValue -Text $infoText -Name "X86_64_HASH_SHA256").ToUpperInvariant()
+  if ($declaredSize -ne "$size") {
+    return New-Result "FAIL" "X86_64_FILE_SIZE $declaredSize != $size"
+  }
+  if ($declaredSha -ne $sha) {
+    return New-Result "FAIL" "X86_64_HASH_SHA256 mismatch"
   }
   return New-Result "PASS" "$size bytes $sha"
 }
@@ -253,12 +287,42 @@ Add-Check "AppScope and BuildInfo version agree" {
 
 Add-PatternCheck "no-password connection opens password dialog" "entry\src\main\ets\pages\Index.ets" 'showConnectPasswordDialog\(targetId,\s*true\)'
 Add-PatternCheck "no-password request remains active while password dialog is shown" "entry\src\main\ets\pages\Index.ets" "Enter remote password if known, or wait for remote confirmation"
-Add-PatternCheck "remote route carries password dialog flag" "entry\src\main\ets\pages\Index.ets" "showPasswordDialog:\s*shouldShowPasswordDialog"
-Add-PatternCheck "remote route carries proactive password flag" "entry\src\main\ets\pages\Index.ets" "passwordPromptProactive:\s*shouldUseProactivePasswordDialog"
-Add-PatternCheck "password confirmation switches to password reconnect" "entry\src\main\ets\pages\Index.ets" "Switching to password connection"
-Add-PatternCheck "remote page accepts proactive password route" "entry\src\main\ets\pages\RemoteControl.ets" "passwordPromptProactive"
-Add-PatternCheck "remote page preserves password dialog until first frame" "entry\src\main\ets\pages\RemoteControl.ets" "keepPasswordFallback"
+Add-NotPatternCheck "remote route does not carry obsolete password dialog flags" "entry\src\main\ets\pages\Index.ets" "showPasswordDialog:\s*shouldShowPasswordDialog|passwordPromptProactive:\s*shouldUseProactivePasswordDialog"
+Add-PatternCheck "password confirmation submits to active handshake" "entry\src\main\ets\pages\Index.ets" "submitSessionPassword\(password,\s*this\.rememberPassword\)"
+Add-NotPatternCheck "proactive password confirmation does not close active handshake" "entry\src\main\ets\pages\Index.ets" "pendingPasswordDialogProactive\s*\)\s*\{[\s\S]{0,320}resetPendingConnectionState"
+Add-PatternCheck "password dialog avoids software keyboard" "entry\src\main\ets\pages\Index.ets" "translate\(\{\s*y:\s*this\.avoidKeyboardHeight"
+Add-NotPatternCheck "msgbox success cannot promote session to connected" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "msgType\s*===\s*'success'[\s\S]{0,160}sessionStage\s*=\s*'connected'"
+Add-PatternCheck "password dialog remains on index while connection monitor waits" "entry\src\main\ets\pages\Index.ets" "showConnectPasswordDialog\(targetId,\s*true\)[\s\S]{0,180}initiateBackgroundConnection\(this\.pendingTransportTarget,\s*targetId\)"
 Add-PatternCheck "password prompt helper covers unicode password text" "entry\src\main\ets\pages\RemoteControl.ets" "shouldPromptForPasswordText"
+Add-NotPatternCheck "ID suggestions do not overlay input commands" "entry\src\main\ets\pages\Index.ets" "\.overlay\(this\.buildIdSuggestions"
+Add-PatternCheck "ID suggestions use a floating positioned popup" "entry\src\main\ets\pages\Index.ets" "private\s+buildIdSuggestions\(\)[\s\S]{0,2600}\.width\('calc\(100% - 116vp\)'\)[\s\S]{0,500}\.position\("
+Add-Check "ID suggestion and command hit targets are explicit" {
+  $text = Read-RepoText "entry\src\main\ets\pages\Index.ets"
+  if ($null -eq $text) {
+    return New-Result "FAIL" "Index missing"
+  }
+  $suggestionBlock = [regex]::Match(
+    $text,
+    "private\s+buildIdSuggestions\(\)[\s\S]*?private\s+buildOfficialLoginEntry"
+  )
+  $connectPanelBlock = [regex]::Match(
+    $text,
+    "private\s+buildOfficialConnectPanel\(\)[\s\S]*?private\s+buildConnectSearchAnchor"
+  )
+  if (-not $suggestionBlock.Success -or
+      $suggestionBlock.Value -notmatch "\.position\(" -or
+      $suggestionBlock.Value -notmatch "\.zIndex\(35\)" -or
+      $suggestionBlock.Value -notmatch "\.width\('calc\(100% - 116vp\)'\)" -or
+      $suggestionBlock.Value -notmatch "\.hitTestBehavior\(HitTestMode\.Block\)") {
+    return New-Result "FAIL" "suggestion popup is not a tightly bounded positioned hit target"
+  }
+  if (-not $connectPanelBlock.Success -or
+      $connectPanelBlock.Value -notmatch "\.zIndex\(40\)" -or
+      $connectPanelBlock.Value -notmatch "this\.buildIdSuggestions\(\)") {
+    return New-Result "FAIL" "clear/connect command row is not above the suggestion popup"
+  }
+  return New-Result "PASS" "positioned popup and command row use explicit bounded hit targets"
+}
 
 Add-PatternCheck "retry handles session-error" "entry\src\main\ets\pages\RemoteControl.ets" "session-error"
 Add-PatternCheck "retry handles session-closed" "entry\src\main\ets\pages\RemoteControl.ets" "session-closed"
@@ -276,6 +340,9 @@ Add-PatternCheck "official bridge treats login as connecting" "entry\src\main\et
 Add-PatternCheck "official bridge treats reconnect as connecting" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "event.kind === 'reconnect'"
 Add-PatternCheck "official bridge treats connection-ready as connected" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "connection-ready"
 Add-PatternCheck "official bridge treats closed as idle" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "event.kind === 'session-closed' \|\| event.kind === 'closed'"
+Add-PatternCheck "official bridge deduplicates repeated terminal events" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "lastTerminalEventSignature"
+Add-NotPatternCheck "official bridge does not feed native terminal events back into core" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "NativeRustDeskBridge\.markSession(Error|Connected)"
+Add-PatternCheck "official bridge preserves logical ID for direct transport" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "sessionTransportPeerId[\s\S]{0,500}sessionDisplayPeerId"
 Add-PatternCheck "official bridge exposes query online" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "queryOnlines"
 Add-PatternCheck "official bridge exposes LAN discover" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "discoverLanPeers"
 Add-PatternCheck "official bridge exposes LAN load" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "loadLanPeers"
@@ -287,9 +354,10 @@ Add-PatternCheck "LAN discovery debounces transient empty results" "entry\src\ma
 Add-PatternCheck "LAN discovery parses peer json" "entry\src\main\ets\services\LanDiscoveryService.ets" "JSON.parse"
 
 Add-PatternCheck "quality status event is handled" "entry\src\main\ets\pages\RemoteControl.ets" "quality-status"
-Add-PatternCheck "quality details panel exists" "entry\src\main\ets\pages\RemoteControl.ets" "Quality Details"
-Add-PatternCheck "raw quality panel keeps extended detail" "entry\src\main\ets\pages\RemoteControl.ets" "2400"
-Add-PatternCheck "quality panel is scrollable" "entry\src\main\ets\pages\RemoteControl.ets" "scrollBar\(BarState.Auto\)"
+Add-NotPatternCheck "quality panel omits removed dynamic details section" "entry\src\main\ets\pages\RemoteControl.ets" "this\.lt\('Quality Details'\)|ForEach\(this\.qualityMetricItems"
+Add-PatternCheck "quality cache keeps extended parser range" "entry\src\main\ets\pages\RemoteControl.ets" "2400"
+Add-PatternCheck "quality panel is scrollable" "entry\src\main\ets\pages\RemoteControl.ets" "scrollable\(ScrollDirection\.Vertical\)"
+Add-PatternCheck "quality panel refreshes cached values while visible" "entry\src\main\ets\pages\RemoteControl.ets" "startConnectionInfoRefresh[\s\S]{0,900}qualityRefreshTick\s*\+=\s*1"
 Add-PatternCheck "quality parser handles Rust debug struct" "entry\src\main\ets\pages\RemoteControl.ets" "parseRustDebugQualityStatus"
 Add-PatternCheck "quality parser handles fps map" "entry\src\main\ets\pages\RemoteControl.ets" "fpsRecord"
 
@@ -305,10 +373,57 @@ Add-PatternCheck "terminal open path exists" "entry\src\main\ets\services\Offici
 Add-PatternCheck "terminal resize path exists" "entry\src\main\ets\services\OfficialSessionTransport.ets" "resizeTerminal"
 Add-PatternCheck "permission settings path exists" "entry\src\main\ets\services\PermissionService.ets" "openAppSettings"
 Add-PatternCheck "incoming service toggles native core" "entry\src\main\ets\services\OfficialRustDeskBridge.ets" "setIncomingServiceEnabled"
+Add-PatternCheck "core page probes packaged x86 bridge" "entry\src\main\ets\pages\Index.ets" "bundle/libs/x86_64/librustdesk_bridge\.so"
+Add-PatternCheck "core runtime summary displays native event log" "entry\src\main\ets\pages\Index.ets" "getRuntimeLogSummary"
+Add-PatternCheck "LAN discovered ID can use direct address" "entry\src\main\ets\pages\Index.ets" "getDirectAddress\(peerId\)"
+Add-PatternCheck "numeric ID editor restores grouped display formatting" "entry\src\main\ets\pages\Index.ets" "formattedValue\s*=\s*numericTarget\s*\?\s*this\.formatId\(raw\)\s*:\s*raw"
+Add-PatternCheck "formatted ID editor restores the mapped caret" "entry\src\main\ets\pages\Index.ets" "onTextSelectionChange[\s\S]{0,900}mapConnectionTargetCaret|mapConnectionTargetCaret[\s\S]{0,2800}onTextSelectionChange"
+Add-PatternCheck "formatted ID caret restore survives controlled rerender" "entry\src\main\ets\pages\Index.ets" "deviceIdCaretRestoreVersion[\s\S]{0,2200}\[0,\s*40,\s*120\][\s\S]{0,400}caretPosition\(position\)"
+Add-PatternCheck "formatted ID caret uses stable text diff mapping" "entry\src\main\ets\pages\Index.ets" "resolveRawCaretAfterEdit[\s\S]{0,1500}changedEnd[\s\S]{0,220}countConnectionTargetCharactersBeforeCaret"
+Add-PatternCheck "ID suggestions include direct IP cards" "entry\src\main\ets\pages\Index.ets" "getIdSuggestions\(\)[\s\S]{0,1200}toLowerCase\(\)\.includes\(query\)"
+Add-NotPatternCheck "ID suggestions are not restricted to numeric targets" "entry\src\main\ets\pages\Index.ets" "buildIdSuggestions\(\)[\s\S]{0,180}isNumericConnectionTarget"
+Add-PatternCheck "ID suggestion selection rejects stale partial onChange" "entry\src\main\ets\pages\Index.ets" "pendingDeviceIdSelection[\s\S]{0,1400}raw\s*!==\s*this\.pendingDeviceIdSelection"
+Add-PatternCheck "ID suggestion click fills the complete selected ID" "entry\src\main\ets\pages\Index.ets" "buildIdSuggestions[\s\S]{0,1800}selectDeviceIdInputTarget\(id\)"
+Add-PatternCheck "ID suggestion captures touch before input blur" "entry\src\main\ets\pages\Index.ets" "id-suggestion-[\s\S]{0,320}TouchType\.Down[\s\S]{0,180}selectDeviceIdInputTarget"
+Add-PatternCheck "ID suggestion stays closed after complete programmatic fill" "entry\src\main\ets\pages\Index.ets" "raw\s*===\s*this\.pendingDeviceIdSelection[\s\S]{0,320}showIdSuggestions\s*=\s*false;[\s\S]{0,180}return;"
 Add-PatternCheck "incoming password syncs to core" "entry\src\main\ets\services\AppDataService.ets" "temporary-password"
+Add-PatternCheck "temporary password starts empty in source" "entry\src\main\ets\services\AppDataService.ets" "private\s+password:\s*string\s*=\s*''"
+Add-NotPatternCheck "temporary password is not persisted in app preferences" "entry\src\main\ets\services\AppDataService.ets" "PreferenceStore\.(getPassword|setPassword)"
+Add-PatternCheck "legacy persisted temporary password is deleted" "entry\src\main\ets\services\PreferenceStore.ts" "clearLegacyTemporaryPassword[\s\S]{0,220}deleteKey"
+Add-PatternCheck "share running status requires incoming service and active capture" "entry\src\main\ets\pages\Index.ets" "isShareServiceRunning\(\)[\s\S]{0,240}incomingReady[\s\S]{0,160}isNativeScreenCaptureRunning"
+Add-PatternCheck "share service always starts native capture when inactive" "entry\src\main\ets\pages\Index.ets" "performToggleIncomingService[\s\S]{0,3000}if\s*\(!this\.isNativeScreenCaptureRunning\(\)\)\s*\{[\s\S]{0,180}startCapture\(\)"
+Add-PatternCheck "official scam warning gate and countdown exist" "entry\src\main\ets\pages\Index.ets" "show-scam-warning[\s\S]{0,500}shareWarningCountdown\s*=\s*12"
+Add-PatternCheck "Harmony input control remains visible as unsupported" "entry\src\main\ets\pages\Index.ets" "buildUnsupportedCapabilityRow\([\s\S]{0,180}Input Control[\s\S]{0,180}HarmonyOS currently does not support this feature"
+Add-PatternCheck "Harmony input control keeps original mouse icon" "entry\src\main\ets\pages\Index.ets" "buildUnsupportedCapabilityRow\([\s\S]{0,180}Input Control[\s\S]{0,240}opt_mouse\.svg"
+Add-PatternCheck "relay selected state uses square checkbox asset" "entry\src\main\ets\pages\Index.ets" "buildForceRelayConnectionRow[\s\S]{0,420}checkbox-outline\.svg"
+Add-PatternCheck "ID card menu uses compact fixed width" "entry\src\main\ets\pages\Index.ets" "buildRecentSessionMenu[\s\S]{0,6500}\.width\(248\)"
+Add-PatternCheck "administrator terminal menu uses compact label" "entry\src\main\ets\pages\Index.ets" "buildPeerMenuActionRow\(this\.lt\('Administrator'\)[\s\S]{0,140}closePeerMenuAsDeveloping"
+Add-NotPatternCheck "ID card menu hides persistent development labels" "entry\src\main\ets\pages\Index.ets" "buildPeerMenuActionRow[\s\S]{0,700}Text\(this\.lt\('In development'\)\)"
+Add-PatternCheck "ID card unavailable actions show development toast" "entry\src\main\ets\pages\Index.ets" "closePeerMenuAsDeveloping[\s\S]{0,180}showToast[\s\S]{0,100}In development"
+Add-PatternCheck "disabled settings actions show development toast" "entry\src\main\ets\pages\Index.ets" "buildSettingsToggleSettingRow[\s\S]{0,1800}if\s*\(disabled\)[\s\S]{0,180}In development"
+Add-PatternCheck "unsupported capability actions show development toast" "entry\src\main\ets\pages\Index.ets" "buildUnsupportedCapabilityRow[\s\S]{0,1200}showToast[\s\S]{0,120}In development"
+Add-PatternCheck "settings display section title uses dvr icon" "entry\src\main\ets\pages\Index.ets" "buildSettingsDisplaySection[\s\S]{0,180}buildSettingsSectionLabel\(this\.lt\('Display Settings'\), 'dvr\.svg'\)"
+Add-PatternCheck "settings display entry keeps display icon" "entry\src\main\ets\pages\Index.ets" "buildSettingsDisplaySection[\s\S]{0,500}display\.svg"
+Add-PatternCheck "share card keeps one trailing status badge" "entry\src\main\ets\pages\Index.ets" "buildShareServiceCard[\s\S]{0,1000}StatusBadge\(this\.resolveShareStatusBadgeText"
+Add-NotPatternCheck "share card omits duplicate service title and readiness error" "entry\src\main\ets\pages\Index.ets" "buildShareServiceCard[\s\S]{0,2400}(Text\(this\.lt\('Screen sharing service'\)\)|Core video source not ready)"
+Add-PatternCheck "file transfer follows settings scroll and themed borders" "entry\src\main\ets\pages\FileTransfer.ets" "\.padding\(\{\s*top:\s*80[\s\S]{0,3000}\.border\(\{\s*width:\s*1,\s*color:\s*this\.theme_BORDER_SUBTLE"
+Add-PatternCheck "terminal follows settings scroll and themed borders" "entry\src\main\ets\pages\Terminal.ets" "\.padding\(\{[\s\S]{0,180}top:\s*80[\s\S]{0,1200}theme_BORDER_SUBTLE"
 Add-PatternCheck "server config codec exists" "entry\src\main\ets\services\ServerConfigCodec.ets" "ServerConfigCodec"
 
 Add-PatternCheck "native dts declares reconnect" "entry\src\main\ets\services\librustdesk_bridge.d.ts" "reconnectSession"
+Add-PatternCheck "best-speed quality uses official low value" "entry\src\main\ets\pages\RemoteControl.ets" "2:\s*'low'"
+Add-PatternCheck "all official codecs are visible on Harmony" "entry\src\main\ets\pages\RemoteControl.ets" "\{ value: 'VP8' \}[\s\S]{0,500}\{ value: 'VP9' \}[\s\S]{0,500}\{ value: 'AV1' \}[\s\S]{0,500}\{ value: 'H264' \}[\s\S]{0,500}\{ value: 'H265' \}"
+Add-PatternCheck "native AV1 H264 H265 decoder is compiled" "entry\src\main\cpp\CMakeLists.txt" "ohos_video_decoder\.cpp"
+Add-PatternCheck "native decoder uses Harmony codec API" "entry\src\main\cpp\ohos_video_decoder.cpp" "OH_VideoDecoder_CreateByMime"
+Add-PatternCheck "keyboard menu checks map support" "entry\src\main\ets\pages\RemoteControl.ets" "sessionIsKeyboardModeSupported\('map'\)"
+Add-NotPatternCheck "unsupported local audio upload is hidden" "entry\src\main\ets\pages\RemoteControl.ets" "Send Local Audio|toggleLocalAudioCapture"
+Add-PatternCheck "terminal connection errors remain visible" "entry\src\main\ets\pages\Index.ets" "resetConnectionUiAfterTerminalEvent\(finalError\)"
+Add-NotPatternCheck "remote menu unavailable actions use development feedback" "entry\src\main\ets\pages\RemoteControl.ets" "this\.lt\('(Command|Codec) unavailable'\)"
+Add-PatternCheck "reconnect dialog uses compact relay button" "entry\src\main\ets\pages\RemoteControl.ets" "buildReconnectDialog[\s\S]{0,1600}Button\(this\.lt\('Relay'\)\)[\s\S]{0,160}\.height\(36\)"
+Add-PatternCheck "block input follows core state" "entry\src\main\ets\pages\RemoteControl.ets" "block-input-state"
+Add-PatternCheck "terminal persistence uses official key" "entry\src\main\ets\pages\Index.ets" "terminal-persistent"
+Add-NotPatternCheck "unsupported Harmony defaults are hidden" "entry\src\main\ets\pages\Index.ets" "applySessionAndLocalToggleOption\('(follow-remote-cursor|follow-remote-window|true-color-444|keep-terminal-on-disconnect)'"
+Add-PatternCheck "clipboard toggle manages monitor lifecycle" "entry\src\main\ets\pages\RemoteControl.ets" "toggleClipboardSync[\s\S]{0,700}stopMonitoring\(\)[\s\S]{0,250}startMonitoring\(\)"
 Add-PatternCheck "native dts declares LAN discovery" "entry\src\main\ets\services\librustdesk_bridge.d.ts" "discoverLanPeers"
 Add-PatternCheck "native dts declares load LAN peers" "entry\src\main\ets\services\librustdesk_bridge.d.ts" "loadLanPeers"
 Add-PatternCheck "native TS wrapper declares hasNativeModule" "entry\src\main\ets\services\NativeRustDeskBridge.ts" "hasNativeModule"
@@ -332,7 +447,10 @@ Add-Check "latest HAP has native bridge libraries" {
     return New-Result "SKIP" "HAP not found"
   }
   $entries = Get-ZipEntryNames -ZipPath $hapResolved
-  if ($entries -contains "libs/arm64-v8a/librustdesk_bridge.so" -and $entries -contains "libs/arm64-v8a/libc++_shared.so") {
+  if ($entries -contains "libs/arm64-v8a/librustdesk_bridge.so" -and
+      $entries -contains "libs/arm64-v8a/libc++_shared.so" -and
+      $entries -contains "libs/x86_64/librustdesk_bridge.so" -and
+      $entries -contains "libs/x86_64/libc++_shared.so") {
     return New-Result "PASS" $hapResolved
   }
   return New-Result "FAIL" "native libraries missing from HAP"

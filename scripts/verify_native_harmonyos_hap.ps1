@@ -25,7 +25,9 @@ $buildRoot = if ($env:RUSTDESK_HARMONY_BUILD_DIR) {
 
 $expectedEntries = @(
   "libs/arm64-v8a/librustdesk_bridge.so",
-  "libs/arm64-v8a/libc++_shared.so"
+  "libs/arm64-v8a/libc++_shared.so",
+  "libs/x86_64/librustdesk_bridge.so",
+  "libs/x86_64/libc++_shared.so"
 )
 $logRegex = "NativeRustDeskBridge|rustdesk_bridge|harmony_bridge|session-connected|video-frame|quality-status|fingerprint|msgbox"
 
@@ -216,24 +218,27 @@ function Assert-NativeRuntimeDependencies {
   $inspectDir = Join-Path $env:TEMP ("rustdesk_hap_native_" + [guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Force -Path $inspectDir | Out-Null
   try {
-    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
-    try {
-      $bridgeEntry = $archive.GetEntry("libs/arm64-v8a/librustdesk_bridge.so")
-      if ($null -eq $bridgeEntry) {
-        throw "librustdesk_bridge.so was not found inside $ZipPath"
+    foreach ($architecture in @("arm64-v8a", "x86_64")) {
+      $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+      try {
+        $entryName = "libs/$architecture/librustdesk_bridge.so"
+        $bridgeEntry = $archive.GetEntry($entryName)
+        if ($null -eq $bridgeEntry) {
+          throw "$entryName was not found inside $ZipPath"
+        }
+        $bridgePath = Join-Path $inspectDir "librustdesk_bridge_$architecture.so"
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($bridgeEntry, $bridgePath, $true)
+      } finally {
+        $archive.Dispose()
       }
-      $bridgePath = Join-Path $inspectDir "librustdesk_bridge.so"
-      [System.IO.Compression.ZipFileExtensions]::ExtractToFile($bridgeEntry, $bridgePath, $true)
-    } finally {
-      $archive.Dispose()
-    }
 
-    $neededLines = & $readelfCommand.Source -d $bridgePath 2>&1 | Select-String -Pattern "NEEDED"
-    $neededText = ($neededLines | ForEach-Object { "$_" }) -join "`n"
-    if ($neededText -match "libtime_service_ndk\.so") {
-      throw "librustdesk_bridge.so depends on libtime_service_ndk.so, which is not available on tested devices."
+      $neededLines = & $readelfCommand.Source -d $bridgePath 2>&1 | Select-String -Pattern "NEEDED"
+      $neededText = ($neededLines | ForEach-Object { "$_" }) -join "`n"
+      if ($neededText -match "libtime_service_ndk\.so") {
+        throw "$architecture librustdesk_bridge.so depends on libtime_service_ndk.so, which is not available on tested devices."
+      }
+      Write-Host "Native runtime dependency check passed for $architecture."
     }
-    Write-Host "Native runtime dependency check passed."
   } finally {
     if (Test-Path -LiteralPath $inspectDir) {
       Remove-Item -LiteralPath $inspectDir -Recurse -Force
@@ -337,7 +342,7 @@ if (-not [string]::IsNullOrWhiteSpace($BundleName)) {
 }
 
 if (-not $SkipSignatureCheck) {
-  $verifyDir = Join-Path $buildRoot "windows_verify_direct_signed"
+  $verifyDir = Join-Path $env:TEMP ("rustdesk_hap_signature_" + [Guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Force -Path $verifyDir | Out-Null
   $verifyNonce = [Guid]::NewGuid().ToString("N")
   $certChainPath = Join-Path $verifyDir "cert-chain-$verifyNonce.cer"

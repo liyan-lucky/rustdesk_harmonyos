@@ -138,16 +138,6 @@
         }
       },
       {
-        "name": "ohos.permission.INPUT_MONITORING",
-        "reason": "$string:input_permission_reason",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
-      },
-      {
         "name": "ohos.permission.READ_LOCAL_DEVICE_NAME",
         "reason": "$string:device_name_permission_reason",
         "usedScene": {

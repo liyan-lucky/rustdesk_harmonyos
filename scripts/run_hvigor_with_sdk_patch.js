@@ -20,6 +20,25 @@ if (!process.env.CI) {
 const originalReadFileSync = fs.readFileSync.bind(fs);
 const missingModulecheckSchemas = new Set();
 
+function writeTextAtomic(filePath, content) {
+  const directory = path.dirname(filePath);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporaryPath = path.join(
+    directory,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}.tmp`
+  );
+  try {
+    fs.writeFileSync(temporaryPath, content, 'utf8');
+    fs.renameSync(temporaryPath, filePath);
+  } finally {
+    try {
+      if (fs.existsSync(temporaryPath)) {
+        fs.unlinkSync(temporaryPath);
+      }
+    } catch (_error) {}
+  }
+}
+
 function isModulecheckSchemaPath(filePath) {
   if (typeof filePath !== 'string') {
     return false;
@@ -107,7 +126,7 @@ function writeHvigorConfig(cacheDir, buildDir) {
   }
 }
 `;
-  fs.writeFileSync(hvigorConfigPath, content, 'utf8');
+  writeTextAtomic(hvigorConfigPath, content);
 }
 
 function prepareHvigorConfigForCurrentWorkspace() {
@@ -120,7 +139,7 @@ function prepareHvigorConfigForCurrentWorkspace() {
   writeHvigorConfig(cacheDir, buildDir);
   process.once('exit', () => {
     try {
-      fs.writeFileSync(hvigorConfigPath, portableHvigorConfigContent, 'utf8');
+      writeTextAtomic(hvigorConfigPath, portableHvigorConfigContent);
     } catch (_error) {}
   });
 }
@@ -407,12 +426,15 @@ function bumpVersionName(versionName, bumpMode) {
 
 function writeAppVersion(appJson5Path, appContent, versionName, versionCode) {
   if (!appContent) {
-    return;
+    throw new Error(`App version metadata is empty: ${appJson5Path}`);
   }
   let nextContent = appContent;
   nextContent = nextContent.replace(/"versionName"\s*:\s*"[^"]+"/, `"versionName": "${versionName}"`);
   nextContent = nextContent.replace(/"versionCode"\s*:\s*\d+/, `"versionCode": ${versionCode}`);
-  fs.writeFileSync(appJson5Path, nextContent, 'utf8');
+  if (nextContent === appContent && (!appContent.includes(`"versionName": "${versionName}"`) || !appContent.includes(`"versionCode": ${versionCode}`))) {
+    throw new Error(`App version metadata is malformed: ${appJson5Path}`);
+  }
+  writeTextAtomic(appJson5Path, nextContent);
 }
 
 function formatLocalMinute(date) {
@@ -441,10 +463,22 @@ function computeSha256Hex(filePath) {
 }
 
 function writeCoreBuildInfo(coreBuildInfoPath) {
-  const corePath = path.resolve(projectRoot, 'entry/src/main/libs/arm64/librustdesk_core.a');
+  const packagedCorePath = path.resolve(projectRoot, 'entry/src/main/libs/arm64/librustdesk_core.a');
+  const packagedX86CorePath = path.resolve(projectRoot, 'entry/src/main/libs/x86_64/librustdesk_core.a');
+  const overriddenCorePath = String(process.env.RUSTDESK_CORE_ARM64_ARCHIVE || '').trim();
+  const overriddenX86CorePath = String(process.env.RUSTDESK_CORE_X86_64_ARCHIVE || '').trim();
+  const corePath = overriddenCorePath.length > 0 && fs.existsSync(path.resolve(overriddenCorePath))
+    ? path.resolve(overriddenCorePath)
+    : packagedCorePath;
+  const x86CorePath = overriddenX86CorePath.length > 0 && fs.existsSync(path.resolve(overriddenX86CorePath))
+    ? path.resolve(overriddenX86CorePath)
+    : packagedX86CorePath;
+  const coreSourcePath = corePath === packagedCorePath
+    ? 'entry/src/main/libs/arm64/librustdesk_core.a'
+    : corePath;
   const info = {
     fileName: 'librustdesk_core.a',
-    sourcePath: 'entry/src/main/libs/arm64/librustdesk_core.a',
+    sourcePath: coreSourcePath,
     fileSize: '',
     fileSizeMB: '',
     modifiedTime: '',
@@ -464,6 +498,21 @@ function writeCoreBuildInfo(coreBuildInfoPath) {
     info.hashFnv1a1Mb = computeFnv1a32Hex(corePath, 1024 * 1024);
     info.hashSha256 = computeSha256Hex(corePath);
   }
+  const x86Info = {
+    fileSize: '',
+    modifiedTime: '',
+    compileTime: '',
+    hashFnv1a1Mb: '',
+    hashSha256: ''
+  };
+  if (fs.existsSync(x86CorePath)) {
+    const stat = fs.statSync(x86CorePath);
+    x86Info.fileSize = String(stat.size);
+    x86Info.modifiedTime = String(Math.floor(stat.mtimeMs / 1000));
+    x86Info.compileTime = formatLocalMinute(stat.mtime);
+    x86Info.hashFnv1a1Mb = computeFnv1a32Hex(x86CorePath, 1024 * 1024);
+    x86Info.hashSha256 = computeSha256Hex(x86CorePath);
+  }
 
   const content = `export class CoreBuildInfo {\n` +
     `  static readonly FILE_NAME: string = ${JSON.stringify(info.fileName)};\n` +
@@ -474,11 +523,16 @@ function writeCoreBuildInfo(coreBuildInfoPath) {
     `  static readonly COMPILE_TIME: string = ${JSON.stringify(info.compileTime)};\n` +
     `  static readonly HASH_FNV1A_1MB: string = ${JSON.stringify(info.hashFnv1a1Mb)};\n` +
     `  static readonly HASH_SHA256: string = ${JSON.stringify(info.hashSha256)};\n` +
+    `  static readonly X86_64_FILE_SIZE: string = ${JSON.stringify(x86Info.fileSize)};\n` +
+    `  static readonly X86_64_MODIFIED_TIME: string = ${JSON.stringify(x86Info.modifiedTime)};\n` +
+    `  static readonly X86_64_COMPILE_TIME: string = ${JSON.stringify(x86Info.compileTime)};\n` +
+    `  static readonly X86_64_HASH_FNV1A_1MB: string = ${JSON.stringify(x86Info.hashFnv1a1Mb)};\n` +
+    `  static readonly X86_64_HASH_SHA256: string = ${JSON.stringify(x86Info.hashSha256)};\n` +
     `  static readonly COMPATIBLE_OFFICIAL_VERSION: string = ${JSON.stringify(info.compatibleOfficialVersion)};\n` +
     `  static readonly GENERATED_AT: string = ${JSON.stringify(info.generatedAt)};\n` +
     `}\n`;
-  fs.writeFileSync(coreBuildInfoPath, content, 'utf8');
-  console.log(`[CoreBuildInfo] Updated native core info: size=${info.fileSize || 'unknown'}, mtime=${info.compileTime || 'unknown'}, fnv1a=${info.hashFnv1a1Mb || 'unknown'}`);
+  writeTextAtomic(coreBuildInfoPath, content);
+  console.log(`[CoreBuildInfo] Updated native core info: arm64=${info.fileSize || 'unknown'}/${info.hashSha256 || 'unknown'}, x86_64=${x86Info.fileSize || 'unknown'}/${x86Info.hashSha256 || 'unknown'}`);
 }
 
 const buildProfilePath = path.resolve(projectRoot, 'build-profile.json5');
@@ -499,7 +553,7 @@ function restoreBuildProfile() {
   try {
     const currentContent = fs.readFileSync(buildProfilePath, 'utf8');
     if (currentContent !== savedBuildProfileContent) {
-      fs.writeFileSync(buildProfilePath, savedBuildProfileContent, 'utf8');
+      writeTextAtomic(buildProfilePath, savedBuildProfileContent);
       console.log('[BuildProfile] Restored build-profile.json5 after Hvigor build');
     }
   } catch (_error) {}
@@ -525,7 +579,7 @@ if (require.main === module) {
       : Math.max(1, appVersion.versionCode);
     writeAppVersion(appJson5Path, appVersion.content, versionName, versionCode);
     const buildInfoContent = `export class BuildInfo {\n  static readonly BUILD_TIME: string = '${buildTime}';\n  static readonly VERSION: string = '${versionName}';\n}\n`;
-    fs.writeFileSync(buildInfoPath, buildInfoContent, 'utf8');
+    writeTextAtomic(buildInfoPath, buildInfoContent);
     const touchTime = new Date();
     fs.utimesSync(buildInfoPath, touchTime, touchTime);
     console.log(`[BuildInfo] Updated build time: ${buildTime}, version: ${versionName}, versionCode: ${versionCode}, bump: ${bumpMode || 'none'}`);

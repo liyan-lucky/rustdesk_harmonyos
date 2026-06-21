@@ -35,6 +35,11 @@ extern "C" void qsort_r(void *base, size_t nmemb, size_t size,
 
 #include "rustdesk_bridge_abi.h"
 
+extern "C" int32_t rustdesk_ohos_request_input_authorization();
+extern "C" int32_t rustdesk_ohos_query_input_authorization();
+extern "C" void rustdesk_ohos_cancel_input_authorization();
+extern "C" void rustdesk_ohos_set_input_enabled(int32_t enabled);
+
 #undef LOG_DOMAIN
 #undef LOG_TAG
 #define LOG_DOMAIN 0x3200
@@ -165,7 +170,11 @@ void NativeScreenCaptureOnAudioBuffer(OH_AVScreenCapture *capture, bool isReady,
 void NativeScreenCaptureOnVideoBuffer(OH_AVScreenCapture *capture, bool isReady) {
   (void)capture;
   if (isReady) {
-    g_native_screen_capture.video_buffer_ready.store(true);
+    const bool was_ready = g_native_screen_capture.video_buffer_ready.exchange(true);
+    if (!was_ready) {
+      OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,
+                   "Native screen capture video buffer is ready");
+    }
   } else {
     NativeScreenCaptureSetError("OH_AVScreenCapture video buffer is not ready", 0);
   }
@@ -294,7 +303,11 @@ bool NativeScreenCaptureStart(int width, int height, int frame_rate) {
   callback.onError = NativeScreenCaptureOnError;
   callback.onAudioBufferAvailable = NativeScreenCaptureOnAudioBuffer;
   callback.onVideoBufferAvailable = NativeScreenCaptureOnVideoBuffer;
-  OH_AVScreenCapture_SetCallback(capture, callback);
+  if (!NativeScreenCaptureOk(OH_AVScreenCapture_SetCallback(capture, callback),
+                             "OH_AVScreenCapture_SetCallback")) {
+    OH_AVScreenCapture_Release(capture);
+    return false;
+  }
   OH_AVScreenCapture_SetMicrophoneEnabled(capture, false);
 
   OH_AVScreenCaptureConfig config = {};
@@ -314,15 +327,8 @@ bool NativeScreenCaptureStart(int width, int height, int frame_rate) {
     return false;
   }
   OH_AVScreenCapture_SetMaxVideoFrameRate(capture, capture_fps);
-  if (!NativeScreenCaptureOk(OH_AVScreenCapture_StartScreenCapture(capture), "OH_AVScreenCapture_StartScreenCapture")) {
-    OH_AVScreenCapture_Release(capture);
-    return false;
-  }
-
   {
     std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
-    g_native_screen_capture.capture = capture;
-    g_native_screen_capture.active = true;
     g_native_screen_capture.width = capture_width;
     g_native_screen_capture.height = capture_height;
     g_native_screen_capture.frame_rate = capture_fps;
@@ -334,6 +340,17 @@ bool NativeScreenCaptureStart(int width, int height, int frame_rate) {
     g_native_screen_capture.last_error_code = 0;
     g_native_screen_capture.running.store(true);
     g_native_screen_capture.video_buffer_ready.store(false);
+  }
+  if (!NativeScreenCaptureOk(OH_AVScreenCapture_StartScreenCapture(capture), "OH_AVScreenCapture_StartScreenCapture")) {
+    g_native_screen_capture.running.store(false);
+    OH_AVScreenCapture_Release(capture);
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+    g_native_screen_capture.capture = capture;
+    g_native_screen_capture.active = true;
   }
   g_native_screen_capture.worker = std::thread(NativeScreenCaptureDrainLoop, capture, capture_fps);
   OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,
@@ -347,6 +364,7 @@ std::string NativeScreenCaptureStatsJson() {
   std::string error = EscapeJsonString(g_native_screen_capture.last_error);
   return std::string("{") +
     "\"active\":" + (g_native_screen_capture.active ? "true" : "false") +
+    ",\"videoBufferReady\":" + (g_native_screen_capture.video_buffer_ready.load() ? "true" : "false") +
     ",\"width\":" + std::to_string(g_native_screen_capture.width) +
     ",\"height\":" + std::to_string(g_native_screen_capture.height) +
     ",\"frameRate\":" + std::to_string(g_native_screen_capture.frame_rate) +
@@ -902,6 +920,40 @@ napi_value IsNativeScreenCaptureActive(napi_env env, napi_callback_info info) {
 napi_value GetNativeScreenCaptureStats(napi_env env, napi_callback_info info) {
   (void)info;
   return MakeString(env, NativeScreenCaptureStatsJson());
+}
+
+napi_value RequestInputInjectionAuthorization(napi_env env, napi_callback_info info) {
+  (void)info;
+  napi_value result = nullptr;
+  napi_create_int32(env, rustdesk_ohos_request_input_authorization(), &result);
+  return result;
+}
+
+napi_value GetInputInjectionAuthorizationStatus(napi_env env, napi_callback_info info) {
+  (void)info;
+  napi_value result = nullptr;
+  napi_create_int32(env, rustdesk_ohos_query_input_authorization(), &result);
+  return result;
+}
+
+napi_value CancelInputInjectionAuthorization(napi_env env, napi_callback_info info) {
+  (void)info;
+  rustdesk_ohos_cancel_input_authorization();
+  napi_value undefined = nullptr;
+  napi_get_undefined(env, &undefined);
+  return undefined;
+}
+
+napi_value SetInputInjectionEnabled(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1] = {nullptr};
+  napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+  bool enabled = false;
+  if (argc > 0) {
+    napi_get_value_bool(env, args[0], &enabled);
+  }
+  rustdesk_ohos_set_input_enabled(enabled ? 1 : 0);
+  return MakeBool(env, enabled);
 }
 
 napi_value SendChatMessage(napi_env env, napi_callback_info info) {
@@ -4138,6 +4190,10 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"stopNativeScreenCapture", nullptr, StopNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"isNativeScreenCaptureActive", nullptr, IsNativeScreenCaptureActive, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"getNativeScreenCaptureStats", nullptr, GetNativeScreenCaptureStats, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"requestInputInjectionAuthorization", nullptr, RequestInputInjectionAuthorization, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"getInputInjectionAuthorizationStatus", nullptr, GetInputInjectionAuthorizationStatus, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"cancelInputInjectionAuthorization", nullptr, CancelInputInjectionAuthorization, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"setInputInjectionEnabled", nullptr, SetInputInjectionEnabled, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendChatMessage", nullptr, SendChatMessage, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"sendFileTransferRequest", nullptr, SendFileTransferRequest, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"openTerminal", nullptr, OpenTerminal, nullptr, nullptr, nullptr, napi_default, nullptr},

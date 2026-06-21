@@ -41,6 +41,10 @@ export const startNativeScreenCapture: (width: number, height: number, frameRate
 export const stopNativeScreenCapture: () => boolean;
 export const isNativeScreenCaptureActive: () => boolean;
 export const getNativeScreenCaptureStats: () => string;
+export const requestInputInjectionAuthorization: () => number;
+export const getInputInjectionAuthorizationStatus: () => number;
+export const cancelInputInjectionAuthorization: () => void;
+export const setInputInjectionEnabled: (enabled: boolean) => boolean;
 export const sendChatMessage: (peerId: string, messageType: string, content: string, timestamp: number) => boolean;
 export const sendFileTransferRequest: (taskId: string, peerId: string, fileName: string, totalBytes: number, direction: string) => boolean;
 export const openTerminal: (terminalId: number, rows: number, cols: number) => boolean;

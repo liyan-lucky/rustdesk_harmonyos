@@ -41,10 +41,6 @@
       "value": "用于捕获本地屏幕并传输到远端"
     },
     {
-      "name": "input_permission_reason",
-      "value": "用于接收远程输入并模拟本地操作"
-    },
-    {
       "name": "pasteboard_permission_reason",
       "value": "用于读取剪贴板内容并同步文本"
     },

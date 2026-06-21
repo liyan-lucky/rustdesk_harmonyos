@@ -68,6 +68,9 @@ export class OfficialRustDeskBridge {
   private eventPumpTimer: number = -1;
   private runtimeBootstrapReady: boolean = false;
   private closeRequestedByUser: boolean = false;
+  private lastTerminalEventSignature: string = '';
+  private sessionTransportPeerId: string = '';
+  private sessionDisplayPeerId: string = '';
 
   private constructor() {
     this.loadStoredState();
@@ -86,16 +89,15 @@ export class OfficialRustDeskBridge {
   }
 
   async refresh(settings: SettingsState): Promise<OfficialCoreState> {
-    this.loadStoredState();
     const serverConfig = AppDataService.resolveServerConfig(settings);
     const nativeSnapshot =
       this.readLiveSnapshot(serverConfig.idServer) ??
       NativeRustDeskBridge.readSnapshot(serverConfig.idServer);
     if (nativeSnapshot) {
-      const normalizedState = OfficialRustDeskBridge.mergeNativeStateWithCurrentState(
+      const normalizedState = this.mapTransportPeerInState(OfficialRustDeskBridge.mergeNativeStateWithCurrentState(
         OfficialRustDeskBridge.normalizeNativeState(nativeSnapshot, serverConfig.idServer),
         this.state
-      );
+      ));
       this.state = this.closeRequestedByUser
         ? OfficialRustDeskBridge.applyCloseRequestedState(normalizedState)
         : normalizedState;
@@ -157,14 +159,28 @@ export class OfficialRustDeskBridge {
     };
   }
 
-  async connectToPeer(peerId: string, _password: string, settings: SettingsState): Promise<void> {
+  async connectToPeer(
+    peerId: string,
+    _password: string,
+    settings: SettingsState,
+    displayPeerId?: string
+  ): Promise<void> {
     this.closeRequestedByUser = false;
+    this.lastTerminalEventSignature = '';
+    const requestedPeerId = peerId.trim();
+    const explicitDisplayPeerId = displayPeerId?.trim() ?? '';
+    const reusePreviousTransport = explicitDisplayPeerId.length === 0 &&
+      requestedPeerId === this.sessionDisplayPeerId &&
+      this.sessionTransportPeerId.length > 0;
+    const transportPeerId = reusePreviousTransport ? this.sessionTransportPeerId : requestedPeerId;
+    this.sessionTransportPeerId = transportPeerId;
+    this.sessionDisplayPeerId = explicitDisplayPeerId.length > 0 ? explicitDisplayPeerId : requestedPeerId;
     const serverConfig = AppDataService.resolveServerConfig(settings);
     const coreState = await this.refresh(settings);
     if (!coreState.coreReady && !NativeRustDeskBridge.hasNativeModule()) {
       const missingCoreState = OfficialRustDeskBridge.copyCoreState(coreState);
       missingCoreState.sessionStage = 'error';
-      missingCoreState.activePeerId = peerId;
+      missingCoreState.activePeerId = this.sessionDisplayPeerId;
       missingCoreState.lastError = 'Native core missing';
       missingCoreState.statusSummary = 'Core not available';
       missingCoreState.detailMessage = '';
@@ -177,14 +193,14 @@ export class OfficialRustDeskBridge {
     connectingState.adapter = 'official-native';
     connectingState.coreReady = true;
     connectingState.sessionStage = 'connecting';
-    connectingState.activePeerId = peerId;
+    connectingState.activePeerId = this.sessionDisplayPeerId;
     connectingState.lastError = '';
       connectingState.statusSummary = `Connecting ${peerId}`;
       connectingState.detailMessage = '';
     this.state = connectingState;
     this.persistState();
     let invoked = NativeRustDeskBridge.connectToPeer(
-      peerId,
+      transportPeerId,
       _password,
       serverConfig.idServer,
       serverConfig.relayServer,
@@ -194,7 +210,7 @@ export class OfficialRustDeskBridge {
     if (!invoked) {
       NativeRustDeskBridge.resetForRetry();
       invoked = NativeRustDeskBridge.connectToPeer(
-        peerId,
+        transportPeerId,
         _password,
         serverConfig.idServer,
         serverConfig.relayServer,
@@ -240,6 +256,7 @@ export class OfficialRustDeskBridge {
 
   reconnectSession(forceRelay: boolean = false): boolean {
     this.closeRequestedByUser = false;
+    this.lastTerminalEventSignature = '';
     const reconnected = NativeRustDeskBridge.reconnectSession(forceRelay);
     if (!reconnected) {
       return false;
@@ -262,6 +279,7 @@ export class OfficialRustDeskBridge {
       return false;
     }
     this.closeRequestedByUser = false;
+    this.lastTerminalEventSignature = '';
     const submitted = NativeRustDeskBridge.submitSessionPassword(normalizedPassword, remember);
     if (!submitted) {
       return false;
@@ -372,7 +390,7 @@ export class OfficialRustDeskBridge {
       const normalizedEvent: OfficialSessionEvent = {
         kind: event.kind?.trim() ?? 'unknown',
         detail: OfficialSessionTextFormatter.formatDetail(event.detail?.trim() ?? ''),
-        peerId: event.peerId?.trim() ?? '',
+        peerId: this.mapTransportPeerId(event.peerId?.trim() ?? ''),
         timestamp: typeof event.timestamp === 'number' ? event.timestamp : 0
       };
       normalizedEvents.push(normalizedEvent);
@@ -427,7 +445,9 @@ export class OfficialRustDeskBridge {
     const handshakeTimeout = 30000; // 30秒握手超时
     
     this.eventPumpTimer = setInterval(() => {
-      const events = this.pullSessionEvents();
+      const events = this.pullSessionEvents().filter((event: OfficialSessionEvent) =>
+        this.shouldDispatchSessionEvent(event)
+      );
       
       // 握手诊断：检测超时
       if (this.state.sessionStage === 'connecting') {
@@ -473,6 +493,46 @@ export class OfficialRustDeskBridge {
       kind !== 'switch-display' &&
       kind !== 'cursor_position' &&
       kind !== 'cursor_data';
+  }
+
+  private mapTransportPeerId(peerId: string): string {
+    const normalizedPeerId = peerId.trim();
+    if (this.sessionTransportPeerId.length > 0 &&
+      this.sessionDisplayPeerId.length > 0 &&
+      normalizedPeerId === this.sessionTransportPeerId) {
+      return this.sessionDisplayPeerId;
+    }
+    return normalizedPeerId;
+  }
+
+  private mapTransportPeerInState(state: OfficialCoreState): OfficialCoreState {
+    const mappedState = OfficialRustDeskBridge.copyCoreState(state);
+    mappedState.activePeerId = this.mapTransportPeerId(mappedState.activePeerId);
+    return mappedState;
+  }
+
+  private shouldDispatchSessionEvent(event: OfficialSessionEvent): boolean {
+    if (event.kind === 'connect-requested' ||
+      event.kind === 'login-requested' ||
+      event.kind === 'login' ||
+      event.kind === 'reconnect' ||
+      event.kind === 'reconnect-relay' ||
+      event.kind === 'session-connected' ||
+      event.kind === 'connection-ready') {
+      this.lastTerminalEventSignature = '';
+      return true;
+    }
+
+    if (event.kind !== 'session-error' && event.kind !== 'session-closed' && event.kind !== 'closed') {
+      return true;
+    }
+
+    const signature = `${event.kind}|${event.peerId.trim()}|${event.detail.trim()}`;
+    if (signature === this.lastTerminalEventSignature) {
+      return false;
+    }
+    this.lastTerminalEventSignature = signature;
+    return true;
   }
 
   private dispatchEvent(event: OfficialSessionEvent): void {
@@ -553,41 +613,26 @@ export class OfficialRustDeskBridge {
       nextState.statusSummary = nextState.activePeerId.length > 0
         ? `Connected ${nextState.activePeerId}`
         : 'Connected';
-      if (nextState.activePeerId.length > 0) {
-        NativeRustDeskBridge.markSessionConnected(nextState.activePeerId);
-      }
       changed = true;
     } else if (event.kind === 'session-error') {
       nextState.sessionStage = 'error';
+      nextState.activePeerId = '';
       nextState.lastError = normalizedDetail.length > 0 ? normalizedDetail : nextState.lastError;
       nextState.statusSummary = OfficialSessionTextFormatter.deriveErrorSummary(normalizedDetail);
       if (normalizedDetail.length > 0) {
         nextState.detailMessage = normalizedDetail;
-        NativeRustDeskBridge.markSessionError(normalizedDetail);
       }
       changed = true;
     } else if (event.kind === 'session-closed' || event.kind === 'closed') {
       nextState.sessionStage = 'idle';
+      nextState.activePeerId = '';
       nextState.lastError = '';
-      if (normalizedPeerId.length > 0) {
-        nextState.activePeerId = normalizedPeerId;
-      }
+      nextState.detailMessage = '';
       nextState.statusSummary = 'Session closed';
-      if (normalizedDetail.length > 0) {
-        nextState.detailMessage = normalizedDetail;
-      }
       changed = true;
     } else if (event.kind === 'peer-info' || event.kind === 'connection-type') {
       nextState.coreReady = true;
       nextState.adapter = 'official-native';
-      if (nextState.sessionStage !== 'connected') {
-        nextState.sessionStage = 'connected';
-        changed = true;
-      }
-      if (nextState.lastError.length > 0) {
-        nextState.lastError = '';
-        changed = true;
-      }
       if (normalizedDetail.length > 0) {
         nextState.detailMessage = normalizedDetail;
         changed = true;
@@ -635,7 +680,6 @@ export class OfficialRustDeskBridge {
           }
           changed = true;
         } else if (parsedMessageBox.msgType.trim() === 'success') {
-          nextState.sessionStage = 'connected';
           if (nextState.lastError.length > 0) {
             nextState.lastError = '';
           }
@@ -816,7 +860,6 @@ export class OfficialRustDeskBridge {
     }
 
     if (msgType === 'success') {
-      nextState.sessionStage = 'connected';
       nextState.lastError = '';
       return nextState;
     }

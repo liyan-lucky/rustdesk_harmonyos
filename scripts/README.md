@@ -2,12 +2,22 @@
 
 This directory keeps only the current HarmonyOS build and verification helpers.
 
+> 2026-06-21 23:23：统一测试为 100 轮，每 5 轮增量检查点、每 10 轮全量检查点，第 100 轮后对固定 HAP 哈希做最终签名/双 ABI/BuildInfo/CoreBuildInfo/真机 updateTime/hilog/连接链验证。`99_Temp` 为多项目共享目录，脚本只能写入或清理本项目命名子目录，且任何 APK 都不得删除。
+
+## Workspace and temporary output rule
+
+All build, package, verification, HDC, backup, and temporary outputs must live under `%VSCODE_ROOT%/99_Temp` (current machine: `F:\Visual_Studio_Code\99_Temp`). See `docs/WORKSPACE_PATHS.md` for the authoritative directory map.
+
+Do not write persistent outputs to `F:\99_Temp`, `C:\99_Temp`, the app repository root `.codex_*`, or `%TEMP%`. If a one-off diagnostic tool creates files there, delete or move them before handoff.
+
+Some scripts may recreate `99_Temp/harmonyos_stage/<project name>` or `99_Temp/rustdesk_harmonyos_build/windows_hap` as transient staging/verification directories. They are not persistent evidence locations; after the signed HAP is copied or verified, the current retained install target is `99_Temp/harmonyos_build/<project name>/entry/build/default/outputs/default/entry-default-signed.hap`.
+
 ## Daily entry points
 
 - `run_hvigor_with_sdk_patch.js`: canonical Hvigor build entry. It updates `BuildInfo.ets` and `CoreBuildInfo.ets`, applies the DevEco/Hvigor SDK compatibility patches, discovers DevEco paths from environment variables, `local.properties`, or the default install location, and switches to project mode for APP packaging tasks.
 - `build_hap.bat`: Windows incremental HAP build. It force-refreshes `entry/src/main/libs/arm64/librustdesk_core.a`, stages a clean project copy under `99_Temp/harmonyos_stage/<project name>`, sets `RUSTDESK_HARMONY_VERSION_BUMP=incremental`, increments the rightmost app version number, builds under `99_Temp/harmonyos_build/<project name>`, then syncs version files back to the real project.
 - `build_full_hap.bat`: Windows full HAP rebuild. It force-refreshes the native core, sets `RUSTDESK_HARMONY_VERSION_BUMP=full`, so the middle app version number is incremented and the rightmost number is reset to 0. It cleans generated project artifacts and `99_Temp/harmonyos_build/<project name>`, then runs the same staged Hvigor build path. It keeps `99_Temp/harmonyos_cache` by default to avoid DevEco/Hvigor built-in clean touching stale USB project caches.
-- `AUTO_BUILD_INSTALL.bat`: Windows build, install, and launch wrapper. It force-refreshes the native core, uses the staged HAP build path, then installs the signed HAP with `hdc -t <target>`. With no target or `auto`, it uses `RUSTDESK_HARMONY_USB_TARGET` when configured, then tries wireless target `192.168.11.100:36169`, then falls back to the first available HDC target. Use `usb` or `--usb` to skip wireless and only use USB/local HDC targets. It rejects `[Empty]` from HDC target discovery.
+- `AUTO_BUILD_INSTALL.bat`: Windows build, install, and launch wrapper. It force-refreshes the native core, uses the staged HAP build path, then installs the signed HAP with `hdc -t <target>`. With no target or `auto`, it uses `RUSTDESK_HARMONY_USB_TARGET` when configured, then tries wireless target `192.168.11.102:36169`, then falls back to the first available HDC target. Use `usb` or `--usb` to skip wireless and only use USB/local HDC targets. It rejects `[Empty]` from HDC target discovery.
 - `build_harmonyos_hap.ps1`: Windows HAP staging helper for signed or unsigned artifacts.
 - `verify_native_harmonyos_hap.ps1`: HAP inspection, optional install, launch, and log helper. Signature certificate/profile extraction uses GUID-named temp files so repeated verification cannot fail because a stale fixed `cert-chain.cer` or `profile.p7b` is still locked.
 - `audit_connection_chain.ps1`: 66-check connection-chain audit. It verifies native core metadata, NAPI aliases, bridge wrappers, reconnect handling, quality-status display, native `StartScreenCapture`/incoming-frame bridge wiring, file access authorization guards, packaged HAP native libraries, and the absence of the unsupported `libtime_service_ndk.so` runtime dependency. It writes `reports/connection_chain_audit_latest.md`.

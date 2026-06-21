@@ -11,6 +11,16 @@ export interface DiscoveredPeer {
   hostname: string;
   platform: string;
   online: boolean;
+  directAddress: string;
+}
+
+interface NativeLanPeerPayload {
+  id?: string;
+  username?: string;
+  hostname?: string;
+  platform?: string;
+  online?: boolean;
+  ipMac?: Record<string, string>;
 }
 
 export type LanDiscoveryListener = () => void;
@@ -107,11 +117,11 @@ export class LanDiscoveryService {
     const nativePeerIds: Set<string> = new Set();
     if (jsonStr && jsonStr !== '[]') {
       try {
-        const peers = JSON.parse(jsonStr) as Array<Record<string, string | boolean>>;
+        const peers = JSON.parse(jsonStr) as NativeLanPeerPayload[];
         console.error('[LanDiscovery] Parsed peers count=' + peers.length);
         if (Array.isArray(peers)) {
-          peers.forEach((peer: Record<string, string | boolean>) => {
-            const id = (peer['id'] as string) || '';
+          peers.forEach((peer: NativeLanPeerPayload) => {
+            const id = peer.id ?? '';
             if (id.length === 0) {
               return;
             }
@@ -120,12 +130,14 @@ export class LanDiscoveryService {
               return;
             }
             nativePeerIds.add(normalizedId);
+            const directAddresses: string[] = peer.ipMac !== undefined ? Object.keys(peer.ipMac) : [];
             const discoveredPeer: DiscoveredPeer = {
               id: id,
-              username: (peer['username'] as string) || '',
-              hostname: (peer['hostname'] as string) || '',
-              platform: (peer['platform'] as string) || '',
-              online: peer['online'] === true
+              username: peer.username ?? '',
+              hostname: peer.hostname ?? '',
+              platform: peer.platform ?? '',
+              online: peer.online === true,
+              directAddress: directAddresses.length > 0 ? directAddresses[0] : ''
             };
             this.handleDiscoveredPeer(discoveredPeer);
           });
@@ -177,14 +189,15 @@ export class LanDiscoveryService {
         resolvedPlatform = info.platform;
       }
     }
+    const previous = this.discoveredPeers.get(normalizedId);
     const enrichedPeer: DiscoveredPeer = {
       id: normalizedId,
       username: resolvedUsername,
       hostname: resolvedHostname,
       platform: resolvedPlatform,
-      online: peer.online
+      online: peer.online,
+      directAddress: peer.directAddress.length > 0 ? peer.directAddress : (previous?.directAddress ?? '')
     };
-    const previous = this.discoveredPeers.get(normalizedId);
     this.discoveredPeers.set(normalizedId, enrichedPeer);
     const appData = AppDataService.getInstance();
     const alias = resolvedUsername.length > 0 && resolvedHostname.length > 0
@@ -207,9 +220,15 @@ export class LanDiscoveryService {
       previous.username !== enrichedPeer.username ||
       previous.hostname !== enrichedPeer.hostname ||
       previous.platform !== enrichedPeer.platform ||
-      previous.online !== enrichedPeer.online) {
+      previous.online !== enrichedPeer.online ||
+      previous.directAddress !== enrichedPeer.directAddress) {
       this.notifyListeners();
     }
+  }
+
+  getDirectAddress(peerId: string): string {
+    const normalizedId = DeviceIdFormatter.parse(peerId);
+    return this.discoveredPeers.get(normalizedId)?.directAddress ?? '';
   }
 
   removeDiscoveredPeer(id: string): void {

@@ -10,13 +10,35 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = $PSScriptRoot
 $projectRoot = Split-Path -Parent $scriptDir
+$projectName = Split-Path -Leaf $projectRoot
 $buildRoot = if ($env:RUSTDESK_HARMONY_BUILD_DIR) {
   [System.IO.Path]::GetFullPath($env:RUSTDESK_HARMONY_BUILD_DIR)
 } else {
   [System.IO.Path]::GetFullPath((Join-Path $projectRoot "..\99_Temp\rustdesk_harmonyos_build"))
 }
 $stagingDir = Join-Path $buildRoot "windows_hap"
-$sourceOutputDir = Join-Path $projectRoot "entry\build\default\outputs\default"
+$projectOutputDir = Join-Path $projectRoot "entry\build\default\outputs\default"
+$hvigorBuildRoot = $null
+try {
+  $hvigorConfigPath = Join-Path $projectRoot "hvigor\hvigor-config.json5"
+  if (Test-Path -LiteralPath $hvigorConfigPath) {
+    $hvigorConfig = Get-Content -LiteralPath $hvigorConfigPath -Raw | ConvertFrom-Json
+    $configuredBuildDir = [string]$hvigorConfig.properties.'ohos.buildDir'
+    if (-not [string]::IsNullOrWhiteSpace($configuredBuildDir)) {
+      $hvigorBuildRoot = if ([System.IO.Path]::IsPathRooted($configuredBuildDir)) {
+        [System.IO.Path]::GetFullPath($configuredBuildDir)
+      } else {
+        [System.IO.Path]::GetFullPath((Join-Path $projectRoot $configuredBuildDir))
+      }
+    }
+  }
+} catch {
+  Write-Warning "Unable to parse ohos.buildDir from hvigor-config.json5: $($_.Exception.Message)"
+}
+if ([string]::IsNullOrWhiteSpace($hvigorBuildRoot)) {
+  $hvigorBuildRoot = $buildRoot
+}
+$externalOutputDir = Join-Path $hvigorBuildRoot "$projectName\entry\build\default\outputs\default"
 $runHvigorScript = Join-Path $scriptDir "run_hvigor_with_sdk_patch.js"
 $checkSigningScript = Join-Path $scriptDir "check_harmony_signing_profile.ps1"
 $cleanScript = Join-Path $scriptDir "clean_project.ps1"
@@ -148,14 +170,27 @@ if (-not $SkipHvigor) {
   Write-Host "Running hvigor tasks: $($HvigorTasks -join ', ')"
 
   try {
+    $hvigorLog = Join-Path $env:TEMP ("rustdesk_harmonyos_hvigor_" + [guid]::NewGuid().ToString("N") + ".log")
     Push-Location $projectRoot
     try {
-      & $nodeExe $runHvigorScript @HvigorTasks
-      if ($LASTEXITCODE -ne 0) {
-        throw "hvigor build failed with exit code $LASTEXITCODE."
+      $previousErrorActionPreference = $ErrorActionPreference
+      $ErrorActionPreference = "Continue"
+      try {
+        & $nodeExe $runHvigorScript @HvigorTasks 2>&1 | Tee-Object -FilePath $hvigorLog
+        $hvigorExitCode = $LASTEXITCODE
+      } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+      }
+      $hvigorOutput = if (Test-Path -LiteralPath $hvigorLog) { Get-Content -LiteralPath $hvigorLog -Raw } else { "" }
+      $reportedFailure = $hvigorOutput -match "ERROR:\s*BUILD FAILED|ERROR:\s*Failed|Configuration Error|ArkTS:ERROR"
+      if ($hvigorExitCode -ne 0 -or $reportedFailure) {
+        throw "hvigor build failed with exit code $hvigorExitCode; inspect the ArkTS/native error above."
       }
     } finally {
       Pop-Location
+      if (Test-Path -LiteralPath $hvigorLog) {
+        Remove-Item -LiteralPath $hvigorLog -Force
+      }
     }
   } catch {
     $hvigorFailed = $true
@@ -169,6 +204,13 @@ if (-not $SkipHvigor) {
     Write-Warning "AllowUnsignedOnSignFailure is enabled, so the script will attempt to stage any unsigned HAP artifacts that were already produced."
   }
 }
+
+$sourceOutputDir = if (Test-Path -LiteralPath $externalOutputDir) {
+  $externalOutputDir
+} else {
+  $projectOutputDir
+}
+Write-Host "Using hvigor output directory: $sourceOutputDir"
 
 New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 

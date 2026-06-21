@@ -56,6 +56,10 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture?(): boolean;
   isNativeScreenCaptureActive?(): boolean;
   getNativeScreenCaptureStats?(): string;
+  requestInputInjectionAuthorization?(): number;
+  getInputInjectionAuthorizationStatus?(): number;
+  cancelInputInjectionAuthorization?(): void;
+  setInputInjectionEnabled?(enabled: boolean): boolean;
   sendChatMessage?(peerId: string, messageType: string, content: string, timestamp: number): boolean;
   sendFileTransferRequest?(
     taskId: string,
@@ -114,6 +118,10 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture(): boolean;
   isNativeScreenCaptureActive(): boolean;
   getNativeScreenCaptureStats(): string;
+  requestInputInjectionAuthorization(): number;
+  getInputInjectionAuthorizationStatus(): number;
+  cancelInputInjectionAuthorization(): void;
+  setInputInjectionEnabled(enabled: boolean): boolean;
   sessionSendChat(content: string): boolean;
   sendFileTransferRequest(task_id: string, file_name: string, total_bytes: number, direction: string): boolean;
   sessionStart(peer_id: string, password: string, server: string, relay_server: string, api_server: string): void;

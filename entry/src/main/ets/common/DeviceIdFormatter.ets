@@ -10,18 +10,17 @@ export class DeviceIdFormatter {
     if (normalized.length === 0) {
       return '';
     }
-    const match = normalized.match(/^(\d+)(.*)$/);
+    const match = normalized.match(/^(\d+)$/);
     if (match === null) {
       return normalized;
     }
     const digits = match[1];
-    const suffix = match[2];
     const groups: string[] = [];
     for (let end = digits.length; end > 0; end -= 3) {
       const start = Math.max(0, end - 3);
       groups.unshift(digits.slice(start, end));
     }
-    return `${groups.join(' ')}${suffix}`;
+    return groups.join(' ');
   }
 
   static formatRemoteLabel(deviceId: string, prefix?: string): string {

@@ -179,11 +179,8 @@ struct MyDevice {
           .padding({ left: ThemeConfig.SPACING_LG, right: ThemeConfig.SPACING_LG })
         Column() {
           MenuToggleItem({ label: this.lt('Allow incoming connections'), isOpen: this.settings.serviceEnabled, onToggle: (value: boolean) => {
-              this.settings = this.appData.updateSettings({ serviceEnabled: value, allowRemoteControl: value });
+              this.settings = this.appData.updateSettings({ serviceEnabled: value, allowRemoteControl: false });
               void this.refreshIncomingState(value);
-            } })
-          MenuToggleItem({ label: this.lt('Allow remote control'), isOpen: this.settings.allowRemoteControl, showTopBorder: true, onToggle: (value: boolean) => {
-              this.settings = this.appData.updateSettings({ allowRemoteControl: value });
             } })
           MenuToggleItem({ label: this.lt('Allow file transfer'), isOpen: this.settings.allowFileTransfer, showTopBorder: true, onToggle: (value: boolean) => {
               this.settings = this.appData.updateSettings({ allowFileTransfer: value });

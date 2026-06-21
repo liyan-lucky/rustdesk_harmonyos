@@ -151,6 +151,10 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture?: () => boolean;
   isNativeScreenCaptureActive?: () => boolean;
   getNativeScreenCaptureStats?: () => string;
+  requestInputInjectionAuthorization?: () => number;
+  getInputInjectionAuthorizationStatus?: () => number;
+  cancelInputInjectionAuthorization?: () => void;
+  setInputInjectionEnabled?: (enabled: boolean) => boolean;
   sendChatMessage?: (peerId: string, messageType: string, content: string, timestamp: number) => boolean;
   sendFileTransferRequest?: (
     taskId: string,
@@ -186,6 +190,7 @@ export class NativeRustDeskBridge {
   private static warnedMissingLoader: boolean = false;
   private static lastDebugSummary: string = '';
   private static lastModuleLoadSummary: string = '';
+  private static runtimeEventLog: string[] = [];
   private static cachedGetMetadataFn: ((sinceFrameId: number) => NativePayload) | null | undefined = undefined;
   private static cachedCopyFrameFn: ((frameId: number, bytes: number) => NativePayload) | null | undefined = undefined;
 
@@ -415,6 +420,14 @@ export class NativeRustDeskBridge {
     return NativeRustDeskBridge.truncate(`${current}; load=${load}`, 900);
   }
 
+  static getRuntimeLogSummary(): string {
+    if (NativeRustDeskBridge.runtimeEventLog.length > 0) {
+      return NativeRustDeskBridge.runtimeEventLog.join('\n');
+    }
+    const bridgeSummary = NativeRustDeskBridge.getCombinedDebugSummary().trim();
+    return bridgeSummary.length > 0 ? `[bridge] ${bridgeSummary}` : '[core] no runtime events';
+  }
+
   static initializeRuntime(appDir: string, customClientConfig: string = ''): NativeBridgeSnapshot | null {
     console.info(`[NativeBridge] initializeRuntime START: appDir=${appDir.substring(0, 50)}`);
     const nativeModule = NativeRustDeskBridge.getModule();
@@ -550,7 +563,13 @@ export class NativeRustDeskBridge {
       if (!parsed) {
         return [];
       }
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      parsed.forEach((event: NativeSessionEvent) => {
+        NativeRustDeskBridge.appendRuntimeEvent(event);
+      });
+      return parsed;
     } catch (error) {
       console.error('NativeRustDeskBridge pullSessionEvents failed', JSON.stringify(error));
       NativeRustDeskBridge.setDebugSummary(
@@ -582,6 +601,9 @@ export class NativeRustDeskBridge {
   }
 
   static connectToPeer(peerId: string, password: string, server: string, relayServer: string, apiServer: string, key: string = ''): boolean {
+    NativeRustDeskBridge.runtimeEventLog = [
+      `${new Date().toISOString().substring(11, 23)} connect peer=${peerId} server=${server}`
+    ];
     console.info(`[NativeBridge] connectToPeer START: peerId=${peerId}, server=${server}`);
 
     const nativeModule = NativeRustDeskBridge.getModule();
@@ -1826,6 +1848,96 @@ export class NativeRustDeskBridge {
     }
     NativeRustDeskBridge.lastDebugSummary = nextSummary;
     console.info(`NativeRustDeskBridge debug: ${NativeRustDeskBridge.lastDebugSummary}`);
+  }
+
+  static requestInputInjectionAuthorization(): number {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[], number>(
+      nativeModule,
+      ['requestInputInjectionAuthorization']
+    );
+    if (!fn) {
+      return -1;
+    }
+    try {
+      return fn();
+    } catch (_error) {
+      return -1;
+    }
+  }
+
+  static getInputInjectionAuthorizationStatus(): number {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[], number>(
+      nativeModule,
+      ['getInputInjectionAuthorizationStatus']
+    );
+    if (!fn) {
+      return -1;
+    }
+    try {
+      return fn();
+    } catch (_error) {
+      return -1;
+    }
+  }
+
+  static cancelInputInjectionAuthorization(): void {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[], void>(
+      nativeModule,
+      ['cancelInputInjectionAuthorization']
+    );
+    if (!fn) {
+      return;
+    }
+    try {
+      fn();
+    } catch (_error) {
+      // Ignore cancellation failures during shutdown.
+    }
+  }
+
+  static setInputInjectionEnabled(enabled: boolean): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[boolean], boolean>(
+      nativeModule,
+      ['setInputInjectionEnabled']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn(enabled) === enabled;
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  private static appendRuntimeEvent(event: NativeSessionEvent): void {
+    const kind = event.kind?.trim() ?? 'unknown';
+    if (kind === 'video-frame' ||
+      kind === 'video-refresh-requested' ||
+      kind === 'quality-status' ||
+      kind === 'query-onlines-result' ||
+      kind.startsWith('lan-') ||
+      kind === 'cursor_position' ||
+      kind === 'cursor_data' ||
+      kind === 'display' ||
+      kind === 'switch-display') {
+      return;
+    }
+    const peerId = event.peerId?.trim() ?? '';
+    const detail = NativeRustDeskBridge.truncate(event.detail?.trim() ?? '', 500);
+    const timestamp = new Date().toISOString().substring(11, 23);
+    const peerText = peerId.length > 0 ? ` peer=${peerId}` : '';
+    const detailText = detail.length > 0 ? ` ${detail}` : '';
+    const line = `${timestamp} ${kind}${peerText}${detailText}`;
+    NativeRustDeskBridge.runtimeEventLog.push(line);
+    if (NativeRustDeskBridge.runtimeEventLog.length > 24) {
+      NativeRustDeskBridge.runtimeEventLog.shift();
+    }
+    console.info(`[CORE_EVENT] ${line}`);
   }
 
   private static setModuleLoadSummary(summary: string): void {

@@ -7,7 +7,7 @@ export class PreferenceStore {
   private static readonly SESSION_OPTIONS_KEY: string = 'session_options';
   private static readonly RECENT_SESSIONS_KEY: string = 'recent_sessions';
   private static readonly ADDRESS_BOOK_KEY: string = 'address_book';
-  private static readonly PASSWORD_KEY: string = 'password';
+  private static readonly LEGACY_TEMPORARY_PASSWORD_KEY: string = 'password';
   private static readonly OFFICIAL_CORE_SNAPSHOT_KEY: string = 'official_core_snapshot';
   private static readonly ACCOUNT_TOKEN_KEY: string = 'account_access_token';
   private static readonly ACCOUNT_USER_INFO_KEY: string = 'account_user_info';
@@ -66,12 +66,8 @@ export class PreferenceStore {
     PreferenceStore.setString(PreferenceStore.ADDRESS_BOOK_KEY, value);
   }
 
-  public static getPassword(): string | undefined {
-    return PreferenceStore.getString(PreferenceStore.PASSWORD_KEY);
-  }
-
-  public static setPassword(value: string): void {
-    PreferenceStore.setString(PreferenceStore.PASSWORD_KEY, value);
+  public static clearLegacyTemporaryPassword(): void {
+    PreferenceStore.deleteKey(PreferenceStore.LEGACY_TEMPORARY_PASSWORD_KEY);
   }
 
   public static getOfficialCoreSnapshot(): string | undefined {
@@ -262,6 +258,19 @@ export class PreferenceStore {
       store.flushSync();
     } catch (error) {
       console.error('PreferenceStore setString failed', JSON.stringify(error));
+    }
+  }
+
+  private static deleteKey(key: string): void {
+    try {
+      const store = PreferenceStore.getStore();
+      if (!store) {
+        return;
+      }
+      store.deleteSync(key);
+      store.flushSync();
+    } catch (error) {
+      console.error('PreferenceStore deleteKey failed', JSON.stringify(error));
     }
   }
 }

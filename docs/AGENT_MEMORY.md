@@ -1,5 +1,17 @@
 # AI 助手记忆文档
 
+> **2026-06-21 路径与隐私硬规则**：所有构建、测试、验包、日志、备份和临时证据统一放在 `%VSCODE_ROOT%\99_Temp`，当前为 `F:\Visual_Studio_Code\99_Temp`。详细职责见 `docs/WORKSPACE_PATHS.md`。不要再使用 `F:\99_Temp`、`C:\99_Temp`、仓库内 `.codex_*`、工作区根 `_tmp_*` 作为长期工作区；如果工具临时生成，交接前清理或迁移。16:26 已完成二次清理，当前允许保留的 ignored 项只限 App 的 Core junction/native libs/local.properties/signing，以及 Core 的 entry/rdev-fork/version.rs。一次性密码只允许在测试脚本内存中使用，绝不写入源码、日志、文档、截图或提交说明。
+
+> **2026-06-21 23:48 固定候选记忆**：最终本地 HAP SHA256 为 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `0.33.6 / 2026-06-21 23:46`，真机 `updateTime=1782082072534`；100 轮全功能审计 0 FAIL、连接链 83/83。CoreBuildInfo 和审计现已强制核对 arm64/x86_64 两套大小与 SHA256，严禁再让默认线上 latest x86_64 覆盖本地新构建。必须以哈希、mtime、BuildInfo、双架构 CoreBuildInfo、updateTime、hilog 联合判新旧。共享 `99_Temp` 不能整体清空且任何 APK 都不得删除；仅清理明确属于本项目且可再生的目录。华为被控输入已搁置。后续从 `docs/AGENT_HANDOFF.md` 最新摘要继续。
+
+> **2026-06-21 17:06 华为手机被控操控搁置**：用户确认华为手机不支持本项目需要的被控端远程操控/输入注入。该能力不再作为 P0、发布阻塞项或 100% 完成条件；`entry/src/main/module.json5` 已移除 accessibility extension 与 `ohos.permission.INPUT_MONITORING`，CMake 不再链接 `ohinput`，ArkTS accessibility service 已删除，仅在 `ohos_stubs.cpp` 保留固定返回 `201` 的 native 链接兼容符号。继续收口其他功能时要区分：手机作为访问端控制远端 PC 的会话菜单仍需验证，手机作为被控端被 Windows 操控已搁置。
+
+> **2026-06-20 当前接棒入口**：先完整读取 `docs/AGENT_HANDOFF.md`。该文件记录本轮全部用户要求、已验证证据、当前未提交改动、五编码未完成边界、真机新地址 `192.168.11.102:36169`、最终共享任务和继续执行顺序。
+>
+> **会话菜单完成标准**：菜单勾选和 `session-option` 事件不等于功能生效。当前“显示远程光标”仍未贯通，Core `HarmonySessionHandler::set_cursor_data/set_cursor_id/set_cursor_position/set_display` 是空实现；下轮必须补齐回调并逐项验证所有会话菜单的真实行为。
+>
+> **三点菜单新增实测**：阻止用户输入后菜单仍未选中，`get_toggle_option()` 缺少 `block-input` 分支；取消阻止会立即弹重试对话框并疑似断线，必须抓完整事件链修复。文件传输入口只有授权/导航不能算实现，需完成真实上传下载全链路。
+
 > 本文档记录 AI 助手的工作规则、项目经验、用户偏好和处理流程。每次新对话发送"读取文档"时，AI 必须先读本文，再按需读取其他文档。
 
 ## 工作规则（必须遵守）
@@ -8,7 +20,7 @@
 - 每次处理问题前，先回顾 docs/ 下的经验文档，检查是否有相关经验存在
 - 如果经验不存在，处理完问题后将经验保留到对应文档中
 - 每次修改代码/资源/脚本/文档后，必须同步更新所有相关项目文档
-- 文档阅读顺序：本文 → README.md → CORE.md → PROGRESS.md → ISSUES.md → UI.md → FILES.md
+- 文档阅读顺序：AGENT_HANDOFF.md → WORKSPACE_PATHS.md → 本文 → README.md → CORE.md → PROGRESS.md → ISSUES.md → UI.md → FILES.md
 - **新对话启动规则**：用户发送"读取文档"时，AI 必须按文档阅读顺序读取所有文档，了解项目详细信息、要求、偏好和习惯，然后按工作规则执行后续任务
 
 ### 2. 构建验证
@@ -57,7 +69,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.29.2`，versionCode：`1000169`
+- 当前本地版本：`0.32.0`，versionCode：`1000172`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -69,8 +81,8 @@
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - **x86_64 核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
 - **2026-06-19 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 使用 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心。旧 run `27848481305` 的 x86_64 失败根因是 libvpx 把 nasm/yasm 的 `-f elf64` 参数传给 OHOS SDK clang，后续还暴露 Opus 未安装到 `VCPKG_ROOT\installed\<triplet>`；`core-25` / run `27853110949` 已成功发布双资产。
-- 当前本地核心 SHA256：arm64 `132,777,178` bytes / `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。
-- **最新核心更新**：13 核心 `core-25` 已发布，包含既有 OHOS 被控端完整连接链路/重连/设备指纹修复，并追加 x86_64 真实核心构建、release 防空标签修复、IPv4-only 手机访问双栈客户端的地址族候选修复。11 App 已下载 core-25 构建 `0.29.2` / versionCode `1000169`。
+- 当前本地核心 SHA256：arm64 `131,310,070` bytes（core-34线上）；x86_64 `130,898,552` bytes（core-33线上）。core-34 已发布，App 已拉取 core-34 构建 `0.32.0` / versionCode `1000172`。
+- **最新核心更新**：13 核心 `core-34` 已发布（线上 arm64 `131,310,070` bytes / SHA256 `305106C5AB6FCFEF414A3939D918E39F656469122396B19534D3D86DC25347A1`，x86_64 `130,898,552` bytes / SHA256 `8D4D0AEAD337CEDB47456FCE09BE5AE40F1B2FBE0D3C6401352A63BAF9D286E0`）。11 App 已下载 core-34 全量构建 `0.32.0` / versionCode `1000172`，真机 `192.168.11.102:36169` 安装启动成功，进程 `22381` 存活，`versionName=0.32.0`、`versionCode=1000172`，`coreReady=true`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
 - 项目备份：`powershell -ExecutionPolicy Bypass -File scripts\backup_project.ps1`
@@ -92,8 +104,8 @@
 
 ### 核心 OHOS 文件（13 项目）
 - `src/harmony_bridge/core.rs` — 主桥接层，HarmonyHandler 实现 InvokeUiSession，main_start_service 5参数版，apply_server_options
-- `src/harmony_bridge/server_ohos.rs` — OHOS 被控端完整实现：Server/ConnInner/Connection、Service trait/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证（verify_h1/validate_password），从146行stub扩展到1461行
-- `src/harmony_bridge/rendezvous_mediator_ohos.rs` — OHOS 信令连接，register_peer/register_pk，PunchHole/RequestRelay 处理，create_relay
+- `src/harmony_bridge/server_ohos.rs` — OHOS 被控端完整实现：Server/ConnInner/Connection、Service trait/ServiceTmpl/Subscriber、video_service、Connection::start、accept_connection/create_relay_connection、密码验证（verify_h1/validate_password），PEER_CONNS 新连接取消旧连接机制，从146行stub扩展到1513行
+- `src/harmony_bridge/rendezvous_mediator_ohos.rs` — OHOS 信令连接，register_peer/register_pk，PunchHole/RequestRelay/FetchLocalAddr 处理（100ms LAST_MSG/LAST_RELAY_MSG 去重），create_relay，IPv6 地址族处理（start_ipv6/udp_nat_listen/handle_intranet/handle_intranet_），地址族不匹配回退 relay
 - `src/harmony_bridge/ipc_ohos.rs` — OHOS IPC 替代（不可用，bail）
 - `src/harmony_bridge/clipboard_ohos.rs` — OHOS 剪贴板
 - `src/harmony_bridge/clipboard_master_ohos.rs` — OHOS 剪贴板监控
@@ -116,17 +128,18 @@
 5. **自动重连机制**（已实现）：App 侧三处 msgbox 处理增加 `retry=true` 自动重连。
 
 ### 已验证状态
-- 当前本地 native core：core-25 arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`
-- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-25`
-- 最新本地构建版本：`0.29.2`，versionCode `1000169`，构建时间 `2026-06-20 00:57`
-- 2026-06-20 core-25 双架构验证：`scripts\build_hap.bat` 强制下载 latest core-25 arm64/x86_64 并构建成功；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；验包、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、无线安装启动到 `192.168.11.100:36169` 均通过，设备端 `versionName=0.29.2`、`versionCode=1000169`、进程 `11717` 存活。
+- 当前本地 native core：core-34 arm64 `131,310,070` bytes；x86_64 `130,898,552` bytes
+- 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
+- 最新本地构建版本：`0.32.0`，versionCode `1000172`，构建时间 `2026-06-21 10:35`
+- 2026-06-21 core-34 真机安装验证：`build_full_hap.bat` 全量构建 `0.32.0` / versionCode `1000172`，signed HAP `34,495,335` bytes；真机 `192.168.11.102:36169` 安装成功，进程 `22381`，`versionName=0.32.0`、`versionCode=1000172`，`coreReady=true`。
+- 2026-06-20 App v0.30.0 状态与会话修复：1) `refreshTimer` 保持 1000ms，但 `EntryAbility` 必须把刚取得的实时 `snapshot.coreReady` 写入 AppStorage，不能强制 `false`；`Index` 在 ready 变化时同步刷新核心模块；2) 核心属性菜单移除 Summary/Error/Detail，会话信息移除重复 Error 行，三处核心状态统一使用“就绪/停止/未识”短标签；3) 终止事件统一清空 pending peer/password/dialog/monitor/status，`OfficialRustDeskBridge.refresh()` 不再反复载入持久化旧快照；4) `msgbox success` 只更新提示，不能单独把会话升级为 connected，必须等待 `session-connected/connection-ready/peer-info/video-frame`；5) 新目标 ID 通过 `ChatService.retainOnlyPeer()` 删除其他 ID 的内存和持久化聊天，并丢弃旧 ID 的迟到消息；6) 质量面板固定 7 行，打开期间每 500ms 仅触发缓存重绘；7) ID 输入区分纯数字 ID 与 IPv4/IPv6，只有纯数字参与三位分组和联想；8) 编码偏好官方键是 `codec-preference`，不是 `video-codec-preference`，核心切换后必须调用 `update_supported_decodings()`；9) 会话与设置页共用 `display-scale-mode/custom-zoom-percent/image-quality/custom-fps/codec-preference`，自定义缩放用 100%-600% 滑块。
 - 2026-06-20 App 线上 push 验证：commit `fb13e7a` 触发 GitHub Actions run `27854059963`（Build HarmonyOS HAP Linux）并成功完成，`Build HarmonyOS package` 与 `Upload HarmonyOS artifacts` 均为 success；上传 artifact `harmonyos-hap` 大小 `65,698,344` bytes。
 - 2026-06-17 core-9 + 本地核心修复验证：11 App 下载 core-9 后构建 `0.23.8`，验证设备指纹正确显示（`6b3c ef42 ...`）；随后本地核心修复 `set_peer_info` 事件去重 + App 侧修复 `peerClosed` 不再直接关闭会话 + 密码弹窗渲染层硬性守卫，构建 `0.23.9`，无线安装启动成功。
-- 2026-06-14 core-74 无线安装验证通过：`192.168.11.100:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
-- 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
-- 2026-06-14 core-76 全量构建和安装验证：`scripts\build_full_hap.bat` 下载 latest core-76 并构建 `0.20.0` / versionCode `1000096`；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；验包通过，`192.168.11.100:36169` 安装成功且 `bm dump` 显示 `0.20.0`。当前设备密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续。
-- 2026-06-15 最新无线安装验证：USB-only 安装脚本/文档变更重新构建后，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.100:36169`；`bm dump -n com.open.rundesk` 确认版本一致，`pidof com.open.rundesk` 返回 `29101`，signed HAP `18,917,915` bytes，SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 与 `audit_connection_chain.ps1` 均通过。
-- 2026-06-15 核心源项目缺陷修复与 core-78 验证：13 核心项目 `cpp/rustdesk_bridge_abi.h`/`rustdesk_bridge_loader.cpp` 曾仍是一参 `rustdesk_bridge_session_send_chat(content)`，与 Rust 四参 ABI 不一致；核心 d.ts 也缺自建服务器 `key` 参数。已修正并本地构建通过，commits `034e446`、`cc5f4de` 已推送，线上 run `27515510727` 已发布 `core-78`。11 App 下载后全量构建 `0.21.0` / versionCode `1000102`，无线安装到 `192.168.11.100:36169` 并启动成功，进程 `41841` 存活，hilog `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 为 0。
+- 2026-06-14 core-74 无线安装验证通过：`192.168.11.102:36169` install bundle successfully，`bm dump` 显示 `versionName=0.19.0`、`versionCode=1000090`；手动解锁后 `aa start` 成功，进程 `4232` 20 秒后仍存活，hilog 确认 `coreReady= true`、`query-onlines-result` 正常，app fatal/panic/signal 为 0。
+- 2026-06-14 文档更新后复核：手机再次解锁后执行 `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.102:36169`，安装与启动均成功；`pidof com.open.rundesk` 返回 `12565`，`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
+- 2026-06-14 core-76 全量构建和安装验证：`scripts\build_full_hap.bat` 下载 latest core-76 并构建 `0.20.0` / versionCode `1000096`；signed HAP `18,909,325` bytes，SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；验包通过，`192.168.11.102:36169` 安装成功且 `bm dump` 显示 `0.20.0`。当前设备密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续。
+- 2026-06-15 最新无线安装验证：USB-only 安装脚本/文档变更重新构建后，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.102:36169`；`bm dump -n com.open.rundesk` 确认版本一致，`pidof com.open.rundesk` 返回 `29101`，signed HAP `18,917,915` bytes，SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 与 `audit_connection_chain.ps1` 均通过。
+- 2026-06-15 核心源项目缺陷修复与 core-78 验证：13 核心项目 `cpp/rustdesk_bridge_abi.h`/`rustdesk_bridge_loader.cpp` 曾仍是一参 `rustdesk_bridge_session_send_chat(content)`，与 Rust 四参 ABI 不一致；核心 d.ts 也缺自建服务器 `key` 参数。已修正并本地构建通过，commits `034e446`、`cc5f4de` 已推送，线上 run `27515510727` 已发布 `core-78`。11 App 下载后全量构建 `0.21.0` / versionCode `1000102`，无线安装到 `192.168.11.102:36169` 并启动成功，进程 `41841` 存活，hilog `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 为 0。
 - 2026-06-15 core-79 远控 direct session 命令验证：13 核心 commit `bc36b1d` 已由 run `27516993020` 发布 `core-79`，release body 已补中文说明；11 App 拉取 core-79 后全量构建 `0.22.0` / versionCode `1000103`，signed HAP `18,929,896` bytes / SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`；验包、连接链路审计和无线安装启动通过，设备端进程 `56136` 存活，app-only hilog `coreReady=187`、`query-onlines-result=366`，fatal/panic/signal/`exit(-1)` 均为 0。
 - 2026-06-15 共享/文件授权复查：11 App 增量构建 `0.22.1` / versionCode `1000104`，signed HAP `18,953,784` bytes / SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`；共享启动不再预申请 `CUSTOM_SCREEN_CAPTURE`，文件传输页与 `requestFileAccessAuthorization()` 改为 `DocumentViewPicker` 目录授权。验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `56711` 存活。
 - 2026-06-15 共享录屏底层切换复查：11 App 增量构建 `0.22.2` / versionCode `1000105`，signed HAP `18,946,878` bytes / SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`；`ScreenCaptureService` 不再使用 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 native `OH_AVScreenCapture_StartScreenCapture` + `OH_AVScreenCapture_AcquireVideoBuffer` 统计。验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `62121` 存活。
@@ -375,7 +388,7 @@
 - **11 项目保留的核心相关文件**：`entry/src/main/cpp/`（C++桥接层，从13项目同步）、`entry/src/main/libs/arm64/librustdesk_core.a`（从 GitHub Releases 下载）
 - **11 项目不再保留的核心相关文件**：`native_rust_core/`（已迁移到13项目）、`scripts/generate_*.js`/`dedup_*.js`/`regenerate_all.js`/`rename_mapping.js`（已迁移到13项目）
 - **代码生成脚本路径修复**：所有硬编码的绝对路径已改为相对于 `__dirname`/`os.path` 的相对路径
-- **CMakeLists.txt 路径适配**：13项目中 `librustdesk_core.a` 路径改为 `../native_rust_core/target/aarch64-unknown-linux-ohos/release/librustdesk_harmony_bridge.a`
+- **历史 CMakeLists.txt 路径适配**：13 项目曾使用 `../native_rust_core/target/aarch64-unknown-linux-ohos/release/librustdesk_harmony_bridge.a`；2026-06-21 清理后该 target 不再保留，当前本地标准 Core 产物路径为 `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\<target-triple>\release\librustdesk_harmony_bridge.a`。
 
 ### Linux 在线构建经验
 - **当前可用 workflow**：`.github/workflows/build-harmonyos.yml`，固定构建 HAP-only，输入为 `version_bump`、`skip_package_verify`、`publish_release`
@@ -388,16 +401,16 @@
 - **线上发布前置检查**：如果 push workflow 或 release workflow 失败，先用 `gh api /repos/<owner>/<repo>/actions/jobs/<job_id>/logs` 保存完整 job log，再搜索 `ArkTS Compiler Error`/`ERROR:`；短日志常被 Hvigor DEBUG 输出淹没。
 - **2026-06-12 历史成功 release**：`harmonyos-20260612-020111`
 - **2026-06-13 core release**：13 项目 run `27459455573` 成功，发布 `core-70`，asset `librustdesk_core.a` 为 131,263,476 bytes，SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
-- **2026-06-13 设备验证状态**：core-70 构建 HAP 通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.100:36169` 安装成功；但 `aa start` 被锁屏阻止，`Error Code:10106102`，应用未运行，本轮无法验证 `coreReady`/`video-frame`
+- **2026-06-13 设备验证状态**：core-70 构建 HAP 通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.102:36169` 安装成功；但 `aa start` 被锁屏阻止，`Error Code:10106102`，应用未运行，本轮无法验证 `coreReady`/`video-frame`
 - **2026-06-14 core release**：13 项目 commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 推送后，GitHub Actions run `27483922931` 成功发布 `core-71`，asset `librustdesk_core.a` 为 131,297,004 bytes，SHA256 `C750A785297AA22A2518B158BF334A1B1415C4E0739E01D0856C8BB5D450E15C`
-- **2026-06-14 设备验证状态**：11 项目下载 core-71 后增量/全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.100:36169` 安装启动成功；`bm dump` 显示 `versionName=0.17.0`、`versionCode=1000087`，hilog `coreReady= true`、在线查询和 LAN 发现正常，app fatal/panic/signal 为 0。
+- **2026-06-14 设备验证状态**：11 项目下载 core-71 后增量/全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，`192.168.11.102:36169` 安装启动成功；`bm dump` 显示 `versionName=0.17.0`、`versionCode=1000087`，hilog `coreReady= true`、在线查询和 LAN 发现正常，app fatal/panic/signal 为 0。
 - **2026-06-14 core release**：13 项目 commit `275b231e11aefd4a2e51050fc74fbdeba9c566bd` 推送后，GitHub Actions run `27485061967` 成功发布 `core-73`，asset `librustdesk_core.a` 为 131,471,532 bytes，SHA256 `E444D739EC958CD1485519FE0A712BFC1F074B60EEA65D71552E7E95A909A7B1`
-- **2026-06-14 设备验证状态**：11 项目下载 core-73 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,338 bytes / SHA256 `F40E44646D8DB6A561559B1815E812FB8D4B85FDA0D8D2073DBDC26648AC5DB4`，`192.168.11.100:36169` 安装成功；设备锁屏阻止启动，`pidof com.open.rundesk` 为空，`reports/hilog_latest_after_core73_locked.txt` 无 app runtime 证据。
+- **2026-06-14 设备验证状态**：11 项目下载 core-73 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,338 bytes / SHA256 `F40E44646D8DB6A561559B1815E812FB8D4B85FDA0D8D2073DBDC26648AC5DB4`，`192.168.11.102:36169` 安装成功；设备锁屏阻止启动，`pidof com.open.rundesk` 为空，`reports/hilog_latest_after_core73_locked.txt` 无 app runtime 证据。
 - **2026-06-14 core release**：13 项目 commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 推送后，GitHub Actions run `27486100946` 成功发布 `core-74`，asset `librustdesk_core.a` 为 131,471,786 bytes，SHA256 `3755D448FBB1A583E7B5F7C3C6ADEC29D8AF0FBB7E5DD192251CD18A68C45D7C`
-- **2026-06-14 设备验证状态**：11 项目下载 core-74 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,000 bytes / SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`，`192.168.11.100:36169` 安装成功；手动解锁后启动成功，`pidof com.open.rundesk` 返回 `4232`，`reports/hilog_latest_after_core74_unlocked.txt` 记录 `coreReady= true` 5 次、`query-onlines-result` 6 次、app fatal/panic/signal 为 0。
+- **2026-06-14 设备验证状态**：11 项目下载 core-74 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,828,000 bytes / SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`，`192.168.11.102:36169` 安装成功；手动解锁后启动成功，`pidof com.open.rundesk` 返回 `4232`，`reports/hilog_latest_after_core74_unlocked.txt` 记录 `coreReady= true` 5 次、`query-onlines-result` 6 次、app fatal/panic/signal 为 0。
 - **2026-06-14 复装复启状态**：文档更新后手机再次解锁，skip-build 安装启动成功，进程 `12565` 存活；`reports/hilog_latest_after_core74_post_docs_unlocked.txt` 记录 `coreReady= true` 7 次、`query-onlines-result` 14 次、app log lines 314，app fatal/panic/signal 为 0。
 - **2026-06-14 core release**：13 项目 commits `3afa229`（自建服务器 key）和 `1f474fc`（聊天事件语义）分别发布为 `core-75` / `core-76`；`core-76` asset `librustdesk_core.a` 为 131,470,712 bytes，SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`。
-- **2026-06-14 设备验证状态**：11 项目下载 core-76 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,909,325 bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`，`192.168.11.100:36169` 安装成功；设备锁屏阻止启动，`aa start` 返回 `Error Code:10106102`，运行态待解锁后复测。
+- **2026-06-14 设备验证状态**：11 项目下载 core-76 后全量 HAP 构建通过，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP 18,909,325 bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`，`192.168.11.102:36169` 安装成功；设备锁屏阻止启动，`aa start` 返回 `Error Code:10106102`，运行态待解锁后复测。
 
 ### 修改流程经验（本次会话最大教训）
 - **代码修改必须改项目根源文件！staging 只是构建副本，全量 robocopy 会从项目根覆盖 staging，导致修改丢失**
@@ -498,7 +511,7 @@
 | 2026-06-12 | 核心项目迁移：所有核心相关文件（Rust桥接层、C++桥接层、代码生成脚本）迁移到13_librustdesk_core项目；核心构建流程改为在13项目修改→GitHub Actions在线构建→下载librustdesk_core.a→放入11项目libs；修复所有生成脚本的硬编码路径为相对路径；CMakeLists.txt路径适配13项目结构；更新README/AGENT_MEMORY/CORE文档 |
 | 2026-06-12 | Linux 在线构建跑通（历史规则）：拆分 SDK/Hvigor 包地址，补齐 previewer `libcjson.so`/`libsec_shared.so`，设置 `LD_LIBRARY_PATH`，使用 RustDesk 1.4.7 OHOS core A200A839...AADC8，HAP/APP 发布到 `harmonyos-20260612-020111`，APP 以 `.app.zip` 上传；当前规则已改为 HAP-only |
 | 2026-06-12 | 新对话读取全部文档，构建验证通过（版本0.13.32，HAP 20.68MB）；修复签名文件名不匹配问题（default_rustdesk_harmonyos_XXX= → debug_hos.*）；更新AGENT_MEMORY版本和签名经验 |
-| 2026-06-12 | 按新要求改为构建前自动下载 latest native core：默认 `releases/latest/download/librustdesk_core.a`；当日验证 core 127,130,498 bytes / SHA256 `AA9C1A2D...1C17FCB5`；线上脚本 HAP-only，不再生成 APP/manifest/SHA；修复 staged 签名路径和 HDC `[Empty]` 目标过滤；无线 `192.168.11.100:36169` 安装启动成功（版本0.13.37，signed HAP 17,432,287 bytes） |
+| 2026-06-12 | 按新要求改为构建前自动下载 latest native core：默认 `releases/latest/download/librustdesk_core.a`；当日验证 core 127,130,498 bytes / SHA256 `AA9C1A2D...1C17FCB5`；线上脚本 HAP-only，不再生成 APP/manifest/SHA；修复 staged 签名路径和 HDC `[Empty]` 目标过滤；无线 `192.168.11.102:36169` 安装启动成功（版本0.13.37，signed HAP 17,432,287 bytes） |
 | 2026-06-12 | 等待视频流复查：出站控制端真实帧路径仍是 `on_rgba -> video-frame`；入站被控端没有 Harmony 录屏/desktop server 时不能标记 `incomingReady=true`。11端共享开关录屏失败即回滚并关闭 incoming，13端 `main_start_service(true)` 返回 `incomingReady=false` 和明确错误，避免远端无限等待视频流。 |
 | 2026-06-13 | 13 native core 本地构建脚本修复：解析到 OHOS SDK 后必须同步设置 `RUSTDESK_HARMONY_HOST_SDK`/`OHOS_SDK_HOME`/`OHOS_NDK_HOME`，并在 libsodium MSYS bash 脚本中 export；否则 Windows `.cmd` clang wrapper 在 configure 中报 `OHOS SDK not found`。 |
 | 2026-06-13 | 完成 core-70 闭环：13 项目修复 libvpx RTC C++ CI 构建失败并推送 `d61ceca`；GitHub Actions run `27459455573` 成功发布 `core-70`；11 项目下载新核心（131,263,476 bytes / SHA256 `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`），HAP 构建、native/signature 校验和真机安装通过；设备锁屏导致启动/视频流日志未能继续验证。 |
@@ -535,9 +548,9 @@
 | 2026-06-14 | 文件传输对接追加：13 核心补齐 `HarmonyHandler` 文件传输事件和 `switch-sides` option 路由；11 App `FileTransferService` 去掉本地示例文件，改用 `@ohos.file.fs` 读取真实下载目录，并在上传前检查源路径存在。 |
 | 2026-06-15 | 性能优化前备份和审计修复：`backup_project.ps1` 排除 `13_librustdesk_core` junction 并使用 `/XJ`，正式备份为 `rustdesk_harmonyos_20260615_000050.zip`；远控质量浮层改为基础7行+`qualityMetricItems`动态指标滚动渲染，连接链路审计恢复 `50 PASS, 0 FAIL`。 |
 | 2026-06-15 | 调试常亮临时默认开启：`debugKeepScreenAwake` 默认值改为 true，新增一次性迁移 `debug_keep_screen_awake_default_on_20260615`，升级后自动开启一次防止调试安装后手机锁屏；用户手动关闭后不再覆盖。 |
-| 2026-06-15 | USB-only/无线安装：`AUTO_BUILD_INSTALL.bat` 新增 `usb/--usb` 目标模式，只选择 USB/local HDC 目标并跳过无线；`--skip-build usb` 返回 `[Empty]` 说明 USB 未识别。用户打开无线后 `--skip-build auto` 成功安装启动 `0.20.3` 到 `192.168.11.100:36169`，`bm dump` 显示 versionCode `1000099`，进程 `26834` 存活。 |
+| 2026-06-15 | USB-only/无线安装：`AUTO_BUILD_INSTALL.bat` 新增 `usb/--usb` 目标模式，只选择 USB/local HDC 目标并跳过无线；`--skip-build usb` 返回 `[Empty]` 说明 USB 未识别。用户打开无线后 `--skip-build auto` 成功安装启动 `0.20.3` 到 `192.168.11.102:36169`，`bm dump` 显示 versionCode `1000099`，进程 `26834` 存活。 |
 | 2026-06-15 | 共享录屏冲突经验：共享开关不能再启动 `AVScreenCaptureRecorder` 或截图 API。处理顺序应为先写入核心选项并调用 `setIncomingServiceEnabled`；核心返回 `captureRequired=true` 时启动 native `OH_AVScreenCapture_StartScreenCapture` 提供首帧，只有 `incomingReady=true` 才显示共享服务真实运行。 |
-| 2026-06-15 | v0.20.5 增量验证：共享启动顺序修复后 `build_hap.bat` 通过，core-76 未变化；signed HAP `18,928,713` bytes / SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`，验包和连接链路审计通过，无线安装启动到 `192.168.11.100:36169`，设备端 `versionName=0.20.5`、versionCode `1000101`、进程 `39312` 存活。 |
+| 2026-06-15 | v0.20.5 增量验证：共享启动顺序修复后 `build_hap.bat` 通过，core-76 未变化；signed HAP `18,928,713` bytes / SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`，验包和连接链路审计通过，无线安装启动到 `192.168.11.102:36169`，设备端 `versionName=0.20.5`、versionCode `1000101`、进程 `39312` 存活。 |
 | 2026-06-15 | core-78 全量验证：13 核心聊天 ABI 与 d.ts key 修复由 run `27515510727` 发布 `core-78`，asset `131,470,442` bytes / SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`；11 App `build_full_hap.bat` 构建 `0.21.0` / versionCode `1000102`，signed HAP `18,928,728` bytes / SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`；验包、连接链路审计、无线安装启动和 hilog `coreReady` 均通过。 |
 | 2026-06-15 | v0.22.1 权限复查：共享启动去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，避免先唤起截屏/屏幕捕获授权；文件传输页和 `requestFileAccessAuthorization()` 默认走 `DocumentViewPicker` 目录授权。`build_hap.bat`、验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端 `versionName=0.22.1`、versionCode `1000104`、进程 `56711`。 |
 | 2026-06-15 | v0.22.2 共享录屏底层复查：`AVScreenCaptureRecorder` 和临时 mp4 探测文件已从当前 `ScreenCaptureService` 移除，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 `OH_AVScreenCapture_AcquireVideoBuffer` 统计帧。构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端 `versionName=0.22.2`、versionCode `1000105`、进程 `62121`。 |
@@ -569,3 +582,14 @@
 - `run_hvigor_with_sdk_patch.js` 运行中可以临时写入绝对 cache/build 路径以满足 Hvigor，退出时必须恢复 portable 配置。
 - 签名验证顺序：`node scripts\export_deveco_signing_command.js --show-secrets`，再跑 `powershell -ExecutionPolicy Bypass -File scripts\check_harmony_signing_profile.ps1 -Path build-profile.json5`。当前可用签名文件为 `debug_hos.cer/.p12/.p7b`，别名 `debugKey`。
 - 核心双架构构建经验保存在 `13_librustdesk_core/docs/LESSONS_LEARNED.md`：x86_64 OHOS 的 libvpx 不能让 SDK clang 接收 nasm/yasm 的 `-f elf64` 参数，需要在脚本中禁用 x86 SIMD 汇编路径；Opus 要安装到 `VCPKG_ROOT\installed\<triplet>`，否则 `magnum-opus` 会找不到 `opus/opus_multistream.h`。
+
+## 2026-06-20 虚拟机会话、密码与候选框经验
+
+- 消费 native 会话事件时绝不能回调 `markSessionConnected/markSessionError` 写回同一事件源；旧实现每 150ms 读取事件后又写回核心，虚拟机表现为无限重置。连接状态只能由核心原始 `session-connected/connection-ready/session-error/session-closed` 驱动。
+- Rust 旧会话线程可能在新连接建立后才返回 `Reset by the peer`。核心用单调递增 `ACTIVE_SESSION_GENERATION` 标记 handler；新建和关闭会话都推进 generation，旧 handler 的 peer-info、connected、close、msgbox、quality、frame 等回调必须丢弃。
+- `connection-type`、`fingerprint`、`peer-info` 都是元数据，不是鉴权完成；App 不得用它们关闭密码框或进入画面。真正完成只认 `session-connected/connection-ready`，视频可用再认首帧。
+- App 的 PreferenceStore 是“记住密码”的唯一产品层权威。没有保存密码时，同时清理逻辑 ID 和 LAN transport IP 的 native `PeerConfig.password`；只有用户勾选记住时才保存。
+- 主动密码框已存在活动的空密码握手时，确认密码必须调用 `submitSessionPassword(password, rememberPassword)` 提交到当前会话。先 `session_close`、等待 180ms、再新建密码连接会让远端旧连接清理重置新连接，表现为“第一次必失败，保存后第二次才成功”。
+- 密码卡片必须跟随 `avoidKeyboardHeight` 上移。虚拟机原按钮范围 `y=1809..1875`，软键盘从 `y=1757` 开始，确认点击实际被输入法吞掉；修复后按钮位于 `y=1501..1567`。
+- ID 建议列表必须完全悬浮并覆盖下方内容，不得参与普通布局或挤压 Tab/列表。不要把它挂在整个连接面板 `.overlay(...)` 上；应使用 `Stack + position`，把候选框宽度严格截到输入文本区，候选自身使用 `HitTestMode.Block`，清除/连接命令区保持更高 zIndex 且位于候选命中矩形之外。
+- 2026-06-20 本地验证：arm64 core `130,756,888` bytes / SHA256 `1C7B47D058525C21E5EF53F61CD68CD99C9CD1C07FEA04F00FCE815979EAC4D6`；x86_64 core `129,523,566` bytes / SHA256 `67C4E0E726E236073826D85FA704E42889AF8BAC665BC58C6A88ED7333797B04`；signed HAP `33,964,454` bytes / SHA256 `1373FA150AF4B049A3F5F6F56BBB2098F22B1B5613DB1C6D428090A1856D0AD0`。连接链审计 `71 PASS`，100 轮全功能审计每轮 `106 PASS / 1 SKIP`（未请求 APP 包）。

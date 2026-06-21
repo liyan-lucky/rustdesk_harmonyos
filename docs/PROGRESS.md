@@ -1,5 +1,31 @@
 # 功能进度与优化方向
 
+## 2026-06-21 23:48 本地功能收口状态
+
+本地发布候选已完成：签名双架构 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2` 已安装真机，`updateTime=1782082072534`，hilog 核心和查询正常；arm64/x86_64 均为 2026-06-21 本地同源码构建并写入 CoreBuildInfo，固定包 100 轮全审计共 15200 PASS / 0 FAIL / 100 个预期 SKIP，连接链 83/83。ID/IP、格式化光标、官方风格菜单、所有可见未实现项提示、共享页刷新/联动、文件传输、终端、重试对话框和图标要求均已收口。华为被控输入/accessibility 按用户决定搁置。剩余工作仅为精准清理、备份、双仓库提交推送和线上 Release/HAP 下载复验。
+
+清理与备份也已完成：前两次可计量白名单清理释放 `1,348,092,177` bytes，最终审计后再清理一次重建产物，3 个共享 APK 保持不变；App/Core 最新备份分别为 `20260621_235131`，两个备份目录各保留 2 份。当前剩余工作仅为双仓库完整 diff 复核、提交推送、线上 Release/HAP 下载复验与最终文档回写。
+
+### 2026-06-21 17:06 文档/清理暂停历史快照
+
+- 2026-06-21 17:06 用户确认：华为手机被控端远程操控/输入注入能力不支持，本轮搁置。`entry/src/main/module.json5` 已移除 accessibility extension 与 `ohos.permission.INPUT_MONITORING`，`ohinput` 实现、ArkTS accessibility service 和 extension 原型已从活动树清理；仅在 `ohos_stubs.cpp` 保留固定返回 `201` 的 native 链接兼容符号。后续收口不再以“Windows 实际操控手机 UI”为阻塞项。其他功能仍需继续收口：真实画面共享、ID/IP、文件传输、五编码、远程光标、访问端会话菜单、审计、备份、提交推送和线上资产验证。
+- 用户已要求暂停功能推进，优先完成文档同步、路径统一和项目清理。恢复测试前先读 `docs/AGENT_HANDOFF.md` 与 `docs/WORKSPACE_PATHS.md`。
+- 最新本地构建/验包 HAP 为 SHA256 `A18FCCEE04A1903372124399035444B5BEBDF84FBB2B9F1918142C994C0797C9`，BuildInfo `2026-06-21 17:12`，签名和双 ABI 验包通过，尚未安装到真机。最后一次真机已安装仍是 15:00 HAP：SHA256 `487EB88719B505013666D74841974A9CF4B031BF6EBFBF2BD6A352089822A35E`，设备 `updateTime=1782050494366`，BuildInfo `2026-06-21 14:59`。
+- 真机被控共享已验证到 Windows 端真实画面持续刷新，`videoBufferReady/frameCount/coreFrameCount/corePushOk` 均为正向证据；虚拟机零帧仍按设备/AVScreenCapture 限制候选处理。
+- 被控端手机操控已搁置：远端 mouse event 已到达，但 native 注入返回 `result=201`，Huawei 设置未列出 OpenRDesk；用户已确认华为手机不支持该能力，因此不再作为本轮发布阻塞项。
+- 所有后续构建、测试、日志、备份统一写入 `F:\Visual_Studio_Code\99_Temp` / `%VSCODE_ROOT%\99_Temp`。废弃 `F:\99_Temp`、仓库内 `.codex_*`、`%TEMP%` 长期截图/布局文件和散落备份目录。
+- 清理已完成：`F:\99_Temp`、旧 `99_Temp\backups`、App 根 `.codex_*`、旧截图/布局证据和 `%TEMP%` 签名解包目录已删除；`reports/` 只保留 Markdown 审计报告。
+- 16:26 二次清理已完成：删除 `%VSCODE_ROOT%\_tmp_rustdesk_1_4_7_src`、旧 `99_Temp\rustdesk_harmonyos_build\native_rust_core\target`、旧 `windows_hap`、旧 `rustdesk-1.4.7-clone`、旧 downloads/build、HAP intermediates/cache/generated、App/Core 仓库 IDE/工具缓存、Core `rustdesk-master/target` 与 `native_rust_core/target`。当前 `99_Temp` 仅保留 `rustdesk_harmonyos_build`、`librustdesk_core`、`harmonyos_build`、两类 backups、`harmonyos_cache`、`rustdesk_harmonyos_signing`。
+- 清理后已创建新备份：App `rustdesk_harmonyos_20260621_164050.zip`（`1,424,210` bytes，SHA256 `0ED94CEE63D8CDE9846B2EE3D6CFEA24BA67BAB1CB61F5668E6348CBDE3427CB`），Core `rustdesk_core_20260621_164050.zip`（`3,588,905` bytes，SHA256 `B64E5962551103380CF6DCDBDB1632124965DDF1B75FD47589F6982DBB0E85DA`）。
+
+## 2026-06-20 跨对话未完成边界
+
+- 当前完整交接见 `docs/AGENT_HANDOFF.md`。全部会话菜单仍需真实行为验证，不能以 option 下发为完成。
+- 已知 P0：“显示远程光标”未贯通。App 已有 overlay/UI 状态，但 Core cursor data/id/position/display 回调仍为空，所以下一轮必须先完成 Core 事件回流再做虚拟机和真机验证。
+- 五编码当前只完成最新 x86 Core 构建；最新 arm64 Core、五编码设备切换和质量面板实际编码验证尚未完成。
+- 当前签名 HAP 已安装到 `192.168.11.102:36169`，版本 `0.31.0 / 1000171`，但该包的 arm64 Core 仍是五编码改造前产物。
+- 用户新增真机实测：三点菜单“阻止用户输入”状态未选中，取消后会立即弹出重试对话框并疑似断开；文件传输尚未端到端实现。三点菜单所有项目纳入下轮逐项验证。
+
 > 更新时间：2026-06-15 已验证。当前状态以本文、`README.md`、`CORE.md`、`CONNECTION_DEBUG_LOG.md` 为准；更早的会话内容已合并到 `BUILD_ARCHIVE.md`，只作为历史记录。每轮修改必须同步更新相关文档并进行构建验证。
 
 ## 术语约定
@@ -11,7 +37,7 @@
 
 - 2026-06-06 项目结构已提升到根目录：`11_Rustdesk_harmonyos/` 直接作为 Git 根和 App 项目根，历史内层 `rustdesk_harmonyos/` 只作为本地坏缓存壳忽略；`99_Temp/` 按当前工作区位置匹配，不依赖固定盘符。
 - HAP 签名材料已放入 `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_signing/`，`build-profile.json5` 使用相对路径引用；签名 profile 校验通过，bundleName 为 `com.open.rundesk`。2026-06-19 路径复核后当前仓库标准为 `debug_hos.cer`/`debug_hos.p12`/`debug_hos.p7b`，别名 `debugKey`；DevEco Studio 需要绝对路径时使用 `scripts\switch_deveco_paths.ps1 -Mode DevEco` 临时切换。
-- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-19 08:56`，App 显示版本 `0.27.2`，versionCode `1000149`。
+- HAP 构建先复制干净副本到 `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`，再把 Hvigor 日志、HAP 输出、Native `.cxx` 中间目录放到 `%VSCODE_ROOT%\99_Temp`；当前本地 BuildInfo 编译时间 `2026-06-20 08:55`，App 显示版本 `0.30.0`，versionCode `1000170`。
 - 2026-06-19 SDK 版本匹配手机 API 6.1.0(23)：`compileSdkVersion` 保持 `6.1.1(24)`（当前安装的 SDK），`targetSdkVersion` 改为 `6.1.0(23)`（匹配手机），`compatibleSdkVersion` 改为 `6.0.0(20)`。`compileSdkVersion` 不能设为 API 23——Hvigor 报 `Unsupported compileSdkVersion`，必须用已安装的 SDK API 版本编译。
 - 2026-06-12 线上 Linux 构建脚本已改为 HAP-only：`.github/workflows/build-harmonyos.yml` 和 `.github/workflows/build-harmonyos-linux.yml` 只构建/上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
 - 线上构建依赖已拆分为 SDK 包和 Hvigor/Command Line Tools 剩余文件包：
@@ -80,9 +106,9 @@
 - 2026-06-14 core-76 全量验证：13 核心 `core-75`（自建服务器 key 透传）和 `core-76`（聊天 `chat-error/chat-sent/chat-message` 语义）均发布成功；11 项目下载 latest core 后全量 HAP 构建为 `0.20.0` / versionCode `1000096`，`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过，signed HAP `18,909,325` bytes / SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`；无线安装成功且 `bm dump` 已显示 `0.20.0`，但设备当前密码锁屏导致 `aa start` 返回 `Error Code:10106102`，运行态 hilog 待手动解锁后继续复测。
 - 2026-06-15 质量监控和备份脚本复查：远控连接质量浮层改为基础 7 行 + `qualityMetricItems` 动态指标滚动显示，复用已有缓存不增加解析频率；`backup_project.ps1` 排除 `13_librustdesk_core` junction 并使用 `/XJ`，性能优化前备份已生成 `F:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_backups\rustdesk_harmonyos_20260615_000050.zip`；连接链路审计通过 `50 PASS, 0 FAIL, 0 SKIP`。
 - 2026-06-15 调试常亮临时默认开启：关于区 `Debug Keep Screen Awake` 默认值改为 `true`，新增一次性迁移 `debug_keep_screen_awake_default_on_20260615`，升级后自动开启一次以避免调试安装后手机自动锁屏；用户手动关闭后不会被后续启动覆盖。
-- 2026-06-15 USB/无线安装复查：`AUTO_BUILD_INSTALL.bat` 新增 `usb/--usb` 目标模式，`scripts\AUTO_BUILD_INSTALL.bat --skip-build usb` 只检测 USB/local HDC 目标并跳过无线重试；当前电脑 USB HDC 返回 `[Empty]`。随后用户打开无线，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已成功安装并启动 `0.20.3` / versionCode `1000099` 到 `192.168.11.100:36169`，`pidof com.open.rundesk` 返回 `26834`，连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`。
-- 2026-06-15 最新无线复装：USB-only 脚本/文档变更重新构建后，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已成功把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.100:36169`；`bm dump -n com.open.rundesk` 确认设备端版本一致，`pidof com.open.rundesk` 返回 `29101`，signed HAP `18,917,915` bytes，SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`。同包 `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 验证 native/signature 通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
-- 2026-06-15 v0.20.5 共享启动顺序验证：共享开关不再提前启动 `AVScreenCaptureRecorder`，核心未 ready 时只显示 `Share requested/Requested`。增量 HAP 构建、native/signature 验包和连接链路审计均通过；signed HAP `18,928,713` bytes，SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`；无线安装启动到 `192.168.11.100:36169` 成功，设备端 `versionName=0.20.5`、versionCode `1000101`，进程 `39312` 存活。
+- 2026-06-15 USB/无线安装复查：`AUTO_BUILD_INSTALL.bat` 新增 `usb/--usb` 目标模式，`scripts\AUTO_BUILD_INSTALL.bat --skip-build usb` 只检测 USB/local HDC 目标并跳过无线重试；当前电脑 USB HDC 返回 `[Empty]`。随后用户打开无线，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已成功安装并启动 `0.20.3` / versionCode `1000099` 到 `192.168.11.102:36169`，`pidof com.open.rundesk` 返回 `26834`，连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`。
+- 2026-06-15 最新无线复装：USB-only 脚本/文档变更重新构建后，`scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已成功把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.102:36169`；`bm dump -n com.open.rundesk` 确认设备端版本一致，`pidof com.open.rundesk` 返回 `29101`，signed HAP `18,917,915` bytes，SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`。同包 `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 验证 native/signature 通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
+- 2026-06-15 v0.20.5 共享启动顺序验证：共享开关不再提前启动 `AVScreenCaptureRecorder`，核心未 ready 时只显示 `Share requested/Requested`。增量 HAP 构建、native/signature 验包和连接链路审计均通过；signed HAP `18,928,713` bytes，SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`；无线安装启动到 `192.168.11.102:36169` 成功，设备端 `versionName=0.20.5`、versionCode `1000101`，进程 `39312` 存活。
 - 2026-06-15 core-78 全量验证：发现 13 核心项目 `cpp/rustdesk_bridge_abi.h`/`rustdesk_bridge_loader.cpp` 仍是一参 `rustdesk_bridge_session_send_chat(content)`，会在后续同步时覆盖 11 App 已修复的四参聊天路径；随后又发现核心 d.ts 少了自定义服务器 `key` 参数。已在真实 `F:\Visual_Studio_Code\13_librustdesk_core` 修正并本地构建通过；核心 commits `034e446`、`cc5f4de` 已推送，GitHub Actions run `27515510727` 发布 `core-78`。11 App 已下载 release asset `131,470,442` bytes / SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`，全量构建 `0.21.0` / versionCode `1000102`，signed HAP `18,928,728` bytes / SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`；验包、连接链路审计、无线安装启动均通过，设备端进程 `41841` 存活，hilog `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 为 0。
 - 2026-06-15 远控 direct session 命令接入修正已完成 core-79 验证：13 核心 commit `bc36b1d` 已由 GitHub Actions run `27516993020` 发布 `core-79`，`session_toggle_privacy_mode/session_switch_display/session_enter_or_leave/session_leave/session_switch_sides/session_record_screen/session_request_voice_call/session_close_voice_call` 从 Rust bridge 到 C ABI/C++ NAPI/d.ts 均改为 bool 返回；核心补 `voice-call-*`、`record-status`、`screenshot-response` 事件。11 App 同步更新 `entry/src/main/cpp/`、`NativeRustDeskBridge.ts`、`RemoteControl.ets`：远控“切换主控端/截图/会话录制/语音聊天”改用 direct core function，会话录制不再请求本机录屏权限或启动 `ScreenCaptureService`，新增相关中文 toast。`scripts\build_full_hap.bat` 已拉取 core-79 并构建 `0.22.0` / versionCode `1000103`；signed HAP `18,929,896` bytes / SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`；验包、连接链路审计、无线安装启动和 app-only hilog 验证均通过。
 - 2026-06-15 共享/文件授权复查：共享启动入口去掉对 `CUSTOM_SCREEN_CAPTURE` 的显式预申请，避免先唤起截屏/屏幕捕获授权；该 `0.22.1` 阶段屏幕采集仍由 `AVScreenCaptureRecorder` 在核心 `incomingReady=true` 后触发，已在 `0.22.2` 替换为 native `StartScreenCapture`。文件传输页进入、切到本地、刷新本地、上传/下载/本地新建/删除前统一走 `DocumentViewPicker` 目录授权，`PermissionService.requestFileAccessAuthorization()` 默认也改为目录授权模式。增量构建 `0.22.1` / versionCode `1000104` 通过，signed HAP `18,953,784` bytes / SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`；验包、连接链路审计、无线安装启动和严格 app hilog 均通过，设备端进程 `56711` 存活，app fatal/panic/signal/`exit(-1)` 为 0。
@@ -93,7 +119,7 @@
 - 2026-06-15 v0.22.6/core-81 本地预发布复查：13 核心本地构建 `128,894,588` bytes / SHA256 `2DC3B655664B756E255684D28FBA0CB3A9DEC14E6080EA4682FA26486ADF9B6D`，新增 `captureRequired` 与 OHOS `scrap::Capturer` incoming frame source；11 App 使用本地 staticlib 构建 `0.22.6` / versionCode `1000109`，signed HAP `18,433,473` bytes / SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`。文件授权改为 picker-first；共享启动由 `captureRequired` 触发 native 录屏提供首帧，但 `incomingReady` 仍严格表示真实服务 ready。验包、66 项审计、无线安装启动和干净 app hilog 均通过，设备端进程 `7527` 存活。该记录为线上 core-81 发布前的历史过程，当前已由 `0.22.7` 线上 core-81 验证替代。
 - 2026-06-15 v0.22.7/core-81 线上核心复查：13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，线上 asset `131,631,706` bytes / SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`，release notes 已补中文说明；11 App 强制下载线上 core-81 构建 `0.22.7` / versionCode `1000110`，signed HAP `18,978,267` bytes / SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`。验包、66 项审计、静态录屏 API 扫描、无线安装启动和干净 app hilog 均通过，设备端进程 `40016` 存活。
 - 2026-06-15 v0.22.7 线上发布闭环：提交 `42f9b8e` 推送后，Linux push workflow run `27567811582` 成功，发布 workflow run `27568044749` 成功创建 `OpenRustdesk-Build-v0.22.7` 并补中文 release notes；线上 signed HAP `20,870,632` bytes / SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`，unsigned HAP `20,790,546` bytes / SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`。
-- 2026-06-15 v0.22.8 核心函数接入和共享/聊天修复：1) `NativeRustDeskBridge.setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动；2) `NativeRustDeskBridge.connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示设备 ID 和密码，`incomingReady=false` 时额外显示"核心被控视频源未就绪"提示；4) 聊天时间戳从消息气泡内移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM），三处聊天渲染（Chat.ets、RemoteControl.ets、Index.ets）统一修改。增量 HAP 构建 `0.22.8` / versionCode `1000111`，signed HAP `18,976,127` bytes；无线安装到 `192.168.11.100:36169` 成功，进程 `16399` 存活。
+- 2026-06-15 v0.22.8 核心函数接入和共享/聊天修复：1) `NativeRustDeskBridge.setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动；2) `NativeRustDeskBridge.connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示设备 ID 和密码，`incomingReady=false` 时额外显示"核心被控视频源未就绪"提示；4) 聊天时间戳从消息气泡内移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM），三处聊天渲染（Chat.ets、RemoteControl.ets、Index.ets）统一修改。增量 HAP 构建 `0.22.8` / versionCode `1000111`，signed HAP `18,976,127` bytes；无线安装到 `192.168.11.102:36169` 成功，进程 `16399` 存活。
 - 最新改动已收紧重试弹窗触发条件，并二次优化远控画面刷新链路：frameId 只接受递增帧、native RGBA 槽在 copy 后立即推进、PixelMap 渲染有超时和代次保护。
 - 最新 native 修复已把官方 `close_success()` 从“会话关闭”改回“连接成功提示关闭”语义，避免首帧后误报 `session-closed`。
 - 最新核心页改动已把 Native Core 详情时间/大小/hash 切换为 `CoreBuildInfo.ets` 中的 `librustdesk_core.a` 文件信息，并修正 staticlib 模式下 `Native Module` 异常、`Native Core` 误显示停止的问题。
@@ -118,7 +144,7 @@
 
 核心和构建：
 
-- Windows native core 重编脚本已验证：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat`
+- 历史 Windows native core 重编脚本曾验证：`%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_build\build_bridge_now.bat`；该旧脚本已在 2026-06-21 16:26 清理中删除，当前 Core 构建以 `%VSCODE_ROOT%\13_librustdesk_core\scripts\build_native_bridge.ps1` 和 `99_Temp\librustdesk_core\cargo_target` 为准。
 - HAP 构建脚本已验证：`node scripts\run_hvigor_with_sdk_patch.js assembleHap`
 - `run_hvigor_with_sdk_patch.js` 会自动更新 `BuildInfo.ets`。
 - C++ NAPI、Rust ABI、ArkTS d.ts 已对齐。
@@ -273,7 +299,7 @@
 - 文件传输链路发现断点：`read_remote_directory()`、`create_remote_directory()`、`delete_remote_path()`、`start_file_transfer()` 原先均为 `false` stub。已接入 official `FileManager`/`Session` 方法，远端读目录、建目录、删除、启动传输现在会向 active session 发送对应 RustDesk 文件动作。
 - 文件传输请求链路：`send_file_transfer_request()` 现在写入 `file-transfer-request` 事件并在有 active session 时返回 true，避免 UI 请求被静默判定为失败。
 - 剪贴板链路保留风险：`send_clipboard_data()` 仍未伪装实现。当前没有找到 Harmony 路径下可安全调用的 official “设置远端剪贴板文本”公开 session 方法；不会用 `input_string()` 冒充剪贴板发送，避免把剪贴板内容直接打到远端当前输入焦点。
-- native 构建验证：`build_bridge_now.bat` 已通过，`librustdesk_core.a` 已复制到 `entry/src/main/libs/arm64/`。
+- 历史 native 构建验证：`build_bridge_now.bat` 曾通过，`librustdesk_core.a` 已复制到 `entry/src/main/libs/arm64/`；该旧脚本已清理，当前 Core 构建入口见 `docs/WORKSPACE_PATHS.md`。
 - HAP 构建验证：`node scripts\run_hvigor_with_sdk_patch.js assembleHap` 已通过，构建时间 `2026-06-03 11:26`。
 
 ## 2026-06-03 全功能检查第 7 轮
@@ -399,7 +425,7 @@
 - **refreshNow清除忽略列表**：`refreshNow()` 清除 `ignoredPeerIds` 并持久化空列表，手动刷新意味着用户想重新看到所有设备，之前删除的设备应重新出现。
 - **消失设备差异清理**：`loadDiscoveredPeers()` 新增 `nativePeerIds` 集合，遍历native返回结果后对比 `discoveredPeers` Map，移除native不再返回的设备并同步 `AppDataService.removeDiscoveredDevice()`，解决LAN设备下线后仍显示在列表的问题。
 - **忽略列表统一检查**：忽略列表加载检查统一在 `loadDiscoveredPeers()` 入口处理，`handleDiscoveredPeer()` 不再重复调用 `loadIgnoredPeerIds()`，避免分散检查导致遗漏。
-- **构建验证**：HAP构建通过，构建时间 `2026-06-03 22:15`；无线设备 `192.168.11.100:36169` 安装启动成功，LAN发现正常工作，发现2个设备，无崩溃关键字，手动刷新无卡片消失。
+- **构建验证**：HAP构建通过，构建时间 `2026-06-03 22:15`；无线设备 `192.168.11.102:36169` 安装启动成功，LAN发现正常工作，发现2个设备，无崩溃关键字，手动刷新无卡片消失。
 
 ## 2026-06-03 刷新图标替换
 
@@ -450,7 +476,7 @@
 - **共享tab删除服务状态菜单**：MyDevice.ets删除 `buildServiceCard()` 调用，共享页不再显示服务状态卡片。
 - **设置菜单所有选项添加图标+主题匹配**：从Lucide Icons获取9个stroke格式SVG图标（settings_person/settings_server/settings_proxy/settings_cpu/settings_video/settings_shield/settings_monitor/settings_tune/settings_info），全部 `stroke="#000000"`。`buildSettingsSectionLabel` 和 `buildSettingsLinkRow` 新增icon参数，9个section分别配置对应图标，统一使用 `colorFilter(createStrokeIconColorFilter(theme_TEXT_TERTIARY))` 着色。
 - **发现页排序/刷新图标主题匹配修复**：`Sorting_order.svg` 从 `currentColor` 改为 `stroke="#000000"`，代码从 `fillColor` 改为 `colorFilter(createStrokeIconColorFilter())`。`refresh.svg` 确认stroke格式正确，代码使用colorFilter。两个图标暗色主题下可见性修复。
-- **构建验证**：HAP构建通过，构建时间 `2026-06-04 01:14`；无线设备 `192.168.11.100:36169` 安装成功。
+- **构建验证**：HAP构建通过，构建时间 `2026-06-04 01:14`；无线设备 `192.168.11.102:36169` 安装成功。
 - **项目备份移动**：`backup_20260604_001655` 从项目目录移动到 `%VSCODE_ROOT%\99_Temp\backup_20260604_001655`。
 
 ## 2026-06-06 远程连接画面卡住修复 + 质量菜单优化 + 帧率提升
@@ -487,7 +513,7 @@
 - **native帧槽推进提前**：`RemoteControl.refreshRenderedFrame()` 在完成 native frame copy 后立即调用 `harmonyNextRgba()`，不再等待异步 PixelMap 渲染完成后才推进下一帧。
 - **异步渲染防卡死**：新增 `renderGeneration` 防止旧 Promise 回写；`createPixelMap` 增加 260ms 超时，超时后释放迟到 PixelMap，避免 `frameRefreshInFlight` 长时间卡住。
 - **主动推进节流**：`maybeAdvanceNativeFrame()` 增加 48ms 最小间隔，并支持已连接但首帧未到时低频 prime native RGBA。
-- **构建与安装验证**：HAP构建通过，构建时间 `2026-06-06 07:30`，版本 `0.6.10`，versionCode `1000015`；无线目标 `192.168.11.100:36169` 安装成功并启动成功。
+- **构建与安装验证**：HAP构建通过，构建时间 `2026-06-06 07:30`，版本 `0.6.10`，versionCode `1000015`；无线目标 `192.168.11.102:36169` 安装成功并启动成功。
 - **待复测**：仍需在设备上实际发起一次远程连接，确认画面持续刷新和首帧后重试弹窗行为。
 
 ## 2026-06-06 连接入口与远端断开重连对话修复
@@ -506,7 +532,7 @@
 - **修复 module.json5**：设置 `compressNativeLibs: true` + `extractNativeLibs: true` + `libIsolation: true`，确保设备安装时正确解压 native SO。
 - **重编 native core**：`build_native_bridge.ps1` 成功，产物 135,670,438 bytes。
 - **构建 HAP**：成功，BuildInfo `2026-06-06 22:08`，版本 `0.6.17`，versionCode `1000022`。
-- **设备验证**：安装到无线目标 `192.168.11.100:36169`，启动成功。hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
+- **设备验证**：安装到无线目标 `192.168.11.102:36169`，启动成功。hilog 确认 `module registered (52 functions)`、`coreReady=true`、`adapter=official-native`，无崩溃。
 - **待完成**：设备上实际发起一次远程连接，确认连接链路和画面刷新正常。
 
 ## 2026-06-07 上游源码升级 1.4.6→1.4.7 + 连接 ECONNRESET 排查
@@ -523,7 +549,7 @@
   - ✅ 2026-06-12 后续已完成：13 项目曾发布 `v1.4.7-ohos` core，11 项目 Linux CI 曾使用该 core 成功构建 HAP/APP；当前构建规则已改为跟随 latest core 且线上只生成 HAP。
 - **后续结论**：本段是 2026-06-07 的排查过程，当前状态以文档顶部“2026-06-12 Linux 在线构建结论”和 `CORE.md` 的 verified current core 为准。
 - **备份位置**：`99_Temp/rustdesk_harmonyos_backups/harmony_bridge_backup_20260606/`
-- **1.4.7 clone 位置**：`99_Temp/rustdesk_harmonyos_build/rustdesk-1.4.7-clone/`
+- **历史 1.4.7 clone 位置**：`99_Temp/rustdesk_harmonyos_build/rustdesk-1.4.7-clone/`；该旧 clone 与工作区根 `_tmp_rustdesk_1_4_7_src` 均已在 2026-06-21 16:26 清理中删除。当前上游源码以 `%VSCODE_ROOT%\13_librustdesk_core\rustdesk-master` 为准。
 ## 2026-06-07 1.4.7 native core build + reconnect state fix
 
 - Built the upstream RustDesk 1.4.7 based native core for `aarch64-unknown-linux-ohos` and refreshed `entry/src/main/libs/arm64/librustdesk_core.a`.
@@ -589,7 +615,7 @@
 
 ## 2026-06-07 连接流程、LAN 发现、线上生成包收口
 
-- 修改前已备份项目到 `L:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_backups\project_backup_20260607_061033`，其中包含 git 状态和 diff 快照。
+- 历史记录：修改前曾备份项目到 `L:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_backups\project_backup_20260607_061033`，其中包含 git 状态和 diff 快照；当前统一规范已改为 `F:\Visual_Studio_Code\99_Temp\rustdesk_harmonyos_backups`，不要照抄旧盘符。
 - 无保存密码连接流程已修复：
   - `Index.ets` 在无保存密码时立即打开密码对话框，同时后台发起无密码授权连接。
   - 用户输入密码确认后会重置当前待处理连接，并切换到密码连接路径。
@@ -612,12 +638,12 @@
 - 线上生成包功能已完善：
   - `.github/workflows/build-harmonyos.yml` 当前固定 HAP-only；旧的 `app/both` 选择已下线。
   - `scripts/github_build_harmonyos.ps1` 构建前检查 DevEco SDK、签名配置、native 核心是否存在、核心大小和可选 SHA256。
-  - 构建从 `99_Temp` 下的干净 staged copy 执行，产物写到 `L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos`，避免污染源码目录。
+  - 构建从 `99_Temp` 下的干净 staged copy 执行，历史产物曾写到 `L:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos`；当前统一规范为 `F:\Visual_Studio_Code\99_Temp\harmonyos_artifacts\11_Rustdesk_harmonyos`，避免污染源码目录。
   - 本轮 signed HAP：`entry-default-signed.hap`，`18020747` bytes，SHA256 `93554B4C39F42330625C7B3B66D451F4BC751E2533F0489F297A3228BF91CC0F`。
 - 验证结果：
   - 旧规则下 `scripts\github_build_harmonyos.ps1 -ArtifactType both -VersionBump none` 曾通过；当前线上脚本仅允许 `-ArtifactType hap`。
   - HAP native 校验通过：`librustdesk_bridge.so`、`libc++_shared.so` 均存在，运行时依赖和签名校验通过。
-  - 设备 `192.168.11.100:36169` 安装成功。
+  - 设备 `192.168.11.102:36169` 安装成功。
   - 启动日志抓取受设备锁屏限制阻断，`aa start` 返回 `Error Code:10106102`；安装与包校验本身正常。
   - `scripts\audit_connection_chain.ps1` 通过：`50 PASS, 0 FAIL, 0 SKIP`。
   - `scripts\audit_full_function_rounds.ps1 -Rounds 100` 通过：100 轮均为 `96 PASS, 0 SKIP`。
@@ -671,5 +697,27 @@
 - 核心 release workflow 改为只有双架构 build 全成功才发布，下载两个 artifact 不再 `continue-on-error`，发布前强制检查 arm64 与 x86_64 两个 `.a` 文件存在且大小在预期范围内，避免 x86 失败时发布空标签或半成品。
 - 本地验证：`x86_64-unknown-linux-ohos` release 产物 `128,712,156` bytes / SHA256 `7D0AA289F050AD7D4D06B21516E0B39707570C08A28C700259245EFDA113A1CB`；`aarch64-unknown-linux-ohos` release 产物 `130,215,616` bytes / SHA256 `E82E9FE47557EE9771FA5E9C7539EF09670326038F59E8E5748481AE53352B30`。
 - 线上验证：核心 run `27853110949` 成功发布 `core-25`，arm64 asset `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 asset `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`；此前空 `core-24` release/tag 已删除。
-- App 验证：`scripts\build_hap.bat` 下载 latest core-25 双架构核心并构建 `0.29.2` / versionCode `1000169`；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs`、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、`AUTO_BUILD_INSTALL.bat --skip-build auto` 到 `192.168.11.100:36169` 均通过，设备端进程 `11717`。
+- App 验证：`scripts\build_hap.bat` 下载 latest core-25 双架构核心并构建 `0.29.2` / versionCode `1000169`；signed HAP `34,687,476` bytes / SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs`、`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`、`AUTO_BUILD_INSTALL.bat --skip-build auto` 到 `192.168.11.102:36169` 均通过，设备端进程 `11717`。
 - App 线上验证：commit `fb13e7a` 已推送到 `master`，GitHub Actions run `27854059963` 成功完成 `Build HarmonyOS package` 和 artifact 上传；artifact `harmonyos-hap` 大小 `65,698,344` bytes。
+
+## 2026-06-20 会话状态、聊天隔离、IP 输入和显示设置修复
+
+- 质量浮层固定 7 行，打开期间每 500ms 重绘缓存；核心上报不再追加重复动态行。
+- 新目标通过 `ChatService.retainOnlyPeer()` 删除其他 ID 的内存和持久化聊天，旧 ID 迟到消息不再写回；会话结束保留最新 ID，直到新 ID 到来。
+- ID 输入支持数字 ID、IPv4 和 IPv6；纯数字才三位分组并显示联想，输入 Stack 层级高于联想 overlay，清除/连接按钮保持可点。
+- 启动核心状态使用实时 bootstrap snapshot；ready 变化同步刷新模块，核心短标签统一“就绪/停止/未识”，会话卡移除重复 Error 行。
+- 连接终止统一清理 pending peer/password/dialog/monitor/status；每次新连接先关闭旧请求；`msgbox success` 不再提前标记 connected，修复等待被控端确认时密码框提前关闭。
+- 会话和设置页共用显示模式、缩放、图像质量、编码选项；自定义缩放为 100%-600% Slider；编码键修正为 `codec-preference`。
+- 13 核心持久化 Harmony 默认会话项，新建 Session 时注入 PeerConfig，当前会话编码变化调用 `update_supported_decodings()`；本地 arm64/x86_64 release 构建均通过。
+- App `assembleHap` 已通过；双设备安装、运行态复核、提交推送和线上 CI 仍在执行。
+
+## 2026-06-20 虚拟机会话竞态与密码首次连接修复
+
+- 在 `127.0.0.1:5555` 实际复现旧包每 150ms 重复事件：`OfficialRustDeskBridge` 消费 native 事件后回调 `markSessionConnected/markSessionError`，形成事件反馈环；已移除反馈调用，clean install 后首次页面无需切 TAB 即为 `coreReady=true`。
+- 核心增加会话 generation 隔离；关闭或新建连接会使旧 handler 失效，旧连接迟到的 `Reset by the peer` 不再覆盖新连接状态。
+- 密码确认不再关闭等待中的空密码连接后重建，而是向同一握手调用 `submitSessionPassword(password, rememberPassword)`；虚拟机验证不记住和记住的首次连接均为 `login -> session-connected -> connection-ready`，无 `session-closed`、无第二次 `connecting`、无 reset。
+- 记住密码后强制停止并重新启动 App，保存密码路径一次连接成功；未保存密码的 clean install 仍收到 `input-password`，不会偷偷复用核心一次性密码。
+- 密码卡片按键盘高度上移，确认按钮从被键盘覆盖的 `y=1809..1875` 移到 `y=1501..1567`。
+- ID 候选列表移出覆盖整个面板的 `.overlay`，改为 `Stack + position` 完全悬浮，覆盖下方内容但不参与排版；宽度严格限制到输入文本区，候选命中矩形不进入清除/连接命令区，按钮保持更高 zIndex。此前虚拟机输入 `128` 后清除/连接行为已验证，最新几何约束仍需最终设备回归。
+- IPv4 `10.0.2.2` 可原样输入并连接，取消/清除后连接提示和 pending 状态全部复位。
+- 本地双架构 core、HAP、签名、依赖检查均通过；连接链审计 `71/71`，100 轮全功能审计总计 `10,600 PASS / 0 FAIL / 100 SKIP`，SKIP 仅为未生成可选 APP 包。

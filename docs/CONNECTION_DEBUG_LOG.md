@@ -2,6 +2,40 @@
 
 > Current focused record for connection and video-stream verification. Keep this file updated when device-side behavior is tested.
 
+## 2026-06-21 23:48 fixed-hash final device verification
+
+- Installed HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`, size `34,284,688`, BuildInfo `0.33.6 / 2026-06-21 23:46` on `192.168.11.102:36169`.
+- Device evidence: `versionCode=1000182`, `updateTime=1782082072534`, `cpuAbi=arm64-v8a`; forced cold-start PID `29233`; hilog reported NAPI 413 functions, `coreReady=true` and successful LAN/online queries, with no selected fatal/panic/signal record.
+- Architecture consistency correction: arm64 `E4614B...` and x86_64 `DB0283...` are both local 2026-06-21 builds from the current Core source. The superseded `0.33.4` candidate used a 2026-06-20 latest-release x86_64 asset and is not releasable.
+- Exact package passed signature/dual-ABI/dependency verification, 100-round full audit (`15200 PASS / 0 FAIL / 100 expected SKIP`) and connection-chain audit (`83 PASS / 0 FAIL / 0 SKIP`); x86_64 size and SHA256 are now enforced against CoreBuildInfo.
+- UI device checks passed for complete ID suggestion insertion, IP-card matching/insertion and mid-string grouped-number caret preservation. Controlled-side Huawei input remains intentionally shelved.
+
+## 2026-06-21 phone real-video verification and input boundary
+
+- 2026-06-21 17:06 user decision: Huawei phone controlled-side input/manipulation is shelved because the device does not support the required control path. Other features remain in scope. The app module no longer packages the accessibility extension or requests `ohos.permission.INPUT_MONITORING`; CMake no longer links `ohinput`; the ArkTS accessibility service has been removed, and only native input symbols remain stubbed in `ohos_stubs.cpp` to return `201` for Core/C++ link compatibility. Any native input result such as `result=201` is now treated as an unsupported boundary, not a release blocker.
+- Rebuilt after shelving controlled-side input: signed HAP `34,233,149` bytes, SHA256 `A18FCCEE04A1903372124399035444B5BEBDF84FBB2B9F1918142C994C0797C9`, BuildInfo `2026-06-21 17:12`; `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed. This HAP is not yet installed on the phone.
+- New local dual-arch Core was built after fixing the OHOS incoming password retry socket behavior. arm64 archive: `131,091,732` bytes, SHA256 `E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D`; x86_64 archive: `130,090,572` bytes, SHA256 `DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD`.
+- Previous phone-installed HAP: `34,290,441` bytes, SHA256 `487EB88719B505013666D74841974A9CF4B031BF6EBFBF2BD6A352089822A35E`, BuildInfo `2026-06-21 14:59`; installed on phone with `bm dump updateTime=1782050494366`. The displayed app version stayed `0.32.0 / 1000172`, so version string alone is not valid freshness evidence.
+- Runtime phone sharing: after system screen-recording authorization, native capture reached `videoBufferReady=true`; `frameCount` and `coreFrameCount` increased, `corePushOk=true`, and Windows RustDesk displayed a continuously refreshing real phone screen. This supersedes the earlier VM black-screen boundary for phone testing.
+- Runtime input: remote mouse events reached the phone, but native injection returned `result=201` and did not change the target UI. Huawei Settings did not expose OpenRDesk in the inspected accessibility lists. Per the 17:06 decision, this controlled-side phone manipulation path is shelved and should not block sharing/file/codec/menu release work.
+- Sensitive handling: one-time password remains test-memory-only. Temporary screenshots/layout dumps that could expose secrets or user privacy must be deleted after extracting non-sensitive facts.
+- Cleanup follow-up: temporary screenshots/layout dumps and old report binaries were deleted after documenting the non-sensitive facts. Current HAP/Core artifacts are under `%VSCODE_ROOT%\99_Temp`, not the app repo `.codex_*` directories. The 2026-06-21 16:26 second cleanup also removed old worktree-root `_tmp_*`, old target/HAP/clone/log/cache directories, and IDE/tool caches; the authoritative retained/deleted list is `docs/WORKSPACE_PATHS.md`.
+
+## 2026-06-20 handoff and phone install
+
+- Current phone target moved to `192.168.11.102:36169`; all repository references were updated.
+- Verified staged HAP: 34,038,776 bytes, SHA256 `9F0C70F44C8E41464548306FE9F4A81AAA6896508EC523FC6572AEA92F4D3CC1`; `verify-app` passed and both arm64/x86_64 bridge libraries are present.
+- Direct install and launch succeeded; device reports `0.31.0 / 1000171`, native path `entry/libs/arm64`, process `56803`.
+- This install does not close the codec task: the packaged arm64 Core predates the latest five-codec Rust changes. All session-menu effects are also pending; remote cursor is specifically blocked by empty Core cursor callbacks.
+- User runtime evidence added after install: three-dot menu block-input state stays unchecked; turning block input off immediately opens the retry dialog and likely disconnects the session. File transfer from the same menu is not functional. Capture complete before/after event logs on VM and phone in the next session.
+
+## 2026-06-20 21:34 cellular network to private IPv4
+
+- Phone was on a cellular network and attempted target `192.168.11.101`.
+- Event order: `connect -> connecting -> session-error`; the terminal error was `Failed to connect to 192.168.11.101:21118: Please try later`.
+- Diagnosis: `192.168.11.101` is an RFC1918 private address. The target parser correctly treated it as a direct IPv4 transport and Core attempted port `21118`; a cellular network has no route to that LAN address unless VPN, port forwarding, or another explicit tunnel is present.
+- This is expected network reachability failure, not ID parsing, rendezvous, or password authentication failure. Final LAN testing uses ID `1283267036`; cross-network testing uses remote ID `187720470`. Test credentials remain outside source, logs, and documentation.
+
 ## 2026-06-15 v0.22.7 online core-81 share/file authorization verification
 
 - Core release: 13 核心 commit `c5b3eeb` 已由 GitHub Actions run `27563925971` 发布 `core-81`，release body 已补中文说明；线上 asset `131,631,706` bytes，SHA256 `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`。
@@ -11,7 +45,7 @@
 - App build result: forced online core download with `RUSTDESK_CORE_FORCE_DOWNLOAD=1` and SHA256 pin; built as `0.22.7` / versionCode `1000110`, BuildInfo time `2026-06-15 19:09`.
 - HAP result: signed HAP `18,978,267` bytes, SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`; unsigned HAP `18,899,289` bytes, SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`。
 - Verification: `verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native entries, runtime dependency checks, bundle/signature validation; `audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`。
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `40016`。
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `40016`。
 - Clean hilog: `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` has `7252` lines, `132` app/core-related lines, and app-related fatal/panic/`exit(-1)`/signal/native core missing bad count `0`。
 - Online result: push Linux run `27567811582` passed; release run `27568044749` passed and created `OpenRustdesk-Build-v0.22.7` with Chinese release notes. Online signed HAP is `20,870,632` bytes, SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`; unsigned HAP is `20,790,546` bytes, SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`.
 
@@ -25,7 +59,7 @@
 - App build result: built with `RUSTDESK_CORE_SKIP_DOWNLOAD=1` as `0.22.6` / versionCode `1000109`, BuildInfo time `2026-06-15 18:00`.
 - HAP result: signed HAP `18,433,473` bytes, SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`; unsigned HAP `18,352,811` bytes, SHA256 `93377FB03E689004EAD1D7C8C916537D5A5092F04BDD810DA947EFA4842F1BEA`.
 - Verification: `verify_native_harmonyos_hap.ps1` passed native entries, runtime dependency checks, bundle/signature validation after switching certificate/profile extraction temp files to GUID names; `audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`.
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.6`, `versionCode=1000109`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `7527`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.6`, `versionCode=1000109`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `7527`.
 - Clean hilog: `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` has `799` lines, `176` app-related lines, and app-related fatal/panic/`exit(-1)`/signal bad count `0`.
 
 ## 2026-06-15 v0.22.5 ArkTS strict CI and Chinese summary verification
@@ -35,7 +69,7 @@
 - Build result: `scripts\build_hap.bat` forced latest core download and rebuilt `0.22.5` / versionCode `1000108`, BuildInfo time `2026-06-15 07:32`; core remains `core-80`, `131,624,954` bytes, SHA256 `4047C8432BCA6C7F5FECBD4E1D6F55BE9717F28889B4699043A74138800E0E2A`.
 - HAP result: `18,968,203` bytes, SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`.
 - Verification: native/signature verifier passed; connection chain audit passed `66 PASS, 0 FAIL, 0 SKIP`; current code scan has no `AVScreenCaptureRecorder`, `@ohos.screenshot`, `screenshot.capture`, or explicit `CUSTOM_SCREEN_CAPTURE` runtime permission request.
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.5`, `versionCode=1000108`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `20911`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.5`, `versionCode=1000108`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `20911`.
 - Clean hilog: after `hilog -r` and 18s wait, `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt` recorded `coreReady=4`, `query-onlines-result=8`, app fatal/panic/`exit(-1)` = 0, app-related signal = 0.
 - Online result: push Linux run `27528676811` passed; release run `27528681007` passed and created `OpenRustdesk-Build-v0.22.5` with Chinese release notes. Online signed HAP is `20,856,465` bytes, SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`; unsigned HAP is `20,786,035` bytes, SHA256 `825690f819dd59fde8706693fe5ce879e3a2b3f0939c81f45b037099743c4220`.
 
@@ -47,7 +81,7 @@
 - Build result: `scripts\build_hap.bat` 强制下载 latest core 后 rebuilt `0.22.4` / versionCode `1000107`，BuildInfo time `2026-06-15 07:15`。
 - HAP result: `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`。
 - Verification: `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed；`audit_connection_chain.ps1` passed `66 PASS, 0 FAIL, 0 SKIP`。
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`；`bm dump` showed `versionName=0.22.4`, `versionCode=1000107`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `14881`。
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`；`bm dump` showed `versionName=0.22.4`, `versionCode=1000107`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `14881`。
 - Clean hilog: after `hilog -r` and 18s wait, `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt` recorded `coreReady=4`, `query-onlines-result=8`, app fatal/panic/`exit(-1)` = 0, app-related signal = 0. Remaining `signal` matches are Wi-Fi service `HandleSignalPollChangedMsg unsupported`, not app crash.
 
 ## 2026-06-15 v0.22.2 native screen capture verification
@@ -57,7 +91,7 @@
 - Build result: `scripts\build_hap.bat` rebuilt `0.22.2` / versionCode `1000105`, BuildInfo time `2026-06-15 06:17`.
 - Signed HAP: `18,946,878` bytes, SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`.
 - HAP verification: explicit `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`.
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.2`, `versionCode=1000105`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `62121`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.2`, `versionCode=1000105`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `62121`.
 - Runtime log: `reports\hilog_latest_after_0222_wireless_app_strict.txt` has `coreReady=1`, `query-onlines-result=2`, and app fatal/panic/`exit(-1)` all `0`. The `signal` text hits are Wi-Fi service `HandleSignalPollChangedMsg unsupported` lines, not `com.open.rundesk` crashes.
 - Remaining share work: this verifies the app native capture entry and install/runtime stability. It does not yet mean incoming sharing is ready; frame payload still must be bridged into the RustDesk desktop server/video source before `incomingReady=true`.
 
@@ -68,7 +102,7 @@
 - Build result: `scripts\build_hap.bat` rebuilt `0.22.1` / versionCode `1000104`, BuildInfo time `2026-06-15 06:01`.
 - Signed HAP: `18,953,784` bytes, SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`.
 - HAP verification: explicit `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` passed; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`.
-- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.1`, `versionCode=1000104`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `56711`.
+- Wireless install/start: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` succeeded on `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.1`, `versionCode=1000104`, native library path `entry/libs/arm64`; `pidof com.open.rundesk` returned `56711`.
 - Runtime log: `reports\hilog_latest_after_0221_wireless_app_strict.txt` has `coreReady=71`, `initializeRuntimeFn returned=3`, `Bootstrap snapshot=1`, `query-onlines-result=134`, and app fatal/panic/signal/`exit(-1)` all `0`.
 
 ## 2026-06-15 RemoteControl direct session command and local recording conflict
@@ -77,7 +111,7 @@
 - App fix: `RemoteControl.ets` now calls `NativeRustDeskBridge.sessionSwitchSides()`, `sessionTakeScreenshot(display)`, `sessionRecordScreen(start)`, `sessionRequestVoiceCall()`, and `sessionCloseVoiceCall()` directly. Session recording no longer requests local screen-capture permission and no longer starts `ScreenCaptureService`.
 - State fix: `record-status`, `voice-call-started`, `voice-call-waiting`, `voice-call-closed`, and `screenshot-response` events update the UI state/toasts. `I18nService.ets` includes Chinese translations for the new screenshot, recording, and voice-call toast strings.
 - Core dependency: core commit `bc36b1d` was published by run `27516993020` as `core-79`; release asset `131,493,470` bytes, SHA256 `8BBB12AA93EE8703ABBED5BA6D411031AD78CE7FA6A71D7C407A0A350A8789F2`.
-- Verification: `scripts\build_full_hap.bat` rebuilt `0.22.0` / versionCode `1000103`; signed HAP `18,929,896` bytes, SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`; native/signature verifier passed with explicit `-HapPath`; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`; wireless install/start to `192.168.11.100:36169` succeeded and `pidof com.open.rundesk` returned `56136`.
+- Verification: `scripts\build_full_hap.bat` rebuilt `0.22.0` / versionCode `1000103`; signed HAP `18,929,896` bytes, SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`; native/signature verifier passed with explicit `-HapPath`; connection chain audit passed `50 PASS, 0 FAIL, 0 SKIP`; wireless install/start to `192.168.11.102:36169` succeeded and `pidof com.open.rundesk` returned `56136`.
 - Runtime log: `reports\hilog_latest_after_core79_wireless_app_only.txt` has `coreReady=187`, `initializeRuntimeFn returned=3`, `Bootstrap snapshot=1`, `query-onlines-result=366`, and app fatal/panic/signal/`exit(-1)` all `0`.
 
 ## 2026-06-15 v0.21.0 core-78 wireless runtime verification
@@ -88,7 +122,7 @@
 - Signed HAP: `18,928,728` bytes, SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`.
 - HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed.
 - Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
-- Target: `192.168.11.100:36169`.
+- Target: `192.168.11.102:36169`.
 - Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
 - Install/start result: `install bundle successfully`; `start ability successfully`.
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.21.0`, `versionCode=1000102`, `minCompatibleVersionCode=1000102`, native library path `entry/libs/arm64`.
@@ -102,7 +136,7 @@
 - Signed HAP: `18,928,713` bytes, SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`.
 - HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native library, runtime dependency, bundle, and signature checks.
 - Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
-- Target: `192.168.11.100:36169`.
+- Target: `192.168.11.102:36169`.
 - Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
 - Install/start result: `install bundle successfully`; `start ability successfully`.
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.5`, `versionCode=1000101`, `minCompatibleVersionCode=1000101`, native library path `entry/libs/arm64`.
@@ -111,13 +145,13 @@
 ## 2026-06-15 v0.20.4 wireless reinstall/runtime smoke
 
 - Context: after rebuilding the USB-only installer/doc updates, the user re-enabled wireless debugging and asked to retry wireless install.
-- Target: `192.168.11.100:36169`.
+- Target: `192.168.11.102:36169`.
 - Install/start command: `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
 - Install/start result: `install bundle successfully`; `start ability successfully`.
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.4`, `versionCode=1000100`, `minCompatibleVersionCode=1000100`.
 - Signed HAP: `18,917,915` bytes, SHA256 `D14C9DECF5199277F0AB7E97BBFCDF540BACEB06BCDA3AB74581F09A4CBF3CDB`.
 - Process state: `pidof com.open.rundesk` returned `29101`.
-- HDC target list after install: `192.168.11.100:36169`.
+- HDC target list after install: `192.168.11.102:36169`.
 - HAP verification: `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` passed native library, runtime dependency, bundle, and signature checks.
 - Static chain verification: `scripts\audit_connection_chain.ps1` passed `50 PASS, 0 FAIL, 0 SKIP`.
 - Follow-up: continue manual feature logic validation and remaining share live-frame implementation work.
@@ -141,7 +175,7 @@
 ## 2026-06-15 v0.20.3 wireless install/runtime smoke
 
 - Context: after USB-only mode returned `[Empty]`, the phone's wireless debugging was re-enabled and the current signed HAP was installed with `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto`.
-- Target: `192.168.11.100:36169`.
+- Target: `192.168.11.102:36169`.
 - Install/start result: `install bundle successfully`; `start ability successfully`.
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.3`, `versionCode=1000099`.
 - Signed HAP: `18,917,916` bytes, SHA256 `1B72498BBB53A8637C2859364B877D4116D06AEF339977ED1D1E0F6A8E2748A4`.
@@ -166,7 +200,7 @@
 - Core asset: `librustdesk_core.a`, `131,470,712` bytes, SHA256 `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`, FNV-1a 1MB `da7131f6`
 - App HAP build: full build version `0.20.0`, versionCode `1000096`, signed HAP `18,909,325` bytes, SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`
 - HAP verification: native libraries, runtime dependency check, bundle `com.open.rundesk`, and signature verification passed with `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs`
-- Device target: `192.168.11.100:36169`
+- Device target: `192.168.11.102:36169`
 - Install result: `install bundle successfully`
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.20.0`, `versionCode=1000096`
 - Launch result: blocked by password lock, `Error Code:10106102`; `power-shell wakeup`, `uitest uiInput swipe`, and `aa start -N` did not unlock the phone in developer mode
@@ -174,7 +208,7 @@
 
 ## 2026-06-14 post-doc unlocked install/runtime recheck
 
-- Context: after the documentation update, the phone was manually unlocked again and the unchanged signed HAP was reinstalled with `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.100:36169`.
+- Context: after the documentation update, the phone was manually unlocked again and the unchanged signed HAP was reinstalled with `scripts\AUTO_BUILD_INSTALL.bat --skip-build 192.168.11.102:36169`.
 - Install/start result: `install bundle successfully`; `start ability successfully`.
 - Process state: `pidof com.open.rundesk` returned `12565`; the process was still alive on the follow-up check.
 - Hilog capture: `reports/hilog_latest_after_core74_post_docs_unlocked.txt`, `930,112` bytes.
@@ -189,7 +223,7 @@
 - Core asset: `librustdesk_core.a`, `131,471,786` bytes, SHA256 `3755D448FBB1A583E7B5F7C3C6ADEC29D8AF0FBB7E5DD192251CD18A68C45D7C`
 - App HAP build: full build version `0.19.0`, versionCode `1000090`, signed HAP `18,828,000` bytes, SHA256 `4BF796ED37DD1FCADF455F1585A55E36CFFC58940235D82FCAC55C6CBA6042A1`
 - HAP verification: native libraries, runtime dependency check, bundle `com.open.rundesk`, and signature verification passed with `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs`
-- Device target: `192.168.11.100:36169`
+- Device target: `192.168.11.102:36169`
 - Install result: `install bundle successfully`
 - Launch result after manual unlock: `start ability successfully`
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.19.0`, `versionCode=1000090`, native library path `entry/libs/arm64`
@@ -206,7 +240,7 @@
 - Core asset: `librustdesk_core.a`, `131,471,532` bytes, SHA256 `E444D739EC958CD1485519FE0A712BFC1F074B60EEA65D71552E7E95A909A7B1`
 - App HAP build: full build version `0.18.0`, versionCode `1000088`, signed HAP `18,828,338` bytes, SHA256 `F40E44646D8DB6A561559B1815E812FB8D4B85FDA0D8D2073DBDC26648AC5DB4`
 - HAP verification: native libraries, runtime dependency check, bundle `com.open.rundesk`, and signature verification passed with `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs`
-- Device target: `192.168.11.100:36169`
+- Device target: `192.168.11.102:36169`
 - Install result: `install bundle successfully`
 - Launch result: blocked by lock screen, `Error Code:10106102`; `power-shell wakeup`, lockscreen swipe, and `aa start -N` still left `SCBScreenLock` active
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.18.0`, `versionCode=1000088`, native library path `entry/libs/arm64`
@@ -222,7 +256,7 @@
 - Core asset: `librustdesk_core.a`, `131,297,004` bytes, SHA256 `C750A785297AA22A2518B158BF334A1B1415C4E0739E01D0856C8BB5D450E15C`
 - App HAP build: full build version `0.17.0`, versionCode `1000087`, signed HAP `18,821,844` bytes, SHA256 `46E78399C826595CB509261B50A82BB8D1DC8941C041415792DA4186D17EF780`
 - HAP verification: native libraries, runtime dependency check, bundle `com.open.rundesk`, and signature verification passed with `scripts\verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs`
-- Device target: `192.168.11.100:36169`
+- Device target: `192.168.11.102:36169`
 - Install/launch result: `install bundle successfully` and `start ability successfully`
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.17.0`, `versionCode=1000087`, native library path `entry/libs/arm64`
 - Process state after final skip-build reinstall: `pidof com.open.rundesk` returned `18876`
@@ -237,7 +271,7 @@
 - Core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27459455573`, conclusion `success`
 - App HAP build: version `0.13.40`, signed HAP `18,746,449` bytes, SHA256 `A927DA8F54806F0AA53AEAD16575016AE6F535B8AED5FCA537AD7F219E35F070`
 - HAP verification: native libraries and signature passed with `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs`
-- Device target: `192.168.11.100:36169`
+- Device target: `192.168.11.102:36169`
 - Install result: `install bundle successfully`
 - Launch result: blocked by lock screen, `Error Code:10106102`
 - Package state from `bm dump -n com.open.rundesk`: installed `versionName=0.13.40`, `versionCode=1000071`, native library path `entry/libs/arm64`
@@ -254,3 +288,22 @@ The core-76 artifact and HAP packaging path are valid. Build, package verificati
 - Latest app workflow run checked: `https://github.com/liyan-lucky/rustdesk_harmonyos/actions/runs/27443845710`
 - Run state: failed on old commit `0000da60074323447862ac75774b6ebe26a95ea3`; it does not include the locally verified core-76, staged-signing/HAP-only, and staging junction fixes
 - Required next online verification: push current app changes, trigger `Build HarmonyOS HAP Linux`, confirm artifact/release contains only `.hap`
+
+## 2026-06-20 VM session generation and password evidence
+
+### Reproduced failures
+
+- The old installed package repeatedly recycled native events because `OfficialRustDeskBridge.applyEventToState()` called native `markSessionConnected/markSessionError` while consuming events from that same native queue.
+- An old session could emit `Reset by the peer` after a new session was already active. App-side terminal deduplication cannot prevent the Rust callback from first mutating the shared core state.
+- Proactive password confirmation closed the active empty-password connection, slept 180ms, then started a second connection. Captured order: `session-closed -> connecting -> session-connected -> Reset by the peer`.
+- Password dialog bounds before keyboard avoidance: confirm `y=1809..1875`; software keyboard top `y=1757`.
+
+### Fixes and verified event order
+
+- Core handlers carry `generation`; `session_start` and `session_close` advance `ACTIVE_SESSION_GENERATION`, and stale callbacks are ignored.
+- App event consumption no longer writes terminal state back into native core. `peer-info` and `connection-type` remain metadata.
+- Password confirmation uses the active session. `remember=false` evidence at 18:48:18: `submitSessionPassword returned true -> login -> peer-info -> session-connected -> connection-ready`, with no close/new-connect/reset sequence.
+- `remember=true` evidence at 18:49:15 has the same successful order. After force-stop and restart, `coreReady=true` appeared without TAB switching and the stored-password connection completed at 18:49:47 without `input-password` or reset.
+- Password card keyboard avoidance moved confirm to `y=1501..1567`, fully above the keyboard.
+- Numeric suggestion test: after entering `128`, clear produced empty `deviceIdInput`, removed the suggestion popup and produced no `session_start/connecting`; full ID connect selected logical peer `1283267036` and LAN transport `10.0.2.2` as intended.
+- Direct IPv4 test: exact input `10.0.2.2` reached native connect, and cancel/clear reset pending state and status.

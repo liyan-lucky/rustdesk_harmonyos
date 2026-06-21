@@ -1,8 +1,12 @@
 import { AppDataService, TransferTask } from '../services/AppDataService';
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
-import { EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
+import { createStrokeIconColorFilter, EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
-import { FileInfo, FileTransferEvent, FileTransferService } from '../services/FileTransferService';
+import {
+  FileInfo,
+  FileOverrideRequest,
+  FileTransferEvent,
+  FileTransferService
+} from '../services/FileTransferService';
 import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { PermissionService } from '../services/PermissionService';
@@ -25,9 +29,23 @@ struct FileTransfer {
   private appData: AppDataService = AppDataService.getInstance();
   private fileTransferService: FileTransferService = FileTransferService.getInstance();
   private transferListener = (event: FileTransferEvent): void => {
-    if (event.task || event.type === 'remote_fs_changed') {
+    if (event.type === 'override_required' && event.overrideRequest) {
+      this.pendingOverrideRequest = event.overrideRequest;
+      this.showOverrideDialog = true;
+      return;
+    }
+    if (event.task) {
       this.refreshTransferTasks();
-      void this.loadCurrentPaneFiles();
+    }
+    if (event.type === 'remote_fs_changed') {
+      const resolvedPath = this.fileTransferService.getLastRemoteDirectoryPath();
+      if (this.remotePath.length === 0 && resolvedPath.length > 0) {
+        this.remotePath = resolvedPath;
+      }
+      if (this.currentPane === 'remote') {
+        const files = this.fileTransferService.getCachedRemoteDirectory(this.remotePath);
+        this.remoteFiles = this.sortEntries(files.map((item: FileInfo) => this.mapFileInfo(item)));
+      }
     }
   };
   private fileAccessRequestPromise: Promise<boolean> | null = null;
@@ -38,8 +56,8 @@ struct FileTransfer {
   @State currentPane: FilePane = 'remote';
   @State sortMode: SortMode = 'name';
   @State tasks: TransferTask[] = [];
-  @State localPath: string = '/storage/Users/currentUser/Download';
-  @State remotePath: string = '/remote';
+  @State localPath: string = '';
+  @State remotePath: string = '';
   @State localFiles: FileEntry[] = [];
   @State remoteFiles: FileEntry[] = [];
   @State newFolderName: string = '';
@@ -47,6 +65,8 @@ struct FileTransfer {
   @State fileListRefreshAngle: number = 0;
   @State fileAccessAuthorized: boolean = false;
   @State fileAccessRequesting: boolean = false;
+  @State showOverrideDialog: boolean = false;
+  private pendingOverrideRequest: FileOverrideRequest | null = null;
   private fileListRefreshTimer: number = -1;
   aboutToAppear() {
     const params = this.getRouteParams();
@@ -54,6 +74,9 @@ struct FileTransfer {
       this.deviceId = params['deviceId'];
     }
     this.deviceName = this.appData.getDisplayName(this.deviceId);
+    this.localPath = this.fileTransferService.getLocalRootPath();
+    this.remotePath = this.fileTransferService.getRemoteRootPath();
+    this.fileAccessAuthorized = true;
     this.fileTransferService.addEventListener(this.transferListener);
     this.refreshTransferTasks();
     this.bootstrapTimer = setTimeout(() => {
@@ -69,11 +92,15 @@ struct FileTransfer {
     this.fileTransferService.removeEventListener(this.transferListener);
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
+  @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
+  @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2C3343';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
   @StorageProp('theme_CONTRAST_TEXT') theme_CONTRAST_TEXT: string = '#F8FAFC';
+  @StorageProp('theme_DIALOG_OVERLAY') theme_DIALOG_OVERLAY: string = '#80000000';
+  @StorageProp('theme_ERROR_BG') theme_ERROR_BG: string = '#3B1D24';
   @StorageProp('theme_ERROR_TEXT') theme_ERROR_TEXT: string = '#FCA5A5';
   @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
   @StorageProp('theme_INACTIVE_BG') theme_INACTIVE_BG: string = '#3A4355';
@@ -97,19 +124,35 @@ struct FileTransfer {
           this.buildTransferQueue()
         }
         .width('100%')
-        .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD, top: 56, bottom: this.avoidNavigationBarHeight + ThemeConfig.SPACING_MD })
+        .padding({
+          left: ThemeConfig.SPACING_MD,
+          right: ThemeConfig.SPACING_MD,
+          top: ThemeConfig.SPACING_MD,
+          bottom: ThemeConfig.SPACING_LG
+        })
       }
       .width('100%')
       .height('100%')
-      .scrollBar(BarState.Off)
+      .align(Alignment.TopStart)
+      .padding({ top: 80, bottom: this.avoidNavigationBarHeight + ThemeConfig.SPACING_LG })
 
       Column() {
         PageHeader(this.lt('File Transfer'), `${this.deviceName} · ${DeviceIdFormatter.format(this.deviceId)}`, true, () => {
           this.goBack();
         })
       }
+      .width('100%')
       .padding({ top: this.avoidStatusBarHeight })
-      .backgroundColor(this.themeIsDark ? '#802D3139' : '#80F8FAFC')
+      .linearGradient({
+        angle: 180,
+        colors: this.themeIsDark
+          ? [['#BB171A1E', 0.0], ['#99171A1E', 0.22], ['#66171A1E', 0.58], ['#00171A1E', 1.0]]
+          : [['#C0F0F4FA', 0.0], ['#A0F0F4FA', 0.22], ['#70F0F4FA', 0.58], ['#00F0F4FA', 1.0]]
+      })
+
+      if (this.showOverrideDialog && this.pendingOverrideRequest !== null) {
+        this.buildOverrideDialog()
+      }
     }
     .width('100%')
     .height('100%')
@@ -143,13 +186,17 @@ struct FileTransfer {
       }
     }
     .width('100%')
+    .padding(12)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
   private buildPathCard() {
     Column({ space: 8 }) {
       SectionTitle(this.currentPane === 'local' ? this.lt('Local Path') : this.lt('Remote Path'))
-      Text(this.getCurrentPath())
+      Text(this.getCurrentPath().length > 0 ? this.getCurrentPath() : this.lt('Remote'))
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
         .fontColor(this.theme_TEXT_PRIMARY)
@@ -159,8 +206,8 @@ struct FileTransfer {
         Button(this.lt('Parent Directory'))
           .height(36)
           .fontSize(12)
-          .backgroundColor(this.theme_INPUT_BG)
-          .fontColor(this.theme_TEXT_PRIMARY)
+          .backgroundColor(this.theme_ACCENT_SURFACE)
+          .fontColor(this.theme_ACCENT)
           .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
           .onClick(() => {
             void this.goParentDirectory();
@@ -171,7 +218,8 @@ struct FileTransfer {
     .alignItems(HorizontalAlign.Start)
     .padding(16)
     .backgroundColor(this.theme_CARD_BG)
-    .borderRadius(18)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
@@ -188,16 +236,17 @@ struct FileTransfer {
           Image($rawfile('refresh.svg'))
             .width(14)
             .height(14)
-            .colorFilter(createStrokeIconColorFilter(this.theme_CONTRAST_TEXT))
+            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
             .rotate({ x: 0, y: 0, z: 1, angle: this.fileListRefreshAngle })
           Text(this.lt('Refresh'))
             .fontSize(12)
-            .fontColor(this.theme_CONTRAST_TEXT)
+            .fontColor(this.theme_TEXT_PRIMARY)
         }
       }
       .layoutWeight(1)
       .height(40)
       .backgroundColor(this.theme_INPUT_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
       .borderRadius(12)
       .onClick(() => {
         if (this.isFileListRefreshing) {
@@ -207,6 +256,10 @@ struct FileTransfer {
       })
     }
     .width('100%')
+    .padding(12)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
@@ -215,7 +268,8 @@ struct FileTransfer {
       TextInput({ placeholder: this.lt('New folder name'), text: this.newFolderName })
         .layoutWeight(1)
         .height(42)
-        .backgroundColor(this.theme_CARD_BG)
+        .backgroundColor(this.theme_INPUT_BG)
+        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
         .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
         .padding({ left: 14, right: 14 })
         .onChange((value: string) => {
@@ -226,14 +280,18 @@ struct FileTransfer {
         .width(74)
         .height(42)
         .fontSize(12)
-        .backgroundColor(this.theme_INPUT_BG)
-        .fontColor(this.theme_CONTRAST_TEXT)
+        .backgroundColor(this.theme_ACCENT_SURFACE)
+        .fontColor(this.theme_ACCENT)
         .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
         .onClick(() => {
           void this.createFolder();
         })
     }
     .width('100%')
+    .padding(12)
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
   }
 
   @Builder
@@ -275,7 +333,7 @@ struct FileTransfer {
 
       Row({ space: 8 }) {
         if (entry.type === 'folder') {
-          this.buildInlineAction(this.lt('Open'), this.theme_TEXT_PRIMARY, this.theme_CONTRAST_TEXT, () => {
+          this.buildInlineAction(this.lt('Open'), this.theme_INPUT_BG, this.theme_TEXT_PRIMARY, () => {
             void this.openFolder(entry);
           })
         } else if (this.currentPane === 'local') {
@@ -288,13 +346,14 @@ struct FileTransfer {
           })
         }
 
-        this.buildInlineAction(this.lt('Delete Action'), this.theme_TEXT_TERTIARY, this.theme_CONTRAST_TEXT, () => {
+        this.buildInlineAction(this.lt('Delete Action'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
           void this.deleteEntry(entry);
         })
       }
     }
     .padding(14)
     .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
     .borderRadius(16)
   }
 
@@ -337,10 +396,7 @@ struct FileTransfer {
                   .layoutWeight(1)
 
                 if (task.status === 'running') {
-                  this.buildTaskAction(this.lt('Pause'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-                    this.pauseTask(task.id);
-                  })
-                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_TEXT, this.theme_CONTRAST_TEXT, () => {
+                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
                     this.cancelTask(task.id);
                   })
                 }
@@ -348,7 +404,7 @@ struct FileTransfer {
                   this.buildTaskAction(this.lt('Start'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
                     void this.startTask(task.id);
                   })
-                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_TEXT, this.theme_CONTRAST_TEXT, () => {
+                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
                     this.cancelTask(task.id);
                   })
                 }
@@ -356,6 +412,7 @@ struct FileTransfer {
             }
             .padding(16)
             .backgroundColor(this.theme_CARD_BG)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(18)
           }, (task: TransferTask) => task.id)
         }
@@ -382,6 +439,7 @@ struct FileTransfer {
       .fontSize(13)
       .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
       .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      .border({ width: active ? 0 : 1, color: this.theme_BORDER_SUBTLE })
       .borderRadius(12)
       .onClick(action)
   }
@@ -430,6 +488,9 @@ struct FileTransfer {
       return;
     }
     const files = await this.fileTransferService.listRemoteDirectory(this.remotePath);
+    if (this.remotePath.length === 0) {
+      this.remotePath = this.fileTransferService.getLastRemoteDirectoryPath();
+    }
     this.remoteFiles = this.sortEntries(files.map((item: FileInfo) => this.mapFileInfo(item)));
   }
 
@@ -482,9 +543,9 @@ struct FileTransfer {
       if (!await this.ensureLocalFileAccessAuthorization()) {
         return;
       }
-      this.localPath = this.parentPath(this.localPath, '/storage/Users/currentUser/Download');
+      this.localPath = this.parentPath(this.localPath, this.fileTransferService.getLocalRootPath());
     } else {
-      this.remotePath = this.parentPath(this.remotePath, '/remote');
+      this.remotePath = this.parentPath(this.remotePath, this.fileTransferService.getRemoteRootPath());
     }
     await this.loadCurrentPaneFiles();
   }
@@ -498,9 +559,9 @@ struct FileTransfer {
       if (!await this.ensureLocalFileAccessAuthorization()) {
         return;
       }
-      await this.fileTransferService.createDirectory(`${this.localPath}/${name}`);
+      await this.fileTransferService.createDirectory(this.fileTransferService.joinPath(this.localPath, name));
     } else {
-      await this.fileTransferService.createRemoteDirectory(`${this.remotePath}/${name}`);
+      await this.fileTransferService.createRemoteDirectory(this.fileTransferService.joinPath(this.remotePath, name));
     }
     this.newFolderName = '';
     await this.loadCurrentPaneFiles();
@@ -566,11 +627,6 @@ struct FileTransfer {
       return;
     }
     await this.fileTransferService.startTransfer(taskId, this.getTransferTargetPath(task.direction));
-    this.refreshTransferTasks();
-  }
-
-  private pauseTask(taskId: string): void {
-    this.fileTransferService.pauseTransfer(taskId);
     this.refreshTransferTasks();
   }
 
@@ -675,18 +731,12 @@ struct FileTransfer {
 
   private canGoUp(): boolean {
     return this.currentPane === 'local'
-      ? this.localPath !== '/storage/Users/currentUser/Download'
-      : this.remotePath !== '/remote';
+      ? this.localPath !== this.fileTransferService.getLocalRootPath()
+      : this.remotePath !== this.fileTransferService.getRemoteRootPath();
   }
 
   private parentPath(path: string, rootPath: string): string {
-    if (path === rootPath) {
-      return rootPath;
-    }
-    const segments = path.split('/');
-    segments.pop();
-    const joined = segments.join('/');
-    return joined.length > 0 ? joined : rootPath;
+    return this.fileTransferService.parentPath(path, rootPath);
   }
 
   private getRouteParams(): Record<string, string> {
@@ -694,11 +744,15 @@ struct FileTransfer {
   }
 
   private async bootstrapFileTransferPage(): Promise<void> {
-    await this.ensureLocalFileAccessAuthorization(false);
     await this.loadCurrentPaneFiles();
   }
 
   private async ensureLocalFileAccessAuthorization(showToastOnSuccess: boolean = false): Promise<boolean> {
+    const localRoot = this.fileTransferService.getLocalRootPath();
+    if (this.localPath === localRoot || this.localPath.startsWith(`${localRoot}/`)) {
+      this.fileAccessAuthorized = true;
+      return true;
+    }
     if (this.fileAccessAuthorized) {
       return true;
     }
@@ -738,6 +792,78 @@ struct FileTransfer {
       await this.getUIContext().getPromptAction().openToast({ message });
     } catch (error) {
       console.error('FileTransfer toast failed', JSON.stringify(error));
+    }
+  }
+
+  @Builder
+  private buildOverrideDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 14 }) {
+        Text(this.lt('Overwrite'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        Text(this.pendingOverrideRequest?.targetPath ?? '')
+          .fontSize(13)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .maxLines(3)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+
+        if (this.pendingOverrideRequest?.isIdentical === true) {
+          Text(this.lt('Files are identical'))
+            .fontSize(12)
+            .fontColor(this.theme_TEXT_TERTIARY)
+        }
+
+        Row({ space: 8 }) {
+          Button(this.lt('Replace'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .onClick(() => {
+              this.respondToOverride('replace');
+            })
+          Button(this.lt('Skip'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_INPUT_BG)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => {
+              this.respondToOverride('skip');
+            })
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ERROR_BG)
+            .fontColor(this.theme_ERROR_TEXT)
+            .onClick(() => {
+              this.respondToOverride('cancel');
+            })
+        }
+        .width('100%')
+      }
+      .width('88%')
+      .padding(18)
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .borderRadius(8)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .zIndex(80)
+    .hitTestBehavior(HitTestMode.Block)
+  }
+
+  private respondToOverride(action: 'replace' | 'skip' | 'cancel'): void {
+    const request = this.pendingOverrideRequest;
+    this.pendingOverrideRequest = null;
+    this.showOverrideDialog = false;
+    if (request !== null) {
+      this.fileTransferService.respondToOverride(request, action);
     }
   }
 

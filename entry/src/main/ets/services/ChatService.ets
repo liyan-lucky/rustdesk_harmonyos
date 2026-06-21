@@ -61,6 +61,7 @@ export class ChatService {
   private sessions: Map<string, ChatSession> = new Map();
   private messages: Map<string, ChatMessage[]> = new Map(); // deviceId -> messages
   private recentLocalEchoes: Map<string, number> = new Map();
+  private retainedPeerId: string = '';
   private eventListeners: Array<(event: ChatEvent) => void> = [];
   private maxMessageHistory: number = 1000;
 
@@ -129,6 +130,37 @@ export class ChatService {
   deleteSession(deviceId: string): void {
     this.sessions.delete(deviceId);
     this.messages.delete(deviceId);
+    this.persistMessages();
+  }
+
+  retainOnlyPeer(deviceId: string): boolean {
+    const normalizedPeerId = deviceId.trim();
+    if (normalizedPeerId.length === 0) {
+      return false;
+    }
+    this.retainedPeerId = normalizedPeerId;
+    let changed = false;
+    Array.from(this.sessions.keys()).forEach((peerId: string) => {
+      if (peerId !== normalizedPeerId) {
+        this.sessions.delete(peerId);
+        changed = true;
+      }
+    });
+    Array.from(this.messages.keys()).forEach((peerId: string) => {
+      if (peerId !== normalizedPeerId) {
+        this.messages.delete(peerId);
+        changed = true;
+      }
+    });
+    Array.from(this.recentLocalEchoes.keys()).forEach((key: string) => {
+      if (!key.startsWith(`${normalizedPeerId}::`)) {
+        this.recentLocalEchoes.delete(key);
+      }
+    });
+    if (changed) {
+      this.persistMessages();
+    }
+    return changed;
   }
 
   /**
@@ -686,6 +718,10 @@ export class ChatService {
     hilog.info(0xA03D00, 'Chat', 'chat-message: peerId=' + deviceId + ' contentLen=' + content.length);
     if (deviceId.length === 0 || content.length === 0) {
       hilog.warn(0xA03D00, 'Chat', 'chat-message dropped: empty peerId or content');
+      return;
+    }
+    if (this.retainedPeerId.length > 0 && deviceId !== this.retainedPeerId) {
+      hilog.info(0xA03D00, 'Chat', 'chat-message dropped for superseded peerId=' + deviceId);
       return;
     }
     if (this.isBridgeFailureDetail(content)) {

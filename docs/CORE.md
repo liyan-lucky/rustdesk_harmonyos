@@ -2,6 +2,26 @@
 
 > 本文档记录 HAP 项目的核心状态、构建安装流程和运行验证清单。核心架构、桥接函数说明、编译问题等详见 `%VSCODE_ROOT%\13_librustdesk_core\docs\CORE.md`。
 
+## 2026-06-21 23:48 最终本地候选
+
+当前唯一待发布 HAP 为 SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`（`34,284,688` bytes，BuildInfo `0.33.6 / 2026-06-21 23:46`）。CoreBuildInfo：arm64 `131091732 / E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D / 9cbd45a1`，x86_64 `130090572 / DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD / 38bf9990`，均为 2026-06-21 本地同源码基线。签名、双 ABI、两架构依赖、真机安装与冷启动均通过；最终 100 轮审计 0 FAIL，连接链 83/83。线上产物必须下载后再核对签名、双 ABI、BuildInfo、双架构 CoreBuildInfo 和 SHA256，不能只看 `0.33.6`。
+
+> 2026-06-21 路径规则：本地构建、验包、Core target、Hvigor stage/build/cache 和测试日志统一写入 `%VSCODE_ROOT%\99_Temp`。细则见 `docs/WORKSPACE_PATHS.md`，不要再把 `.codex_*`、Cargo target 或 HAP 输出长期留在 App 仓库根。
+
+## 2026-06-21 17:12 真机共享与 HAP 历史快照（已被 23:48 基线替代）
+
+- 当时本地构建/验包 HAP：size `34,233,149` bytes，SHA256 `A18FCCEE04A1903372124399035444B5BEBDF84FBB2B9F1918142C994C0797C9`，BuildInfo `2026-06-21 17:12`，签名和双 ABI 验包通过，当时尚未安装到真机。
+- CoreBuildInfo：arm64 `131,091,732` bytes / SHA256 `E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D`；x86_64 `130,090,572` bytes / SHA256 `DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD`。
+- 最后一次真机安装证据仍是 15:00 HAP：SHA256 `487EB88719B505013666D74841974A9CF4B031BF6EBFBF2BD6A352089822A35E`，`bm dump updateTime=1782050494366`，设备版本仍显示 `0.32.0 / 1000172`。版本号不能作为新旧判断依据。
+- 被控共享链路已在真机验证到 Windows 端真实手机画面持续刷新；native `videoBufferReady/frameCount/coreFrameCount/corePushOk` 均有正向证据。
+- 华为手机被控端输入/操控已按用户确认搁置：native input injection 返回 `result=201`，Huawei 设置页未列出 OpenRDesk；`module.json5` 已移除 accessibility extension 与 `ohos.permission.INPUT_MONITORING`，CMake 不再链接 `ohinput`，ArkTS accessibility service 已删除，仅由 `ohos_stubs.cpp` 保留固定返回 `201` 的 native 链接兼容符号。文件传输、全部会话菜单、五编码和远程光标仍需后续端到端验证。
+
+## 2026-06-20 当前 Core 未完成项
+
+- `HarmonySessionHandler` 的 cursor data/id/position/display 回调仍为空，“显示远程光标”尚未从官方 Session 回流到 App。
+- 最新五编码源码目前只构建 x86_64；arm64 仍需重编后再构建最终 HAP。详细状态见 `docs/AGENT_HANDOFF.md`。
+- `block-input` 的权威状态回流与 UI 读取尚未统一，取消阻止后的疑似断线必须结合完整事件链定位；FileManager/事件骨架也尚未形成可用文件传输闭环。
+
 ## 当前结论
 
 - 当前采用 `staticlib + CMake 直接链接` 方案。
@@ -20,6 +40,7 @@
 - 2026-06-14 13 项目旧 Harmony source mirror 的 `send_clipboard_data()` 已同步 active bridge，commit `1b987914a2c27ace376e5af45a9c6790d84d40b4` 已由 GitHub Actions run `27486100946` 发布 `core-74`；11 项目已下载 core-74 并完成全量 HAP 构建、验包、无线安装、解锁后启动和 hilog `coreReady=true` 验证。
 - 2026-06-14 13 项目已发布自定义服务器 key 透传 `core-75` 和聊天事件语义修复 `core-76`：`start_service/session_start` 新增 key 参数，空服务器配置会清理旧 option；聊天失败为 `chat-error`、发送成功为 `chat-sent`、远端消息才是 `chat-message`。11 项目已下载 `core-76` 并完成全量构建、验包和无线安装。
 - 2026-06-15 13 核心项目已回同步聊天 ABI 源文件修复和 d.ts 自建服务器 key 参数：`rustdesk_bridge_session_send_chat` 的 C++ 声明和调用改为四参，`connectToPeer/setIncomingServiceEnabled` 类型补齐 `key`，避免后续同步覆盖 11 App 已修路径；commits `034e446`、`cc5f4de` 已推送，GitHub Actions run `27515510727` 成功发布 `core-78`，release asset `131,470,442` bytes，SHA256 `F68E575D593BBE331E931E582870CB72EAA810BF56B817045162C44FCAF91ACD`。11 App 已下载并全量构建 `0.21.0`，无线安装启动和 hilog `coreReady` 验证通过。
+- 2026-06-20 会话默认选项与编码切换修复：13 核心把 Harmony 显示/质量/编码及其他会话默认项持久化到 Config，新建 `Session` 后写入对应 PeerConfig；`codec-preference` 在当前会话变化时调用 `update_supported_decodings()`。本地 arm64 与 x86_64 均通过 `scripts/build_native_bridge.ps1` release 构建。
 - 2026-06-15 远控 direct session 命令状态返回已在 13 核心 commit `bc36b1d` 推送并发布 `core-79`：Rust bridge、C ABI、C++ NAPI、核心/app d.ts 均改为 bool 返回，并补 `voice-call-*`、`record-status`、`screenshot-response` 事件；11 App 侧远控菜单已同步 direct function 调用，会话录制不再触发本机 `ScreenCaptureService`。11 App 已全量拉取 core-79 构建 `0.22.0` 并无线安装/hilog 验证通过。
 - 2026-06-15 App 权限链路继续验证为 `0.22.1` / versionCode `1000104`：共享启动去掉 `CUSTOM_SCREEN_CAPTURE` 预申请，文件传输页改为主动唤起 `DocumentViewPicker` 目录授权；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
 - 2026-06-15 App 屏幕采集底层继续验证为 `0.22.2` / versionCode `1000105`：`ScreenCaptureService` 不再创建 `AVScreenCaptureRecorder` 或临时 mp4 探测文件，改为 C++ NAPI 调用 `OH_AVScreenCapture_StartScreenCapture` 并轮询 native buffer 统计；core-79 staticlib 未变化，增量构建、验包、连接链路审计、无线安装启动和严格 app hilog 均通过。
@@ -63,7 +84,7 @@ RustDesk Server / Peer
 - Harmony app project: `%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - RustDesk native core project: `%VSCODE_ROOT%\13_librustdesk_core`
 - Core staticlib in app: `%VSCODE_ROOT%\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a`
-- HAP staged project copy: `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`
+- HAP staged project copy: `%VSCODE_ROOT%\99_Temp\harmonyos_stage\11_Rustdesk_harmonyos`（可再生成；2026-06-21 16:26 清理后当前不存在，构建脚本需要时重建）
 - Signed HAP output: `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
 
 ## 关键文件
@@ -90,29 +111,29 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-25`
-- Latest online size: `132,777,178` bytes (`126.63 MB`)
-- Latest online SHA256: `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-33`
+- Latest online size: `133,237,858` bytes (arm64, core-33)
 - Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/`
-- Current local core: `132,777,178` bytes, SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`
+- Current local core: core-33 arm64 `133,237,858` bytes
 
 x86_64 native core:
 
 - 文件：`entry/src/main/libs/x86_64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
-- 状态：CI 双架构构建已完成，`core-25` release 含真实 x86_64 核心；latest x86_64 asset `130,416,964` bytes，SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。
+- 状态：CI 双架构构建已完成，`core-33` release 含真实 x86_64 核心；latest x86_64 asset `130,898,552` bytes。
 - 无 x86_64 真实核心时自动降级为 stub 模式（`rustdesk_core_stub.cpp`）
 
 HAP:
 
 - Bundle: `com.open.rundesk`
 - ABI: `arm64-v8a` + `x86_64`
-- Wireless target: `192.168.11.100:36169`
+- Wireless target: `192.168.11.102:36169`
 - Virtual device target: `127.0.0.1:5555` (x86_64 模拟器)
-- Latest local pre-release validation: 2026-06-15 使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`；signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；`verify_native_harmonyos_hap.ps1` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备上 `versionName=0.22.6`、`versionCode=1000109`，`pidof com.open.rundesk` 返回 `7527`。干净 app hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` 中 app fatal/panic/`exit(-1)`/signal bad count 为 0。
+- Latest local pre-release validation: 2026-06-15 使用本地 core-81 staticlib 构建 `0.22.6` / versionCode `1000109`；signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；`verify_native_harmonyos_hap.ps1` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.102:36169` 安装和启动成功，设备上 `versionName=0.22.6`、`versionCode=1000109`，`pidof com.open.rundesk` 返回 `7527`。干净 app hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt` 中 app fatal/panic/`exit(-1)`/signal bad count 为 0。
 - Latest validation: 2026-06-19 环境迁移后全量构建 `0.27.0` / versionCode `1000147`；signed HAP `18,915,605` bytes；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `63 PASS, 2 FAIL, 1 SKIP`（2 FAIL 为质量面板 UI 审计，不影响编译环境）。2026-06-19 路径复核后当前仓库标准签名配置为 `debug_hos.cer`/`debug_hos.p12`/`debug_hos.p7b`，别名 `debugKey`；DevEco Studio 绝对路径只通过 `switch_deveco_paths.ps1` 临时切换。
-- Latest validation: 2026-06-20 下载 latest core-25 双架构核心后增量构建 `0.29.2` / versionCode `1000169`；signed HAP `34,687,476` bytes，SHA256 `59568326C6A8006E550BDB9BD0144EF801A3F099074C84F1D6EFA7AB119F0143`；验包 native/signature 通过，`audit_connection_chain.ps1` `66 PASS, 0 FAIL, 0 SKIP`；无线目标 `192.168.11.100:36169` 安装和启动成功，设备端版本一致，`pidof com.open.rundesk` 返回 `11717`。
+- Latest validation: 2026-06-20 全量构建 `0.31.0` / versionCode `1000171`；signed HAP `34,804,139` bytes；真机 `192.168.11.102:36169` 安装成功，进程 `58849`，`versionName=0.31.0`、`versionCode=1000171`，LAN 发现正常（1 peer）。core-33 线上最新核心。
 - Latest online App validation: 2026-06-20 GitHub Actions run `27854059963`（commit `fb13e7a`）成功完成 `Build HarmonyOS package` 与 `Upload HarmonyOS artifacts`，artifact `harmonyos-hap` 大小 `65,698,344` bytes。
+- Latest virtual device validation: 2026-06-20 全量构建 `0.30.0` / versionCode `1000170`；signed HAP `34,758,373` bytes；HAP 包含 arm64-v8a + x86_64 双架构真实核心；x86_64 模拟器 `127.0.0.1:5555` 安装启动成功，`coreReady=true`，进程 `16857` 存活。
 
 ## Native core 构建来源
 
@@ -160,10 +181,10 @@ scripts\AUTO_BUILD_INSTALL.bat auto
 
 ```powershell
 $hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
-$target = "192.168.11.100:36169"
-Push-Location "L:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default"
-& $hdc -t $target install -r entry-default-signed.hap
-Pop-Location
+$target = "192.168.11.102:36169"
+$hap = "F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap"
+Get-FileHash -Algorithm SHA256 $hap
+& $hdc -t $target install -r $hap
 & $hdc -t $target shell aa start -a EntryAbility -b com.open.rundesk
 ```
 
@@ -231,7 +252,7 @@ Pop-Location
 - Native core SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
 - HAP build verified: version `0.22.7`, versionCode `1000110`, signed HAP `18,978,267` bytes, SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
 - Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
-- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`
+- WiFi install verified: `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`
 - Launch/runtime status: `aa start` succeeded, process `40016` stayed alive; `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt` recorded 7252 lines, 132 app/core-related lines, and app fatal/panic/`exit(-1)`/signal/native core missing bad count 0.
 
 ## 2026-06-14 verified core-76
@@ -245,7 +266,7 @@ Pop-Location
 - Native core SHA256: `AA4E99EBBE794C979348E2B1C0CAFDDE7B846703398B2D1146E84DDF5640130F`
 - HAP build verified: version `0.20.0`, versionCode `1000096`, signed HAP `18,909,325` bytes, SHA256 `3A6302DCFFCC93D62F79BA37B1E573E8929FDC56A697682A5A88E1BEA8DF4F9C`
 - Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
-- WiFi install verified: `192.168.11.100:36169`; `bm dump` showed `versionName=0.20.0`, `versionCode=1000096`, native library path `entry/libs/arm64`
+- WiFi install verified: `192.168.11.102:36169`; `bm dump` showed `versionName=0.20.0`, `versionCode=1000096`, native library path `entry/libs/arm64`
 - Launch/runtime status: blocked by device password lock, `aa start` returned `Error Code:10106102`; `power-shell wakeup`, `uitest uiInput swipe`, and `aa start -N` did not bypass lock. Runtime hilog remains pending until manual unlock.
 
 ## 2026-06-13 verified previous core
@@ -257,4 +278,14 @@ Pop-Location
 - Native core SHA256: `3C238E788636DEF1BD97B21194D7B8FB16327E19EDD83E4387560E9485C60153`
 - HAP build verified: version `0.13.40`, signed HAP `18,746,430` bytes
 - Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
-- WiFi install verified: `192.168.11.100:36169` install bundle successfully; launch blocked by lock screen (`Error Code:10106102`), so runtime `coreReady` and `video-frame` are still pending
+- WiFi install verified: `192.168.11.102:36169` install bundle successfully; launch blocked by lock screen (`Error Code:10106102`), so runtime `coreReady` and `video-frame` are still pending
+
+## 2026-06-20 current dual-architecture session build
+
+- Online baseline `core-33` from commit `99edbb0` completed successfully in run `27867454936`; release contains both non-empty arm64 and x86_64 assets.
+- Local follow-up adds session generation isolation and clears the upstream peer password before each non-saved request. `set_peer_info` no longer promotes the session; only `on_connected` does.
+- The native build script now gives each target a target-triple plus millisecond log name, so parallel arm64/x86_64 builds cannot open the same timestamp-only log file.
+- Local arm64 archive: `130,756,888` bytes, SHA256 `1C7B47D058525C21E5EF53F61CD68CD99C9CD1C07FEA04F00FCE815979EAC4D6`.
+- Local x86_64 archive: `129,523,566` bytes, SHA256 `67C4E0E726E236073826D85FA704E42889AF8BAC665BC58C6A88ED7333797B04`.
+- Signed dual-architecture HAP: `33,964,454` bytes, SHA256 `1373FA150AF4B049A3F5F6F56BBB2098F22B1B5613DB1C6D428090A1856D0AD0`; package signature, arm64/x86_64 native entries and runtime dependencies verified.
+- x86 virtual device evidence: initial `coreReady=true`; no event feedback loop; both `remember=false` and `remember=true` password submissions complete on the original handshake; remembered-password reconnect after App restart succeeds.

@@ -11,6 +11,7 @@ $backupRoot = Join-Path $tempRoot "rustdesk_harmonyos_backups"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $stageRoot = Join-Path $env:TEMP "rustdesk_harmonyos_backup_$timestamp"
 $zipPath = Join-Path $backupRoot "rustdesk_harmonyos_$timestamp.zip"
+$hashPath = "$zipPath.sha256"
 
 New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
 
@@ -69,6 +70,8 @@ try {
     Remove-Item -LiteralPath $zipPath -Force
   }
   Compress-Archive -Path (Join-Path $stageRoot "*") -DestinationPath $zipPath -CompressionLevel Optimal
+  $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash
+  [System.IO.File]::WriteAllText($hashPath, "$hash  $([System.IO.Path]::GetFileName($zipPath))`r`n")
 } finally {
   if (Test-Path -LiteralPath $stageRoot) {
     Remove-DirectorySafe -Path $stageRoot
@@ -78,6 +81,13 @@ try {
 Get-ChildItem -LiteralPath $backupRoot -Filter "rustdesk_harmonyos_*.zip" |
   Sort-Object LastWriteTime -Descending |
   Select-Object -Skip $Keep |
-  Remove-Item -Force
+  ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Force
+    $oldHashPath = "$($_.FullName).sha256"
+    if (Test-Path -LiteralPath $oldHashPath) {
+      Remove-Item -LiteralPath $oldHashPath -Force
+    }
+  }
 
 Write-Host "Backup written to $zipPath"
+Write-Host "SHA256 written to $hashPath"

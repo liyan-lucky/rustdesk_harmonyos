@@ -2,6 +2,29 @@
 
 > 顶部渐变、Tab栏、连接页面布局、SVG图标主题适配
 
+## 2026-06-21 23:23 最终 UI 收口
+
+- ID 卡片菜单已大幅收窄并与官方排序对齐；“终端（以管理员身份运行）”缩为“管理员”，未实现项不常驻显示“开发中”，点击统一 toast。
+- 文件传输箭头方向/样式与设置一致；文件传输和终端页面按设置页的上下滑动起始位置、主题色、分界线和元素层次统一。
+- 设置页上方“显示设置”分组标题使用 `dvr.svg`，下方同名条目图标保持不变；输入控制使用原 `opt_mouse.svg`；方形选中状态使用 `checkbox-outline.svg`。
+- ID 数字格式化恢复且中部编辑光标稳定；建议层点击完整填入目标并关闭，ID 与 IP 卡片均可匹配。
+- 共享页删除“屏幕共享服务”文本行和 OTP 下方 Core 报错，状态只由右侧指示器表达；服务、屏幕录制和刷新实时联动。华为被控输入行明确显示当前不支持，点击提示开发中。
+- 连接重试对话框按钮高度为 `36`，中间按钮仅显示“中继”（英文 `Relay`）。
+
+## 2026-06-21 当前 UI 验证边界
+
+- 真机被控共享已经能在 Windows 端显示真实持续刷新的手机画面；远控显示层不再是“仅黑屏等待”的状态。
+- 华为手机被控端输入/操控 UI 已搁置：远端点击已到达但 native 注入 `result=201`，目标 UI 不变化；后续不要再把输入开关显示为打开当作手机被控操控完成证据。
+- ID 建议层、`IP直接访问` 布局、五编码选择和所有会话菜单仍需在恢复测试后逐项设备回归；菜单勾选和 option 日志仍只算中间证据。
+- 所有布局 dump/截图只保存脱敏证据；包含一次性密码、用户视频画面或隐私内容的截图必须立即删除，不进入 `reports/` 或文档。
+
+## 2026-06-20 会话菜单验证状态
+
+- 所有会话菜单都必须验证真实效果，菜单状态和 Core option 日志只算链路中间证据。
+- “显示远程光标”当前未实现完整闭环：App overlay 已存在，Core cursor 回调仍为空。完成后需验证 cursor bitmap、hotspot、缩放/旋转/多显示映射以及关闭时立即隐藏。
+- 默认显示方式、默认图像质量、默认编码三个 Select 已补主题属性；仍需最终截图检查浅色/深色主题的控件与弹层颜色。
+- 三点“更多操作”菜单也属于必验范围。当前阻止输入的选中状态不可靠，取消会触发重试对话框；文件传输只有入口，未完成端到端功能。修复后菜单关闭/重开、连接断开/重连都要保持正确状态。
+
 ## 2026-06-15 远控更多/聊天菜单状态
 
 - 远控“更多操作”中的 `Switch Sides`、`Take Screenshot`、`Session Recording` 必须调用核心 direct session function，不能再通过本地 option 伪装排队。
@@ -183,7 +206,7 @@ Column() { /* TextInput... */ }
 - 自定义键盘位于远程画面顶部，背景透明，只保留功能按键行；面板内不再放键盘按钮和关闭按钮。
 - 显示菜单、鼠标菜单、更多菜单都使用顶部标题行 + 关闭图标，关闭入口必须始终可见。
 - 更多菜单项目多，必须使用垂直滚动，不能让聊天、文件传输、截图、录制、重启、锁屏等后半段入口被屏幕裁掉。
-- 连接质量浮层由顶部工具栏显示按钮直接开关；浮层至少显示分辨率、FPS、延迟、速度、编码、连接线路、缩放比例，并通过滚动区域展示核心上报的动态质量指标。
+- 连接质量浮层由顶部工具栏显示按钮直接开关；固定显示分辨率、FPS、延迟、速度、编码、连接线路、缩放比例 7 行，核心上报只更新对应缓存值，不追加动态行。
 - 菜单入口必须带完整行为：跳转类入口传递当前 `deviceId`，命令类入口调用 native 或给出本地排队提示，不能静默失败。
 - 未接通 official session 的菜单入口必须灰显并明确提示不可用，不能跳转到会把本地状态伪装成 connected 的页面；当前 `View Camera` 入口采用此规则。
 - 一次性远控命令必须按 native/core 返回值显示结果；未被处理时显示 `Command unavailable`，不能用“本地排队”或成功提示替代真实发送。
@@ -199,8 +222,8 @@ Column() { /* TextInput... */ }
 - 搜索框失焦（onBlur）只关闭输入框，不清空搜索文本，保持过滤结果可见；再次点击搜索图标时如果有搜索文本则清空重新开始。
 - 从其他 TAB 返回连接 TAB 时，默认焦点回到底部 TAB 按钮（`connect-bottom-tab-btn`）；ID TextInput 不得自动获取焦点。
 - ID输入框悬浮匹配框只在输入法激活时显示（`deviceIdInputFocused`），输入法关闭时自动隐藏；`onChange` 中检查 `deviceIdInputFocused && raw.length >= 3` 才显示匹配。
-- 悬浮匹配框左右居中显示，overlay使用 `Alignment.Top`。
-- ID输入框右侧X（清除）和→（连接）按钮必须始终可点击：Stack中左侧Column需留出right padding（60）给按钮空间，右侧Row设zIndex(20)高于overlay，按钮加hitTestBehavior(Block)扩大点击区域。
+- ID 匹配框必须使用外层 `Stack + position` 完全悬浮，覆盖下方内容但不参与排版；不得用覆盖整个连接面板的 `.overlay(...)`。
+- ID输入框右侧X（清除）和→（连接）按钮必须始终可点击：左侧输入 Column 保留 right padding（60），候选框宽度只覆盖输入文本区，候选行显式使用 `HitTestMode.Block`；右侧命令 Row 保持高于候选框的 zIndex，且命令区不得落入候选命中矩形。
 - ID输入框连接状态提示文本不超过8个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码等；`setStatusMessageRaw` 自动截断超过8字的文本。
 
 ---
@@ -487,10 +510,18 @@ this.refreshAngle = 0;
 
 ### 质量监控面板
 
-- 基础7行：分辨率/FPS/延迟/速度/编码/连接/缩放；核心上报的 `quality-status` 动态指标追加为可滚动行。
+- 固定7行：分辨率/FPS/延迟/速度/编码/连接/缩放；核心上报的 `quality-status` 只更新固定行缓存，禁止追加动态指标。
 - 编码行：从quality-status的codec_format提取，转大写显示（VP9/H265等）
 - 连接行：标签为"连接"（非"连接类型"），显示直连/中继/加密等
-- 面板180宽全透背景，基础指标和动态指标共用滚动容器，避免长质量详情挤压远控画面。
+- 面板保持窄宽全透背景，固定 7 行位于滚动容器中，避免挤压远控画面。
+- 面板打开期间每 500ms 触发一次轻量重绘，刷新普通字段（含分辨率）但不重复解析 native payload。
+
+### 会话与默认显示设置
+
+- 显示模式统一使用 `display-scale-mode`：`original` / `fit` / `custom`；会话菜单和设置页读取同一持久化值。
+- 自定义缩放统一使用 `custom-zoom-percent`，范围 100%-600%，使用 Slider 调节。
+- 图像质量统一使用 `image-quality`，自定义值使用 `custom-image-quality` 和 `custom-fps`。
+- 编码统一使用官方 `codec-preference`：Auto / VP8 / VP9 / AV1 / H264 / H265；菜单使用单行下拉选项。
 
 ### 键盘避让
 
@@ -551,3 +582,44 @@ this.refreshAngle = 0;
 | `entry/src/main/ets/common/CommonComponents.ets` | PageHeader返回箭头fillColor、createStrokeIconColorFilter |
 | `entry/src/main/ets/common/ThemeConfig.ets` | 主题颜色配置(AppStorage) |
 | `entry/src/main/ets/services/WindowChromeService.ets` | 状态栏透明 |
+
+## 2026-06-20 核心属性菜单字段规范
+
+核心属性菜单（点击核心状态指示器弹出）只显示以下8项，不得增减：
+
+| 序号 | 标签 | 字段 | 说明 |
+|------|------|------|------|
+| 1 | Type | kind | adapter / native-module / native-core |
+| 2 | Status | statusActive | Running / Stopped |
+| 3 | Compatible | compatibleOfficialVersion | 兼容的 RustDesk 版本 |
+| 4 | File | path | 核心文件名 |
+| 5 | File Size | fileSize | 文件大小 |
+| 6 | Hash (FNV-1a) | hash | 文件哈希 |
+| 7 | Compile | buildTime | 编译时间 |
+| 8 | Valid | validElf | ELF 有效性 |
+
+**已移除字段**（不再显示）：Summary、Error、Detail。这些信息可通过日志查看，不需要在菜单中展示。
+
+## 2026-06-20 远控质量菜单字段规范
+
+远控会话质量菜单（点击质量指示器弹出）只显示以下7项，名称统一2个字，不得增减：
+
+| 序号 | 标签 | 数据来源 | 说明 |
+|------|------|----------|------|
+| 1 | 尺寸 | frameWidth × frameHeight | 当前帧分辨率 |
+| 2 | 帧率 | connectionFps | 当前帧率 |
+| 3 | 延迟 | connectionLatency | 网络延迟(ms) |
+| 4 | 速度 | connectionSpeedDisplay | 传输速度 |
+| 5 | 连接 | connectionType | 直连/中继 |
+| 6 | 缩放 | getCurrentZoom() | 画面缩放比例 |
+| 7 | 编码 | connectionCodec | 编码格式 |
+
+**已移除字段**（不再显示）：目标码率(target_bitrate)、下载速度(speed重复)、上传速度(send_speed)、色度(chroma)。核心 quality-payload 事件中的 delay/fps/speed/codec_format 与固定行重复，不再追加显示。
+
+## 2026-06-20 连接输入与密码弹窗布局规范
+
+- ID 候选列表是完全悬浮的绝对定位层，覆盖下方 Tab/列表内容但不挤压布局；不允许使用覆盖整个连接面板的 `.overlay(...)`。命中区域必须严格限制在候选框内，并在几何上避开清除、连接命令区，命令 Row 的 zIndex 始终更高。
+- 纯数字目标可显示历史匹配；IPv4/IPv6 不显示数字 ID 候选，也不做三位分组。
+- 密码弹窗操作区必须始终位于软键盘上方。当前使用 `avoidKeyboardHeight` 将卡片最多上移 88vp；不能依赖用户先收起键盘才能点击确认。
+- “记住密码”由 Checkbox 自身 `onChange` 和文字点击分别处理，父 Row 不再整体切换，避免一次点击触发两次反转。
+- 密码确认提交到当前等待鉴权的会话；界面不应在确认时先关闭连接再显示第二次连接等待。

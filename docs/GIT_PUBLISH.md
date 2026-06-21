@@ -2,6 +2,8 @@
 
 > 当前本地项目目录和 GitHub 展示目录已经统一为项目根结构。更新仓库前先读本文，避免重新引入旧的 `rustdesk_harmonyos/` 套娃目录。
 
+> 2026-06-21 23:48 发布候选基线：本地签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，arm64/x86_64 均为当日本地同源码构建并写入 CoreBuildInfo，100 轮全审计 0 FAIL，连接链 83/83。推送后必须等待线上 Core/HAP workflow，下载线上 asset 到 `99_Temp\release_inspect\11_Rustdesk_harmonyos`，复核签名、双 ABI、BuildInfo、双架构 CoreBuildInfo 和 SHA256，再把 run、commit、asset、hash 写回文档。版本号相同不代表包相同。
+
 ## 当前规则
 
 `%VSCODE_ROOT%` 表示当前机器上的工作区根目录，必须同时包含 `11_Rustdesk_harmonyos/` 和 `99_Temp/`。它会随 U 盘在借用电脑上的盘符变化，不要把盘符写死进新文档或脚本。

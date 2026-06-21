@@ -102,4 +102,32 @@ export class OfficialSessionTransport {
   static startFileTransfer(path: string, to: string, isRemote: boolean): boolean {
     return NativeRustDeskBridge.startFileTransfer(path, to, isRemote);
   }
+
+  static getRemoteDirectory(): string {
+    return NativeRustDeskBridge.sessionGetOption('remote_dir').trim();
+  }
+
+  static cancelFileTransfer(jobId: number): void {
+    NativeRustDeskBridge.sessionCancelJob(jobId);
+  }
+
+  static resumeFileTransfer(jobId: number, isRemote: boolean): void {
+    NativeRustDeskBridge.sessionResumeJob(jobId, isRemote);
+  }
+
+  static confirmFileOverride(
+    jobId: number,
+    fileNumber: number,
+    needOverride: boolean,
+    remember: boolean,
+    isUpload: boolean
+  ): void {
+    NativeRustDeskBridge.sessionSetConfirmOverrideFile(
+      jobId,
+      fileNumber,
+      needOverride,
+      remember,
+      isUpload
+    );
+  }
 }

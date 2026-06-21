@@ -2,6 +2,20 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## 0.33.6 release candidate (2026-06-21 23:48)
+
+- Final signed dual-ABI HAP: `34,284,688` bytes, SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`, BuildInfo `2026-06-21 23:46`; both Core architectures are local 2026-06-21 builds from the same source baseline and their size/SHA256 values are embedded in CoreBuildInfo.
+- Finalized themed file-transfer and terminal pages, compact official-aligned ID-card menu, development toasts for unavailable functions, compact retry dialog (`中继`), corrected settings/title icons, share-service/capture linkage and live state refresh.
+- Restored numeric ID grouping without forcing the caret to the end; floating suggestions now fill the complete ID and include IP-address cards.
+- Removed duplicate share-status text and core readiness error text; OTP remains runtime-memory-only and is never written to source, logs, documents, screenshots, or commits.
+- Huawei controlled-side input/accessibility is explicitly shelved as unsupported; all remaining local release checks passed: 100 × 153 audit checks with 0 failures and connection-chain 83/83.
+
+## Unreleased (2026-06-20 handoff)
+
+- Added the five-codec UI/native decoder work in progress and themed default Select controls.
+- Moved the current wireless device target to `192.168.11.102:36169`; verified and installed the staged signed HAP.
+- Recorded that all session-menu behavior remains pending. In particular, remote-cursor UI exists but Core cursor callbacks are still empty, so the feature is not complete.
+
 ## v0.22.7 (2026-06-15)
 
 ### 修复
@@ -17,7 +31,7 @@
 - signed HAP `18,978,267` bytes，SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`；unsigned HAP `18,899,289` bytes，SHA256 `2BE7B2E594B03868D5E8C6939ACB8FE4AD5B2476959498A43DD1A5E03A12C03B`。
 - `verify_native_harmonyos_hap.ps1` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
 - 静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` runtime permission request 命中。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.7`、`versionCode=1000110`，进程 `40016` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.7`、`versionCode=1000110`，进程 `40016` 存活。
 - 干净 hilog `reports\hilog_latest_after_0227_core81_wireless_app_strict_clean_x.txt`：7252 行、app/core 相关 132 行，app fatal/panic/`exit(-1)`/signal/native core missing bad count = 0。
 - 线上 push Linux workflow run `27567811582` 成功；发布 workflow run `27568044749` 成功创建 `OpenRustdesk-Build-v0.22.7`。线上 signed HAP `20,870,632` bytes，SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`；unsigned HAP `20,790,546` bytes，SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`。
 
@@ -37,7 +51,7 @@
 - signed HAP `18,433,473` bytes，SHA256 `4D669584F44B6462F570747723E66EB2894204FF7860CA0FBB27339D7FCE7DDD`；unsigned HAP `18,352,811` bytes，SHA256 `93377FB03E689004EAD1D7C8C916537D5A5092F04BDD810DA947EFA4842F1BEA`。
 - `verify_native_harmonyos_hap.ps1` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
 - 静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` 普通权限请求命中。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.6`、`versionCode=1000109`，进程 `7527` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.6`、`versionCode=1000109`，进程 `7527` 存活。
 - 干净 hilog `reports\hilog_latest_after_0226_localcore_wireless_app_strict_clean_x.txt`：799 行、app 相关 176 行，app fatal/panic/`exit(-1)`/signal bad count = 0。
 
 ## v0.22.5 (2026-06-15)
@@ -54,7 +68,7 @@
 - signed HAP `18,968,203` bytes，SHA256 `05E86D1D2900D3D0F873113B28338EB468B36AF4063461476D7E87C4A49D726A`。
 - `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过；`audit_connection_chain.ps1` 通过 `66 PASS, 0 FAIL, 0 SKIP`。
 - 当前代码静态扫描无 `AVScreenCaptureRecorder`、`@ohos.screenshot`、`screenshot.capture`、显式 `CUSTOM_SCREEN_CAPTURE` 普通权限请求命中。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.5`、`versionCode=1000108`，进程 `20911` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.5`、`versionCode=1000108`，进程 `20911` 存活。
 - 清空 hilog 后重新抓取 `reports\hilog_latest_after_0225_core80_wireless_app_strict_clean.txt`：`coreReady=4`、`query-onlines-result=8`、app fatal/panic/`exit(-1)` = 0，app 相关 `signal` = 0。
 - 线上 push Linux workflow run `27528676811` 成功；发布 workflow run `27528681007` 成功创建 `OpenRustdesk-Build-v0.22.5`，release notes 已补中文说明。线上 signed HAP `20,856,465` bytes，SHA256 `515805c9a960a3a200400bf4b104d5683e500a27e08f9dd5a9992eaa1b0bac98`。
 
@@ -71,7 +85,7 @@
 - `scripts\build_hap.bat` 强制下载 latest core 后增量构建通过，版本 `0.22.4` / versionCode `1000107`，BuildInfo 时间 `2026-06-15 07:15`。
 - signed HAP `18,968,380` bytes，SHA256 `7C0B0D7AF7FDD224908F6CE10323AA7FD8E11C0BCB233DD03936513219A321C5`。
 - `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过；`audit_connection_chain.ps1` 已扩展到 `66 PASS, 0 FAIL, 0 SKIP`，覆盖 native screen capture、incoming frame bridge 和文件授权兜底。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.4`、`versionCode=1000107`，进程 `14881` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.4`、`versionCode=1000107`，进程 `14881` 存活。
 - 清空 hilog 后重新抓取 `reports\hilog_latest_after_0224_core80_wireless_app_strict_clean.txt`：`coreReady=4`、`query-onlines-result=8`、app fatal/panic/`exit(-1)` 为 0，app 相关 `signal` 为 0；日志中的 `signal` 仍为系统 Wi-Fi `HandleSignalPollChangedMsg unsupported` 噪声。
 
 ## v0.22.2 (2026-06-15)
@@ -86,7 +100,7 @@
 - `scripts\build_hap.bat` 增量构建通过，版本 `0.22.2` / versionCode `1000105`，BuildInfo 时间 `2026-06-15 06:17`。
 - signed HAP `18,946,878` bytes，SHA256 `9F4C40E9B10BE4D88BA5B76A24C887B1A8586F1A2812619CDC48C843C97DE1DA`。
 - `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.2`、`versionCode=1000105`，进程 `62121` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.2`、`versionCode=1000105`，进程 `62121` 存活。
 - `reports\hilog_latest_after_0222_wireless_app_strict.txt` 统计：`coreReady=1`、`query-onlines-result=2`，app fatal/panic/`exit(-1)` 均为 0；日志中的 `signal` 为 Wi-Fi 服务 `HandleSignalPollChangedMsg unsupported`，不是 `com.open.rundesk` 崩溃。
 
 ## v0.22.1 (2026-06-15)
@@ -102,7 +116,7 @@
 - `scripts\build_hap.bat` 增量构建通过，版本 `0.22.1` / versionCode `1000104`，BuildInfo 时间 `2026-06-15 06:01`。
 - signed HAP `18,953,784` bytes，SHA256 `F16398FCB29E9E4F24131602D7B03C7BEED0A88BE0C37463BC7238AFF4C31A06`。
 - `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.1`、`versionCode=1000104`，进程 `56711` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.1`、`versionCode=1000104`，进程 `56711` 存活。
 - `reports\hilog_latest_after_0221_wireless_app_strict.txt` 统计：`coreReady=71`、`initializeRuntimeFn returned=3`、`Bootstrap snapshot=1`、`query-onlines-result=134`，app fatal/panic/signal/`exit(-1)` 均为 0。
 
 ## v0.22.0 (2026-06-15)
@@ -122,7 +136,7 @@
 - `scripts\build_full_hap.bat` 已拉取 core-79 并全量构建 `0.22.0` / versionCode `1000103`，BuildInfo 时间 `2026-06-15 01:55`。
 - signed HAP `18,929,896` bytes，SHA256 `C8EB6B133B71752F50447410DE3E9DECC0BDE3EFD3630E8CBA9AB015E3A39F96`。
 - `verify_native_harmonyos_hap.ps1 -HapPath ... -SkipLaunch -SkipLogs` 验包和签名通过，`audit_connection_chain.ps1` 通过 `50 PASS, 0 FAIL, 0 SKIP`。
-- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已无线安装并启动到 `192.168.11.100:36169`；设备端 `versionName=0.22.0`、`versionCode=1000103`，进程 `56136` 存活。
+- `scripts\AUTO_BUILD_INSTALL.bat --skip-build auto` 已无线安装并启动到 `192.168.11.102:36169`；设备端 `versionName=0.22.0`、`versionCode=1000103`，进程 `56136` 存活。
 - `reports\hilog_latest_after_core79_wireless_app_only.txt` 统计：`coreReady=187`、`initializeRuntimeFn returned=3`、`Bootstrap snapshot=1`、`query-onlines-result=366`、app fatal/panic/signal/`exit(-1)` 均为 0。
 
 ## v0.21.0 (2026-06-15)
@@ -136,7 +150,7 @@
 
 - signed HAP `18,928,728` bytes，SHA256 `491ED6E5CF1A8B6E2DD3F1E4661D99C15A4EB7D9B7B6FCB4A45BC92346BE2F90`。
 - `scripts\verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 验包通过，`scripts\audit_connection_chain.ps1` 连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`。
-- 无线目标 `192.168.11.100:36169` 复装启动成功；设备端 `bm dump` 显示 `versionName=0.21.0`、versionCode `1000102`，`pidof com.open.rundesk` 返回 `41841`。`reports\hilog_latest_after_core78_wireless.txt` 记录 `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 均为 0。
+- 无线目标 `192.168.11.102:36169` 复装启动成功；设备端 `bm dump` 显示 `versionName=0.21.0`、versionCode `1000102`，`pidof com.open.rundesk` 返回 `41841`。`reports\hilog_latest_after_core78_wireless.txt` 记录 `coreReady` 14 次、`query-onlines-result` 20 次，app fatal/panic/signal/`exit(-1)` 均为 0。
 
 ## v0.20.5 (2026-06-15)
 
@@ -148,14 +162,14 @@
 ### 验证
 
 - 增量 HAP 构建通过，版本 `0.20.5` / versionCode `1000101`，signed HAP `18,928,713` bytes，SHA256 `E174E07ABB77CBF3E17489AABFEBDC7A5827A7DDE409206C59377C4BA9631FF0`。
-- 同包 native/signature 验证通过，连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`；无线安装启动到 `192.168.11.100:36169` 成功，设备端 `bm dump` 和 `pidof` 确认版本与进程存活。
+- 同包 native/signature 验证通过，连接链路审计 `50 PASS, 0 FAIL, 0 SKIP`；无线安装启动到 `192.168.11.102:36169` 成功，设备端 `bm dump` 和 `pidof` 确认版本与进程存活。
 
 ## v0.20.4 (2026-06-15)
 
 ### 构建/部署
 
 - **USB-only 安装模式**：`AUTO_BUILD_INSTALL.bat --skip-build usb` 只检测 USB/HDC 本地目标，不再尝试无线目标，便于临时改用 USB 安装测试。
-- **无线复装验证**：USB-only 脚本/文档变更重新构建后，`AUTO_BUILD_INSTALL.bat --skip-build auto` 已把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.100:36169`；设备端 `bm dump` 和 `pidof` 均确认运行中，同包 native/signature 验证和连接链路审计通过。
+- **无线复装验证**：USB-only 脚本/文档变更重新构建后，`AUTO_BUILD_INSTALL.bat --skip-build auto` 已把 `0.20.4` / versionCode `1000100` 安装并启动到 `192.168.11.102:36169`；设备端 `bm dump` 和 `pidof` 均确认运行中，同包 native/signature 验证和连接链路审计通过。
 - **核心后续状态**：13 核心项目聊天发送 ABI 源文件同步问题和核心 d.ts 自建服务器 `key` 参数已在后续 `core-78` 中发布，并由 11 App `0.21.0` 全量下载构建、无线安装和 hilog 验证通过。
 
 ## v0.20.3 (2026-06-15)
@@ -254,7 +268,7 @@
 ### 验证
 
 - 增量 HAP 构建通过，BuildInfo 更新时间：`2026-06-04 23:04`。
-- 自动安装并启动通过，目标：`192.168.11.100:36169`。
+- 自动安装并启动通过，目标：`192.168.11.102:36169`。
 
 ## v0.6.1 (2026-06-04)
 

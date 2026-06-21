@@ -2,6 +2,10 @@
 
 > 修改方向必须符合这些设计要求，避免偏离。新接手开发请先读 `docs/README.md`，再按文档阅读顺序继续。
 
+> 2026-06-21 23:48 最终本地候选：版本 `0.33.6`，签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，已安装到 `192.168.11.102:36169`，设备 `updateTime=1782082072534`。arm64/x86_64 均来自 6 月 21 日本地同一源码基线并写入 CoreBuildInfo；固定哈希包完成 100 轮全功能审计（15200 PASS、0 FAIL、100 个预期 SKIP）与连接链审计（83 PASS、0 FAIL）。华为手机作为被控端的远程输入能力按用户决定搁置，不是发布阻塞项。完整证据和接力顺序见 `docs/AGENT_HANDOFF.md`。
+
+> 2026-06-21 路径规范：所有构建、测试、验包、日志、备份和临时证据统一写入 `%VSCODE_ROOT%\99_Temp`（当前 `F:\Visual_Studio_Code\99_Temp`），详见 `docs/WORKSPACE_PATHS.md`。该目录由多个项目共享，禁止整体清空且全部 APK 必须保留；本项目只清理文档列明的 RustDesk 专属可再生子目录。不要使用盘符根 `F:\99_Temp`、仓库内 `.codex_*` 或工作区根 `_tmp_*` 作为长期目录。
+
 ## 项目概况
 
 | 项目 | 值 |
@@ -241,7 +245,7 @@ RustDesk Server / Peer
 
 - 核心加载：staticlib + CMake直接链接，NAPI 400函数注册，`coreReady=true`
 - 远程连接：接入官方RustDesk session路径，真实视频帧渲染，peer info获取
-- 输入控制：鼠标/键盘/触摸/滚轮/Ctrl+Alt+Del通过native active session转发
+- 访问端控制：手机作为访问端控制远端 PC 的鼠标/键盘/触摸/滚轮/Ctrl+Alt+Del 仍按 native active session 路径收口；手机作为被控端被 Windows 操控在华为设备上不支持，本轮搁置
 - 中文输入：sendImeCommittedText()走sendClipboardData()+sendPasteShortcut()
 - LAN发现：30秒周期轮询+手动刷新，Config::path() OHOS条件修复
 - 服务器配置：官方样式对话框，导入/导出兼容官方JSON→Base64→反转格式
@@ -254,7 +258,7 @@ RustDesk Server / Peer
 
 ### 当前限制
 
-- **共享/被控链路限制**：App 侧已改用 native `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，不再使用截图 API、`AVScreenCaptureRecorder` 或临时 mp4 探测；线上 core-81 已让 OHOS `scrap::Capturer` 消费 incoming frame cache，但真实被控视频帧进入 RustDesk desktop server 仍需要继续完成 ready 闭环，未确认视频源前不得标记 `incomingReady=true`
+- **共享/被控链路限制**：App 侧已改用 native `OH_AVScreenCapture_StartScreenCapture` + native buffer 统计，不再使用截图 API、`AVScreenCaptureRecorder` 或临时 mp4 探测；真机已看到持续真实画面。华为手机作为被控端的远程操控/输入注入不支持，本轮搁置；后续不要把它作为共享画面、文件、编码和访问端会话菜单收口的阻塞项。
 - 全屏会话输入法弹出时通过画面平移避让，不再挤压布局
 - `switch-sides` 已接入 official `Session::switch_sides()`；`session-action=shutdown` 仍没有官方协议字段
 
@@ -268,7 +272,7 @@ RustDesk Server / Peer
 4. **视频链路必须闭环**：访问端应收到`session-connected`、`peer-info`、`video-refresh-requested`、`video-frame`
 5. **名称显示遵循官方格式**：ID卡片第二行优先显示`用户名@设备名`
 6. **LAN只做发现来源**：不能把LAN发现当作名称修复或全局在线状态的唯一依据
-7. **输入路径必须真实转发**：触摸、鼠标、滚轮、键盘都必须通过native active session转发
+7. **访问端输入路径必须真实转发**：手机控制远端 PC 时，触摸、鼠标、滚轮、键盘都必须通过 native active session 转发；华为手机被控端输入注入已搁置，不纳入本轮验收。
 8. **密码框优先级高于重连/关闭**：密码提示检查必须在所有重连/关闭逻辑之前
 9. **并行密码+无密码连接**：无保存密码时，立即弹密码框+同时发无密码申请；无密码成功则关闭密码框
 

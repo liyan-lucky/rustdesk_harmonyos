@@ -113,7 +113,7 @@ export class AppDataService {
   static readonly OFFICIAL_API_SERVER: string = 'https://admin.rustdesk.com';
 
   private settings: SettingsState = AppDataService.createDefaultSettings();
-  private password: string = 'd8k4p2';
+  private password: string = '';
   private recentSessions: RecentSession[] = AppDataService.createDefaultRecentSessions();
   private addressBook: AddressBookEntry[] = [];
   private localFavorites: Set<string> = new Set();
@@ -142,10 +142,8 @@ export class AppDataService {
     this.loadRecentSessions();
     this.loadAddressBook();
     this.loadLocalFavorites();
-    const password = PreferenceStore.getPassword();
-    if (password) {
-      this.password = password;
-    }
+    PreferenceStore.clearLegacyTemporaryPassword();
+    this.password = this.createTemporaryPassword();
     this.syncIncomingPasswordToCore();
     this.resolveDeviceAlias();
     this.initialized = true;
@@ -676,29 +674,30 @@ export class AppDataService {
   }
 
   getPassword(): string {
-    const corePassword = NativeRustDeskBridge.getTemporaryPassword();
-    if (corePassword.length > 0) {
-      this.password = corePassword;
-      PreferenceStore.setPassword(this.password);
+    if (this.password.length === 0) {
+      this.password = this.createTemporaryPassword();
+      this.syncIncomingPasswordToCore();
     }
     return this.password;
   }
 
   setPassword(password: string): void {
     this.password = password.trim();
-    PreferenceStore.setPassword(this.password);
     this.syncIncomingPasswordToCore();
   }
 
   generatePassword(): string {
+    this.password = this.createTemporaryPassword();
+    this.syncIncomingPasswordToCore();
+    return this.password;
+  }
+
+  private createTemporaryPassword(): string {
     const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
     let result = '';
     for (let index = 0; index < 6; index++) {
       result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
     }
-    this.password = result;
-    PreferenceStore.setPassword(this.password);
-    this.syncIncomingPasswordToCore();
     return result;
   }
 
@@ -1054,7 +1053,7 @@ export class AppDataService {
       notificationsEnabled: true,
       autoConnect: false,
       videoQuality: 'medium',
-      allowRemoteControl: true,
+      allowRemoteControl: false,
       allowFileTransfer: true,
       allowClipboard: true,
       idServer: '',

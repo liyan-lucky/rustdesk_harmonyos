@@ -15,7 +15,6 @@ import { WindowChromeService } from '../services/WindowChromeService';
 import { ClipboardService } from '../services/ClipboardService';
 import { AudioService } from '../services/AudioService';
 import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../services/ChatService';
-import { PermissionService } from '../services/PermissionService';
 import { FrameService, frameService } from '../services/FrameService';
 import { AppState, appState } from '../services/AppState';
 import audio from '@ohos.multimedia.audio';
@@ -195,6 +194,11 @@ struct RemoteControl {
     if (this.showReconnectDialog) {
       return;
     }
+    if (event.kind === 'block-input-state') {
+      this.blockInputOn = event.detail.includes('on=true');
+    } else if (event.kind === 'privacy-mode-state') {
+      this.privacyMode = event.detail.includes('on=true');
+    }
     if (event.kind !== 'video-frame') {
       this.applyBridgeState(this.officialBridge.getCoreState());
     }
@@ -274,6 +278,8 @@ struct RemoteControl {
   @State qualityMetricItems: QualityMetricItem[] = [];
   @State qualityDetailText: string = '';
   @State qualityUpdatedAtText: string = '';
+  @State qualityRefreshTick: number = 0;
+  private qualityRefreshTimer: number = -1;
   @State showDisplayMenu: boolean = false;
   @State showMoreMenu: boolean = false;
   @State showMouseModeMenu: boolean = false;
@@ -296,13 +302,17 @@ struct RemoteControl {
   private chatPanelResizeStartHeight: number = 0;
   @State blockInputOn: boolean = false;
   @State displayScaleMode: number = 1;
+  @State customZoomPercent: number = 160;
   @State imageQualityMode: number = 1;
   @State videoCodecMode: number = 0;
+  @State videoCodecCapabilities: Record<string, boolean> = {};
   @State customBitrate: number = 50;
   @State customFps: number = 60;
   @State showMoreBitrate: boolean = false;
   @State showCustomQualityPanel: boolean = false;
   @State keyboardMode: number = 0;
+  @State keyboardMapSupported: boolean = false;
+  @State keyboardTranslateSupported: boolean = false;
   @State sessionRecording: boolean = false;
   @State voiceCallActive: boolean = false;
   @State showRemoteCursor: boolean = false;
@@ -338,6 +348,9 @@ struct RemoteControl {
   @State remoteCursorHotY: number = 0;
   @State remoteCursorWidth: number = 0;
   @State remoteCursorHeight: number = 0;
+  private remoteCursorPositionEventCount: number = 0;
+  private remoteCursorDataEventCount: number = 0;
+  private remoteCursorIdEventCount: number = 0;
 
   private shouldIgnoreBridgeEvent(kind: string): boolean {
     return kind === 'video-refresh-requested' ||
@@ -359,21 +372,46 @@ struct RemoteControl {
     this.muteAudio = this.resolveToggleOption('disable-audio');
     this.disableClipboard = this.resolveToggleOption('disable-clipboard');
     this.lockAfterSession = this.resolveToggleOption('lock-after-session-end');
+    this.reverseScroll = this.resolveToggleOption('reverse-scroll');
     this.swapMouseButtons = this.resolveToggleOption('swap-left-right-mouse');
     this.viewMode = this.resolveToggleOption('view-only');
     this.privacyMode = this.resolveToggleOption('privacy-mode');
     this.sessionRecording = NativeRustDeskBridge.sessionGetIsRecording();
     const qualityValue = NativeRustDeskBridge.getLocalOption('image-quality');
     if (qualityValue) {
-      const qualityMap: Record<string, number> = { 'best': 0, 'balanced': 1, 'speed': 2, 'custom': 3 };
+      const qualityMap: Record<string, number> = { 'best': 0, 'balanced': 1, 'low': 2, 'speed': 2, 'custom': 3 };
       this.imageQualityMode = qualityMap[qualityValue] ?? 1;
+      if (qualityValue === 'speed') {
+        this.applySessionOption('image-quality', 'low');
+      }
     }
-    const codecValue = NativeRustDeskBridge.getLocalOption('video-codec-preference');
+    const displayScaleValue = NativeRustDeskBridge.getLocalOption('display-scale-mode').trim();
+    const displayScaleMap: Record<string, number> = { 'original': 0, 'fit': 1, 'custom': 2 };
+    this.displayScaleMode = displayScaleMap[displayScaleValue] ?? 1;
+    const customZoomValue = Number(NativeRustDeskBridge.getLocalOption('custom-zoom-percent'));
+    this.customZoomPercent = Number.isFinite(customZoomValue) && customZoomValue >= 100 && customZoomValue <= 600
+      ? Math.round(customZoomValue)
+      : 160;
+    this.pinchScale = this.displayScaleMode === 2 ? this.customZoomPercent / 100 : 1;
+    this.zoomLevelIndex = 0;
+    const legacyCodecValue = NativeRustDeskBridge.getLocalOption('video-codec-preference').trim();
+    const codecValue = NativeRustDeskBridge.getLocalOption('codec-preference').trim() || legacyCodecValue;
     if (codecValue) {
       const codecMap: Record<string, number> = { 'auto': 0, 'vp8': 1, 'vp9': 2, 'av1': 3, 'h264': 4, 'h265': 5 };
       this.videoCodecMode = codecMap[codecValue] ?? 0;
+      if (legacyCodecValue.length > 0 && NativeRustDeskBridge.getLocalOption('codec-preference').trim().length === 0) {
+        NativeRustDeskBridge.setLocalOption('codec-preference', codecValue);
+      }
     }
-    const kbValue = NativeRustDeskBridge.getLocalOption('keyboard-mode');
+    try {
+      const codecCapabilities = JSON.parse(NativeRustDeskBridge.sessionGetAlternativeCodecs()) as Record<string, boolean>;
+      this.videoCodecCapabilities = codecCapabilities;
+    } catch (_error) {
+      this.videoCodecCapabilities = {};
+    }
+    this.keyboardMapSupported = NativeRustDeskBridge.sessionIsKeyboardModeSupported('map');
+    this.keyboardTranslateSupported = NativeRustDeskBridge.sessionIsKeyboardModeSupported('translate');
+    const kbValue = NativeRustDeskBridge.sessionGetKeyboardMode().trim() || NativeRustDeskBridge.getLocalOption('keyboard-mode');
     if (kbValue) {
       const kbMap: Record<string, number> = { 'legacy': 0, 'map': 1, 'translate': 2 };
       this.keyboardMode = kbMap[kbValue] ?? 0;
@@ -454,14 +492,14 @@ struct RemoteControl {
       if (handled) {
         this.voiceCallActive = false;
       }
-      void this.showToast(handled ? this.lt('Voice call closed') : this.lt('Command unavailable'));
+      void this.showToast(handled ? this.lt('Voice call closed') : this.lt('In development'));
       return;
     }
     const handled = NativeRustDeskBridge.sessionRequestVoiceCall();
     if (handled) {
       this.voiceCallActive = true;
     }
-    void this.showToast(handled ? this.lt('Voice call requested') : this.lt('Command unavailable'));
+    void this.showToast(handled ? this.lt('Voice call requested') : this.lt('In development'));
   }
 
   private scheduleChatPanelScroll(delayMs: number): void {
@@ -485,6 +523,7 @@ struct RemoteControl {
     if (params !== null && params.deviceId !== undefined) {
       this.deviceId = params.deviceId;
       this.deviceName = this.formatRemoteTitle(params.deviceId);
+      this.chatService.retainOnlyPeer(params.deviceId);
     }
     this.disposeRenderedFrame();
     this.settings = this.appData.getSettings();
@@ -565,6 +604,7 @@ struct RemoteControl {
     this.chatService.removeEventListener(this.chatListener);
     this.stopBridgeRefresh();
     this.stopFrameRefresh();
+    this.stopConnectionInfoRefresh();
     this.disposeRenderedFrame();
     ClipboardService.getInstance().stopMonitoring();
     WindowChromeService.getInstance().exitImmersiveMode();
@@ -589,6 +629,7 @@ struct RemoteControl {
   @StorageProp('theme_ICON_BG') theme_ICON_BG: string = '#1FFFFFFF';
   @StorageProp('theme_ICON_FILL') theme_ICON_FILL: string = '#FFFFFF';
   @StorageProp('theme_INACTIVE_BG') theme_INACTIVE_BG: string = '#3A4355';
+  @StorageProp('theme_INPUT_BG') theme_INPUT_BG: string = '#232835';
   @StorageProp('theme_INFO_BG') theme_INFO_BG: string = '#1E335A';
   @StorageProp('theme_INFO_TEXT') theme_INFO_TEXT: string = '#B7D3FF';
   @StorageProp('theme_OVERLAY_FULL') theme_OVERLAY_FULL: string = '#E6000000';
@@ -701,6 +742,7 @@ struct RemoteControl {
                   })
                   .onActionUpdate((event: PinchGestureEvent) => {
                     const newScale = this.lastPinchScale * event.scale;
+                    this.displayScaleMode = 2;
                     this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, newScale));
                     const clamped = this.clampPanOffset(this.panOffsetX, this.panOffsetY);
                     this.panOffsetX = clamped[0];
@@ -708,6 +750,9 @@ struct RemoteControl {
                   })
                   .onActionEnd(() => {
                     this.lastPinchScale = this.pinchScale;
+                    this.customZoomPercent = Math.max(100, Math.min(600, Math.round(this.pinchScale * 100)));
+                    NativeRustDeskBridge.setLocalOption('display-scale-mode', 'custom');
+                    NativeRustDeskBridge.setLocalOption('custom-zoom-percent', String(this.customZoomPercent));
                   })
               )
             );
@@ -930,9 +975,6 @@ struct RemoteControl {
       this.buildToolBtnSvg($rawfile('dots_vertical.svg'), () => {
         const wasOpen = this.showMoreMenu;
         this.showMoreMenu = !wasOpen;
-        if (this.showMoreMenu) {
-          this.blockInputOn = NativeRustDeskBridge.getSessionToggleOption('block-input');
-        }
         this.showDisplayMenu = false;
         this.showMouseModeMenu = false;
         this.showChatModeMenu = false;
@@ -1034,16 +1076,13 @@ struct RemoteControl {
     Column() {
       Scroll() {
         Column({ space: 8 }) {
-          this.buildConnectionInfoRow(this.lt('Resolution'), this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--', this.theme_CONTRAST_TEXT)
+          this.buildConnectionInfoRow(this.lt('Resolution'), this.resolveConnectionResolutionText(), this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('FPS'), this.connectionFps > 0 ? `${this.connectionFps}` : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Latency'), this.connectionLatency > 0 ? `${this.connectionLatency} ms` : '--', this.getLatencyColor())
           this.buildConnectionInfoRow(this.lt('Speed'), this.connectionSpeedDisplay, this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Connection'), this.connectionType.length > 0 ? this.connectionType : '--', this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Zoom'), `${Math.round(this.getCurrentZoom() * 100)}%`, this.theme_CONTRAST_TEXT)
           this.buildConnectionInfoRow(this.lt('Codec'), this.connectionCodec.length > 0 ? this.connectionCodec : '--', this.theme_CONTRAST_TEXT)
-          ForEach(this.qualityMetricItems, (item: QualityMetricItem) => {
-            this.buildConnectionInfoRow(item.label, item.value, this.theme_CONTRAST_TEXT)
-          }, (item: QualityMetricItem) => item.key)
         }
         .width('100%')
       }
@@ -1058,6 +1097,11 @@ struct RemoteControl {
     .borderRadius(8)
     .position({ x: '100%', y: 60 })
     .translate({ x: -156 })
+  }
+
+  private resolveConnectionResolutionText(): string {
+    this.qualityRefreshTick;
+    return this.frameWidth > 0 && this.frameHeight > 0 ? `${this.frameWidth}×${this.frameHeight}` : '--';
   }
 
   @Builder
@@ -1164,13 +1208,36 @@ struct RemoteControl {
       if (this.connectionType.length === 0) {
         this.connectionType = this.lt('Detecting');
       }
+      this.startConnectionInfoRefresh();
       this.maybeRequestVideoRefresh(true);
       return;
     }
+    this.stopConnectionInfoRefresh();
     this.lastNonZeroFps = 0;
     this.lastNonZeroFpsAt = 0;
     this.fpsCalcLastTime = 0;
     this.fpsCalcFrameCount = 0;
+  }
+
+  private startConnectionInfoRefresh(): void {
+    if (this.qualityRefreshTimer !== -1) {
+      return;
+    }
+    this.qualityRefreshTimer = setInterval(() => {
+      if (!this.showConnectionInfo) {
+        this.stopConnectionInfoRefresh();
+        return;
+      }
+      this.qualityRefreshTick += 1;
+    }, 500);
+  }
+
+  private stopConnectionInfoRefresh(): void {
+    if (this.qualityRefreshTimer === -1) {
+      return;
+    }
+    clearInterval(this.qualityRefreshTimer);
+    this.qualityRefreshTimer = -1;
   }
 
   private getLatencyColor(): string {
@@ -1367,14 +1434,61 @@ struct RemoteControl {
 
       Scroll() {
         Column({ space: 0 }) {
-          Text(this.lt('Zoom Mode'))
-            .fontSize(13)
-            .fontColor(this.theme_TEXT_TERTIARY)
+          Row({ space: 12 }) {
+            Text(this.lt('Zoom Mode'))
+              .fontSize(14)
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .layoutWeight(1)
+            Select([
+              { value: this.lt('Original Size') },
+              { value: this.lt('Fit Window') },
+              { value: this.lt('Custom Zoom') }
+            ])
+              .selected(this.displayScaleMode)
+              .value(this.resolveDisplayScaleModeLabel())
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .selectedOptionBgColor(this.theme_ACCENT)
+              .onSelect((index: number, _value?: string) => {
+                this.applyDisplayScaleMode(index);
+              })
+          }
+          .width('100%')
+          .height(48)
+
+          if (this.displayScaleMode === 2) {
+            Column() {
+              Row() {
+                Text(this.lt('Custom Zoom'))
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_SECONDARY)
+                  .layoutWeight(1)
+                Text(`${this.customZoomPercent}%`)
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_PRIMARY)
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16 })
+              Slider({
+                value: this.customZoomPercent,
+                min: 100,
+                max: 600,
+                step: 10,
+                style: SliderStyle.OutSet
+              })
+                .selectedColor(this.theme_ACCENT)
+                .trackColor(this.theme_BORDER_SOFT)
+                .width('100%')
+                .padding({ left: 16, right: 16 })
+                .onChange((value: number) => {
+                  this.customZoomPercent = Math.round(value);
+                  this.pinchScale = this.customZoomPercent / 100;
+                  this.lastPinchScale = this.pinchScale;
+                  NativeRustDeskBridge.setLocalOption('custom-zoom-percent', String(this.customZoomPercent));
+                })
+            }
             .width('100%')
-            .padding({ bottom: 6 });
-          RadioOptionItem({ label: this.lt('Original Size'), icon: 'opt_original.svg', selected: this.displayScaleMode === 0, onSelected: () => { this.displayScaleMode = 0; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
-          RadioOptionItem({ label: this.lt('Fit Window'), icon: 'opt_fit.svg', selected: this.displayScaleMode === 1, onSelected: () => { this.displayScaleMode = 1; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; } })
-          RadioOptionItem({ label: this.lt('Custom Zoom'), icon: 'opt_zoom.svg', selected: this.displayScaleMode === 2, onSelected: () => { this.displayScaleMode = 2; this.pinchScale = 1.6; } })
+            .padding({ bottom: 6 })
+          }
 
           Text(this.lt('Image Quality'))
             .fontSize(13)
@@ -1457,17 +1571,35 @@ struct RemoteControl {
             .padding({ top: 4, bottom: 4 })
           }
 
-          Text(this.lt('Codec'))
-            .fontSize(13)
-            .fontColor(this.theme_TEXT_TERTIARY)
-            .width('100%')
-            .padding({ top: 12, bottom: 6 });
-          RadioOptionItem({ label: 'Auto (H265)', icon: 'opt_codec.svg', selected: this.videoCodecMode === 0, onSelected: () => { this.applyVideoCodec(0); } })
-          RadioOptionItem({ label: 'VP8', icon: 'opt_codec.svg', selected: this.videoCodecMode === 1, onSelected: () => { this.applyVideoCodec(1); } })
-          RadioOptionItem({ label: 'VP9', icon: 'opt_codec.svg', selected: this.videoCodecMode === 2, onSelected: () => { this.applyVideoCodec(2); } })
-          RadioOptionItem({ label: 'AV1', icon: 'opt_codec.svg', selected: this.videoCodecMode === 3, onSelected: () => { this.applyVideoCodec(3); } })
-          RadioOptionItem({ label: 'H264', icon: 'opt_codec.svg', selected: this.videoCodecMode === 4, onSelected: () => { this.applyVideoCodec(4); } })
-          RadioOptionItem({ label: 'H265', icon: 'opt_codec.svg', selected: this.videoCodecMode === 5, onSelected: () => { this.applyVideoCodec(5); } })
+          Row({ space: 12 }) {
+            Text(this.lt('Codec'))
+              .fontSize(14)
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .layoutWeight(1)
+            Select([
+              { value: 'Auto' },
+              { value: 'VP8' },
+              { value: 'VP9' },
+              { value: 'AV1' },
+              { value: 'H264' },
+              { value: 'H265' }
+            ])
+              .selected(this.videoCodecMode)
+              .value(this.resolveVideoCodecLabel())
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .backgroundColor(this.theme_INPUT_BG)
+              .optionBgColor(this.theme_CARD_BG)
+              .optionFontColor(this.theme_TEXT_PRIMARY)
+              .selectedOptionBgColor(this.theme_ACCENT)
+              .selectedOptionFontColor(this.theme_ACCENT_TEXT)
+              .menuBackgroundColor(this.theme_CARD_BG)
+              .onSelect((index: number, _value?: string) => {
+                this.applyVideoCodec(index);
+              })
+          }
+          .width('100%')
+          .height(48)
+          .margin({ top: 8 })
 
           Text(this.lt('Keyboard Mode'))
             .fontSize(13)
@@ -1475,8 +1607,12 @@ struct RemoteControl {
             .width('100%')
             .padding({ top: 12, bottom: 6 });
           RadioOptionItem({ label: this.lt('Legacy mode'), icon: 'settings_terminal.svg', selected: this.keyboardMode === 0, onSelected: () => { this.keyboardMode = 0; this.applySessionOption('keyboard-mode', 'legacy'); } })
-          RadioOptionItem({ label: this.lt('Map mode'), icon: 'opt_grid.svg', selected: this.keyboardMode === 1, onSelected: () => { this.keyboardMode = 1; this.applySessionOption('keyboard-mode', 'map'); } })
-          RadioOptionItem({ label: this.lt('Translate mode'), icon: 'opt_translate.svg', selected: this.keyboardMode === 2, onSelected: () => { this.keyboardMode = 2; this.applySessionOption('keyboard-mode', 'translate'); } })
+          if (this.keyboardMapSupported) {
+            RadioOptionItem({ label: this.lt('Map mode'), icon: 'opt_grid.svg', selected: this.keyboardMode === 1, onSelected: () => { if (this.applySessionOption('keyboard-mode', 'map')) { this.keyboardMode = 1; } } })
+          }
+          if (this.keyboardTranslateSupported) {
+            RadioOptionItem({ label: this.lt('Translate mode'), icon: 'opt_translate.svg', selected: this.keyboardMode === 2, onSelected: () => { if (this.applySessionOption('keyboard-mode', 'translate')) { this.keyboardMode = 2; } } })
+          }
 
           Column() {}
             .width('100%')
@@ -1486,14 +1622,20 @@ struct RemoteControl {
 
           CheckboxOptionItem({ label: this.lt('Show Remote Cursor'), icon: 'opt_mouse.svg', checked: this.showRemoteCursor, onToggle: () => { this.showRemoteCursor = !this.showRemoteCursor; this.applyToggleOption('show-remote-cursor', this.showRemoteCursor); } })
           CheckboxOptionItem({ label: this.lt('Show Quality Monitor'), icon: 'opt_activity.svg', checked: this.showQualityMonitor, onToggle: () => { this.showQualityMonitor = !this.showQualityMonitor; this.setConnectionInfoVisible(this.showQualityMonitor); this.applyToggleOption('show-quality-monitor', this.showQualityMonitor); } })
-          CheckboxOptionItem({ label: this.lt('Mute'), icon: 'opt_mute.svg', checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); if (this.muteAudio && this.audioService.isCapturingActive()) { void this.audioService.stopCapture(); } } })
-          CheckboxOptionItem({ label: this.lt('Send Local Audio'), icon: 'opt_mic.svg', checked: this.audioService.isCapturingActive(), onToggle: () => { void this.toggleLocalAudioCapture(); } })
-          CheckboxOptionItem({ label: this.lt('Disable Clipboard'), icon: 'menu_clipboard.svg', checked: this.disableClipboard, onToggle: () => { this.disableClipboard = !this.disableClipboard; this.applyToggleOption('disable-clipboard', this.disableClipboard); } })
+          CheckboxOptionItem({ label: this.lt('Mute'), icon: 'opt_mute.svg', checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); } })
+          CheckboxOptionItem({ label: this.lt('Disable Clipboard'), icon: 'menu_clipboard.svg', checked: this.disableClipboard, onToggle: () => { this.toggleClipboardSync(); } })
           CheckboxOptionItem({ label: this.lt('Lock After Session End'), icon: 'menu_lock.svg', checked: this.lockAfterSession, onToggle: () => { this.lockAfterSession = !this.lockAfterSession; this.applyToggleOption('lock-after-session-end', this.lockAfterSession); } })
           CheckboxOptionItem({ label: this.lt('Reverse Scroll'), icon: 'settings_udp.svg', checked: this.reverseScroll, onToggle: () => { this.reverseScroll = !this.reverseScroll; this.applyToggleOption('reverse-scroll', this.reverseScroll); } })
           CheckboxOptionItem({ label: this.lt('Swap Mouse Buttons'), icon: 'menu_switch.svg', checked: this.swapMouseButtons, onToggle: () => { this.swapMouseButtons = !this.swapMouseButtons; this.applyToggleOption('swap-left-right-mouse', this.swapMouseButtons); } })
           CheckboxOptionItem({ label: this.lt('View Mode'), icon: 'opt_view.svg', checked: this.viewMode, onToggle: () => { this.viewMode = !this.viewMode; this.applyToggleOption('view-only', this.viewMode); } })
-          CheckboxOptionItem({ label: this.lt('Privacy Mode'), icon: 'opt_shield.svg', checked: this.privacyMode, onToggle: () => { this.privacyMode = !this.privacyMode; this.applyToggleOption('privacy-mode', this.privacyMode); } })
+          CheckboxOptionItem({ label: this.lt('Privacy Mode'), icon: 'opt_shield.svg', checked: this.privacyMode, onToggle: () => {
+            const next = !this.privacyMode;
+            if (this.applyToggleOption('privacy-mode', next)) {
+              this.privacyMode = next;
+            } else {
+              void this.showToast(this.lt('Unsupported'));
+            }
+          } })
         }
         .padding({ left: 12, right: 12, bottom: 12 });
       }
@@ -1800,11 +1942,10 @@ struct RemoteControl {
         .layoutWeight(1)
 
       if (showArrow) {
-        Image($rawfile('arrow.svg'))
-          .width(14)
-          .height(14)
+        Image($rawfile('arrow-forward-ios.svg'))
+          .width(16)
+          .height(16)
           .fillColor(this.theme_TEXT_TERTIARY)
-          .rotate({ angle: 180 })
       }
     }
     .width('100%')
@@ -2012,7 +2153,7 @@ struct RemoteControl {
         Row({ space: 10 }) {
           Button(this.lt('Cancel'))
             .layoutWeight(1)
-            .height(44)
+            .height(36)
             .fontSize(15)
             .fontColor(this.theme_TEXT_PRIMARY)
             .backgroundColor(this.theme_INACTIVE_BG)
@@ -2022,9 +2163,9 @@ struct RemoteControl {
             });
 
           if (this.reconnectDialogCanRelay) {
-            Button(this.lt('Use relay line'))
+            Button(this.lt('Relay'))
               .layoutWeight(1)
-              .height(44)
+              .height(36)
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
               .backgroundColor(this.theme_INACTIVE_BG)
@@ -2036,7 +2177,7 @@ struct RemoteControl {
 
           Button(this.isRetryingConnection ? this.lt('Connecting...') : this.lt('Retry'))
             .layoutWeight(1)
-            .height(44)
+            .height(36)
             .fontSize(15)
             .fontColor(this.theme_ACCENT_TEXT)
             .backgroundColor(this.theme_ACCENT)
@@ -2067,11 +2208,18 @@ struct RemoteControl {
     this.sessionCloseRequestedLocally = true;
     this.showReconnectDialog = false;
     this.isRetryingConnection = false;
+    this.showDisplayMenu = false;
+    this.showMouseModeMenu = false;
+    this.showChatModeMenu = false;
+    this.showMoreMenu = false;
+    this.showChatPanel = false;
+    this.showOsPasswordDialog = false;
+    this.setConnectionInfoVisible(false);
     console.warn(`[RemoteControl] closeSession: setting sessionCloseRequestedLocally=true`);
-    if (this.isConnected || this.hasReceivedFrame) {
-      this.sessionBecameActive = true;
-    }
+    const wasSessionActive = this.isConnected || this.sessionBecameActive || this.hasReceivedFrame;
     this.isConnected = false;
+    this.hasReceivedFrame = false;
+    this.sessionBecameActive = false;
     this.isSubmittingPassword = false;
     this.statusText = this.lt('Session closed');
     this.videoStatus = this.lt('Disconnecting...');
@@ -2079,7 +2227,7 @@ struct RemoteControl {
       this.isLandscapeMode = false;
       WindowChromeService.getInstance().setLandscape(false);
     }
-    if (this.lockAfterSession && (this.isConnected || this.sessionBecameActive || this.hasReceivedFrame)) {
+    if (this.lockAfterSession && wasSessionActive) {
       NativeRustDeskBridge.lockRemoteScreen();
     }
     this.officialBridge.requestSessionClose();
@@ -2270,25 +2418,26 @@ struct RemoteControl {
 
   private sendCtrlAltDel(): boolean {
     if (!NativeRustDeskBridge.sendCtrlAltDel()) {
-      void this.showToast(this.lt('Command unavailable'));
+      void this.showToast(this.lt('In development'));
       return false;
     }
     this.maybeRequestVideoRefresh(true);
     return true;
   }
 
-  private applySessionOption(key: string, value: string): void {
+  private applySessionOption(key: string, value: string): boolean {
     const applied = NativeRustDeskBridge.applySessionOption(key, value);
     if (!applied) {
       NativeRustDeskBridge.setLocalOption(key, value);
-      return;
+      return false;
     }
     NativeRustDeskBridge.setLocalOption(key, value);
+    return true;
   }
 
   private applyImageQuality(mode: number): void {
     this.imageQualityMode = mode;
-    const qualityMap: Record<number, string> = { 0: 'best', 1: 'balanced', 2: 'speed', 3: 'custom' };
+    const qualityMap: Record<number, string> = { 0: 'best', 1: 'balanced', 2: 'low', 3: 'custom' };
     this.applySessionOption('image-quality', qualityMap[mode] ?? 'balanced');
     if (mode === 3) {
       this.showCustomQualityPanel = true;
@@ -2298,14 +2447,59 @@ struct RemoteControl {
     }
   }
 
-  private applyVideoCodec(mode: number): void {
-    this.videoCodecMode = mode;
-    const codecMap: Record<number, string> = { 0: 'auto', 1: 'vp8', 2: 'vp9', 3: 'av1', 4: 'h264', 5: 'h265' };
-    this.applySessionOption('video-codec-preference', codecMap[mode] ?? 'auto');
+  private resolveDisplayScaleModeLabel(): string {
+    if (this.displayScaleMode === 0) {
+      return this.lt('Original Size');
+    }
+    if (this.displayScaleMode === 2) {
+      return this.lt('Custom Zoom');
+    }
+    return this.lt('Fit Window');
   }
 
-  private applyToggleOption(key: string, enabled: boolean): void {
-    this.applySessionOption(key, enabled ? 'Y' : 'N');
+  private applyDisplayScaleMode(mode: number): void {
+    this.displayScaleMode = Math.max(0, Math.min(2, mode));
+    this.zoomLevelIndex = 0;
+    this.pinchScale = this.displayScaleMode === 2 ? this.customZoomPercent / 100 : 1;
+    this.lastPinchScale = this.pinchScale;
+    this.panOffsetX = 0;
+    this.panOffsetY = 0;
+    const modeValues: Record<number, string> = { 0: 'original', 1: 'fit', 2: 'custom' };
+    NativeRustDeskBridge.setLocalOption('display-scale-mode', modeValues[this.displayScaleMode] ?? 'fit');
+  }
+
+  private resolveVideoCodecLabel(): string {
+    const labels: Record<number, string> = { 0: 'Auto', 1: 'VP8', 2: 'VP9', 3: 'AV1', 4: 'H264', 5: 'H265' };
+    return labels[this.videoCodecMode] ?? 'Auto';
+  }
+
+  private applyVideoCodec(mode: number): void {
+    const codecMap: Record<number, string> = { 0: 'auto', 1: 'vp8', 2: 'vp9', 3: 'av1', 4: 'h264', 5: 'h265' };
+    const codec = codecMap[mode] ?? 'auto';
+    if (!this.applySessionOption('codec-preference', codec)) {
+      void this.showToast(this.lt('In development'));
+      return;
+    }
+    this.videoCodecMode = mode;
+    this.maybeRequestVideoRefresh(true);
+  }
+
+  private applyToggleOption(key: string, enabled: boolean): boolean {
+    return this.applySessionOption(key, enabled ? 'Y' : 'N');
+  }
+
+  private toggleClipboardSync(): void {
+    const next = !this.disableClipboard;
+    if (!this.applyToggleOption('disable-clipboard', next)) {
+      void this.showToast(this.lt('In development'));
+      return;
+    }
+    this.disableClipboard = next;
+    if (next) {
+      ClipboardService.getInstance().stopMonitoring();
+    } else {
+      void ClipboardService.getInstance().startMonitoring();
+    }
   }
 
   private sendSessionAction(action: string): void {
@@ -2318,19 +2512,19 @@ struct RemoteControl {
     if (!handled) {
       handled = NativeRustDeskBridge.applySessionOption('session-action', action);
     }
-    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command unavailable'));
+    void this.showToast(handled ? this.lt('Command Sent') : this.lt('In development'));
     this.maybeRequestVideoRefresh(true);
   }
 
   private switchSessionSides(): void {
     const handled = NativeRustDeskBridge.sessionSwitchSides();
-    void this.showToast(handled ? this.lt('Command Sent') : this.lt('Command unavailable'));
+    void this.showToast(handled ? this.lt('Command Sent') : this.lt('In development'));
     this.maybeRequestVideoRefresh(true);
   }
 
   private takeSessionScreenshot(): void {
     const handled = NativeRustDeskBridge.sessionTakeScreenshot(this.currentRemoteDisplay);
-    void this.showToast(handled ? this.lt('Screenshot requested') : this.lt('Command unavailable'));
+    void this.showToast(handled ? this.lt('Screenshot requested') : this.lt('In development'));
   }
 
   private toggleSessionRecording(): void {
@@ -2339,24 +2533,20 @@ struct RemoteControl {
     if (handled) {
       this.sessionRecording = start;
     }
-    void this.showToast(handled ? (start ? this.lt('Recording Started') : this.lt('Recording Stopped')) : this.lt('Command unavailable'));
+    void this.showToast(handled ? (start ? this.lt('Recording Started') : this.lt('Recording Stopped')) : this.lt('In development'));
   }
 
   private async openFileTransferWithPermissionCheck(): Promise<void> {
-    const granted = await PermissionService.getInstance().requestFileAccessAuthorization();
-    if (!granted) {
-      void this.showToast(this.lt('File access permission denied'));
-      return;
-    }
     this.navigateTo('pages/FileTransfer', this.buildSessionRouteParams());
   }
 
   private toggleBlockInput(): void {
-    const current = NativeRustDeskBridge.getSessionToggleOption('block-input');
-    const next = current ? 'N' : 'Y';
-    this.blockInputOn = !current;
-    this.applySessionOption('block-input', next);
-    void this.showToast(next === 'Y' ? this.lt('Block input on') : this.lt('Block input off'));
+    const next = !this.blockInputOn;
+    if (this.applySessionOption('block-input', next ? 'Y' : 'N')) {
+      void this.showToast(this.lt('Command Sent'));
+    } else {
+      void this.showToast(this.lt('In development'));
+    }
   }
 
   private sendClipboardToRemote(): void {
@@ -2545,25 +2735,6 @@ struct RemoteControl {
       console.log('[RemoteControl] Audio resources cleaned up');
     } catch (error) {
       console.error('[RemoteControl] Failed to cleanup audio:', error);
-    }
-  }
-
-  private async toggleLocalAudioCapture(): Promise<void> {
-    try {
-      if (this.audioService.isCapturingActive()) {
-        await this.audioService.stopCapture();
-        void this.showToast(this.lt('Local Audio Stopped'));
-      } else {
-        await this.audioService.startCapture();
-        if (this.audioService.isCapturingActive()) {
-          void this.showToast(this.lt('Local Audio Started'));
-        } else {
-          void this.showToast(this.lt('Audio upload unavailable'));
-        }
-      }
-    } catch (error) {
-      console.error('[RemoteControl] Toggle audio capture failed:', error);
-      void this.showToast(this.lt('Audio Toggle Failed'));
     }
   }
 
@@ -3044,23 +3215,43 @@ struct RemoteControl {
     }
 
     if (event.kind === 'cursor_position') {
+      this.remoteCursorPositionEventCount += 1;
       const values = this.parseKeyValueDetail(event.detail);
       this.remoteCursorX = this.parseDetailNumber(values, 'x', this.remoteCursorX);
       this.remoteCursorY = this.parseDetailNumber(values, 'y', this.remoteCursorY);
       this.remoteCursorVisible = !this.remoteCursorEmbedded;
+      if (this.remoteCursorPositionEventCount === 1 || this.remoteCursorPositionEventCount % 120 === 0) {
+        hilog.info(
+          0xA03D00,
+          'RC',
+          `cursor_position count=${this.remoteCursorPositionEventCount} visible=${this.remoteCursorVisible} embedded=${this.remoteCursorEmbedded}`
+        );
+      }
       return;
     }
 
     if (event.kind === 'cursor_data') {
+      this.remoteCursorDataEventCount += 1;
+      if (this.remoteCursorDataEventCount <= 3) {
+        hilog.info(0xA03D00, 'RC', `cursor_data count=${this.remoteCursorDataEventCount} detailBytes=${event.detail.length}`);
+      }
       this.captureCursorData(event.detail);
       return;
     }
 
     if (event.kind === 'cursor_id') {
+      this.remoteCursorIdEventCount += 1;
       const values = this.parseKeyValueDetail(event.detail);
       this.remoteCursorId = values['id'] ?? this.remoteCursorId;
       this.applyActiveCursorAsset();
       this.remoteCursorVisible = !this.remoteCursorEmbedded;
+      if (this.remoteCursorIdEventCount <= 3) {
+        hilog.info(
+          0xA03D00,
+          'RC',
+          `cursor_id count=${this.remoteCursorIdEventCount} assetReady=${this.remoteCursorPixelMap !== null}`
+        );
+      }
       return;
     }
 
@@ -4035,6 +4226,9 @@ struct RemoteControl {
     if (!Number.isFinite(fitScale) || fitScale <= 0) {
       return this.getCurrentZoom();
     }
+    if (this.displayScaleMode === 0) {
+      return this.getCurrentZoom();
+    }
     return fitScale * this.getCurrentZoom();
   }
 
@@ -4346,6 +4540,11 @@ struct RemoteControl {
   }
 
   private finishGestureTouch(): void {
+    if (this.displayScaleMode === 2) {
+      this.customZoomPercent = Math.max(100, Math.min(600, Math.round(this.pinchScale * 100)));
+      NativeRustDeskBridge.setLocalOption('display-scale-mode', 'custom');
+      NativeRustDeskBridge.setLocalOption('custom-zoom-percent', String(this.customZoomPercent));
+    }
     this.gestureActive = false;
     this.gestureStartDistance = 0;
     this.gestureStartCenterX = 0;
@@ -4705,12 +4904,20 @@ struct RemoteControl {
     this.isSubmittingPassword = false;
     this.remoteCursorVisible = false;
     this.pointerActive = false;
+    this.showDisplayMenu = false;
+    this.showMouseModeMenu = false;
+    this.showChatModeMenu = false;
+    this.showMoreMenu = false;
+    this.showChatPanel = false;
+    this.showOsPasswordDialog = false;
+    this.setConnectionInfoVisible(false);
     this.statusText = statusText;
     this.videoStatus = videoStatus;
     if (this.isLandscapeMode) {
       this.isLandscapeMode = false;
       WindowChromeService.getInstance().setLandscape(false);
     }
+    this.officialBridge.requestSessionClose();
     this.scheduleSessionExit(delayMs);
   }
 

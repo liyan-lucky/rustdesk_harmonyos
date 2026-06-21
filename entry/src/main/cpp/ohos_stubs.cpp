@@ -4,6 +4,17 @@
 
 extern "C" {
 
+// Huawei phone controlled-side input injection is currently shelved: tested
+// devices return the platform boundary code 201 and do not expose a usable
+// third-party authorization path. Keep these symbols so the Core staticlib can
+// link, but do not package a real input-injection implementation.
+int32_t rustdesk_ohos_request_input_authorization() { return 201; }
+int32_t rustdesk_ohos_query_input_authorization() { return 201; }
+void rustdesk_ohos_cancel_input_authorization() {}
+void rustdesk_ohos_set_input_enabled(int32_t) {}
+int32_t rustdesk_ohos_inject_mouse(int32_t, int32_t, int32_t) { return 201; }
+int32_t rustdesk_ohos_inject_key(int32_t, uint32_t, int32_t, int32_t, uint32_t) { return 201; }
+
 void *xcb_connect(const char *, int) { return nullptr; }
 int xcb_connection_has_error(void *) { return 1; }
 void xcb_disconnect(void *) {}

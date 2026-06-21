@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-20 00:59:07
+- Generated: 2026-06-21 23:47:37
 - Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
 - HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 66 PASS, 0 FAIL, 0 SKIP
+- Summary: 83 PASS, 0 FAIL, 0 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -14,10 +14,10 @@
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
 | 7 | PASS | Native core archive exists | F:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 132777178 bytes |
+| 8 | PASS | Native core archive size is plausible | 131091732 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=132777178 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314 |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=131091732 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |
@@ -51,7 +51,7 @@
 | 42 | PASS | Quality cache state exists | entry\src\main\ets\pages\RemoteControl.ets matches qualityMetricItems |
 | 43 | PASS | Quality cache updater exists | entry\src\main\ets\pages\RemoteControl.ets matches updateQualityDetailCache |
 | 44 | PASS | Connection info panel is scrollable | entry\src\main\ets\pages\RemoteControl.ets matches Scroll\(\)\s*\{\s*Column\(\{\s*space:\s*8\s*\}\) |
-| 45 | PASS | Quality panel renders dynamic metric rows | entry\src\main\ets\pages\RemoteControl.ets matches ForEach\(this\.qualityMetricItems |
+| 45 | PASS | Quality panel keeps seven fixed rows and refreshes cached values | seven fixed rows, no dynamic ForEach, cached-value refresh enabled |
 | 46 | PASS | Quality parser captures target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches target_bitrate |
 | 47 | PASS | Quality parser captures codec format | entry\src\main\ets\pages\RemoteControl.ets matches codec_format |
 | 48 | PASS | Speed summary falls back to target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches targetBitrateDisplay |
@@ -73,3 +73,20 @@
 | 64 | PASS | File transfer page bootstraps local access authorization | entry\src\main\ets\pages\FileTransfer.ets matches bootstrapFileTransferPage |
 | 65 | PASS | File transfer local operations use access authorization guard | entry\src\main\ets\pages\FileTransfer.ets matches ensureLocalFileAccessAuthorization |
 | 66 | PASS | File access authorization uses folder auth mode | entry\src\main\ets\services\PermissionService.ets matches requestFileAuthorization\(\s*\{\s*folder:\s*true,\s*authMode:\s*true\s*\}\s*\) |
+| 67 | PASS | Password is submitted to the active handshake | entry\src\main\ets\pages\Index.ets matches submitSessionPassword\(password,\s*this\.rememberPassword\) |
+| 68 | PASS | Proactive password confirmation does not close the active handshake | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
+| 69 | PASS | Password dialog moves above the software keyboard | entry\src\main\ets\pages\Index.ets matches translate\(\{\s*y:\s*this\.avoidKeyboardHeight |
+| 70 | PASS | ID suggestions are not attached as a panel overlay | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
+| 71 | PASS | ID suggestions float without stealing command hit targets | positioned popup overlays lower content, leaves command area outside its bounds, buttons stay above it |
+| 72 | PASS | Best-speed quality uses the official low value | entry\src\main\ets\pages\RemoteControl.ets matches 2:\s*'low' |
+| 73 | PASS | Harmony codec menu and native decoder expose all official codecs | VP8/VP9/AV1/H264/H265 menu and native decoder chain are present |
+| 74 | PASS | Keyboard menu checks target mode support | entry\src\main\ets\pages\RemoteControl.ets matches sessionIsKeyboardModeSupported\('map'\) |
+| 75 | PASS | Unsupported local-audio upload is not shown | entry\src\main\ets\pages\RemoteControl.ets does not match forbidden pattern |
+| 76 | PASS | Terminal errors remain visible after request cleanup | entry\src\main\ets\pages\Index.ets matches resetConnectionUiAfterTerminalEvent\(finalError\) |
+| 77 | PASS | Block-input UI follows confirmed core state | entry\src\main\ets\pages\RemoteControl.ets matches event\.kind === 'block-input-state' |
+| 78 | PASS | Terminal persistence uses the official option key | entry\src\main\ets\pages\Index.ets matches applySessionAndLocalToggleOption\('terminal-persistent' |
+| 79 | PASS | Unsupported Harmony default display options are hidden | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
+| 80 | PASS | Clipboard toggle controls the local monitor lifecycle | entry\src\main\ets\pages\RemoteControl.ets matches toggleClipboardSync[\s\S]{0,700}stopMonitoring\(\)[\s\S]{0,250}startMonitoring\(\) |
+| 81 | PASS | x86_64 native core archive exists and is plausible | 130090572 bytes |
+| 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=130090572 |
+| 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD |

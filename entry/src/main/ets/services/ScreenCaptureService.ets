@@ -99,7 +99,8 @@ export class ScreenCaptureService {
   }
 
   stopCapture(): void {
-    if (!this.isCapturing) {
+    const nativeActive = NativeRustDeskBridge.isNativeScreenCaptureActive();
+    if (!this.isCapturing && !nativeActive) {
       return;
     }
 
@@ -124,10 +125,12 @@ export class ScreenCaptureService {
       if (!this.isCapturing) {
         return;
       }
+      const stats = NativeRustDeskBridge.getNativeScreenCaptureStats();
+      console.info('Native screen capture stats: ' + stats);
       if (!NativeRustDeskBridge.isNativeScreenCaptureActive()) {
         this.dispatchEvent({
           type: 'error',
-          error: 'Native screen capture became inactive'
+          error: 'Native screen capture became inactive: ' + stats
         });
       }
     } catch (error) {

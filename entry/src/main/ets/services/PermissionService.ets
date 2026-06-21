@@ -62,11 +62,6 @@ export class PermissionService {
         required: false
       },
       {
-        name: 'ohos.permission.INPUT_MONITORING',
-        reason: 'Required for monitoring remote input events.',
-        required: false
-      },
-      {
         name: 'ohos.permission.MICROPHONE',
         reason: 'Required for audio features.',
         required: false
