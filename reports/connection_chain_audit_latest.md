@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-21 23:47:37
+- Generated: 2026-06-22 00:19:33
 - Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
 - HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 83 PASS, 0 FAIL, 0 SKIP
+- Summary: 84 PASS, 0 FAIL, 0 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -90,3 +90,4 @@
 | 81 | PASS | x86_64 native core archive exists and is plausible | 130090572 bytes |
 | 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=130090572 |
 | 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD |
+| 84 | PASS | Online HAP workflows cannot silently use stale core secrets | both workflows default to latest and accept explicit URL/SHA256 inputs |

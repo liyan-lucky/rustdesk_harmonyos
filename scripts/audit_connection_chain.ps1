@@ -517,6 +517,18 @@ Invoke-AuditCheck 83 "CoreBuildInfo x86_64 SHA256 matches native core" {
   $sha = (Get-FileHash -LiteralPath $x86CorePath -Algorithm SHA256).Hash.ToUpperInvariant()
   Test-CoreBuildInfoValue "X86_64_HASH_SHA256" $sha
 }
+Invoke-AuditCheck 84 "Online HAP workflows cannot silently use stale core secrets" {
+  foreach ($workflow in @(".github\workflows\build-harmonyos.yml", ".github\workflows\build-harmonyos-linux.yml")) {
+    $text = Read-TextFile (Get-RepoPath $workflow)
+    if ($null -eq $text -or $text -match "(secrets|vars)\.RUSTDESK_CORE(_X86_64)?_URL" -or
+        $text -notmatch "inputs\.core_url" -or $text -notmatch "inputs\.core_x86_64_url" -or
+        $text -notmatch "releases/latest/download/librustdesk_core\.a" -or
+        $text -notmatch "releases/latest/download/librustdesk_core_x86_64\.a") {
+      return New-CheckResult "FAIL" "$workflow can still select an unpinned stale core"
+    }
+  }
+  return New-CheckResult "PASS" "both workflows default to latest and accept explicit URL/SHA256 inputs"
+}
 
 $passCount = @($results | Where-Object { $_.Status -eq "PASS" }).Count
 $failCount = @($results | Where-Object { $_.Status -eq "FAIL" }).Count

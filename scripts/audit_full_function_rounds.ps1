@@ -204,6 +204,20 @@ Add-FileCheck "permission service" "entry\src\main\ets\services\PermissionServic
 Add-FileCheck "build wrapper" "scripts\run_hvigor_with_sdk_patch.js"
 Add-FileCheck "github build wrapper" "scripts\github_build_harmonyos.ps1"
 Add-FileCheck "github workflow" ".github\workflows\build-harmonyos.yml"
+Add-FileCheck "github Linux workflow" ".github\workflows\build-harmonyos-linux.yml"
+Add-Check "online workflows reject hidden stale core URL overrides" {
+  foreach ($workflow in @(".github\workflows\build-harmonyos.yml", ".github\workflows\build-harmonyos-linux.yml")) {
+    $text = Read-RepoText $workflow
+    if ($null -eq $text -or $text -match "(secrets|vars)\.RUSTDESK_CORE(_X86_64)?_URL") {
+      return New-Result "FAIL" "$workflow still allows a hidden stale core URL override"
+    }
+    if ($text -notmatch "inputs\.core_url" -or $text -notmatch "inputs\.core_x86_64_url" -or
+        $text -notmatch "RUSTDESK_CORE_SHA256" -or $text -notmatch "RUSTDESK_CORE_X86_64_SHA256") {
+      return New-Result "FAIL" "$workflow lacks explicit dual-arch URL/SHA256 inputs"
+    }
+  }
+  return New-Result "PASS" "both workflows use explicit dual-arch URL/SHA256 inputs"
+}
 Add-FileCheck "package verifier" "scripts\verify_native_harmonyos_hap.ps1"
 Add-FileCheck "stage build helper" "scripts\stage_project_for_build.ps1"
 Add-FileCheck "stage sync helper" "scripts\sync_build_version_from_stage.ps1"
