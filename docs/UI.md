@@ -618,6 +618,137 @@ this.refreshAngle = 0;
 
 **已移除字段**（不再显示）：目标码率(target_bitrate)、下载速度(speed重复)、上传速度(send_speed)、色度(chroma)。核心 quality-payload 事件中的 delay/fps/speed/codec_format 与固定行重复，不再追加显示。
 
+## 2026-06-23 文件传输页面布局规范
+
+### 整体布局
+
+文件传输页面使用 Column 流式布局（**禁止 Stack 叠加布局**，Stack 会拦截滚动事件）：
+
+```
+Column
+├── Header（返回+标题+刷新按钮）
+├── Toolbar（本地/远端切换 + 排序 + 三点菜单）
+├── FileList（List 组件，支持滚动）
+└── BottomBar（多选操作栏 / 粘贴栏，避让导航栏）
+```
+
+### Header
+
+- 高度约为常规 PageHeader 的 2 倍，包含返回箭头、页面标题、刷新按钮
+- 刷新按钮使用 `refresh.svg`（stroke 格式，`colorFilter(createStrokeIconColorFilter())` 着色），支持动态旋转动画
+
+### Toolbar
+
+- 左侧：本地/远端切换按钮（`ft_local.svg` / `ft_remote.svg`）
+- 中间：当前路径显示
+- 右侧：排序按钮（`ft_sort.svg`，三横线样式，stroke 格式）+ 三点菜单（`dots_vertical.svg`）
+- 排序菜单：弹出式菜单，选项包括名称/大小/日期/类型排序，勾选图标在右侧
+- 三点菜单：新建文件夹、显示隐藏文件、全选
+
+### 文件列表
+
+- 使用 `List` 组件，支持垂直滚动
+- 文件项布局：图标（`ft_folder.svg` / `ft_file.svg`）+ 文件名 + 大小/日期 + 三点菜单
+- 文件项三点菜单：打开/复制/剪切/重命名/删除/详情
+- 长按选中文件项，进入多选模式
+- 多选模式：顶部显示选中数量，底部显示操作栏（复制/剪切/删除）
+- 隐藏文件默认不显示，通过三点菜单"显示隐藏文件"切换
+
+### 底部操作栏
+
+- 多选模式：显示复制/剪切/删除按钮
+- 剪贴板有内容时：显示粘贴按钮
+- 底部避让导航栏：`padding({ bottom: avoidNavigationBarHeight })`
+
+### 菜单样式
+
+- 菜单宽度 210，内边距 12
+- 菜单背景色：`backgroundColor(theme_CARD_BG).opacity(0.92)` 半透明主题色（**禁止** `'99' + hex` 方式，OHOS 上显示为蓝色）
+- 勾选图标在右侧（`checkmark.svg`，stroke 格式）
+- 点击菜单区域外任意位置关闭
+
+### 顶部渐变遮罩
+
+- 文件列表顶部使用渐变遮罩，从主题背景色渐变到透明
+- 遮罩高度约 8px，覆盖列表顶部边缘
+
+### 文件传输图标（ft_*.svg）
+
+所有文件传输相关图标均从 proicons 提取，stroke 格式，使用 `colorFilter(createStrokeIconColorFilter())` 着色：
+
+| 图标 | 用途 |
+|------|------|
+| ft_folder.svg | 文件夹图标 |
+| ft_file.svg | 普通文件图标 |
+| ft_local.svg | 本地切换 |
+| ft_remote.svg | 远端切换 |
+| ft_sort.svg | 排序（三横线样式） |
+| ft_copy.svg | 复制 |
+| ft_cut.svg | 剪切 |
+| ft_paste.svg | 粘贴 |
+| ft_delete.svg | 删除 |
+| ft_rename.svg | 重命名 |
+| ft_new_folder.svg | 新建文件夹 |
+| ft_select_all.svg | 全选 |
+| ft_hidden.svg | 显示隐藏文件 |
+| ft_detail.svg | 详情 |
+| ft_open.svg | 打开 |
+| ft_refresh.svg | 刷新列表 |
+
+---
+
+## 2026-06-23 终端页面布局规范
+
+### 整体布局
+
+```
+Column
+├── Header（返回+标题+终端信息）
+├── TerminalScreen（终端输出区域，黑色背景）
+└── CustomKeyboard（自定义终端键盘）
+```
+
+### Header
+
+- 返回箭头 + 页面标题"终端（管理员 beta）"
+- 终端连接状态显示
+
+### TerminalScreen
+
+- 黑色背景，等宽字体
+- 终端输出从 `terminal-output` 事件获取，Base64 解码后显示
+- 支持文本选择和滚动
+
+### CustomKeyboard
+
+- 自定义终端键盘，包含 Ctrl/Alt/Tab/Esc/F1-F12 等特殊键
+- 键盘行布局：功能键行 + 数字行 + QWERTY 三行 + 空格行
+- 按键通过 `TerminalService.sendTerminalInput()` 发送到核心
+
+---
+
+## 2026-06-23 ID 卡片菜单规范
+
+### 菜单布局
+
+- 菜单宽度 210（从 248 收窄）
+- 菜单项：图标左 → 文字中间 → 勾选/箭头右
+- 勾选图标从左侧移到右侧
+
+### 菜单项文案
+
+- "管理员" → "终端（管理员 beta）"
+- "始终通过中继连接" → "中继连接"
+- 未实现项点击显示 toast 提示，不常驻"开发中"
+
+### 连接链路
+
+- "文件传输"：使用 `pendingNavigatePage` 模式，先建立连接再跳转到 FileTransfer 页面
+- "终端(beta)"：直接跳转到 Terminal 页面
+- `pendingNavigatePage` 状态变量控制连接成功后的跳转目标
+
+---
+
 ## 2026-06-20 连接输入与密码弹窗布局规范
 
 - ID 候选列表是完全悬浮的绝对定位层，覆盖下方 Tab/列表内容但不挤压布局；不允许使用覆盖整个连接面板的 `.overlay(...)`。命中区域必须严格限制在候选框内，并在几何上避开清除、连接命令区，命令 Row 的 zIndex 始终更高。

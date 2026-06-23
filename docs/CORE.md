@@ -4,6 +4,8 @@
 
 Core `a7f7795` / run `27920089950` / `core-34`：arm64 `133495306 / 90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131336988 / E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。App `3ebdc726` / run `27920708116` / `OpenRustdesk-Build-v0.33.6`：signed HAP `35067077 / 3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`。包内版本和双架构 CoreBuildInfo、签名、ABI、依赖、真机 updateTime/hilog 全部对齐；这是当前线上权威资产。本地 `1D5C...` 只作为同源码本地验证基线，不得替代线上发布哈希。
 
+> 2026-06-23 UI 重构轮：FileTransfer.ets 全面重构（Column 流式布局、排序/三点/文件项菜单、多选+复制粘贴、长按选中、隐藏文件过滤、proicons ft_*.svg 图标），Terminal.ets 重写（header+terminalScreen+customKeyboard），Index.ets ID 卡片菜单修改（宽度收窄 210、文案调整、勾选右移、pendingNavigatePage 连接链路）。核心版本和构建产物未变化，仍为上述线上权威资产。
+
 > 本文档记录 HAP 项目的核心状态、构建安装流程和运行验证清单。核心架构、桥接函数说明、编译问题等详见 `%VSCODE_ROOT%\13_librustdesk_core\docs\CORE.md`。
 
 ## 2026-06-21 23:48 最终本地候选
@@ -139,7 +141,7 @@ HAP:
 - Latest validation: 2026-06-19 环境迁移后全量构建 `0.27.0` / versionCode `1000147`；signed HAP `18,915,605` bytes；`verify_native_harmonyos_hap.ps1 -SkipLaunch -SkipLogs` 通过 native/signature 校验，`audit_connection_chain.ps1` 通过 `63 PASS, 2 FAIL, 1 SKIP`（2 FAIL 为质量面板 UI 审计，不影响编译环境）。2026-06-19 路径复核后当前仓库标准签名配置为 `debug_hos.cer`/`debug_hos.p12`/`debug_hos.p7b`，别名 `debugKey`；DevEco Studio 绝对路径只通过 `switch_deveco_paths.ps1` 临时切换。
 - Latest validation: 2026-06-20 全量构建 `0.31.0` / versionCode `1000171`；signed HAP `34,804,139` bytes；真机 `192.168.11.102:36169` 安装成功，进程 `58849`，`versionName=0.31.0`、`versionCode=1000171`，LAN 发现正常（1 peer）。core-33 线上最新核心。
 - Latest online App validation: 2026-06-20 GitHub Actions run `27854059963`（commit `fb13e7a`）成功完成 `Build HarmonyOS package` 与 `Upload HarmonyOS artifacts`，artifact `harmonyos-hap` 大小 `65,698,344` bytes。
-- Latest virtual device validation: 2026-06-20 全量构建 `0.30.0` / versionCode `1000170`；signed HAP `34,758,373` bytes；HAP 包含 arm64-v8a + x86_64 双架构真实核心；x86_64 模拟器 `127.0.0.1:5555` 安装启动成功，`coreReady=true`，进程 `16857` 存活。
+- Latest virtual device validation: 2026-06-22 增量构建 `0.33.6` / versionCode `1000182`；signed HAP `34,284,691` bytes / SHA256 `7760F8BBC1CC1B956D049A8DC4496DCAB35328CA60D999E73B30270BCABC9FB0`；验签/双 ABI/native 依赖检查通过；x86_64 虚拟机 `127.0.0.1:5555` 安装启动成功，PID `12853`，`coreReady=true`，在线查询正常，fatal/panic/signal 为 0。
 
 ## Native core 构建来源
 

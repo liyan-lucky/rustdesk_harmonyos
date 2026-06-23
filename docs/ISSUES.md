@@ -4,6 +4,42 @@
 
 ## 2026-06-21 23:23 本轮问题处置结论
 
+## 2026-06-23 proicons SVG 提取属性去重
+
+### 提取脚本可能生成重复的 stroke/fill 属性，OHOS 渲染器解析失败导致图标不可见
+
+**现象**：从 proicons 提取的 SVG 图标在 OHOS 设备上不显示，但浏览器中可以正常渲染。
+
+**根因**：Node.js 提取脚本解析 `proicons/dist/esm/icons/XXXIcon.js` 时，path/rect 元素可能生成重复的 stroke/fill 属性（如 `stroke="#000000" stroke="#000000"`）。浏览器会取最后一个属性值，但 OHOS 渲染器遇到重复属性会解析失败，导致图标不可见。
+
+**解决**：用属性去重脚本清理所有 SVG 文件，确保每个属性在同一个元素上只出现一次。
+
+**教训**：从 JS 模块提取 SVG 后必须做属性去重验证；浏览器能渲染不代表 OHOS 渲染器也能正确解析。提取流程：`npm install proicons` → Node.js 脚本解析 `node_modules/proicons/dist/esm/icons/XXXIcon.js` → 提取 path/rect 元素属性 → 生成标准 SVG（`stroke="#000000" fill="none"`）→ 属性去重 → `npm uninstall proicons` 清理。
+
+## 2026-06-23 Stack 布局滚动拦截
+
+### Stack 叠加布局中 HitTestMode.Transparent 只让点击穿透，滚动事件仍被全屏容器拦截
+
+**现象**：文件传输页面使用 Stack 叠加布局（header+toolbar 叠加在 file list 上方），文件列表无法滚动。
+
+**根因**：`HitTestMode.Transparent` 只让点击事件穿透，但滚动事件仍被全屏容器拦截。Stack 中的全屏 List 组件无法接收到滚动手势。
+
+**解决**：文件列表不能放在 Stack 叠加布局中，必须使用 Column 流式布局（header→toolbar→fileList→bottomBar），各区域按顺序排列，不叠加。
+
+**教训**：OHOS ArkTS 中 Stack 布局的 `HitTestMode.Transparent` 只处理点击穿透，不处理滚动穿透。需要滚动的列表区域必须使用 Column/Row 流式布局，不能用 Stack 叠加。
+
+## 2026-06-23 菜单背景色拼接方式错误
+
+### `'99' + theme_CARD_BG.replace('#', '')` 方式在 OHOS 上显示为蓝色
+
+**现象**：菜单弹出时背景色显示为蓝色，而不是预期的半透明主题色。
+
+**根因**：使用 `'99' + hex` 方式拼接颜色字符串，OHOS 颜色解析器对这种格式处理不一致，可能将 `99` 前缀解析为其他颜色通道而非 alpha 通道。
+
+**解决**：使用 `backgroundColor(theme_CARD_BG).opacity(0.92)` 方式实现半透明主题色背景，先设置主题色再叠加不透明度。
+
+**教训**：OHOS 颜色格式不要手动拼接 alpha 前缀，必须使用 `.opacity()` 方法设置透明度。
+
 ## 2026-06-22 线上绿色构建混入旧 arm64 Core
 
 **现象**：run `27920529277` 全绿，x86_64 已是新 Release `E58746...`，但包内 arm64 CoreBuildInfo 仍为 2026-06-12 历史 `A200A8...`。根因是仓库旧 `RUSTDESK_CORE_URL` secret/var 优先于 workflow 的 latest 默认值，导致两架构来自不同时间线。

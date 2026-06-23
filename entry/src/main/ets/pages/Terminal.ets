@@ -1,11 +1,6 @@
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
-import { AppDataService, TerminalSnippet } from '../services/AppDataService';
-import { ClipboardService } from '../services/ClipboardService';
-import { EmptyState, PageHeader, SectionTitle } from '../common/CommonComponents';
+import { AppDataService } from '../services/AppDataService';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from '../services/OfficialRustDeskBridge';
-import { OfficialSessionTransport } from '../services/OfficialSessionTransport';
 import { TerminalService, TerminalOutputEvent } from '../services/TerminalService';
-import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 
@@ -19,7 +14,6 @@ interface TerminalResponsePayload {
 @Component
 struct Terminal {
   private appData: AppDataService = AppDataService.getInstance();
-  private clipboardService: ClipboardService = ClipboardService.getInstance();
   private officialBridge: OfficialRustDeskBridge = OfficialRustDeskBridge.getInstance();
   private terminalService: TerminalService = TerminalService.getInstance();
   private terminalId: number = -1;
@@ -34,10 +28,9 @@ struct Terminal {
   @State deviceName: string = '';
   @State commandInput: string = '';
   @State outputLines: string[] = [];
-  @State snippets: TerminalSnippet[] = [];
-  @State history: string[] = ['whoami', 'pwd', 'df -h', 'tail -n 200 /var/log/syslog'];
-  @State extraKeysVisible: boolean = true;
   @State sessionStatus: string = '';
+  @State keyboardVisible: boolean = false;
+
   aboutToAppear() {
     this.outputLines = [this.lt('Waiting for terminal session...')];
     this.sessionStatus = this.lt('Disconnected');
@@ -46,7 +39,6 @@ struct Terminal {
       this.deviceId = params['deviceId'];
     }
     this.deviceName = this.appData.getDisplayName(this.deviceId);
-    this.snippets = this.appData.getTerminalSnippets();
     this.officialBridge.addEventListener(this.sessionEventListener);
     this.terminalService.addOutputListener(this.outputListener);
     this.terminalId = this.terminalService.openTerminal(this.deviceId, 30, 120) ?? -1;
@@ -65,360 +57,226 @@ struct Terminal {
       this.terminalService.closeTerminal(this.terminalId);
     }
   }
+
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
-  @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
   @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2C3343';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
-  @StorageProp('theme_CONTRAST_TEXT') theme_CONTRAST_TEXT: string = '#F8FAFC';
-  @StorageProp('theme_ERROR_BG') theme_ERROR_BG: string = '#3B1D24';
-  @StorageProp('theme_ERROR_TEXT') theme_ERROR_TEXT: string = '#FCA5A5';
-  @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
-  @StorageProp('theme_INPUT_BG') theme_INPUT_BG: string = '#232835';
-  @StorageProp('theme_PANEL_BG') theme_PANEL_BG: string = '#1F1F1F';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
-  @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#AAB2C5';
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Scroll() {
-        Column({ space: ThemeConfig.SPACING_LG }) {
-          this.buildHistoryBar()
-          this.buildSnippetList()
-          this.buildOutputPanel()
-        }
-        .width('100%')
-        .padding({
-          left: ThemeConfig.SPACING_MD,
-          right: ThemeConfig.SPACING_MD,
-          top: ThemeConfig.SPACING_MD,
-          bottom: ThemeConfig.SPACING_LG
-        })
+      Column() {
+        this.buildTerminalScreen()
+        this.buildCustomKeyboard()
       }
       .width('100%')
       .height('100%')
-      .align(Alignment.TopStart)
-      .padding({
-        top: 80,
-        bottom: this.avoidNavigationBarHeight + (this.extraKeysVisible ? 190 : 136)
-      })
-      .scrollBar(BarState.Off)
+      .backgroundColor('#000000')
 
-      Column() {
-        PageHeader(this.lt('Terminal'), `${this.deviceName} | ${DeviceIdFormatter.format(this.deviceId)}`, true, () => {
-          this.goBack();
-        })
-      }
-      .width('100%')
-      .padding({ top: this.avoidStatusBarHeight })
-      .linearGradient({
-        angle: 180,
-        colors: this.themeIsDark
-          ? [['#BB171A1E', 0.0], ['#99171A1E', 0.22], ['#66171A1E', 0.58], ['#00171A1E', 1.0]]
-          : [['#C0F0F4FA', 0.0], ['#A0F0F4FA', 0.22], ['#70F0F4FA', 0.58], ['#00F0F4FA', 1.0]]
-      })
+      this.buildHeader()
 
-      Column() {
-        Blank().layoutWeight(1)
-        Column() {
-          this.buildSessionBar()
-          if (this.extraKeysVisible) {
-            this.buildExtraKeys()
-          }
-          this.buildInputBar()
-        }
+      Column()
         .width('100%')
-        .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
-        .backgroundColor(this.theme_CARD_BG)
-      }
-      .width('100%')
-      .height('100%')
-      .padding({ bottom: this.avoidNavigationBarHeight })
+        .height(this.avoidStatusBarHeight + 96)
+        .linearGradient({
+          angle: 180,
+          colors: [['#CC000000', 0.0], ['#99000000', 0.3], ['#55000000', 0.7], ['#00000000', 1.0]]
+        })
+        .hitTestBehavior(HitTestMode.Transparent)
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme_GRAY_BG)
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   @Builder
-  private buildSessionBar() {
-    Flex({ direction: FlexDirection.Row, wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-      this.buildInfoPill(this.lt('Official Terminal'), this.theme_PANEL_BG, this.theme_CONTRAST_TEXT)
-      this.buildInfoPill(this.sessionStatus, this.theme_ACCENT, this.theme_ACCENT_TEXT)
-      this.buildInfoPill(
-        this.extraKeysVisible ? this.lt('Extra keys enabled') : this.lt('Extra keys disabled'),
-        this.theme_ACCENT_SURFACE,
-        this.theme_ACCENT
-      )
+  private buildHeader() {
+    Row() {
+      Image($rawfile('close.svg'))
+        .width(24)
+        .height(24)
+        .fillColor('#FFFFFF')
+        .onClick(() => this.goBack())
+
+      Text(this.lt('Terminal'))
+        .fontSize(18)
+        .fontColor('#FFFFFF')
+        .fontWeight(FontWeight.Medium)
+        .margin({ left: 12 })
+        .layoutWeight(1)
+
+      Text(this.sessionStatus)
+        .fontSize(12)
+        .fontColor(this.theme_ACCENT)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 10, bottom: 8 })
-    .backgroundColor(this.theme_CARD_BG)
+    .height(96)
+    .padding({ left: 16, right: 16, top: this.avoidStatusBarHeight, bottom: 8 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
-  private buildInfoPill(label: string, color: string, fontColor: string) {
-    Text(label)
-      .fontSize(11)
-      .fontColor(fontColor)
-      .backgroundColor(color)
-      .borderRadius(999)
-      .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-      .margin({ right: 8, bottom: 4 })
-  }
-
-  @Builder
-  private buildHistoryBar() {
-    Column({ space: 8 }) {
-      SectionTitle(this.lt('Recent Commands'))
-      Row({ space: 8 }) {
-        ForEach(this.history.slice(0, 4), (command: string) => {
-          Button(command)
-            .height(32)
-            .fontSize(11)
-            .backgroundColor(this.theme_INPUT_BG)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-            .borderRadius(12)
-            .onClick(() => {
-              this.commandInput = command;
-            })
-        }, (command: string) => command)
-      }
-    }
-    .width('100%')
-    .padding(12)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-  }
-
-  @Builder
-  private buildSnippetList() {
-    Column({ space: 12 }) {
-      SectionTitle(this.lt('Snippets'))
-
-      Column({ space: 10 }) {
-        ForEach(this.snippets, (snippet: TerminalSnippet) => {
-          Column({ space: 8 }) {
-            Row() {
-              Column({ space: 4 }) {
-                Text(snippet.title)
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(this.theme_TEXT_PRIMARY)
-                Text(snippet.description)
-                  .fontSize(12)
-                  .fontColor(this.theme_TEXT_SECONDARY)
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-
-              Button(this.lt('Run'))
-                .height(32)
-                .fontSize(12)
-                .backgroundColor(this.theme_ACCENT)
-                .fontColor(this.theme_ACCENT_TEXT)
-                .borderRadius(10)
-                .onClick(() => {
-                  this.runCommand(snippet.command);
-                })
-            }
-
-            Text(snippet.command)
-              .fontSize(12)
-              .fontColor(this.theme_ACCENT)
-              .width('100%')
-          }
-          .padding(16)
-          .backgroundColor(this.theme_CARD_BG)
-          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-          .borderRadius(18)
-        }, (snippet: TerminalSnippet) => snippet.id)
-      }
-    }
-  }
-
-  @Builder
-  private buildOutputPanel() {
-    Column({ space: 12 }) {
-      Row() {
-        SectionTitle(this.lt('Terminal Output'))
-
-        Button(this.extraKeysVisible ? this.lt('Hide Keys') : this.lt('Show Keys'))
-          .height(32)
-          .fontSize(11)
-          .backgroundColor(this.theme_INPUT_BG)
-          .fontColor(this.theme_TEXT_PRIMARY)
-          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-          .borderRadius(10)
-          .onClick(() => {
-            this.extraKeysVisible = !this.extraKeysVisible;
-          })
+  private buildTerminalScreen() {
+    Scroll() {
+      Column() {
+        ForEach(this.outputLines, (line: string, index: number) => {
+          Text(line)
+            .fontSize(13)
+            .fontColor('#CCCCCC')
+            .fontFamily('monospace')
+            .width('100%')
+            .textAlign(TextAlign.Start)
+            .copyOption(CopyOptions.LocalDevice)
+        }, (line: string, index: number) => `${index}-${line}`)
       }
       .width('100%')
-
-      Row({ space: 8 }) {
-        this.buildPanelAction(this.lt('Copy Output'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-          void this.copyOutput();
-        })
-        this.buildPanelAction(this.lt('Clear'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
-          this.outputLines = [];
-        })
-      }
-
-      if (this.outputLines.length === 0) {
-        EmptyState($rawfile('keyboard_mouse.svg'), this.lt('No terminal output yet.'))
-      } else {
-        Column({ space: 6 }) {
-          ForEach(this.outputLines, (line: string, index: number) => {
-            Text(line)
-              .fontSize(13)
-              .fontColor(this.theme_TEXT_TERTIARY)
-              .width('100%')
-              .textAlign(TextAlign.Start)
-          }, (line: string, index: number) => `${index}-${line}`)
-        }
-        .width('100%')
-        .padding(16)
-        .backgroundColor(this.theme_INPUT_BG)
-        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-        .borderRadius(18)
-      }
+      .padding({ left: 12, right: 12, top: 96, bottom: 12 })
     }
     .width('100%')
-    .padding(12)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .align(Alignment.BottomStart)
+    .onClick(() => {
+      this.keyboardVisible = !this.keyboardVisible;
+    })
   }
 
   @Builder
-  private buildPanelAction(label: string, color: string, fontColor: string, action: () => void) {
-    Button(label)
-      .layoutWeight(1)
-      .height(34)
-      .fontSize(11)
-      .backgroundColor(color)
-      .fontColor(fontColor)
-      .border({ width: 1, color: color === this.theme_ERROR_BG ? this.theme_ERROR_TEXT : color })
-      .borderRadius(10)
-      .onClick(action)
-  }
-
-  @Builder
-  private buildExtraKeys() {
-    Row({ space: 8 }) {
-      this.buildExtraKey('Ctrl')
-      this.buildExtraKey('Alt')
-      this.buildExtraKey('Tab')
-      this.buildExtraKey('Esc')
-      this.buildExtraKey(this.lt('Left'))
-      this.buildExtraKey(this.lt('Right'))
-    }
-    .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
-  }
-
-  @Builder
-  private buildExtraKey(label: string) {
-    Button(label)
-      .layoutWeight(1)
-      .height(34)
-      .fontSize(12)
-      .backgroundColor(this.theme_CARD_BG)
-      .fontColor(this.theme_TEXT_PRIMARY)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(10)
-      .onClick(() => {
-        if (this.terminalId === -1) {
-          return;
-        }
-        if (label === 'Tab') {
-          this.commandInput = `${this.commandInput}\t`;
-          return;
-        }
-        if (label === this.lt('Left')) {
-          this.terminalService.sendInput(this.terminalId, '\x1b[D');
-          return;
-        }
-        if (label === this.lt('Right')) {
-          this.terminalService.sendInput(this.terminalId, '\x1b[C');
-          return;
-        }
-        if (label === 'Ctrl') {
-          this.terminalService.sendInput(this.terminalId, '\x03');
-          return;
-        }
-        if (label === 'Alt') {
-          this.terminalService.sendInput(this.terminalId, '\x1b');
-          return;
-        }
-        if (label === 'Esc') {
-          this.terminalService.sendInput(this.terminalId, '\x1b');
-          return;
-        }
-      })
-  }
-
-  @Builder
-  private buildInputBar() {
-    Row({ space: 8 }) {
-      Row() {
-        Image($rawfile('keyboard_mouse.svg'))
-          .width(18)
-          .height(18)
-          .fillColor(this.theme_TEXT_TERTIARY)
-          .margin({ right: 8 })
-        TextInput({ placeholder: this.lt('Input command'), text: this.commandInput })
-          .layoutWeight(1)
-          .height(46)
-          .backgroundColor('transparent')
-          .borderRadius(0)
-          .padding({ left: 0, right: 0 })
-          .onChange((value: string) => {
-            this.commandInput = value;
-          })
-      }
-      .layoutWeight(1)
-      .height(46)
-      .backgroundColor(this.theme_CARD_BG)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(12)
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
-
-      Button() {
+  private buildCustomKeyboard() {
+    if (this.keyboardVisible) {
+      Column() {
         Row({ space: 4 }) {
-          Image($rawfile('arrow.svg'))
-            .width(14)
-            .height(14)
-            .fillColor(this.theme_ACCENT_TEXT)
-            .rotate({ angle: 90 })
-          Text(this.lt('Send'))
-            .fontSize(14)
-            .fontColor(this.theme_ACCENT_TEXT)
+          this.buildKey('Esc')
+          this.buildKey('/')
+          this.buildKey('|')
+          this.buildKey('Home')
+          this.buildKey('↑')
+          this.buildKey('End')
+          this.buildKey('PgUp')
         }
+        .width('100%')
+        .padding({ left: 8, right: 8, top: 6, bottom: 3 })
+
+        Row({ space: 4 }) {
+          this.buildKey('Tab')
+          this.buildKey('Ctrl+C')
+          this.buildKey('~')
+          this.buildKey('←')
+          this.buildKey('↓')
+          this.buildKey('→')
+          this.buildKey('PgDn')
+        }
+        .width('100%')
+        .padding({ left: 8, right: 8, top: 3, bottom: 6 })
+
+        Row({ space: 8 }) {
+          TextInput({ placeholder: this.lt('Input command'), text: this.commandInput })
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor('#1A1A1A')
+            .fontColor('#FFFFFF')
+            .borderRadius(6)
+            .padding({ left: 12, right: 12 })
+            .onChange((value: string) => {
+              this.commandInput = value;
+            })
+            .onSubmit(() => {
+              this.runCommand(this.commandInput);
+            })
+
+          Button(this.lt('Send'))
+            .height(40)
+            .fontSize(13)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .borderRadius(6)
+            .onClick(() => {
+              this.runCommand(this.commandInput);
+            })
+        }
+        .width('100%')
+        .padding({ left: 8, right: 8, top: 4, bottom: 8 })
       }
-      .width(88)
-      .height(46)
-      .backgroundColor(this.theme_ACCENT)
-      .borderRadius(12)
-      .onClick(() => {
-        this.runCommand(this.commandInput);
-      })
+      .width('100%')
+      .backgroundColor('#111111')
+      .border({ width: { top: 1 }, color: '#333333' })
+      .padding({ bottom: this.avoidNavigationBarHeight })
     }
-    .padding(16)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+  }
+
+  @Builder
+  private buildKey(label: string) {
+    Button(label)
+      .layoutWeight(1)
+      .height(36)
+      .fontSize(12)
+      .backgroundColor('#222222')
+      .fontColor('#FFFFFF')
+      .borderRadius(6)
+      .onClick(() => {
+        this.handleSpecialKey(label);
+      })
+  }
+
+  private handleSpecialKey(label: string): void {
+    if (this.terminalId === -1) {
+      return;
+    }
+    if (label === 'Esc') {
+      this.terminalService.sendInput(this.terminalId, '\x1b');
+      return;
+    }
+    if (label === 'Tab') {
+      this.terminalService.sendInput(this.terminalId, '\t');
+      return;
+    }
+    if (label === 'Ctrl+C') {
+      this.terminalService.sendInput(this.terminalId, '\x03');
+      return;
+    }
+    if (label === '↑') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[A');
+      return;
+    }
+    if (label === '↓') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[B');
+      return;
+    }
+    if (label === '←') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[D');
+      return;
+    }
+    if (label === '→') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[C');
+      return;
+    }
+    if (label === 'Home') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[H');
+      return;
+    }
+    if (label === 'End') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[F');
+      return;
+    }
+    if (label === 'PgUp') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[5~');
+      return;
+    }
+    if (label === 'PgDn') {
+      this.terminalService.sendInput(this.terminalId, '\x1b[6~');
+      return;
+    }
+    if (label === '/' || label === '|' || label === '~') {
+      this.terminalService.sendInput(this.terminalId, label);
+      return;
+    }
   }
 
   private runCommand(command: string): void {
@@ -431,29 +289,13 @@ struct Terminal {
       return;
     }
     const nextLines = this.outputLines.slice();
-    nextLines.push(`rustdesk@remote:~$ ${text}`);
+    nextLines.push(`$ ${text}`);
     this.outputLines = nextLines;
-    this.pushHistory(text);
     this.commandInput = '';
     if (this.terminalService.sendInput(this.terminalId, `${text}\n`)) {
       return;
     }
     this.outputLines = this.outputLines.concat([this.lt('Terminal input send failed')]);
-  }
-
-  private pushHistory(command: string): void {
-    const filtered = this.history.filter((item: string) => item !== command);
-    const next = [command];
-    filtered.forEach((item: string) => {
-      if (next.length < 6) {
-        next.push(item);
-      }
-    });
-    this.history = next;
-  }
-
-  private async copyOutput(): Promise<void> {
-    await this.clipboardService.copyText(this.outputLines.join('\n'));
   }
 
   private handleTerminalOutput(event: TerminalOutputEvent): void {

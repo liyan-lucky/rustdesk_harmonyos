@@ -547,6 +547,7 @@ struct Index {
   @State pendingPeerId: string = '';
   private pendingTransportTarget: string = '';
   private pendingPasswordDialogProactive: boolean = false;
+  private pendingNavigatePage: string = '';
   @State swipedRecentTargetId: string = '';
   @State recentMenuSessionId: string = '';
   @State showRenameDialog: boolean = false;
@@ -2807,7 +2808,8 @@ struct Index {
         this.buildPeerMenuActionRow(this.lt('Transfer file'), () => {
           const id = this.recentMenuSessionId;
           this.recentMenuSessionId = '';
-          this.navigateTo('pages/FileTransfer', { deviceId: id });
+          this.pendingNavigatePage = 'pages/FileTransfer';
+          void this.handleConnect(id);
         })
 
         this.buildPeerMenuActionRow(this.lt('View Camera'), () => {
@@ -2820,8 +2822,8 @@ struct Index {
           this.navigateTo('pages/Terminal', { deviceId: id });
         })
 
-        this.buildPeerMenuActionRow(this.lt('Administrator'), () => {
-          this.closePeerMenuAsDeveloping(this.lt('Administrator'));
+        this.buildPeerMenuActionRow(this.lt('Terminal (Admin beta)'), () => {
+          this.closePeerMenuAsDeveloping(this.lt('Terminal (Admin beta)'));
         }, false)
 
         this.buildForceRelayConnectionRow(this.recentMenuSessionId)
@@ -2933,7 +2935,7 @@ struct Index {
         .width('100%')
         .padding({ top: 8, bottom: 8 })
       }
-      .width(248)
+      .width(210)
       .constraintSize({ maxHeight: '84%' })
       .scrollBar(BarState.Off)
       .backgroundColor(this.theme_CARD_BG)
@@ -2981,25 +2983,22 @@ struct Index {
   @Builder
   private buildForceRelayConnectionRow(peerId: string) {
     Row({ space: 10 }) {
-      if (PreferenceStore.getPeerConnectMode(peerId) === 'relay') {
-        Image($rawfile('checkbox-outline.svg'))
-          .width(20)
-          .height(20)
-          .fillColor(this.theme_ACCENT)
-      } else {
-        Rect()
-          .width(20)
-          .height(20)
-          .fill(Color.Transparent)
-          .stroke(this.theme_TEXT_TERTIARY)
-          .strokeWidth(2)
-          .radius(4)
-      }
-
-      Text(this.lt('Always connect via relay'))
+      Text(this.lt('Relay connection'))
         .fontSize(16)
         .fontColor(PreferenceStore.getPeerConnectMode(peerId) === 'relay' ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
+
+      if (PreferenceStore.getPeerConnectMode(peerId) === 'relay') {
+        Image($rawfile('checkbox-checked.svg'))
+          .width(20)
+          .height(20)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+      } else {
+        Image($rawfile('checkbox-unchecked.svg'))
+          .width(20)
+          .height(20)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+      }
     }
     .width('100%')
     .height(48)
@@ -4076,6 +4075,7 @@ struct Index {
       this.pendingPeerId = '';
       this.pendingTransportTarget = '';
       this.pendingConnectionRetryCount = 0;
+      this.pendingNavigatePage = '';
     }
     this.officialCoreState = this.officialBridge.requestSessionClose();
     if (nextStatusMessage && nextStatusMessage.trim().length > 0) {
@@ -4090,6 +4090,7 @@ struct Index {
     this.pendingConnectionInactivePollCount = 0;
     this.pendingPeerId = '';
     this.pendingTransportTarget = '';
+    this.pendingNavigatePage = '';
     this.pendingPassword = '';
     this.pendingPasswordDialogProactive = false;
     this.autoSubmittedSavedPasswordPeerId = '';
@@ -6544,7 +6545,9 @@ struct Index {
     this.setStatusMessageRaw(state.sessionStage === 'connected'
       ? this.lt('Connection established. Opening remote desktop...')
       : this.lt('Connection request continuing...'));
-    this.navigateTo('pages/RemoteControl', { deviceId: normalizedPeerId });
+    const targetPage = this.pendingNavigatePage.length > 0 ? this.pendingNavigatePage : 'pages/RemoteControl';
+    this.pendingNavigatePage = '';
+    this.navigateTo(targetPage, { deviceId: normalizedPeerId });
   }
 
   private async monitorConnectionWhileWaiting(): Promise<void> {

@@ -82,9 +82,9 @@
 | `Index.ets` | 6025 | **主页面**，4个Tab(连接/聊天/共享/设置)，设置Tab代码全在此，核心页面4卡片布局+详情弹窗(Status/Error/Detail/File/Size/Hash/ELF/BuildTime/Source)，CoreModuleInfo多模块支持，核心状态简词(就绪/停止/未识)+弹窗详细描述，运行摘要卡片，统一搜索悬浮框，通讯录服务器同步，共享启动不再预申请 `CUSTOM_SCREEN_CAPTURE`，`captureRequired=true` 时启动 native 录屏提供首帧但真实运行仍只认 `incomingReady=true`，设置/会话同源 option，调试常亮，权限开关先同步更新再异步请求，hilog调试日志，设置行图标(Lucide stroke SVG via colorFilter)，服务器导入导出提示，聊天Tab固定显示当前/最近会话聊天内容并保留右侧图标，最近聊天摘要使用明确分隔符避免中文错字 |
 | `RemoteControl.ets` | 5080 | **远程控制页**，视频渲染+输入控制+工具栏+手势，会话聊天浮窗自动滚动到最新消息；聊天按钮弹出语音/文字模式；远控更多菜单的切换主控端/截图/会话录制必须走核心 direct session function，会话录制禁止启动本机 `ScreenCaptureService`；本地音频上传当前提示不可用，避免metadata-only接口假启动 |
 | ~~`Settings.ets`~~ | - | 已删除，设置功能合并到Index.ets设置tab |
-| `FileTransfer.ets` | 760 | 文件传输页面，进入/切到本地/刷新/上传/下载/本地新建删除前唤起 `DocumentViewPicker` 目录授权，页面进入后延迟 bootstrap 避免系统 picker 被未 attach 的页面吞掉，加载本地下载目录和远端目录，创建/删除/上传/下载队列入口 |
+| `FileTransfer.ets` | 1200 | 文件传输页面（已全面重构），Column 流式布局（header+toolbar+fileList+bottomBar），排序菜单/三点菜单/文件项菜单，多选+复制→粘贴，长按选中，隐藏文件过滤，菜单半透明主题色背景，顶部渐变遮罩，所有图标从 proicons 提取（ft_*.svg），进入/切到本地/刷新/上传/下载/本地新建删除前唤起 `DocumentViewPicker` 目录授权 |
 | `LoginPage.ets` | 436 | 登录页面(OAuth+密码，统一走AccountService)，提供统一搜索入口过滤登录 provider |
-| `Terminal.ets` | 470 | 终端页面(多会话) |
+| `Terminal.ets` | 470 | 终端页面（已重写），Column 流式布局（header+terminalScreen+customKeyboard），自定义终端键盘含 Ctrl/Alt/Tab/Esc/F1-F12 等特殊键，终端输出 Base64 解码显示 |
 | `AddressBook.ets` | 487 | 地址簿页面 |
 | `Chat.ets` | 432 | 聊天页面，移除固定示例回复和种子消息；发送失败恢复草稿，不把 failed 文本写入消息 |
 | `MyDevice.ets` | 364 | 我的设备页面 |
@@ -199,3 +199,35 @@
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip` | Linux CI 使用的 HarmonyOS SDK 包，必须包含 openharmony/hms SDK 和 previewer 依赖库 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip` | Linux CI 使用的 Command Line Tools/Hvigor 剩余文件包 |
 | `https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7` | 当前最新线上 App release；已包含 core-81 `captureRequired`、文件授权 picker-first、共享录屏 native buffer 触发和验包脚本 GUID 临时文件修复；push workflow `27567811582` 与 release workflow `27568044749` 均成功 |
+
+## SVG 图标资源 (entry/src/main/resources/rawfile/)
+
+### 文件传输图标（2026-06-23 从 proicons 提取，stroke 格式）
+
+| 文件 | 用途 |
+|------|------|
+| `ft_folder.svg` | 文件夹图标 |
+| `ft_file.svg` | 普通文件图标 |
+| `ft_local.svg` | 本地切换 |
+| `ft_remote.svg` | 远端切换 |
+| `ft_sort.svg` | 排序（三横线样式） |
+| `ft_copy.svg` | 复制 |
+| `ft_cut.svg` | 剪切 |
+| `ft_paste.svg` | 粘贴 |
+| `ft_delete.svg` | 删除 |
+| `ft_rename.svg` | 重命名 |
+| `ft_new_folder.svg` | 新建文件夹 |
+| `ft_select_all.svg` | 全选 |
+| `ft_hidden.svg` | 显示隐藏文件 |
+| `ft_detail.svg` | 详情 |
+| `ft_open.svg` | 打开 |
+| `ft_refresh.svg` | 刷新列表 |
+
+### 其他新增图标
+
+| 文件 | 用途 | 格式 |
+|------|------|------|
+| `checkmark.svg` | 勾选标记（菜单右侧勾选） | stroke |
+| `refresh.svg` | 刷新（替换旧版） | stroke |
+| `checkbox-checked.svg` | 已勾选复选框 | stroke |
+| `checkbox-unchecked.svg` | 未勾选复选框 | stroke |

@@ -1,5 +1,32 @@
 # 功能进度与优化方向
 
+## 2026-06-23 文件传输/终端 UI 重构与 ID 卡片菜单连接链路
+
+### 文件传输页面（FileTransfer.ets）
+- **Header 区域**：高度 112px，包含关闭按钮、本地/远程切换按钮（选中蓝色）、三点菜单
+- **工具栏**：主页图标在左，后退/上一级/排序图标在右侧（Blank 分隔）
+- **文件列表**：List + layoutWeight(1) 撑满中间区域，长按进入多选模式
+- **底部栏**：三种模式（粘贴/多选/普通），避让导航栏
+- **菜单**：三点/排序/文件项菜单弹出位置靠近点击位置，半透明主题色背景（opacity 0.92）
+- **渐变遮罩**：顶部 linearGradient 渐变遮罩层，hitTestBehavior(Transparent)
+- **排序图标**：替换为用户指定链接下载的三横线样式（stroke 格式）
+- **SVG 图标**：16 个 ft_*.svg + checkmark.svg + refresh.svg 从 proicons 提取替换
+
+### 终端页面（Terminal.ets）
+- **Header 区域**：高度 96px，包含关闭按钮、"终端"标题、状态指示
+- **终端画面**：黑色背景、等宽字体、可点击弹出键盘、长按可复制
+- **自定义键盘**：Esc/Tab/Ctrl+C/方向键/Home/End/PgUp/PgDn 等 + 命令输入行
+- **渐变遮罩**：顶部黑色渐变遮罩层
+
+### ID 卡片菜单连接链路
+- **文件传输**：添加 `pendingNavigatePage` 状态变量，点击时先建立连接再跳转 FileTransfer
+- **终端(beta)**：保持直接 navigateTo 跳转
+- **连接流程复用**：handleConnect → openRemoteControlForPendingSession → 根据 pendingNavigatePage 跳转
+
+### 构建验证
+- 增量构建 `0.33.6 / 1000182`，signed HAP `34,314,494` bytes
+- 虚拟机 `127.0.0.1:5555` 安装启动成功，`coreReady=true`
+
 ## 2026-06-22 00:25 线上发布完成
 
 Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux run `27920705408`、App Release run `27920708116` 均成功。`core-34` 两资产与 `OpenRustdesk-Build-v0.33.6` signed HAP 已下载复验；最终线上 HAP SHA256 `3D2711AF...`，包内 arm64 `90A283...` / x86_64 `E58746...` 对齐，真机复装 `updateTime=1782084275314`、PID `45951`、hilog 0 fatal/panic/signal。随后同包在 x86_64 虚拟机安装并冷启动，`updateTime=1782084584518`、PID `694`、NAPI 413 functions、`coreReady=true`。最终 100 轮静态审计 15400 PASS / 0 FAIL / 100 预期 SKIP，连接链 84/84。

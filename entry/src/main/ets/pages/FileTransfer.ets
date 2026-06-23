@@ -1,5 +1,5 @@
 import { AppDataService, TransferTask } from '../services/AppDataService';
-import { createStrokeIconColorFilter, EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
+import { createStrokeIconColorFilter, PageHeader } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import {
   FileInfo,
@@ -12,7 +12,7 @@ import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { PermissionService } from '../services/PermissionService';
 
 type FilePane = 'local' | 'remote';
-type SortMode = 'name' | 'time';
+type SortField = 'name' | 'type' | 'time' | 'size';
 
 interface FileEntry {
   name: string;
@@ -21,6 +21,7 @@ interface FileEntry {
   modified: string;
   modifiedTime: number;
   path: string;
+  selected: boolean;
 }
 
 @Entry
@@ -54,7 +55,7 @@ struct FileTransfer {
   @State deviceId: string = '';
   @State deviceName: string = '';
   @State currentPane: FilePane = 'remote';
-  @State sortMode: SortMode = 'name';
+  @State sortField: SortField = 'name';
   @State tasks: TransferTask[] = [];
   @State localPath: string = '';
   @State remotePath: string = '';
@@ -64,10 +65,22 @@ struct FileTransfer {
   @State isFileListRefreshing: boolean = false;
   @State fileListRefreshAngle: number = 0;
   @State fileAccessAuthorized: boolean = false;
-  @State fileAccessRequesting: boolean = false;
   @State showOverrideDialog: boolean = false;
+  @State showSortMenu: boolean = false;
+  @State showMoreMenu: boolean = false;
+  @State showItemMenu: boolean = false;
+  @State itemMenuEntry: FileEntry | null = null;
+  @State showNewFolderDialog: boolean = false;
+  @State showRenameDialog: boolean = false;
+  @State renameDraft: string = '';
+  @State showHiddenFiles: boolean = false;
+  @State multiSelectMode: boolean = false;
+  @State clipboardEntries: FileEntry[] = [];
+  @State clipboardSource: FilePane = 'local';
+  @State pasteMode: boolean = false;
   private pendingOverrideRequest: FileOverrideRequest | null = null;
   private fileListRefreshTimer: number = -1;
+
   aboutToAppear() {
     const params = this.getRouteParams();
     if (params && params['deviceId']) {
@@ -91,6 +104,7 @@ struct FileTransfer {
     }
     this.fileTransferService.removeEventListener(this.transferListener);
   }
+
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
@@ -111,369 +125,789 @@ struct FileTransfer {
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  private get selectedCount(): number {
+    return this.getCurrentEntries().filter((e: FileEntry) => e.selected).length;
+  }
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      Scroll() {
-        Column({ space: ThemeConfig.SPACING_LG }) {
-          this.buildPaneSwitch()
-          this.buildPathCard()
-          this.buildToolbar()
-          this.buildCreateFolderCard()
-          this.buildFileList()
-          this.buildTransferQueue()
-        }
-        .width('100%')
-        .padding({
-          left: ThemeConfig.SPACING_MD,
-          right: ThemeConfig.SPACING_MD,
-          top: ThemeConfig.SPACING_MD,
-          bottom: ThemeConfig.SPACING_LG
-        })
+      Column() {
+        this.buildHeader()
+        this.buildToolbar()
+        this.buildFileListArea()
+        this.buildBottomBar()
       }
       .width('100%')
       .height('100%')
-      .align(Alignment.TopStart)
-      .padding({ top: 80, bottom: this.avoidNavigationBarHeight + ThemeConfig.SPACING_LG })
+      .backgroundColor(this.theme_GRAY_BG)
 
-      Column() {
-        PageHeader(this.lt('File Transfer'), `${this.deviceName} · ${DeviceIdFormatter.format(this.deviceId)}`, true, () => {
-          this.goBack();
+      Column()
+        .width('100%')
+        .height(this.avoidStatusBarHeight + 156)
+        .linearGradient({
+          angle: 180,
+          colors: this.themeIsDark
+            ? [['#CC171A22', 0.0], ['#99171A22', 0.3], ['#55171A22', 0.7], ['#00171A22', 1.0]]
+            : [['#CCF0F4FA', 0.0], ['#99F0F4FA', 0.3], ['#55F0F4FA', 0.7], ['#00F0F4FA', 1.0]]
         })
-      }
-      .width('100%')
-      .padding({ top: this.avoidStatusBarHeight })
-      .linearGradient({
-        angle: 180,
-        colors: this.themeIsDark
-          ? [['#BB171A1E', 0.0], ['#99171A1E', 0.22], ['#66171A1E', 0.58], ['#00171A1E', 1.0]]
-          : [['#C0F0F4FA', 0.0], ['#A0F0F4FA', 0.22], ['#70F0F4FA', 0.58], ['#00F0F4FA', 1.0]]
-      })
+        .hitTestBehavior(HitTestMode.Transparent)
 
+      if (this.showSortMenu) {
+        this.buildSortMenu()
+      }
+      if (this.showMoreMenu) {
+        this.buildMoreMenu()
+      }
+      if (this.showItemMenu && this.itemMenuEntry !== null) {
+        this.buildItemMenu()
+      }
       if (this.showOverrideDialog && this.pendingOverrideRequest !== null) {
         this.buildOverrideDialog()
+      }
+      if (this.showNewFolderDialog) {
+        this.buildNewFolderDialog()
+      }
+      if (this.showRenameDialog && this.itemMenuEntry !== null) {
+        this.buildRenameDialog()
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme_GRAY_BG)
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   @Builder
-  private buildPaneSwitch() {
-    Column({ space: 8 }) {
-      Row({ space: 8 }) {
-        this.buildModeButton(this.lt('Local'), this.currentPane === 'local', () => {
+  private buildHeader() {
+    Row() {
+      Image($rawfile('close.svg'))
+        .width(24)
+        .height(24)
+        .fillColor(this.theme_TEXT_PRIMARY)
+        .onClick(() => this.goBack())
+        .margin({ right: 12 })
+
+      Row() {
+        Row() {
+          Image($rawfile('ft_phone.svg'))
+            .width(16)
+            .height(16)
+            .colorFilter(createStrokeIconColorFilter(this.currentPane === 'local' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY))
+          Text(this.lt('Local'))
+            .fontSize(14)
+            .fontColor(this.currentPane === 'local' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+            .margin({ left: 6 })
+        }
+        .layoutWeight(1)
+        .height(36)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(this.currentPane === 'local' ? this.theme_ACCENT : this.theme_INACTIVE_BG)
+        .borderRadius({ topLeft: 8, bottomLeft: 8 })
+        .onClick(() => {
           this.currentPane = 'local';
           void this.loadCurrentPaneFiles();
         })
-        this.buildModeButton(this.lt('Remote'), this.currentPane === 'remote', () => {
+
+        Row() {
+          Image($rawfile('ft_remote.svg'))
+            .width(16)
+            .height(16)
+            .colorFilter(createStrokeIconColorFilter(this.currentPane === 'remote' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY))
+          Text(this.lt('Remote'))
+            .fontSize(14)
+            .fontColor(this.currentPane === 'remote' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+            .margin({ left: 6 })
+        }
+        .layoutWeight(1)
+        .height(36)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(this.currentPane === 'remote' ? this.theme_ACCENT : this.theme_INACTIVE_BG)
+        .borderRadius({ topRight: 8, bottomRight: 8 })
+        .onClick(() => {
           this.currentPane = 'remote';
           void this.loadCurrentPaneFiles();
         })
       }
+      .layoutWeight(1)
 
-      Row({ space: 8 }) {
-        this.buildModeButton(this.lt('By Name'), this.sortMode === 'name', () => {
-          this.sortMode = 'name';
-          void this.loadCurrentPaneFiles();
+      Image($rawfile('dots_vertical.svg'))
+        .width(24)
+        .height(24)
+        .fillColor(this.theme_TEXT_PRIMARY)
+        .margin({ left: 12 })
+        .onClick(() => {
+          this.showMoreMenu = true;
         })
-        this.buildModeButton(this.lt('By Time'), this.sortMode === 'time', () => {
-          this.sortMode = 'time';
-          void this.loadCurrentPaneFiles();
-        })
-      }
     }
     .width('100%')
-    .padding(12)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-  }
-
-  @Builder
-  private buildPathCard() {
-    Column({ space: 8 }) {
-      SectionTitle(this.currentPane === 'local' ? this.lt('Local Path') : this.lt('Remote Path'))
-      Text(this.getCurrentPath().length > 0 ? this.getCurrentPath() : this.lt('Remote'))
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(this.theme_TEXT_PRIMARY)
-        .width('100%')
-
-      if (this.canGoUp()) {
-        Button(this.lt('Parent Directory'))
-          .height(36)
-          .fontSize(12)
-          .backgroundColor(this.theme_ACCENT_SURFACE)
-          .fontColor(this.theme_ACCENT)
-          .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
-          .onClick(() => {
-            void this.goParentDirectory();
-          })
-      }
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+    .height(112)
+    .padding({ left: 16, right: 16, top: this.avoidStatusBarHeight, bottom: 8 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
   private buildToolbar() {
-    Row({ space: 8 }) {
-      this.buildToolButton($rawfile('file_transfer.svg'), this.lt('Upload'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-        void this.startFirstLocalUpload();
-      })
-      this.buildToolButton($rawfile('transfer.svg'), this.lt('Download'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-        void this.startFirstRemoteDownload();
-      })
-      Button() {
-        Row({ space: 4 }) {
-          Image($rawfile('refresh.svg'))
-            .width(14)
-            .height(14)
-            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
-            .rotate({ x: 0, y: 0, z: 1, angle: this.fileListRefreshAngle })
-          Text(this.lt('Refresh'))
-            .fontSize(12)
-            .fontColor(this.theme_TEXT_PRIMARY)
+    Row() {
+      Image($rawfile('ft_home.svg'))
+        .width(22)
+        .height(22)
+        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+        .onClick(() => {
+          void this.goHome();
+        })
+
+      Blank()
+
+      Image($rawfile('ft_back.svg'))
+        .width(22)
+        .height(22)
+        .colorFilter(createStrokeIconColorFilter(this.canGoBack() ? this.theme_TEXT_PRIMARY : this.theme_TEXT_TERTIARY))
+        .margin({ right: 16 })
+        .onClick(() => {
+          if (this.canGoBack()) {
+            void this.goParentDirectory();
+          }
+        })
+
+      Image($rawfile('ft_up.svg'))
+        .width(22)
+        .height(22)
+        .colorFilter(createStrokeIconColorFilter(this.canGoUp() ? this.theme_TEXT_PRIMARY : this.theme_TEXT_TERTIARY))
+        .margin({ right: 16 })
+        .onClick(() => {
+          if (this.canGoUp()) {
+            void this.goParentDirectory();
+          }
+        })
+
+      Image($rawfile('ft_sort.svg'))
+        .width(22)
+        .height(22)
+        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+        .onClick(() => {
+          this.showSortMenu = true;
+        })
+    }
+    .width('100%')
+    .height(44)
+    .padding({ left: 16, right: 16 })
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private buildFileListArea() {
+    if (this.getCurrentEntries().length === 0) {
+      Column() {
+        Text(this.lt('Current dir empty'))
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_TERTIARY)
+          .margin({ top: 60 })
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Start)
+      .alignItems(HorizontalAlign.Center)
+    } else {
+      List() {
+        ForEach(this.getCurrentEntries(), (entry: FileEntry) => {
+          ListItem() {
+            this.buildFileRow(entry)
+          }
+        }, (entry: FileEntry) => entry.path)
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+    }
+  }
+
+  @Builder
+  private buildFileRow(entry: FileEntry) {
+    Row() {
+      if (this.multiSelectMode) {
+        if (entry.selected) {
+          Image($rawfile('checkbox-checked.svg'))
+            .width(20)
+            .height(20)
+            .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT))
+            .margin({ right: 12 })
+        } else {
+          Image($rawfile('checkbox-unchecked.svg'))
+            .width(20)
+            .height(20)
+            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .margin({ right: 12 })
         }
+      }
+
+      Image($rawfile(entry.type === 'folder' ? 'ft_folder.svg' : 'ft_file.svg'))
+        .width(22)
+        .height(22)
+        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+        .margin({ right: 12 })
+
+      Column({ space: 2 }) {
+        Text(entry.name)
+          .fontSize(15)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Text(entry.modified)
+          .fontSize(12)
+          .fontColor(this.theme_TEXT_TERTIARY)
       }
       .layoutWeight(1)
-      .height(40)
-      .backgroundColor(this.theme_INPUT_BG)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(12)
-      .onClick(() => {
-        if (this.isFileListRefreshing) {
-          return;
-        }
-        void this.refreshCurrentPaneFiles();
-      })
-    }
-    .width('100%')
-    .padding(12)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-  }
+      .alignItems(HorizontalAlign.Start)
 
-  @Builder
-  private buildCreateFolderCard() {
-    Row({ space: 8 }) {
-      TextInput({ placeholder: this.lt('New folder name'), text: this.newFolderName })
-        .layoutWeight(1)
-        .height(42)
-        .backgroundColor(this.theme_INPUT_BG)
-        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-        .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
-        .padding({ left: 14, right: 14 })
-        .onChange((value: string) => {
-          this.newFolderName = value;
-        })
-
-      Button(this.lt('Create'))
-        .width(74)
-        .height(42)
-        .fontSize(12)
-        .backgroundColor(this.theme_ACCENT_SURFACE)
-        .fontColor(this.theme_ACCENT)
-        .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
+      Image($rawfile('dots_vertical.svg'))
+        .width(20)
+        .height(20)
+        .fillColor(this.theme_TEXT_TERTIARY)
         .onClick(() => {
-          void this.createFolder();
+          this.itemMenuEntry = entry;
+          this.showItemMenu = true;
         })
     }
     .width('100%')
-    .padding(12)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-  }
-
-  @Builder
-  private buildFileList() {
-    Column({ space: 12 }) {
-      SectionTitle(this.currentPane === 'local' ? this.lt('Local Files') : this.lt('Remote Files'))
-
-      if (this.getCurrentEntries().length === 0) {
-        EmptyState($rawfile('folder.svg'), this.lt('Current dir empty'))
-      } else {
-        Column({ space: 10 }) {
-          ForEach(this.getCurrentEntries(), (entry: FileEntry) => {
-            this.buildFileCard(entry)
-          }, (entry: FileEntry) => entry.path)
-        }
+    .height(56)
+    .padding({ left: 16, right: 16 })
+    .alignItems(VerticalAlign.Center)
+    .backgroundColor(entry.selected ? this.theme_ACCENT_SURFACE : Color.Transparent)
+    .onClick(() => {
+      if (this.multiSelectMode) {
+        entry.selected = !entry.selected;
+      } else if (entry.type === 'folder') {
+        void this.openFolder(entry);
       }
-    }
+    })
+    .gesture(
+      LongPressGesture({ repeat: false })
+        .onAction(() => {
+          if (!this.multiSelectMode) {
+            this.enterMultiSelectWith(entry);
+          } else {
+            entry.selected = !entry.selected;
+          }
+        })
+    )
   }
 
   @Builder
-  private buildFileCard(entry: FileEntry) {
-    Column({ space: 12 }) {
+  private buildBottomBar() {
+    if (this.pasteMode && this.clipboardEntries.length > 0) {
       Row() {
-        Column({ space: 4 }) {
-          Text(entry.name)
-            .fontSize(15)
+        Column({ space: 2 }) {
+          Text(this.lt('Paste here?'))
+            .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.theme_TEXT_PRIMARY)
-
-          Text(`${entry.type === 'folder' ? this.lt('Folder') : this.lt('File')} · ${entry.size} · ${entry.modified}`)
+            .fontColor(this.theme_ACCENT_TEXT)
+          Text(`${this.clipboardEntries.length} ${this.lt('items')} [${this.clipboardSource === 'local' ? this.lt('Local') : this.lt('Remote')}]`)
             .fontSize(12)
-            .fontColor(this.theme_TEXT_SECONDARY)
+            .fontColor(this.theme_ACCENT_TEXT)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        StatusBadge(entry.type === 'folder' ? this.lt('Folder') : this.lt('File'), entry.type === 'folder')
-      }
-
-      Row({ space: 8 }) {
-        if (entry.type === 'folder') {
-          this.buildInlineAction(this.lt('Open'), this.theme_INPUT_BG, this.theme_TEXT_PRIMARY, () => {
-            void this.openFolder(entry);
+        Image($rawfile('ft_paste.svg'))
+          .width(22)
+          .height(22)
+          .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT_TEXT))
+          .margin({ left: 16 })
+          .onClick(() => {
+            void this.executePaste();
           })
-        } else if (this.currentPane === 'local') {
-          this.buildInlineAction(this.lt('Upload'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-            void this.queueTransfer(entry, 'upload');
+
+        Image($rawfile('close.svg'))
+          .width(22)
+          .height(22)
+          .fillColor(this.theme_ACCENT_TEXT)
+          .margin({ left: 16 })
+          .onClick(() => {
+            this.cancelPaste();
           })
-        } else {
-          this.buildInlineAction(this.lt('Download'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-            void this.queueTransfer(entry, 'download');
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(this.theme_ACCENT)
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: this.avoidNavigationBarHeight })
+    } else if (this.multiSelectMode) {
+      Row() {
+        Text(`${this.lt('Selected')} ${this.selectedCount} ${this.lt('items')}`)
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Image($rawfile('ft_copy.svg'))
+          .width(22)
+          .height(22)
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+          .margin({ left: 16 })
+          .onClick(() => {
+            this.copySelected();
           })
-        }
 
-        this.buildInlineAction(this.lt('Delete Action'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
-          void this.deleteEntry(entry);
-        })
+        Image($rawfile('ft_delete.svg'))
+          .width(22)
+          .height(22)
+          .colorFilter(createStrokeIconColorFilter(this.theme_ERROR_TEXT))
+          .margin({ left: 16 })
+          .onClick(() => {
+            void this.deleteSelected();
+          })
+
+        Image($rawfile('close.svg'))
+          .width(22)
+          .height(22)
+          .fillColor(this.theme_TEXT_PRIMARY)
+          .margin({ left: 16 })
+          .onClick(() => {
+            this.exitMultiSelect();
+          })
       }
-    }
-    .padding(14)
-    .backgroundColor(this.theme_CARD_BG)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-    .borderRadius(16)
-  }
-
-  @Builder
-  private buildTransferQueue() {
-    Column({ space: 12 }) {
-      SectionTitle(this.lt('Transfer Queue'))
-
-      if (this.tasks.length === 0) {
-        EmptyState($rawfile('transfer.svg'), this.lt('No transfer tasks'))
-      } else {
-        Column({ space: 10 }) {
-          ForEach(this.tasks, (task: TransferTask) => {
-            Column({ space: 8 }) {
-              Row() {
-                Column({ space: 4 }) {
-                  Text(task.name)
-                    .fontSize(15)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(this.theme_TEXT_PRIMARY)
-                  Text(`${task.direction === 'upload' ? this.lt('Upload') : this.lt('Download')} · ${task.size}`)
-                    .fontSize(12)
-                    .fontColor(this.theme_TEXT_SECONDARY)
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start)
-
-                StatusBadge(this.formatTaskStatus(task.status), task.status === 'done')
-              }
-
-              Progress({ value: task.progress, total: 100, type: ProgressType.Linear })
-                .height(8)
-                .color(this.theme_ACCENT)
-                .backgroundColor(this.theme_INACTIVE_BG)
-
-              Row({ space: 8 }) {
-                Text(`${task.progress}%`)
-                  .fontSize(12)
-                  .fontColor(this.theme_TEXT_TERTIARY)
-                  .layoutWeight(1)
-
-                if (task.status === 'running') {
-                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
-                    this.cancelTask(task.id);
-                  })
-                }
-                if (task.status === 'queued') {
-                  this.buildTaskAction(this.lt('Start'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
-                    void this.startTask(task.id);
-                  })
-                  this.buildTaskAction(this.lt('Cancel'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
-                    this.cancelTask(task.id);
-                  })
-                }
-              }
-            }
-            .padding(16)
-            .backgroundColor(this.theme_CARD_BG)
-            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-            .borderRadius(18)
-          }, (task: TransferTask) => task.id)
-        }
-      }
-    }
-  }
-
-  @Builder
-  private buildTaskAction(label: string, color: string, fontColor: string, action: () => void) {
-    Button(label)
-      .height(28)
-      .fontSize(11)
-      .backgroundColor(color)
-      .fontColor(fontColor)
-      .borderRadius(10)
-      .onClick(action)
-  }
-
-  @Builder
-  private buildModeButton(label: string, active: boolean, action: () => void) {
-    Button(label)
-      .layoutWeight(1)
-      .height(40)
-      .fontSize(13)
-      .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
-      .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      .border({ width: active ? 0 : 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(12)
-      .onClick(action)
-  }
-
-  @Builder
-  private buildToolButton(icon: Resource, label: string, color: string, fontColor: string, action: () => void) {
-    Button() {
-      Row({ space: 4 }) {
-        Image(icon)
-          .width(14)
-          .height(14)
-          .colorFilter(createStrokeIconColorFilter(fontColor))
-        Text(label)
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .alignItems(VerticalAlign.Center)
+      .margin({ bottom: this.avoidNavigationBarHeight })
+    } else {
+      Column() {
+        Text(this.getCurrentPath())
           .fontSize(12)
-          .fontColor(fontColor)
+          .fontColor(this.theme_TEXT_TERTIARY)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+          .padding({ left: 16, right: 16 })
+
+        Text(`${this.lt('Total')}: ${this.getCurrentEntries().length} ${this.lt('items')}`)
+          .fontSize(12)
+          .fontColor(this.theme_TEXT_TERTIARY)
+          .width('100%')
+          .padding({ left: 16, right: 16, bottom: 8 })
+      }
+      .width('100%')
+      .padding({ top: 8 })
+      .backgroundColor(this.theme_GRAY_BG)
+      .margin({ bottom: this.avoidNavigationBarHeight })
+    }
+  }
+
+  @Builder
+  private buildSortMenu() {
+    Stack({ alignContent: Alignment.TopEnd }) {
+      Column() {
+        Column() {
+          this.buildSortMenuItem('name', this.lt('Name'))
+          this.buildSortMenuItem('type', this.lt('Type'))
+          this.buildSortMenuItem('time', this.lt('Modified time'))
+          this.buildSortMenuItem('size', this.lt('Size'))
+        }
+        .width(180)
+        .backgroundColor(this.theme_CARD_BG)
+        .opacity(0.92)
+        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+        .borderRadius(8)
+        .shadow({ radius: 16, color: '#66000000' })
+      }
+      .margin({ top: 160, right: 16 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#4D000000')
+    .onClick(() => {
+      this.showSortMenu = false;
+    })
+    .zIndex(50)
+  }
+
+  @Builder
+  private buildSortMenuItem(field: SortField, label: string) {
+    Row() {
+      Text(label)
+        .fontSize(14)
+        .fontColor(this.sortField === field ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+      if (this.sortField === field) {
+        Image($rawfile('checkmark.svg'))
+          .width(16)
+          .height(16)
+          .fillColor(this.theme_ACCENT)
       }
     }
-    .layoutWeight(1)
-    .height(40)
-    .backgroundColor(color)
-    .borderRadius(12)
+    .width('100%')
+    .height(44)
+    .padding({ left: 16, right: 16 })
+    .onClick(() => {
+      this.sortField = field;
+      this.reSortCurrentEntries();
+      this.showSortMenu = false;
+    })
+  }
+
+  @Builder
+  private buildMoreMenu() {
+    Stack({ alignContent: Alignment.TopEnd }) {
+      Column() {
+        Column() {
+          this.buildMenuRow($rawfile('refresh.svg'), this.lt('Refresh files'), () => {
+            this.showMoreMenu = false;
+            void this.refreshCurrentPaneFiles();
+          })
+
+          this.buildMenuRow($rawfile('checkbox-checked.svg'), this.lt('Multi-select'), () => {
+            this.showMoreMenu = false;
+            this.enterMultiSelect();
+          })
+
+          this.buildMenuRow($rawfile('ft_new_folder.svg'), this.lt('Create folder'), () => {
+            this.showMoreMenu = false;
+            this.newFolderName = '';
+            this.showNewFolderDialog = true;
+          })
+
+          this.buildMenuRow(
+            $rawfile(this.showHiddenFiles ? 'ft_show.svg' : 'ft_hidden.svg'),
+            this.lt('Show hidden files'),
+            () => {
+              this.showMoreMenu = false;
+              this.showHiddenFiles = !this.showHiddenFiles;
+              void this.loadCurrentPaneFiles();
+            },
+            this.showHiddenFiles
+          )
+        }
+        .width(200)
+        .backgroundColor(this.theme_CARD_BG)
+        .opacity(0.92)
+        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+        .borderRadius(8)
+        .shadow({ radius: 16, color: '#66000000' })
+      }
+      .margin({ top: 160, right: 16 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#4D000000')
+    .onClick(() => {
+      this.showMoreMenu = false;
+    })
+    .zIndex(50)
+  }
+
+  @Builder
+  private buildItemMenu() {
+    Stack({ alignContent: Alignment.TopEnd }) {
+      Column() {
+        Column() {
+          this.buildMenuRow($rawfile('ft_delete.svg'), this.lt('Delete Action'), () => {
+            this.showItemMenu = false;
+            if (this.itemMenuEntry) {
+              void this.deleteEntry(this.itemMenuEntry);
+            }
+          })
+
+          this.buildMenuRow($rawfile('checkbox-checked.svg'), this.lt('Multi-select'), () => {
+            this.showItemMenu = false;
+            if (this.itemMenuEntry) {
+              this.enterMultiSelectWith(this.itemMenuEntry);
+            }
+          })
+
+          this.buildMenuRow($rawfile('ft_file.svg'), this.lt('Properties'), () => {
+            this.showItemMenu = false;
+            if (this.itemMenuEntry) {
+              void this.showToast(`${this.itemMenuEntry.name}\n${this.itemMenuEntry.type === 'folder' ? this.lt('Folder') : this.lt('File')}\n${this.itemMenuEntry.size}\n${this.itemMenuEntry.modified}`);
+            }
+          })
+
+          this.buildMenuRow($rawfile('info_edit.svg'), this.lt('Rename'), () => {
+            this.showItemMenu = false;
+            if (this.itemMenuEntry) {
+              this.renameDraft = this.itemMenuEntry.name;
+              this.showRenameDialog = true;
+            }
+          })
+        }
+        .width(180)
+        .backgroundColor(this.theme_CARD_BG)
+        .opacity(0.92)
+        .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+        .borderRadius(8)
+        .shadow({ radius: 16, color: '#66000000' })
+      }
+      .margin({ top: 200, right: 16 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#4D000000')
+    .onClick(() => {
+      this.showItemMenu = false;
+    })
+    .zIndex(50)
+  }
+
+  @Builder
+  private buildMenuRow(icon: Resource, label: string, action: () => void, checked: boolean = false) {
+    Row({ space: 10 }) {
+      Image(icon)
+        .width(18)
+        .height(18)
+        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+      Text(label)
+        .fontSize(14)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+      if (checked) {
+        Image($rawfile('checkmark.svg'))
+          .width(16)
+          .height(16)
+          .fillColor(this.theme_ACCENT)
+      }
+    }
+    .width('100%')
+    .height(44)
+    .padding({ left: 16, right: 16 })
     .onClick(action)
   }
 
   @Builder
-  private buildInlineAction(label: string, color: string, fontColor: string, action: () => void) {
-    Button(label)
-      .layoutWeight(1)
-      .height(34)
-      .fontSize(12)
-      .backgroundColor(color)
-      .fontColor(fontColor)
-      .borderRadius(10)
-      .onClick(action)
+  private buildNewFolderDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 14 }) {
+        Text(this.lt('Create folder'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        TextInput({ placeholder: this.lt('New folder name'), text: this.newFolderName })
+          .height(42)
+          .backgroundColor(this.theme_INPUT_BG)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+          .borderRadius(8)
+          .padding({ left: 14, right: 14 })
+          .onChange((value: string) => {
+            this.newFolderName = value;
+          })
+
+        Row({ space: 8 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_INPUT_BG)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => {
+              this.showNewFolderDialog = false;
+            })
+          Button(this.lt('Create'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .onClick(() => {
+              this.showNewFolderDialog = false;
+              void this.createFolder();
+            })
+        }
+      }
+      .width('88%')
+      .padding(18)
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .borderRadius(12)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .zIndex(80)
+    .hitTestBehavior(HitTestMode.Block)
+  }
+
+  @Builder
+  private buildRenameDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 14 }) {
+        Text(this.lt('Rename'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        TextInput({ text: this.renameDraft })
+          .height(42)
+          .backgroundColor(this.theme_INPUT_BG)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+          .borderRadius(8)
+          .padding({ left: 14, right: 14 })
+          .onChange((value: string) => {
+            this.renameDraft = value;
+          })
+
+        Row({ space: 8 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_INPUT_BG)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => {
+              this.showRenameDialog = false;
+            })
+          Button(this.lt('Rename'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .onClick(() => {
+              this.showRenameDialog = false;
+              void this.renameEntry();
+            })
+        }
+      }
+      .width('88%')
+      .padding(18)
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .borderRadius(12)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .zIndex(80)
+    .hitTestBehavior(HitTestMode.Block)
+  }
+
+  @Builder
+  private buildOverrideDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column({ space: 14 }) {
+        Text(this.lt('Overwrite'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        Text(this.pendingOverrideRequest?.targetPath ?? '')
+          .fontSize(13)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .maxLines(3)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+
+        if (this.pendingOverrideRequest?.isIdentical === true) {
+          Text(this.lt('Files are identical'))
+            .fontSize(12)
+            .fontColor(this.theme_TEXT_TERTIARY)
+        }
+
+        Row({ space: 8 }) {
+          Button(this.lt('Replace'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .onClick(() => this.respondToOverride('replace'))
+          Button(this.lt('Skip'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_INPUT_BG)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => this.respondToOverride('skip'))
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(40)
+            .backgroundColor(this.theme_ERROR_BG)
+            .fontColor(this.theme_ERROR_TEXT)
+            .onClick(() => this.respondToOverride('cancel'))
+        }
+        .width('100%')
+      }
+      .width('88%')
+      .padding(18)
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .borderRadius(8)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .zIndex(80)
+    .hitTestBehavior(HitTestMode.Block)
+  }
+
+  private enterMultiSelect(): void {
+    this.multiSelectMode = true;
+    this.clearSelection();
+  }
+
+  private enterMultiSelectWith(entry: FileEntry): void {
+    this.multiSelectMode = true;
+    this.clearSelection();
+    entry.selected = true;
+  }
+
+  private exitMultiSelect(): void {
+    this.multiSelectMode = false;
+    this.clearSelection();
+  }
+
+  private clearSelection(): void {
+    this.localFiles.forEach((e: FileEntry) => e.selected = false);
+    this.remoteFiles.forEach((e: FileEntry) => e.selected = false);
+  }
+
+  private copySelected(): void {
+    const selected = this.getCurrentEntries().filter((e: FileEntry) => e.selected);
+    if (selected.length === 0) {
+      return;
+    }
+    this.clipboardEntries = selected.slice();
+    this.clipboardSource = this.currentPane;
+    this.pasteMode = true;
+    this.currentPane = this.currentPane === 'local' ? 'remote' : 'local';
+    void this.loadCurrentPaneFiles();
+  }
+
+  private cancelPaste(): void {
+    this.pasteMode = false;
+    this.clipboardEntries = [];
+    this.exitMultiSelect();
+  }
+
+  private async executePaste(): Promise<void> {
+    if (!await this.ensureLocalFileAccessAuthorization()) {
+      return;
+    }
+    const direction = this.clipboardSource === 'local' ? 'upload' : 'download';
+    for (const entry of this.clipboardEntries) {
+      const fileInfo: FileInfo = {
+        path: entry.path,
+        name: entry.name,
+        size: this.parseFileSize(entry.size),
+        isDirectory: entry.type === 'folder',
+        modifiedTime: entry.modifiedTime
+      };
+      const task = this.fileTransferService.createTransferTask(fileInfo, direction);
+      this.refreshTransferTasks();
+      await this.fileTransferService.startTransfer(task.id, this.getTransferTargetPath(direction));
+    }
+    this.pasteMode = false;
+    this.clipboardEntries = [];
+    this.exitMultiSelect();
+  }
+
+  private async deleteSelected(): Promise<void> {
+    const selected = this.getCurrentEntries().filter((e: FileEntry) => e.selected);
+    for (const entry of selected) {
+      await this.deleteEntry(entry);
+    }
+    this.exitMultiSelect();
+  }
+
+  private async renameEntry(): Promise<void> {
+    if (!this.itemMenuEntry || this.renameDraft.trim().length === 0) {
+      return;
+    }
+    void this.showToast(`${this.lt('Rename')} → ${this.renameDraft}`);
   }
 
   private async loadCurrentPaneFiles(): Promise<void> {
@@ -513,17 +947,35 @@ struct FileTransfer {
   }
 
   private sortEntries(entries: FileEntry[]): FileEntry[] {
-    const next = entries.slice();
+    let filtered = entries;
+    if (!this.showHiddenFiles) {
+      filtered = entries.filter((e: FileEntry) => !e.name.startsWith('.'));
+    }
+    const next = filtered.slice();
     next.sort((a: FileEntry, b: FileEntry) => {
       if (a.type !== b.type) {
         return a.type === 'folder' ? -1 : 1;
       }
-      if (this.sortMode === 'time') {
+      if (this.sortField === 'time') {
         return b.modifiedTime - a.modifiedTime;
+      }
+      if (this.sortField === 'size') {
+        return this.parseFileSize(b.size) - this.parseFileSize(a.size);
+      }
+      if (this.sortField === 'type') {
+        return a.type.localeCompare(b.type) || a.name.localeCompare(b.name);
       }
       return a.name.localeCompare(b.name);
     });
     return next;
+  }
+
+  private reSortCurrentEntries(): void {
+    if (this.currentPane === 'local') {
+      this.localFiles = this.sortEntries(this.localFiles);
+    } else {
+      this.remoteFiles = this.sortEntries(this.remoteFiles);
+    }
   }
 
   private async openFolder(entry: FileEntry): Promise<void> {
@@ -546,6 +998,15 @@ struct FileTransfer {
       this.localPath = this.parentPath(this.localPath, this.fileTransferService.getLocalRootPath());
     } else {
       this.remotePath = this.parentPath(this.remotePath, this.fileTransferService.getRemoteRootPath());
+    }
+    await this.loadCurrentPaneFiles();
+  }
+
+  private async goHome(): Promise<void> {
+    if (this.currentPane === 'local') {
+      this.localPath = this.fileTransferService.getLocalRootPath();
+    } else {
+      this.remotePath = this.fileTransferService.getRemoteRootPath();
     }
     await this.loadCurrentPaneFiles();
   }
@@ -579,62 +1040,6 @@ struct FileTransfer {
     await this.loadCurrentPaneFiles();
   }
 
-  private async queueTransfer(entry: FileEntry, direction: 'upload' | 'download'): Promise<void> {
-    if (!await this.ensureLocalFileAccessAuthorization()) {
-      return;
-    }
-    const fileInfo: FileInfo = {
-      path: entry.path,
-      name: entry.name,
-      size: this.parseFileSize(entry.size),
-      isDirectory: entry.type === 'folder',
-      modifiedTime: entry.modifiedTime
-    };
-    const task = this.fileTransferService.createTransferTask(fileInfo, direction);
-    this.refreshTransferTasks();
-    await this.fileTransferService.startTransfer(task.id, this.getTransferTargetPath(direction));
-  }
-
-  private async startFirstLocalUpload(): Promise<void> {
-    if (this.localFiles.length === 0) {
-      await this.loadCurrentPaneFiles();
-    }
-    const firstFile = this.localFiles.find((item: FileEntry) => item.type === 'file');
-    if (firstFile) {
-      await this.queueTransfer(firstFile, 'upload');
-    }
-  }
-
-  private async startFirstRemoteDownload(): Promise<void> {
-    if (!await this.ensureLocalFileAccessAuthorization()) {
-      return;
-    }
-    if (this.remoteFiles.length === 0) {
-      await this.loadCurrentPaneFiles();
-    }
-    const firstFile = this.remoteFiles.find((item: FileEntry) => item.type === 'file');
-    if (firstFile) {
-      await this.queueTransfer(firstFile, 'download');
-    }
-  }
-
-  private async startTask(taskId: string): Promise<void> {
-    const task = this.fileTransferService.getTransferTask(taskId);
-    if (!task) {
-      return;
-    }
-    if (!await this.ensureLocalFileAccessAuthorization()) {
-      return;
-    }
-    await this.fileTransferService.startTransfer(taskId, this.getTransferTargetPath(task.direction));
-    this.refreshTransferTasks();
-  }
-
-  private cancelTask(taskId: string): void {
-    this.fileTransferService.cancelTransfer(taskId);
-    this.refreshTransferTasks();
-  }
-
   private refreshTransferTasks(): void {
     const activeTasks = this.fileTransferService.getAllTransferTasks();
     if (activeTasks.length === 0) {
@@ -654,18 +1059,10 @@ struct FileTransfer {
   }
 
   private mapTaskStatus(status: string): 'queued' | 'running' | 'done' | 'failed' | 'cancelled' {
-    if (status === 'completed') {
-      return 'done';
-    }
-    if (status === 'transferring') {
-      return 'running';
-    }
-    if (status === 'failed') {
-      return 'failed';
-    }
-    if (status === 'cancelled') {
-      return 'cancelled';
-    }
+    if (status === 'completed') return 'done';
+    if (status === 'transferring') return 'running';
+    if (status === 'failed') return 'failed';
+    if (status === 'cancelled') return 'cancelled';
     return 'queued';
   }
 
@@ -676,45 +1073,28 @@ struct FileTransfer {
       size: item.isDirectory ? '-' : FileTransferService.formatFileSize(item.size),
       modified: this.formatTimestamp(item.modifiedTime),
       modifiedTime: item.modifiedTime,
-      path: item.path
+      path: item.path,
+      selected: false
     };
   }
 
   private parseFileSize(value: string): number {
-    if (value === '-') {
-      return 0;
-    }
-    if (value.endsWith('KB')) {
-      return Math.floor(Number(value.replace('KB', '').trim()) * 1024);
-    }
-    if (value.endsWith('MB')) {
-      return Math.floor(Number(value.replace('MB', '').trim()) * 1024 * 1024);
-    }
-    if (value.endsWith('GB')) {
-      return Math.floor(Number(value.replace('GB', '').trim()) * 1024 * 1024 * 1024);
-    }
+    if (value === '-') return 0;
+    if (value.endsWith('KB')) return Math.floor(Number(value.replace('KB', '').trim()) * 1024);
+    if (value.endsWith('MB')) return Math.floor(Number(value.replace('MB', '').trim()) * 1024 * 1024);
+    if (value.endsWith('GB')) return Math.floor(Number(value.replace('GB', '').trim()) * 1024 * 1024 * 1024);
     return Number(value.replace('B', '').trim());
   }
 
   private formatTimestamp(timestamp: number): string {
     const date = new Date(timestamp);
-    return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-  }
-
-  private formatTaskStatus(status: string): string {
-    if (status === 'done') {
-      return this.lt('Completed');
-    }
-    if (status === 'running') {
-      return this.lt('Transferring');
-    }
-    if (status === 'failed') {
-      return this.lt('Failed');
-    }
-    if (status === 'cancelled') {
-      return this.lt('Cancelled');
-    }
-    return this.lt('Queued');
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    const h = date.getHours().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
+    const s = date.getSeconds().toString().padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}:${s}`;
   }
 
   private getTransferTargetPath(direction: 'upload' | 'download'): string {
@@ -735,6 +1115,10 @@ struct FileTransfer {
       : this.remotePath !== this.fileTransferService.getRemoteRootPath();
   }
 
+  private canGoBack(): boolean {
+    return this.canGoUp();
+  }
+
   private parentPath(path: string, rootPath: string): string {
     return this.fileTransferService.parentPath(path, rootPath);
   }
@@ -753,13 +1137,8 @@ struct FileTransfer {
       this.fileAccessAuthorized = true;
       return true;
     }
-    if (this.fileAccessAuthorized) {
-      return true;
-    }
-    if (this.fileAccessRequestPromise) {
-      return this.fileAccessRequestPromise;
-    }
-    this.fileAccessRequesting = true;
+    if (this.fileAccessAuthorized) return true;
+    if (this.fileAccessRequestPromise) return this.fileAccessRequestPromise;
     this.fileAccessRequestPromise = this.requestLocalFileAccessAuthorization(showToastOnSuccess);
     return this.fileAccessRequestPromise;
   }
@@ -777,85 +1156,12 @@ struct FileTransfer {
       }
       return granted;
     } catch (error) {
-      console.error('file access authorization failed', JSON.stringify(error));
       this.fileAccessAuthorized = false;
       void this.showToast(this.lt('File access permission denied'));
       return false;
     } finally {
-      this.fileAccessRequesting = false;
       this.fileAccessRequestPromise = null;
     }
-  }
-
-  private async showToast(message: string): Promise<void> {
-    try {
-      await this.getUIContext().getPromptAction().openToast({ message });
-    } catch (error) {
-      console.error('FileTransfer toast failed', JSON.stringify(error));
-    }
-  }
-
-  @Builder
-  private buildOverrideDialog() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column({ space: 14 }) {
-        Text(this.lt('Overwrite'))
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.theme_TEXT_PRIMARY)
-
-        Text(this.pendingOverrideRequest?.targetPath ?? '')
-          .fontSize(13)
-          .fontColor(this.theme_TEXT_SECONDARY)
-          .maxLines(3)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-
-        if (this.pendingOverrideRequest?.isIdentical === true) {
-          Text(this.lt('Files are identical'))
-            .fontSize(12)
-            .fontColor(this.theme_TEXT_TERTIARY)
-        }
-
-        Row({ space: 8 }) {
-          Button(this.lt('Replace'))
-            .layoutWeight(1)
-            .height(40)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .onClick(() => {
-              this.respondToOverride('replace');
-            })
-          Button(this.lt('Skip'))
-            .layoutWeight(1)
-            .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .onClick(() => {
-              this.respondToOverride('skip');
-            })
-          Button(this.lt('Cancel'))
-            .layoutWeight(1)
-            .height(40)
-            .backgroundColor(this.theme_ERROR_BG)
-            .fontColor(this.theme_ERROR_TEXT)
-            .onClick(() => {
-              this.respondToOverride('cancel');
-            })
-        }
-        .width('100%')
-      }
-      .width('88%')
-      .padding(18)
-      .backgroundColor(this.theme_CARD_BG)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(8)
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .zIndex(80)
-    .hitTestBehavior(HitTestMode.Block)
   }
 
   private respondToOverride(action: 'replace' | 'skip' | 'cancel'): void {
@@ -872,6 +1178,14 @@ struct FileTransfer {
       this.getUIContext().getRouter().back();
     } catch (error) {
       console.error('router back failed', JSON.stringify(error));
+    }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    try {
+      await this.getUIContext().getPromptAction().openToast({ message });
+    } catch (error) {
+      console.error('FileTransfer toast failed', JSON.stringify(error));
     }
   }
 
