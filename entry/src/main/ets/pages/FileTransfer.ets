@@ -89,7 +89,6 @@ struct FileTransfer {
     this.deviceName = this.appData.getDisplayName(this.deviceId);
     this.localPath = this.fileTransferService.getLocalRootPath();
     this.remotePath = this.fileTransferService.getRemoteRootPath();
-    this.fileAccessAuthorized = true;
     this.fileTransferService.addEventListener(this.transferListener);
     this.refreshTransferTasks();
     this.bootstrapTimer = setTimeout(() => {
@@ -101,6 +100,10 @@ struct FileTransfer {
     if (this.bootstrapTimer !== -1) {
       clearTimeout(this.bootstrapTimer);
       this.bootstrapTimer = -1;
+    }
+    if (this.fileListRefreshTimer !== -1) {
+      clearInterval(this.fileListRefreshTimer);
+      this.fileListRefreshTimer = -1;
     }
     this.fileTransferService.removeEventListener(this.transferListener);
   }

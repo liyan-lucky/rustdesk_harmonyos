@@ -486,6 +486,13 @@ export class OfficialRustDeskBridge {
     }, 150);
   }
 
+  stopEventPump(): void {
+    if (this.eventPumpTimer !== -1) {
+      clearInterval(this.eventPumpTimer);
+      this.eventPumpTimer = -1;
+    }
+  }
+
   private shouldLogEvent(kind: string): boolean {
     return kind !== 'video-frame' &&
       kind !== 'video-refresh-requested' &&

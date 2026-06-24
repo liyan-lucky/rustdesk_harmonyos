@@ -222,7 +222,7 @@ struct Index {
   private setStatusMessageRaw(raw: string): void {
     this.statusMessageKey = '';
     this.statusMessageTargetId = '';
-    const maxLen = 8;
+    const maxLen = 32;
     if (raw.length > maxLen) {
       this.statusMessage = raw.substring(0, maxLen);
     } else {
@@ -666,6 +666,10 @@ struct Index {
     this.closeShareStartWarning();
     this.stopOnlineStatusPoll();
     LanDiscoveryService.getInstance().stopDiscovery();
+    if (this.oauthCheckTimer !== -1) {
+      clearInterval(this.oauthCheckTimer);
+      this.oauthCheckTimer = -1;
+    }
   }
 
   onPageShow(): void {
@@ -2819,7 +2823,8 @@ struct Index {
         this.buildPeerMenuActionRow(this.lt('Terminal (beta)'), () => {
           const id = this.recentMenuSessionId;
           this.recentMenuSessionId = '';
-          this.navigateTo('pages/Terminal', { deviceId: id });
+          this.pendingNavigatePage = 'pages/Terminal';
+          void this.handleConnect(id);
         })
 
         this.buildPeerMenuActionRow(this.lt('Terminal (Admin beta)'), () => {
@@ -3855,7 +3860,7 @@ struct Index {
     this.stopOnlineStatusPoll();
     this.onlineStatusPollCount = 0;
     this.onlineStatusPollInterval = 5000;
-    this.onlineStatusPollMaxCount = 0;
+    this.onlineStatusPollMaxCount = 3;
     this.pollOnlineStatusOnce();
     this.onlineStatusPollTimer = setInterval(() => {
       this.onlineStatusPollCount += 1;
@@ -6785,8 +6790,8 @@ struct Index {
 
   private shouldPromptForPassword(errorMsg: string): boolean {
     const normalized = errorMsg.toLowerCase();
-    return errorMsg.includes('瀵嗙爜') ||
-      errorMsg.includes('璁よ瘉') ||
+    return errorMsg.includes('密码') ||
+      errorMsg.includes('认证') ||
       normalized.includes('password') ||
       normalized.includes('input-password') ||
       normalized.includes('re-input-password') ||

@@ -146,6 +146,8 @@ struct RemoteControl {
   private readonly longPressRightClickMs: number = 520;
   private readonly dragStartThresholdPx: number = 12;
   private longPressTimer: number = -1;
+  private sessionExitTimer: number = -1;
+  private reconnectWithPasswordTimer: number = -1;
   private longPressTriggered: boolean = false;
   private touchDownAt: number = 0;
   private touchDownPreviewX: number = 0;
@@ -606,6 +608,15 @@ struct RemoteControl {
     this.stopFrameRefresh();
     this.stopConnectionInfoRefresh();
     this.disposeRenderedFrame();
+    this.clearLongPressTimer();
+    if (this.sessionExitTimer !== -1) {
+      clearTimeout(this.sessionExitTimer);
+      this.sessionExitTimer = -1;
+    }
+    if (this.reconnectWithPasswordTimer !== -1) {
+      clearTimeout(this.reconnectWithPasswordTimer);
+      this.reconnectWithPasswordTimer = -1;
+    }
     ClipboardService.getInstance().stopMonitoring();
     WindowChromeService.getInstance().exitImmersiveMode();
     void WindowChromeService.getInstance().setKeepScreenOn(false);
@@ -3010,6 +3021,7 @@ struct RemoteControl {
       }
       this.lastFrameUpdatedAt = Date.now();
       this.frameVersion += 1;
+      const isFirstFrame = !this.hasReceivedFrame;
       this.hasReceivedFrame = true;
       this.sessionBecameActive = true;
       if (this.sessionBecameActiveAt <= 0) {
@@ -3017,7 +3029,7 @@ struct RemoteControl {
       }
       this.isConnected = true;
       this.updateFps();
-      if (!this.hasReceivedFrame) {
+      if (isFirstFrame) {
         this.applySuggestedViewTransform(true);
       }
       this.statusText = this.lt('Connected');
@@ -3467,6 +3479,10 @@ struct RemoteControl {
     this.isRetryingConnection = true;
     this.showReconnectDialog = false;
     this.sessionCloseRequestedLocally = false;
+    if (this.sessionExitTimer !== -1) {
+      clearTimeout(this.sessionExitTimer);
+      this.sessionExitTimer = -1;
+    }
     this.sessionExitScheduled = false;
     this.isConnected = false;
     this.hasReceivedFrame = false;
@@ -4373,7 +4389,7 @@ struct RemoteControl {
     this.stopFrameRefresh();
     this.stopBridgeRefresh();
     this.officialBridge.requestSessionClose();
-    setTimeout(() => {
+    this.reconnectWithPasswordTimer = setTimeout(() => {
       this.sessionPassword = '';
       this.isSubmittingPassword = false;
       const settings = this.appData.getSettings();
@@ -4888,7 +4904,7 @@ struct RemoteControl {
     if (vk === undefined) {
       return;
     }
-    let modifiers = 0;
+    let modifiers = this.buildModifierMask();
     NativeRustDeskBridge.sendKeyboardInput(vk, pressed, modifiers);
     if (pressed) {
       this.maybeRequestVideoRefresh(true);
@@ -4928,7 +4944,8 @@ struct RemoteControl {
     this.sessionExitScheduled = true;
     this.stopFrameRefresh();
     this.stopBridgeRefresh();
-    setTimeout(() => {
+    this.sessionExitTimer = setTimeout(() => {
+      this.sessionExitTimer = -1;
       this.goBack();
     }, delayMs);
   }

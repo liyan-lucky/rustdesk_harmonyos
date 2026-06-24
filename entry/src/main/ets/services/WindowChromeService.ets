@@ -158,8 +158,9 @@ export class WindowChromeService {
     try {
       const mainWindow = this.windowStage.getMainWindowSync();
       mainWindow.off('avoidAreaChange');
+      mainWindow.off('keyboardHeightChange');
       this.avoidAreaCallbackRegistered = false;
-      console.info('WindowChromeService avoidAreaChange callback unregistered');
+      console.info('WindowChromeService avoidAreaChange and keyboardHeightChange callbacks unregistered');
     } catch (error) {
       console.error('WindowChromeService unregisterAvoidAreaCallback failed: ' + JSON.stringify(error));
     }

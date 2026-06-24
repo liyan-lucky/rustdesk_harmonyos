@@ -206,7 +206,7 @@ struct Terminal {
       }
       .width('100%')
       .backgroundColor('#111111')
-      .border({ width: { top: 1 }, color: '#333333' })
+      .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
       .padding({ bottom: this.avoidNavigationBarHeight })
     }
   }
@@ -304,7 +304,9 @@ struct Terminal {
     }
     const lines = event.data.split(/\r?\n/).filter((line: string) => line.length > 0);
     if (lines.length > 0) {
-      this.outputLines = this.outputLines.concat(lines);
+      const combined = this.outputLines.concat(lines);
+      const maxLines = 3000;
+      this.outputLines = combined.length > maxLines ? combined.slice(combined.length - maxLines) : combined;
     }
   }
 
