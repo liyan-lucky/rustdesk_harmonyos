@@ -73,7 +73,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.32.0`，versionCode：`1000172`
+- 当前本地版本：`0.33.14`，versionCode：`1000190`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -85,7 +85,7 @@
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - **x86_64 核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
 - **2026-06-19 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 使用 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心。旧 run `27848481305` 的 x86_64 失败根因是 libvpx 把 nasm/yasm 的 `-f elf64` 参数传给 OHOS SDK clang，后续还暴露 Opus 未安装到 `VCPKG_ROOT\installed\<triplet>`；`core-25` / run `27853110949` 已成功发布双资产。
-- 当前本地核心 SHA256：arm64 `131,310,070` bytes（core-34线上）；x86_64 `130,898,552` bytes（core-33线上）。core-34 已发布，App 已拉取 core-34 构建 `0.32.0` / versionCode `1000172`。
+- 当前本地核心 SHA256：arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。App 已构建 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`。
 - **最新核心更新**：13 核心 `core-34` 已发布（线上 arm64 `131,310,070` bytes / SHA256 `305106C5AB6FCFEF414A3939D918E39F656469122396B19534D3D86DC25347A1`，x86_64 `130,898,552` bytes / SHA256 `8D4D0AEAD337CEDB47456FCE09BE5AE40F1B2FBE0D3C6401352A63BAF9D286E0`）。11 App 已下载 core-34 全量构建 `0.32.0` / versionCode `1000172`，真机 `192.168.11.102:36169` 安装启动成功，进程 `22381` 存活，`versionName=0.32.0`、`versionCode=1000172`，`coreReady=true`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`
@@ -132,10 +132,11 @@
 5. **自动重连机制**（已实现）：App 侧三处 msgbox 处理增加 `retry=true` 自动重连。
 
 ### 已验证状态
-- 当前本地 native core：core-34 arm64 `131,310,070` bytes；x86_64 `130,898,552` bytes
+- 当前本地 native core：core-34 arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`
 - 最新线上 native core release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
-- 最新本地构建版本：`0.32.0`，versionCode `1000172`，构建时间 `2026-06-21 10:35`
+- 最新本地构建版本：`0.33.14`，versionCode `1000190`，构建时间 `2026-06-24 18:36`
 - 2026-06-21 core-34 真机安装验证：`build_full_hap.bat` 全量构建 `0.32.0` / versionCode `1000172`，signed HAP `34,495,335` bytes；真机 `192.168.11.102:36169` 安装成功，进程 `22381`，`versionName=0.32.0`、`versionCode=1000172`，`coreReady=true`。
+- 2026-06-24 v0.33.14 审计修复验证：commit `c0131e9`（fix: 13 critical/high audit findings），设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。状态消息截断已修复：maxLen 8→32，设备端验证"连接已建立，正在打开远程桌面..."完整显示。终端菜单导航已修复：改用 pendingNavigatePage 先建立连接再导航。
 - 2026-06-20 App v0.30.0 状态与会话修复：1) `refreshTimer` 保持 1000ms，但 `EntryAbility` 必须把刚取得的实时 `snapshot.coreReady` 写入 AppStorage，不能强制 `false`；`Index` 在 ready 变化时同步刷新核心模块；2) 核心属性菜单移除 Summary/Error/Detail，会话信息移除重复 Error 行，三处核心状态统一使用“就绪/停止/未识”短标签；3) 终止事件统一清空 pending peer/password/dialog/monitor/status，`OfficialRustDeskBridge.refresh()` 不再反复载入持久化旧快照；4) `msgbox success` 只更新提示，不能单独把会话升级为 connected，必须等待 `session-connected/connection-ready/peer-info/video-frame`；5) 新目标 ID 通过 `ChatService.retainOnlyPeer()` 删除其他 ID 的内存和持久化聊天，并丢弃旧 ID 的迟到消息；6) 质量面板固定 7 行，打开期间每 500ms 仅触发缓存重绘；7) ID 输入区分纯数字 ID 与 IPv4/IPv6，只有纯数字参与三位分组和联想；8) 编码偏好官方键是 `codec-preference`，不是 `video-codec-preference`，核心切换后必须调用 `update_supported_decodings()`；9) 会话与设置页共用 `display-scale-mode/custom-zoom-percent/image-quality/custom-fps/codec-preference`，自定义缩放用 100%-600% 滑块。
 - 2026-06-20 App 线上 push 验证：commit `fb13e7a` 触发 GitHub Actions run `27854059963`（Build HarmonyOS HAP Linux）并成功完成，`Build HarmonyOS package` 与 `Upload HarmonyOS artifacts` 均为 success；上传 artifact `harmonyos-hap` 大小 `65,698,344` bytes。
 - 2026-06-17 core-9 + 本地核心修复验证：11 App 下载 core-9 后构建 `0.23.8`，验证设备指纹正确显示（`6b3c ef42 ...`）；随后本地核心修复 `set_peer_info` 事件去重 + App 侧修复 `peerClosed` 不再直接关闭会话 + 密码弹窗渲染层硬性守卫，构建 `0.23.9`，无线安装启动成功。
@@ -175,6 +176,22 @@
 - **deviceTypes 必须用 "phone"**：DevEco Studio 6.1 的 `ModuleJson5Parser` 期望 `"phone"`，使用 `"default"` 会导致同步报错
 - **Hvigor 构建会修改 build-profile.json5**：构建过程会删除 `signingConfigs` 和 `compileSdkVersion`，`run_hvigor_with_sdk_patch.js` 中实现了 `saveBuildProfile`/`restoreBuildProfile` 在构建前后保存恢复
 - **PATH 修改在 Node.js 中会导致 spawn cmd.exe ENOENT**：在 `run_hvigor_with_sdk_patch.js` 中修改 `process.env.PATH` 会导致 Hvigor worker 无法找到 `cmd.exe`，必须在 bat 脚本中设置 PATH
+
+### 2026-06-24 13项审计修复经验（commit c0131e9）
+
+1. **RemoteControl sessionExitTimer/reconnectWithPasswordTimer 泄漏修复**：定时器在页面销毁时未清理，导致内存泄漏和潜在异常回调。必须在 `aboutToDisappear` 中 clearInterval/clearTimeout。
+2. **RemoteControl hasReceivedFrame 首帧逻辑修复**：`hasReceivedFrame` 应在收到首帧后立即置 true，不能仅依赖 `session-connected` 事件；否则 `peerClosed` 守卫可能误判。
+3. **RemoteControl 物理键盘 sticky keys 使用 buildModifierMask()**：物理键盘事件中 modifier 状态应使用统一的 `buildModifierMask()` 构建，而非分散读取各 modifier 字段，避免 sticky keys 状态不一致。
+4. **Index onlineStatusPollMaxCount 0→3**：在线状态轮询最大次数从 0（禁用）改为 3，确保首次启动时能完成在线状态查询。
+5. **Index oauthCheckTimer 泄漏修复**：OAuth 检查定时器在页面销毁时未清理，必须在 `aboutToDisappear` 中 clearInterval。
+6. **Index shouldPromptForPassword 中文乱码修复**：密码提示判断逻辑中的中文字符串编码不一致导致乱码，统一使用 `this.lt()` 国际化调用。
+7. **Index statusMessage maxLen 8→32**：状态消息截断长度从 8 字符扩展到 32 字符，确保"连接已建立，正在打开远程桌面..."等长消息完整显示。
+8. **Index Terminal 菜单改用 pendingNavigatePage**：终端菜单导航从直接 `navigateTo` 改为先建立连接再导航，避免未连接时跳转到空白终端页面。
+9. **FileTransfer 删除无条件 fileAccessAuthorized=true**：文件传输页不应无条件设置 `fileAccessAuthorized=true`，必须在 `DocumentViewPicker` 授权后才置 true。
+10. **FileTransfer fileListRefreshTimer 泄漏修复**：文件列表刷新定时器在页面销毁时未清理，必须在 `aboutToDisappear` 中 clearInterval。
+11. **Terminal outputLines 3000行上限**：终端输出行数添加 3000 行上限，防止长时间运行时内存无限增长。
+12. **OfficialRustDeskBridge 添加 stopEventPump()**：桥接层需要显式停止事件泵，避免页面销毁后仍有回调触发。
+13. **WindowChromeService 注销 keyboardHeightChange**：窗口服务在销毁时必须注销 `keyboardHeightChange` 回调，避免对已销毁页面触发回调。
 
 ### ArkTS 开发经验
 - Toggle isOn 值绑定导致异步权限请求期间回弹：onChange 中必须先同步 updateSettings 更新状态，再执行异步操作

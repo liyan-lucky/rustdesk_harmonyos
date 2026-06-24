@@ -1,5 +1,13 @@
 # Connection Debug Log
 
+## 2026-06-24 v0.33.14 audit-fix device verification
+
+- Version `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，commit `c0131e9`（fix: 13 critical/high audit findings），仓库 HEAD `ac5555a`。
+- CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。
+- Device verification: PID `19288`，`coreReady=true`，5-round audit 154 PASS / 0 FAIL / 1 SKIP。
+- Key fixes verified: statusMessage maxLen 8→32（"连接已建立，正在打开远程桌面..."完整显示）；Terminal 菜单改用 pendingNavigatePage 先建立连接再导航；FileTransfer 删除无条件 fileAccessAuthorized=true；所有定时器泄漏已修复。
+- Backup: `rustdesk_harmonyos_20260624_224200.zip`，1,453,149 bytes，SHA256 `0FB0630EF13A3AEEBE245F90E640CCA66074127F918CF8936CD393A7BE2A4E29`。
+
 ## 2026-06-22 00:25 final online-release device verification
 
 - Core run `27920089950` / tag `core-34`: arm64 `90A28361...` (`133,495,306` bytes), x86_64 `E587465E...` (`131,336,988` bytes); both archives contain required sharing/file/terminal/codec symbols.

@@ -226,7 +226,7 @@ Column() { /* TextInput... */ }
 - ID输入框悬浮匹配框只在输入法激活时显示（`deviceIdInputFocused`），输入法关闭时自动隐藏；`onChange` 中检查 `deviceIdInputFocused && raw.length >= 3` 才显示匹配。
 - ID 匹配框必须使用外层 `Stack + position` 完全悬浮，覆盖下方内容但不参与排版；不得用覆盖整个连接面板的 `.overlay(...)`。
 - ID输入框右侧X（清除）和→（连接）按钮必须始终可点击：左侧输入 Column 保留 right padding（60），候选框宽度只覆盖输入文本区，候选行显式使用 `HitTestMode.Block`；右侧命令 Row 保持高于候选框的 zIndex，且命令区不得落入候选命中矩形。
-- ID输入框连接状态提示文本不超过8个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码等；`setStatusMessageRaw` 自动截断超过8字的文本。
+- ID输入框连接状态提示文本不超过32个字：连接中、输入ID、ID格式错误、核心就绪、已停止、未知、连接失败、需要密码、连接已建立正在打开远程桌面等；`setStatusMessageRaw` 自动截断超过32字的文本（maxLen 已从 8 扩展到 32，commit c0131e9）。
 
 ---
 
@@ -743,9 +743,9 @@ Column
 
 ### 连接链路
 
-- "文件传输"：使用 `pendingNavigatePage` 模式，先建立连接再跳转到 FileTransfer 页面
-- "终端(beta)"：直接跳转到 Terminal 页面
-- `pendingNavigatePage` 状态变量控制连接成功后的跳转目标
+- "文件传输"：使用 `pendingNavigatePage` 模式，先建立连接再跳转到 FileTransfer 页面（commit c0131e9 修复：此前直接 navigateTo 导致未连接时跳转到空白页面）
+- "终端(beta)"：同样使用 `pendingNavigatePage` 模式，先建立连接再跳转到 Terminal 页面（commit c0131e9 修复：此前直接 navigateTo 导致未连接时跳转到空白终端页面）
+- `pendingNavigatePage` 状态变量控制连接成功后的跳转目标；FileTransfer 页面不再无条件设置 `fileAccessAuthorized=true`，必须在 `DocumentViewPicker` 授权后才置 true（commit c0131e9 修复）
 
 ---
 

@@ -64,11 +64,10 @@ F:\Visual_Studio_Code
 
 | 产物 | 路径 | SHA256 |
 | --- | --- | --- |
-| 最新 signed HAP | `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap` (`34,284,688` bytes, BuildInfo `0.33.6 / 2026-06-21 23:46`, phone-installed) | `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2` |
-| arm64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\aarch64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D` |
-| x86_64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\x86_64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD` |
-| App 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\rustdesk_harmonyos_20260622_003605.zip` (`1,440,526` bytes) | `D386142694D53E1E1154535818AB0573EEDE591AFE906242F84E14FA7D85E037` |
-| Core 清理后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_core_backups\rustdesk_core_20260622_003605.zip` (`3,596,189` bytes) | `208346582AC4FAD62B20402DD256BC4519F33414969AE599F22AA5232773D949` |
+| 最新 signed HAP | `%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap` (BuildInfo `0.33.14 / 2026-06-24 18:36`) | 待更新 |
+| arm64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\aarch64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314` |
+| x86_64 Core archive | `%VSCODE_ROOT%\99_Temp\librustdesk_core\cargo_target\x86_64-unknown-linux-ohos\release\librustdesk_harmony_bridge.a` | `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4` |
+| App 审计修复后备份 | `%VSCODE_ROOT%\99_Temp\rustdesk_harmonyos_backups\rustdesk_harmonyos_20260624_224200.zip` (`1,453,149` bytes) | `0FB0630EF13A3AEEBE245F90E640CCA66074127F918CF8936CD393A7BE2A4E29` |
 
 当前 `%VSCODE_ROOT%\99_Temp` 中本项目保留以下目录（2026-06-21 23:41 实测；同级 TabSSH 目录和全部 APK 属于共享根其他保留内容，不列入本项目清单）：
 

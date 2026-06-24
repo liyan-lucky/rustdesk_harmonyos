@@ -1,5 +1,11 @@
 # 核心状态与 HAP 构建验证
 
+## 2026-06-24 v0.33.14 审计修复验证
+
+commit `c0131e9`（fix: 13 critical/high audit findings），版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。
+
+13项修复：1) RemoteControl sessionExitTimer/reconnectWithPasswordTimer 泄漏修复；2) RemoteControl hasReceivedFrame 首帧逻辑修复；3) RemoteControl 物理键盘 sticky keys 使用 buildModifierMask()；4) Index onlineStatusPollMaxCount 0→3；5) Index oauthCheckTimer 泄漏修复；6) Index shouldPromptForPassword 中文乱码修复；7) Index statusMessage maxLen 8→32；8) Index Terminal 菜单改用 pendingNavigatePage；9) FileTransfer 删除无条件 fileAccessAuthorized=true；10) FileTransfer fileListRefreshTimer 泄漏修复；11) Terminal outputLines 3000行上限；12) OfficialRustDeskBridge 添加 stopEventPump()；13) WindowChromeService 注销 keyboardHeightChange。
+
 ## 2026-06-22 00:25 线上最终资产
 
 Core `a7f7795` / run `27920089950` / `core-34`：arm64 `133495306 / 90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131336988 / E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。App `3ebdc726` / run `27920708116` / `OpenRustdesk-Build-v0.33.6`：signed HAP `35067077 / 3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`。包内版本和双架构 CoreBuildInfo、签名、ABI、依赖、真机 updateTime/hilog 全部对齐；这是当前线上权威资产。本地 `1D5C...` 只作为同源码本地验证基线，不得替代线上发布哈希。
@@ -119,16 +125,16 @@ Native core:
 
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-33`
-- Latest online size: `133,237,858` bytes (arm64, core-33)
-- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/`
-- Current local core: core-33 arm64 `133,237,858` bytes
+- Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
+- Latest online size: `133,495,306` bytes (arm64, core-34)
+- Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27920089950`
+- Current local core: core-34 arm64 `133,495,306` bytes
 
 x86_64 native core:
 
 - 文件：`entry/src/main/libs/x86_64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
-- 状态：CI 双架构构建已完成，`core-33` release 含真实 x86_64 核心；latest x86_64 asset `130,898,552` bytes。
+- 状态：CI 双架构构建已完成，`core-34` release 含真实 x86_64 核心；latest x86_64 asset `131,336,988` bytes。
 - 无 x86_64 真实核心时自动降级为 stub 模式（`rustdesk_core_stub.cpp`）
 
 HAP:
@@ -253,11 +259,11 @@ Get-FileHash -Algorithm SHA256 $hap
 
 - Upstream compatibility: `RustDesk 1.4.7`
 - Native core source: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
-- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-81`
-- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27563925971`
-- Native core commit: `c5b3eeb` (`Add OHOS incoming capture source`)
-- Native core size: `131,631,706` bytes (`125.53 MB`)
-- Native core SHA256: `64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
+- Native core release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
+- Native core workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27920089950`
+- Native core commit: `a7f7795` (`Core-34 dual architecture release`)
+- Native core size: `133,495,306` bytes (`127.40 MB`)
+- Native core SHA256: `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`
 - HAP build verified: version `0.22.7`, versionCode `1000110`, signed HAP `18,978,267` bytes, SHA256 `4A147E3D557BBE7CE6CDC527F588C217A137AAB2DF1CCD40287F704302A4C92B`
 - Package verify passed: `librustdesk_bridge.so`, `libc++_shared.so`, runtime dependency check, bundle `com.open.rundesk`, signature verify
 - WiFi install verified: `192.168.11.102:36169`; `bm dump` showed `versionName=0.22.7`, `versionCode=1000110`, native library path `entry/libs/arm64`

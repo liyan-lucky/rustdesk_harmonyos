@@ -2,9 +2,113 @@
 
 > 避免问题反复出现，修改前必查此文档
 
-## 2026-06-21 23:23 本轮问题处置结论
+## 2026-06-24 13项审计修复（commit c0131e9）
 
-## 2026-06-23 proicons SVG 提取属性去重
+### 1. RemoteControl sessionExitTimer/reconnectWithPasswordTimer 泄漏
+
+**现象**：定时器在页面销毁时未清理，导致内存泄漏和页面销毁后异常回调。
+
+**解决**：在 `aboutToDisappear` 中 clearInterval/clearTimeout 清理所有定时器。
+
+**教训**：ArkTS 页面中所有 setInterval/setTimeout 必须在 `aboutToDisappear` 中对应清理，否则会泄漏。
+
+### 2. RemoteControl hasReceivedFrame 首帧逻辑修复
+
+**现象**：`hasReceivedFrame` 仅在 `session-connected` 时置 true，但首帧可能在 connected 之前到达。
+
+**解决**：收到首帧时立即置 `hasReceivedFrame=true`，不依赖 `session-connected` 事件。
+
+**教训**：首帧到达和连接建立是独立事件，不能互为前提。
+
+### 3. RemoteControl 物理键盘 sticky keys 使用 buildModifierMask()
+
+**现象**：物理键盘事件中 modifier 状态分散读取各字段，sticky keys 状态不一致。
+
+**解决**：统一使用 `buildModifierMask()` 构建 modifier mask。
+
+**教训**：modifier 状态应通过统一函数构建，避免分散读取导致状态不一致。
+
+### 4. Index onlineStatusPollMaxCount 0→3
+
+**现象**：在线状态轮询最大次数为 0（禁用），首次启动时无法完成在线状态查询。
+
+**解决**：`onlineStatusPollMaxCount` 从 0 改为 3。
+
+**教训**：轮询次数为 0 等于禁用，需要至少几次重试确保首次查询完成。
+
+### 5. Index oauthCheckTimer 泄漏修复
+
+**现象**：OAuth 检查定时器在页面销毁时未清理。
+
+**解决**：在 `aboutToDisappear` 中 clearInterval。
+
+**教训**：同第1项，所有定时器必须清理。
+
+### 6. Index shouldPromptForPassword 中文乱码修复
+
+**现象**：密码提示判断逻辑中的中文字符串编码不一致导致乱码，密码/认证弹窗显示异常。
+
+**解决**：统一使用 `this.lt()` 国际化调用，不硬编码中文字符串。
+
+**教训**：所有 UI 文本必须走 `this.lt()` 国际化，禁止硬编码中文字符串。
+
+### 7. Index statusMessage maxLen 8→32
+
+**现象**：状态消息截断长度为 8 字符，"连接已建立，正在打开远程桌面..."等长消息被截断。
+
+**解决**：`maxLen` 从 8 扩展到 32，设备端验证完整显示。
+
+**教训**：状态消息长度限制应考虑实际使用场景，8 字符对中文消息过短。
+
+### 8. Index Terminal 菜单改用 pendingNavigatePage
+
+**现象**：终端菜单直接 `navigateTo` 跳转，未建立连接时跳转到空白终端页面。
+
+**解决**：改用 `pendingNavigatePage` 先建立连接再导航到 Terminal 页面。
+
+**教训**：菜单导航到需要连接的页面时，必须先确保连接已建立。
+
+### 9. FileTransfer 删除无条件 fileAccessAuthorized=true
+
+**现象**：文件传输页无条件设置 `fileAccessAuthorized=true`，绕过授权流程。
+
+**解决**：删除无条件赋值，必须在 `DocumentViewPicker` 授权后才置 true。
+
+**教训**：文件访问授权状态必须由实际授权结果驱动，不能预设为已授权。
+
+### 10. FileTransfer fileListRefreshTimer 泄漏修复
+
+**现象**：文件列表刷新定时器在页面销毁时未清理。
+
+**解决**：在 `aboutToDisappear` 中 clearInterval。
+
+**教训**：同第1项，所有定时器必须清理。
+
+### 11. Terminal outputLines 3000行上限
+
+**现象**：终端输出行数无上限，长时间运行时内存无限增长。
+
+**解决**：添加 3000 行上限，超出时删除最早行。
+
+**教训**：终端输出等持续增长的数据结构必须有上限保护。
+
+### 12. OfficialRustDeskBridge 添加 stopEventPump()
+
+**现象**：桥接层没有显式停止事件泵的方法，页面销毁后仍有回调触发。
+
+**解决**：添加 `stopEventPump()` 方法，在页面销毁时调用。
+
+**教训**：事件驱动架构必须有显式停止机制，不能仅依赖 GC。
+
+### 13. WindowChromeService 注销 keyboardHeightChange
+
+**现象**：窗口服务在销毁时未注销 `keyboardHeightChange` 回调，对已销毁页面触发回调。
+
+**解决**：在 `onDestroy` 中注销 `keyboardHeightChange` 回调。
+
+**教训**：窗口级回调必须在服务销毁时注销，避免对已销毁页面触发回调。
+
+## 2026-06-23 本轮问题处置结论
 
 ### 提取脚本可能生成重复的 stroke/fill 属性，OHOS 渲染器解析失败导致图标不可见
 

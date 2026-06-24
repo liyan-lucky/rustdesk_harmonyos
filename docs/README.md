@@ -4,6 +4,8 @@
 
 > 2026-06-21 23:23：功能源码本地收口和固定哈希真机验证已完成。先完整阅读 `AGENT_HANDOFF.md` 的 23:23 最新摘要，再读 `WORKSPACE_PATHS.md`；不要重复修改或重建已验证包，除非发现源码问题。当前只剩精准清理、备份、推送、线上产物验证与最终文档回写。
 
+> 2026-06-24 v0.33.14 审计修复：commit `c0131e9` 修复 13 项 critical/high 审计发现，版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。状态消息截断已修复（maxLen 8→32），终端菜单导航已修复（pendingNavigatePage）。
+
 > 2026-06-22 00:25：双仓库代码、线上 Core Release、线上 HAP Release 和线上 HAP 真机复装均已完成。当前接手必须以 `AGENT_HANDOFF.md` 的 00:25 摘要为准；本轮仅剩文档提交/推送、最终备份和 clean 状态复核。
 
 > 新开对话先读本文，再按“阅读顺序”查看对应文档。本文只写当前状态和文档结构，不记录长篇历史。
@@ -18,7 +20,7 @@
 - 当前无线测试设备：`192.168.11.102:36169`
 - 包名：`com.open.rundesk`
 - 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
-- 2026-06-21 最新本地构建/验包 HAP：SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，BuildInfo `0.33.6 / 2026-06-21 23:46`，签名、双 ABI 和两架构依赖验包通过并已安装真机；设备 `updateTime=1782082072534`，强制冷启动 PID `29233`，hilog `coreReady=true`、LAN/在线查询正常且 fatal/panic/signal 为 0。判断新旧必须看 hash/updateTime/BuildInfo/双架构 CoreBuildInfo/hilog，不能只看版本号。
+- 2026-06-24 最新本地构建/验包 HAP：版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`，上一修复 commit `c0131e9`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。状态消息截断已修复（maxLen 8→32），终端菜单导航已修复（pendingNavigatePage）。判断新旧必须看 hash/updateTime/BuildInfo/双架构 CoreBuildInfo/hilog，不能只看版本号。
 - 真机被控共享已验证到 Windows 端真实手机画面持续刷新；华为手机被控端输入/操控已按用户确认搁置，不再阻塞本轮收口。文件传输、五编码、远程光标和全部访问端会话菜单还未完成端到端回归。
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 2026-06-14 13 项目源码已补齐终端 official Session 调用和终端事件回流，修正音频空队列返回 `[]`，并同步 C++ 聊天四参 content 参数读取；commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并发布 `core-71`，11 项目已下载后完成 HAP 全量构建、验包、安装启动和 hilog 验证。
@@ -35,17 +37,14 @@
 - 2026-06-15 线上 core-81 正式复查：13 核心 commit `c5b3eeb` 已由 run `27563925971` 发布 `core-81`，release 已补中文说明；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，验包、66 项连接链路审计、静态录屏 API 扫描、无线安装启动和干净 hilog 验证通过。共享录屏只由 `captureRequired` 触发 native `OH_AVScreenCapture_StartScreenCapture`，不唤起截屏 API；文件管理授权保持 picker-first。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-15 19:09`
-  - App 显示版本：`0.22.7`
-  - versionCode：`1000110`
+  - BuildInfo 编译时间：`2026-06-24 18:36`
+  - App 显示版本：`0.33.14`
+  - versionCode：`1000190`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`
-  - 最新发布：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.22.7`
-  - 最新 push run：`27567811582` 成功（提交 `42f9b8e`）
-  - 最新发布 run：`27568044749` 成功，发布 `OpenRustdesk-Build-v0.22.7`
-  - 最新线上 signed HAP：`20,870,632` bytes，SHA256 `ce62df82dd5167f9d31b34c0e2b88c869ed947a05214ca156fc3eeab9ff76fe3`
-  - 最新线上 unsigned HAP：`20,790,546` bytes，SHA256 `024ca74d649c305e8598ab36bf57a27e7f54869cd5c584f4d35798a89e008e98`
+  - 最新线上 release：`https://github.com/liyan-lucky/rustdesk_harmonyos/releases/tag/OpenRustdesk-Build-v0.33.6`
+  - 最新线上 signed HAP：`35,067,077` bytes，SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`
   - 当前线上脚本已改为 HAP-only：只上传 `.hap`，不再生成或上传 APP、`.app.zip`、`manifest.json`、`SHA256SUMS.txt`
   - 签名材料校验通过，profile 有效期：`2026-06-03` 至 `2027-06-03`
 - 当前线上 SDK/Hvigor 依赖：
@@ -87,10 +86,10 @@
 - ArkTS 通过 NAPI 调用 `librustdesk_bridge.so`
 - `librustdesk_bridge.so` 直接链接 `entry/src/main/libs/arm64/librustdesk_core.a`
 - 当前 verified native core：
-  - 最新线上 release：`core-81`
-  - 最新线上大小：`131,631,706` bytes
-  - 最新线上 SHA256：`64463FA57005CD5CCD99BAFA9A40F18A9D605F8E90F5E199F92B38ABFCDB4829`
-  - 最新线上 workflow：`27563925971`
+  - 最新线上 release：`https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
+  - 最新线上大小：arm64 `133,495,306` bytes，x86_64 `131,336,988` bytes
+  - 最新线上 SHA256：arm64 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`
+  - 最新线上 workflow：`27920089950`
   - 默认下载地址：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - 核心页应显示三个状态入口：
   - `Adapter`

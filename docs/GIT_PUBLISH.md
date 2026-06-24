@@ -2,6 +2,8 @@
 
 > 当前本地项目目录和 GitHub 展示目录已经统一为项目根结构。更新仓库前先读本文，避免重新引入旧的 `rustdesk_harmonyos/` 套娃目录。
 
+> 2026-06-24 v0.33.14 审计修复：commit `c0131e9`（fix: 13 critical/high audit findings），版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。备份 `rustdesk_harmonyos_20260624_224200.zip`，1,453,149 bytes，SHA256 `0FB0630EF13A3AEEBE245F90E640CCA66074127F918CF8936CD393A7BE2A4E29`。
+
 > 2026-06-21 23:48 发布候选基线：本地签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，arm64/x86_64 均为当日本地同源码构建并写入 CoreBuildInfo，最终 100 轮全审计 15400 PASS / 0 FAIL / 100 预期 SKIP，连接链 84/84。推送后必须等待线上 Core/HAP workflow，下载线上 asset 到 `99_Temp\release_inspect\11_Rustdesk_harmonyos`，复核签名、双 ABI、BuildInfo、双架构 CoreBuildInfo 和 SHA256，再把 run、commit、asset、hash 写回文档。版本号相同不代表包相同。
 
 > 2026-06-22 00:25 已发布：Core `a7f7795` / run `27920089950` / `core-34`；App `3ebdc726` / run `27920708116` / `OpenRustdesk-Build-v0.33.6`。最终线上 HAP SHA256 `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`，tag 已重指实际构建提交。若已有同名 Release，重新上传资产不会自动移动 tag，必须显式核对并修正 tag 指针。

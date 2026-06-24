@@ -1,5 +1,31 @@
 # 功能进度与优化方向
 
+## 2026-06-24 v0.33.14 13项审计修复
+
+commit `c0131e9`（fix: 13 critical/high audit findings），版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。
+
+### 修复清单
+1. RemoteControl sessionExitTimer/reconnectWithPasswordTimer 泄漏修复
+2. RemoteControl hasReceivedFrame 首帧逻辑修复
+3. RemoteControl 物理键盘 sticky keys 使用 buildModifierMask()
+4. Index onlineStatusPollMaxCount 0→3
+5. Index oauthCheckTimer 泄漏修复
+6. Index shouldPromptForPassword 中文乱码修复（密码/认证）
+7. Index statusMessage maxLen 8→32（"连接已建立，正在打开远程桌面..."完整显示）
+8. Index Terminal 菜单改用 pendingNavigatePage（先建立连接再导航）
+9. FileTransfer 删除无条件 fileAccessAuthorized=true
+10. FileTransfer fileListRefreshTimer 泄漏修复
+11. Terminal outputLines 3000行上限
+12. OfficialRustDeskBridge 添加 stopEventPump()
+13. WindowChromeService 注销 keyboardHeightChange
+
+### 验证结果
+- 设备验证 PID `19288`，`coreReady=true`
+- 5轮审计 154 PASS / 0 FAIL / 1 SKIP
+- CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`
+- CoreBuildInfo x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`
+- 备份：`rustdesk_harmonyos_20260624_224200.zip`，1,453,149 bytes，SHA256 `0FB0630EF13A3AEEBE245F90E640CCA66074127F918CF8936CD393A7BE2A4E29`
+
 ## 2026-06-23 文件传输/终端 UI 重构与 ID 卡片菜单连接链路
 
 ### 文件传输页面（FileTransfer.ets）
