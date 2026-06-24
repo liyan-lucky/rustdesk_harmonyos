@@ -4,6 +4,8 @@
 
 > 2026-06-21 23:23：功能源码本地收口和固定哈希真机验证已完成。先完整阅读 `AGENT_HANDOFF.md` 的 23:23 最新摘要，再读 `WORKSPACE_PATHS.md`；不要重复修改或重建已验证包，除非发现源码问题。当前只剩精准清理、备份、推送、线上产物验证与最终文档回写。
 
+> 2026-06-25 v0.33.16 日常维护：增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。5轮审计 770 PASS / 0 FAIL / 5 SKIP，连接链 83 PASS / 0 FAIL / 1 SKIP。
+
 > 2026-06-24 v0.33.14 审计修复：commit `c0131e9` 修复 13 项 critical/high 审计发现，版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。状态消息截断已修复（maxLen 8→32），终端菜单导航已修复（pendingNavigatePage）。
 
 > 2026-06-22 00:25：双仓库代码、线上 Core Release、线上 HAP Release 和线上 HAP 真机复装均已完成。当前接手必须以 `AGENT_HANDOFF.md` 的 00:25 摘要为准；本轮仅剩文档提交/推送、最终备份和 clean 状态复核。
@@ -20,7 +22,7 @@
 - 当前无线测试设备：`192.168.11.102:36169`
 - 包名：`com.open.rundesk`
 - 当前 HAP 输出：`%VSCODE_ROOT%\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`
-- 2026-06-24 最新本地构建/验包 HAP：版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`，上一修复 commit `c0131e9`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。状态消息截断已修复（maxLen 8→32），终端菜单导航已修复（pendingNavigatePage）。判断新旧必须看 hash/updateTime/BuildInfo/双架构 CoreBuildInfo/hilog，不能只看版本号。
+- 2026-06-24 最新本地构建/验包 HAP：版本 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。5轮审计 770 PASS / 0 FAIL / 5 SKIP，连接链 83 PASS / 0 FAIL / 1 SKIP。判断新旧必须看 hash/updateTime/BuildInfo/双架构 CoreBuildInfo/hilog，不能只看版本号。
 - 真机被控共享已验证到 Windows 端真实手机画面持续刷新；华为手机被控端输入/操控已按用户确认搁置，不再阻塞本轮收口。文件传输、五编码、远程光标和全部访问端会话菜单还未完成端到端回归。
 - 当前 native core 已接入真实 RustDesk session 路径，历史“仅模拟连接 / 真实网络未实现”不是当前状态。
 - 2026-06-14 13 项目源码已补齐终端 official Session 调用和终端事件回流，修正音频空队列返回 `[]`，并同步 C++ 聊天四参 content 参数读取；commit `38c837cee0bb28aee795c0fc3895044f1440f96a` 已推送并发布 `core-71`，11 项目已下载后完成 HAP 全量构建、验包、安装启动和 hilog 验证。
@@ -37,9 +39,9 @@
 - 2026-06-15 线上 core-81 正式复查：13 核心 commit `c5b3eeb` 已由 run `27563925971` 发布 `core-81`，release 已补中文说明；11 App 强制拉取线上 core-81 构建 `0.22.7` / versionCode `1000110`，验包、66 项连接链路审计、静态录屏 API 扫描、无线安装启动和干净 hilog 验证通过。共享录屏只由 `captureRequired` 触发 native `OH_AVScreenCapture_StartScreenCapture`，不唤起截屏 API；文件管理授权保持 picker-first。
 - 上一轮实机验证曾确认访问端收到真实视频帧，并显示远程画面。
 - 当前本地工程生成信息：
-  - BuildInfo 编译时间：`2026-06-24 18:36`
-  - App 显示版本：`0.33.14`
-  - versionCode：`1000190`
+  - BuildInfo 编译时间：`2026-06-25 07:22`
+  - App 显示版本：`0.33.16`
+  - versionCode：`1000192`
 - 最新线上 Linux 构建验证：
   - Workflow：`.github/workflows/build-harmonyos.yml`
   - 成功 run：`27389574480` / `27389574466`

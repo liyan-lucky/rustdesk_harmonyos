@@ -1,5 +1,13 @@
 # Connection Debug Log
 
+## 2026-06-25 v0.33.16 daily maintenance build verification
+
+- Incremental build `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。
+- CoreBuildInfo updated to online core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。
+- Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。
+- Verification: signature valid, dual ABI native entries present, 5-round audit 770 PASS / 0 FAIL / 5 SKIP, connection chain 83 PASS / 0 FAIL / 1 SKIP。
+- SignHap required manual signing with hap-sign-tool.jar (Hvigor SignHap password mismatch)。
+
 ## 2026-06-24 v0.33.14 audit-fix device verification
 
 - Version `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，commit `c0131e9`（fix: 13 critical/high audit findings），仓库 HEAD `ac5555a`。

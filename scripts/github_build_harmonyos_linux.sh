@@ -22,6 +22,8 @@ while [[ $# -gt 0 ]]; do
     --artifacts-dir|-ArtifactsDir) ARTIFACTS_DIR="$2"; shift 2 ;;
     --core-url|-CoreUrl) CORE_URL="$2"; shift 2 ;;
     --core-sha256|-ExpectedCoreSha256) EXPECTED_CORE_SHA256="$2"; shift 2 ;;
+    --core-x86-64-url|-CoreX86_64Url) CORE_X86_64_URL="$2"; shift 2 ;;
+    --core-x86-64-sha256|-ExpectedCoreX86_64Sha256) EXPECTED_CORE_X86_64_SHA256="$2"; shift 2 ;;
     --skip-package-verify|-SkipPackageVerify) SKIP_PACKAGE_VERIFY="true"; shift ;;
     --preflight-only|-PreflightOnly) PREFLIGHT_ONLY="true"; shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
@@ -227,13 +229,40 @@ elif [[ -n "$CORE_X86_64_URL" ]]; then
   echo "  To : $TMP_CORE"
   mkdir -p "$(dirname "$CORE_X86_64_PATH")"
   mkdir -p "$DOWNLOAD_DIR"
-  if curl -L --fail --retry 3 --retry-delay 5 -o "$TMP_CORE" "$CORE_X86_64_URL" 2>/dev/null; then
+  if curl -L --fail --retry 3 --retry-delay 5 -o "$TMP_CORE" "$CORE_X86_64_URL"; then
     mv -f "$TMP_CORE" "$CORE_X86_64_PATH"
     echo "x86_64 core downloaded successfully."
   else
-    echo "x86_64 core download failed; will use stub mode for x86_64."
+    echo "ERROR: x86_64 core download failed."
     rm -f "$TMP_CORE" 2>/dev/null || true
+    exit 1
   fi
+fi
+
+if [[ -f "$CORE_X86_64_PATH" ]]; then
+  CORE_X86_64_SIZE="$(stat -c%s "$CORE_X86_64_PATH")"
+
+  if (( CORE_X86_64_SIZE < MIN_CORE_BYTES )); then
+    echo "Native x86_64 core staticlib is too small: $CORE_X86_64_SIZE bytes"
+    exit 1
+  fi
+
+  CORE_X86_64_SHA256="$(sha256sum "$CORE_X86_64_PATH" | awk '{print toupper($1)}')"
+
+  if [[ -n "$EXPECTED_CORE_X86_64_SHA256" ]]; then
+    EXPECTED_X86_64_UPPER="$(echo "$EXPECTED_CORE_X86_64_SHA256" | tr '[:lower:]' '[:upper:]')"
+
+    if [[ "$CORE_X86_64_SHA256" != "$EXPECTED_X86_64_UPPER" ]]; then
+      echo "Native x86_64 core SHA256 mismatch."
+      echo "Expected: $EXPECTED_X86_64_UPPER"
+      echo "Actual:   $CORE_X86_64_SHA256"
+      exit 1
+    fi
+  fi
+
+  echo "Native x86_64 core: $CORE_X86_64_PATH"
+  echo "Native x86_64 core size: $CORE_X86_64_SIZE"
+  echo "Native x86_64 core sha256: $CORE_X86_64_SHA256"
 fi
 
 if [[ ! -f "$CORE_PATH" ]]; then

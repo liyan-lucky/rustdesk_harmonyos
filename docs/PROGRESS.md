@@ -1,5 +1,22 @@
 # 功能进度与优化方向
 
+## 2026-06-25 x86_64 线上产物构建脚本修复
+
+### 问题
+线上构建的 HAP 中 x86_64 架构使用 stub 模式而非真实核心，因为 `github_build_harmonyos_linux.sh` 中 x86_64 core 下载失败时静默降级为 stub，且无大小/SHA256 验证。Windows 构建脚本 `github_build_harmonyos.ps1` 完全缺少 x86_64 支持。
+
+### 修复内容
+1. `github_build_harmonyos_linux.sh`：x86_64 下载失败时 exit 1；添加大小验证、SHA256 校验、信息打印、CLI 参数
+2. `github_build_harmonyos.ps1`：添加 `$CoreX86_64Url`/`$ExpectedCoreX86_64Sha256` 参数；`Confirm-NativeCore` 传递 x86_64 参数给 fetch 脚本；x86_64 验证和打印
+3. 本地 preflight 验证通过
+
+### 状态
+- 待推送触发线上构建验证
+
+## 2026-06-25 日常维护构建验证
+
+增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。5轮审计 770 PASS / 0 FAIL / 5 SKIP，连接链 83 PASS / 0 FAIL / 1 SKIP。
+
 ## 2026-06-24 v0.33.14 13项审计修复
 
 commit `c0131e9`（fix: 13 critical/high audit findings），版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。
@@ -126,7 +143,8 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
   - x86_64 stub 核心：`entry/src/main/cpp/rustdesk_core_stub.cpp`（覆盖所有 ABI 函数，返回空/默认值）
   - 模拟器（x86_64）安装验证通过：`hdc install` 成功，HAP 包含 `arm64-v8a/librustdesk_bridge.so`（36 MB，真实核心）和 `x86_64/librustdesk_bridge.so`（356 KB，stub）
   - `fetch_native_core.ps1` 已支持 x86_64 核心下载（`-CoreX86_64Url`、`-ExpectedX86_64Sha256`、`-SkipX86_64` 参数）
-  - `github_build_harmonyos_linux.sh` 已支持 x86_64 核心下载（`RUSTDESK_CORE_X86_64_URL`、`RUSTDESK_CORE_X86_64_SHA256` 环境变量，下载失败自动降级为 stub）
+  - `github_build_harmonyos_linux.sh` 已支持 x86_64 核心下载（`RUSTDESK_CORE_X86_64_URL`、`RUSTDESK_CORE_X86_64_SHA256` 环境变量，`--core-x86-64-url`/`--core-x86-64-sha256` CLI 参数，下载失败 exit 1，大小验证和 SHA256 校验与 arm64 对等）
+  - `github_build_harmonyos.ps1` 已支持 x86_64 核心（`$CoreX86_64Url`/`$ExpectedCoreX86_64Sha256` 参数，传递给 fetch_native_core.ps1，x86_64 大小验证和 SHA256 校验）
   - `.github/workflows/build-harmonyos.yml` 已添加 `RUSTDESK_CORE_X86_64_URL` 和 `RUSTDESK_CORE_X86_64_SHA256` 变量
   - 13 核心项目 `build_native_bridge.ps1` 已修改支持 x86_64-unknown-linux-ohos target
   - 13 核心项目 CI workflow 已改为 matrix strategy 同时构建 arm64 + x86_64 双架构核心

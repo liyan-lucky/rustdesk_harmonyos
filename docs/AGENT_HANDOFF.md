@@ -3,8 +3,39 @@
 > 更新时间：2026-06-21 17:06（Europe/Berlin）  
 > 最终线上收口：2026-06-22 00:30（Europe/Berlin）
 > 0.33.14 审计修复更新：2026-06-24（Europe/Berlin）
+> 0.33.16 日常维护更新：2026-06-25
+> x86_64 线上产物构建脚本修复：2026-06-25
 
-## 2026-06-24 0.33.14 审计修复接力摘要（最高优先级）
+## 2026-06-25 x86_64 线上产物构建脚本修复（最高优先级）
+
+### 问题根因
+`github_build_harmonyos_linux.sh` 中 x86_64 core 下载失败时静默降级为 stub 模式（不报错、不退出），而 arm64 core 下载失败会直接 `exit 1`。此外 x86_64 core 下载成功后没有大小和 SHA256 验证（arm64 有 `MIN_CORE_BYTES` 和 SHA256 校验）。`github_build_harmonyos.ps1`（Windows 构建脚本）完全没有 x86_64 支持——没有 `CoreX86_64Url` 参数、没有 x86_64 下载逻辑。
+
+### 已完成修复
+1. **`github_build_harmonyos_linux.sh`**：
+   - x86_64 下载失败时 `exit 1`（而非静默降级）
+   - 添加 x86_64 大小验证（`MIN_CORE_BYTES` 与 arm64 共用阈值 52428800）
+   - 添加 x86_64 SHA256 校验（`EXPECTED_CORE_X86_64_SHA256` 对比）
+   - 添加 x86_64 信息打印（path、size、sha256）
+   - 添加 `--core-x86-64-url` / `--core-x86-64-sha256` CLI 参数（对等 arm64）
+
+2. **`github_build_harmonyos.ps1`**：
+   - 添加 `$CoreX86_64Url`、`$ExpectedCoreX86_64Sha256` 参数（从环境变量读取）
+   - `Confirm-NativeCore` 函数传递 x86_64 参数给 `fetch_native_core.ps1`
+   - x86_64 core 大小验证和 SHA256 校验
+   - 打印 x86_64 信息（path、size、sha256）
+
+3. **本地验证**：PS1 preflight 检查通过，x86_64 core 信息正确打印
+
+### 待完成
+- 推送修改触发线上构建，验证 x86_64 产物是否正常包含在 HAP 中
+- 若线上构建失败，根据错误日志修复脚本，循环直到成功
+
+## 2026-06-25 日常维护构建验证摘要
+
+增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。验包通过（签名有效、双 ABI native entries 存在）。5轮全功能审计 770 PASS / 0 FAIL / 5 SKIP，连接链路审计 83 PASS / 0 FAIL / 1 SKIP。SignHap 仍需手动签名（hap-sign-tool.jar），Hvigor SignHap 密码不匹配。
+
+## 2026-06-24 0.33.14 审计修复接力摘要
 
 commit `c0131e9`（fix: 13 critical/high audit findings）已修复所有关键/高危审计发现。当前版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。状态消息截断已修复（maxLen 8→32），终端菜单导航已修复（pendingNavigatePage 先建立连接再导航）。
 

@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-22 00:19:33
-- Project: F:\Visual_Studio_Code\11_Rustdesk_harmonyos
-- HAP: F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 84 PASS, 0 FAIL, 0 SKIP
+- Generated: 2026-06-25 07:25:40
+- Project: E:\Visual_Studio_Code\11_Rustdesk_harmonyos
+- HAP: E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
+- Summary: 83 PASS, 0 FAIL, 1 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -13,11 +13,11 @@
 | 4 | PASS | GitHub online workflow exists | .github\workflows\build-harmonyos.yml |
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
-| 7 | PASS | Native core archive exists | F:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 131091732 bytes |
+| 7 | PASS | Native core archive exists | E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
+| 8 | PASS | Native core archive size is plausible | 133495306 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=131091732 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=E4614BAE4EDB54F2C0A2CFECE96A2E99D558B6900693B2B3A9B08B8F3DCD5D5D |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=133495306 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337 |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |
@@ -55,8 +55,8 @@
 | 46 | PASS | Quality parser captures target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches target_bitrate |
 | 47 | PASS | Quality parser captures codec format | entry\src\main\ets\pages\RemoteControl.ets matches codec_format |
 | 48 | PASS | Speed summary falls back to target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches targetBitrateDisplay |
-| 49 | PASS | Built HAP contains required native libraries | F:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
-| 50 | PASS | Packaged native bridge has no missing time service dependency | NEEDED set excludes libtime_service_ndk.so and includes NAPI/Hilog |
+| 49 | PASS | Built HAP contains required native libraries | E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
+| 50 | SKIP | Packaged native bridge has no missing time service dependency | readelf/llvm-readelf not found |
 | 51 | PASS | CMake links native screen capture library | entry\src\main\cpp\CMakeLists.txt matches native_avscreen_capture |
 | 52 | PASS | CMake links native buffer library | entry\src\main\cpp\CMakeLists.txt matches native_buffer |
 | 53 | PASS | Screen capture service starts native capture through bridge | entry\src\main\ets\services\ScreenCaptureService.ets matches NativeRustDeskBridge\.startNativeScreenCapture |
@@ -87,7 +87,7 @@
 | 78 | PASS | Terminal persistence uses the official option key | entry\src\main\ets\pages\Index.ets matches applySessionAndLocalToggleOption\('terminal-persistent' |
 | 79 | PASS | Unsupported Harmony default display options are hidden | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
 | 80 | PASS | Clipboard toggle controls the local monitor lifecycle | entry\src\main\ets\pages\RemoteControl.ets matches toggleClipboardSync[\s\S]{0,700}stopMonitoring\(\)[\s\S]{0,250}startMonitoring\(\) |
-| 81 | PASS | x86_64 native core archive exists and is plausible | 130090572 bytes |
-| 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=130090572 |
-| 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=DB0283F44EA5E5D09A23D1756929B171F28FF2A602D595941902A18ECE5F17DD |
+| 81 | PASS | x86_64 native core archive exists and is plausible | 131336988 bytes |
+| 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=131336988 |
+| 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4 |
 | 84 | PASS | Online HAP workflows cannot silently use stale core secrets | both workflows default to latest and accept explicit URL/SHA256 inputs |

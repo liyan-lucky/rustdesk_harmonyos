@@ -5,6 +5,8 @@ param(
   [string]$VersionBump = "incremental",
   [string]$CoreUrl = $env:RUSTDESK_CORE_URL,
   [string]$ExpectedCoreSha256 = $env:RUSTDESK_CORE_SHA256,
+  [string]$CoreX86_64Url = $env:RUSTDESK_CORE_X86_64_URL,
+  [string]$ExpectedCoreX86_64Sha256 = $env:RUSTDESK_CORE_X86_64_SHA256,
   [string]$SigningZipBase64 = $env:RUSTDESK_SIGNING_ZIP_B64,
   [string]$ArtifactsDir = "",
   [int64]$MinCoreBytes = 52428800,
@@ -217,6 +219,7 @@ function Get-CoreBuildInfoSha256 {
 
 function Confirm-NativeCore {
   $corePath = Join-Path $projectRoot "entry\src\main\libs\arm64\librustdesk_core.a"
+  $coreX86_64Path = Join-Path $projectRoot "entry\src\main\libs\x86_64\librustdesk_core.a"
   $fetchCoreScript = Join-Path $scriptDir "fetch_native_core.ps1"
   if (-not (Test-Path -LiteralPath $fetchCoreScript)) {
     throw "Native core fetch script was not found: $fetchCoreScript"
@@ -227,6 +230,8 @@ function Confirm-NativeCore {
     -ProjectRoot $projectRoot `
     -CoreUrl $CoreUrl `
     -ExpectedSha256 $ExpectedCoreSha256 `
+    -CoreX86_64Url $CoreX86_64Url `
+    -ExpectedX86_64Sha256 $ExpectedCoreX86_64Sha256 `
     -MinCoreBytes $MinCoreBytes `
     -Force
   $fetchSucceeded = $?
@@ -255,12 +260,32 @@ function Confirm-NativeCore {
     Write-Warning "CoreBuildInfo.ets hash differs from the native core on disk. Build will refresh CoreBuildInfo before packaging."
   }
 
-  return [ordered]@{
+  $result = [ordered]@{
     Path = $corePath
     Size = $coreItem.Length
     Sha256 = $sha256
     ModifiedTime = $coreItem.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
   }
+
+  if (Test-Path -LiteralPath $coreX86_64Path) {
+    $coreX86_64Item = Get-Item -LiteralPath $coreX86_64Path
+    if ($coreX86_64Item.Length -lt $MinCoreBytes) {
+      throw "Native x86_64 core staticlib is too small: $($coreX86_64Item.Length) bytes at $coreX86_64Path"
+    }
+
+    $sha256X86_64 = (Get-FileHash -LiteralPath $coreX86_64Path -Algorithm SHA256).Hash.ToUpperInvariant()
+    $expectedX86_64 = if ($ExpectedCoreX86_64Sha256) { $ExpectedCoreX86_64Sha256.Trim().ToUpperInvariant() } else { "" }
+    if (-not [string]::IsNullOrWhiteSpace($expectedX86_64) -and $sha256X86_64 -ne $expectedX86_64) {
+      throw "Native x86_64 core SHA256 mismatch. Expected $expectedX86_64 but got $sha256X86_64"
+    }
+
+    $result.X86_64Path = $coreX86_64Path
+    $result.X86_64Size = $coreX86_64Item.Length
+    $result.X86_64Sha256 = $sha256X86_64
+    $result.X86_64ModifiedTime = $coreX86_64Item.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+  }
+
+  return $result
 }
 
 function Restore-SigningFromSecret {
@@ -577,6 +602,11 @@ Write-Host "Signing material: $signingRoot"
 Write-Host "Native core: $($coreInfo.Path)"
 Write-Host "Native core size: $($coreInfo.Size)"
 Write-Host "Native core sha256: $($coreInfo.Sha256)"
+if ($coreInfo.X86_64Path) {
+  Write-Host "Native x86_64 core: $($coreInfo.X86_64Path)"
+  Write-Host "Native x86_64 core size: $($coreInfo.X86_64Size)"
+  Write-Host "Native x86_64 core sha256: $($coreInfo.X86_64Sha256)"
+}
 
 if ($PreflightOnly) {
   Write-Host "Preflight completed; build was skipped."

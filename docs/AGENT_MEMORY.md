@@ -73,7 +73,7 @@
 - 项目：RustDesk HarmonyOS 客户端
 - 工作区：`%VSCODE_ROOT%\11_Rustdesk_harmonyos`
 - 包名：`com.open.rundesk`
-- 当前本地版本：`0.33.14`，versionCode：`1000190`
+- 当前本地版本：`0.33.16`，versionCode：`1000192`
 - 上游兼容版本：RustDesk 1.4.7
 - 核心架构：staticlib + CMake 直接链接
 
@@ -85,7 +85,7 @@
 - **核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - **x86_64 核心默认下载**：`https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
 - **2026-06-19 双架构核心支持**：13 核心项目已支持同时构建 arm64 + x86_64 双架构核心；CI workflow 使用 matrix strategy，Release 同时发布 `librustdesk_core.a`（arm64）和 `librustdesk_core_x86_64.a`（x86_64）；11 App `fetch_native_core.ps1` 已支持自动下载 x86_64 核心。旧 run `27848481305` 的 x86_64 失败根因是 libvpx 把 nasm/yasm 的 `-f elf64` 参数传给 OHOS SDK clang，后续还暴露 Opus 未安装到 `VCPKG_ROOT\installed\<triplet>`；`core-25` / run `27853110949` 已成功发布双资产。
-- 当前本地核心 SHA256：arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`；x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。App 已构建 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`。
+- 当前本地核心 SHA256：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`；x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。App 已构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。
 - **最新核心更新**：13 核心 `core-34` 已发布（线上 arm64 `131,310,070` bytes / SHA256 `305106C5AB6FCFEF414A3939D918E39F656469122396B19534D3D86DC25347A1`，x86_64 `130,898,552` bytes / SHA256 `8D4D0AEAD337CEDB47456FCE09BE5AE40F1B2FBE0D3C6401352A63BAF9D286E0`）。11 App 已下载 core-34 全量构建 `0.32.0` / versionCode `1000172`，真机 `192.168.11.102:36169` 安装启动成功，进程 `22381` 存活，`versionName=0.32.0`、`versionCode=1000172`，`coreReady=true`。
 - **2026-06-15 v0.22.8 修复**：1) `setIncomingServiceEnabled` 增加回退到 `mainStartService`/`main_start_service`/`rustdesk_bridge_main_start_service`，修复函数名不匹配导致共享服务无法启动的问题；2) `connectToPeer` 增加回退到 `sessionStart`/`session_start`/`rustdesk_bridge_session_start`；3) 共享页 `serviceEnabled` 时即显示 ID 和密码，未就绪时显示"核心被控视频源未就绪"；4) 聊天时间戳移到消息上方居中显示，格式改为微信风格（今天 HH:MM / 昨天 HH:MM / MM-DD HH:MM / YYYY-MM-DD HH:MM）
 - 重编 native core：在 13_librustdesk_core 项目中执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_native_bridge.ps1`

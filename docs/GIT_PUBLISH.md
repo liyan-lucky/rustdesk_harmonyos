@@ -2,6 +2,10 @@
 
 > 当前本地项目目录和 GitHub 展示目录已经统一为项目根结构。更新仓库前先读本文，避免重新引入旧的 `rustdesk_harmonyos/` 套娃目录。
 
+> 2026-06-25 x86_64 线上产物构建脚本修复：`github_build_harmonyos_linux.sh` 添加 x86_64 下载失败 exit 1、大小验证、SHA256 校验、CLI 参数；`github_build_harmonyos.ps1` 添加 `$CoreX86_64Url`/`$ExpectedCoreX86_64Sha256` 参数和 x86_64 验证逻辑。待推送触发线上构建验证。
+
+> 2026-06-25 v0.33.16 日常维护：增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。5轮审计 770 PASS / 0 FAIL / 5 SKIP，连接链 83 PASS / 0 FAIL / 1 SKIP。
+
 > 2026-06-24 v0.33.14 审计修复：commit `c0131e9`（fix: 13 critical/high audit findings），版本 `0.33.14` / versionCode `1000190`，BuildInfo `2026-06-24 18:36`，仓库 HEAD `ac5555a`。CoreBuildInfo arm64 `132,777,178` bytes / SHA256 `EE881BEB9DE44835EE126BACC86D3B373E779334FB58A5D63F4B4D7974077314`，x86_64 `130,416,964` bytes / SHA256 `8ACD4AD130EAE9A36D4AE04A93860193CE8773E91E5CCEA5E34E815BFE633ED4`。设备验证 PID `19288`，`coreReady=true`，5轮审计 154 PASS / 0 FAIL / 1 SKIP。备份 `rustdesk_harmonyos_20260624_224200.zip`，1,453,149 bytes，SHA256 `0FB0630EF13A3AEEBE245F90E640CCA66074127F918CF8936CD393A7BE2A4E29`。
 
 > 2026-06-21 23:48 发布候选基线：本地签名 HAP SHA256 `1D5C7395753D4E8F143FA051E0E931CCFB6C48FFEDA03A8DF91282DD007EC8D2`，arm64/x86_64 均为当日本地同源码构建并写入 CoreBuildInfo，最终 100 轮全审计 15400 PASS / 0 FAIL / 100 预期 SKIP，连接链 84/84。推送后必须等待线上 Core/HAP workflow，下载线上 asset 到 `99_Temp\release_inspect\11_Rustdesk_harmonyos`，复核签名、双 ABI、BuildInfo、双架构 CoreBuildInfo 和 SHA256，再把 run、commit、asset、hash 写回文档。版本号相同不代表包相同。
