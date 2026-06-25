@@ -69,7 +69,7 @@ jobs:
       RUSTDESK_CORE_X86_64_SHA256: ${{ inputs.core_x86_64_sha256 || '' }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
       HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip' }}
-      HARMONYOS_HVIGOR_URL: ${{ secrets.HARMONYOS_HVIGOR_URL || vars.HARMONYOS_HVIGOR_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip' }}
+      HARMONYOS_FULL_URL: ${{ secrets.HARMONYOS_FULL_URL || vars.HARMONYOS_FULL_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip' }}
 
     steps:
       - name: Checkout
@@ -199,8 +199,8 @@ jobs:
         run: |
           set -e
 
-          if [ -z "$HARMONYOS_HVIGOR_URL" ]; then
-            echo "HARMONYOS_HVIGOR_URL is empty"
+          if [ -z "${HARMONYOS_FULL_URL:-}" ]; then
+            echo "HARMONYOS_FULL_URL is empty"
             exit 1
           fi
 
@@ -213,7 +213,7 @@ jobs:
 
           echo "Download full hvigor..."
           HVIGOR_ZIP="$RUNNER_TEMP/harmonyos-hvigor-full.zip"
-          curl -L --fail --retry 3 --retry-delay 5 -o "$HVIGOR_ZIP" "$HARMONYOS_HVIGOR_URL"
+          curl -L --fail --retry 3 --retry-delay 5 -o "$HVIGOR_ZIP" "$HARMONYOS_FULL_URL"
 
           echo "Unzip full hvigor..."
           unzip -oq "$HVIGOR_ZIP" -d "$TOOLS_DIR"
