@@ -3,6 +3,7 @@ set -euo pipefail
 
 ARTIFACT_TYPE="hap"
 VERSION_BUMP="incremental"
+ABI_FILTER=""
 DEFAULT_CORE_URL="https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a"
 DEFAULT_CORE_X86_64_URL="https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a"
 CORE_URL="${RUSTDESK_CORE_URL:-$DEFAULT_CORE_URL}"
@@ -24,6 +25,7 @@ while [[ $# -gt 0 ]]; do
     --core-sha256|-ExpectedCoreSha256) EXPECTED_CORE_SHA256="$2"; shift 2 ;;
     --core-x86-64-url|-CoreX86_64Url) CORE_X86_64_URL="$2"; shift 2 ;;
     --core-x86-64-sha256|-ExpectedCoreX86_64Sha256) EXPECTED_CORE_X86_64_SHA256="$2"; shift 2 ;;
+    --abi-filter|-AbiFilter) ABI_FILTER="$2"; shift 2 ;;
     --skip-package-verify|-SkipPackageVerify) SKIP_PACKAGE_VERIFY="true"; shift ;;
     --preflight-only|-PreflightOnly) PREFLIGHT_ONLY="true"; shift ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
@@ -308,6 +310,19 @@ fi
 
 TASKS=("assembleHap")
 
+if [[ -n "$ABI_FILTER" ]]; then
+  echo "Patching abiFilters to: $ABI_FILTER"
+  python3 -c "
+import json, re, sys
+with open('$PROJECT_ROOT/entry/build-profile.json5', 'r') as f:
+    content = f.read()
+content = re.sub(r'\"abiFilters\"\s*:\s*\[[^\]]*\]', '\"abiFilters\": [\"$ABI_FILTER\"]', content)
+with open('$PROJECT_ROOT/entry/build-profile.json5', 'w') as f:
+    f.write(content)
+print('abiFilters patched to: $ABI_FILTER')
+"
+fi
+
 echo "Running Hvigor tasks: ${TASKS[*]}"
 
 cd "$PROJECT_ROOT"
@@ -342,12 +357,27 @@ fi
 
 NEED_EXTS=("hap")
 
+ABI_SUFFIX=""
+if [[ -n "$ABI_FILTER" ]]; then
+  case "$ABI_FILTER" in
+    arm64-v8a) ABI_SUFFIX="-arm64" ;;
+    x86_64) ABI_SUFFIX="-x86_64" ;;
+    *) ABI_SUFFIX="-${ABI_FILTER}" ;;
+  esac
+fi
+
 for ext in "${NEED_EXTS[@]}"; do
   FOUND="false"
 
   for file in "${PACKAGES[@]}"; do
     if [[ "$file" == *".$ext" ]]; then
-      cp -f "$file" "$ARTIFACTS_DIR/"
+      if [[ -n "$ABI_SUFFIX" ]]; then
+        base="$(basename "$file" .$ext)"
+        dest="$ARTIFACTS_DIR/${base}${ABI_SUFFIX}.${ext}"
+      else
+        dest="$ARTIFACTS_DIR/$(basename "$file")"
+      fi
+      cp -f "$file" "$dest"
       FOUND="true"
     fi
   done

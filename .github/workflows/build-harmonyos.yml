@@ -48,9 +48,13 @@ permissions:
 
 jobs:
   build:
-    name: Build HAP
+    name: Build HAP (${{ matrix.abi }})
     runs-on: ubuntu-latest
     timeout-minutes: 120
+
+    strategy:
+      matrix:
+        abi: [arm64-v8a, x86_64]
 
     env:
       CI: "true"
@@ -58,7 +62,6 @@ jobs:
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
       PREFLIGHT_ONLY: "false"
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
-      PUBLISH_RELEASE: ${{ github.event.inputs.publish_release || 'true' }}
 
       RUSTDESK_CORE_URL: ${{ inputs.core_url || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
       RUSTDESK_CORE_SHA256: ${{ inputs.core_sha256 || '' }}
@@ -310,13 +313,44 @@ jobs:
             --artifact-type "$ARTIFACT_TYPE" \
             --version-bump "$VERSION_BUMP" \
             --artifacts-dir "$HARMONY_ARTIFACTS_DIR" \
+            --abi-filter "${{ matrix.abi }}" \
             --skip-package-verify
 
-      - name: Prepare release files
-        if: ${{ env.PUBLISH_RELEASE == 'true' }}
+      - name: Upload HarmonyOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmonyos-hap-${{ matrix.abi }}
+          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    if: ${{ github.event.inputs.publish_release == 'true' }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: harmonyos-hap-arm64-v8a
+          path: ${{ runner.temp }}/release_artifacts/arm64
+
+      - name: Download x86_64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: harmonyos-hap-x86_64
+          path: ${{ runner.temp }}/release_artifacts/x86_64
+
+      - name: Prepare release
         shell: bash
-        env:
-          HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
           APP_VERSION=$(grep -oP '"versionName"\s*:\s*"\K[^"]+' AppScope/app.json5 | head -1)
           RELEASE_TAG="OpenRustdesk-Build-v${APP_VERSION:-0.0.0}"
@@ -325,13 +359,10 @@ jobs:
           echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
-          # Extract changelog for current version
           if [ -f CHANGELOG.md ]; then
-            # Extract section between current version header and next version header
             VERSION_HEADER="## v${APP_VERSION:-0.0.0}"
             CHANGELOG_BODY=$(awk "/^${VERSION_HEADER}/{found=1; next} /^## v[0-9]/{found=0} found{print}" CHANGELOG.md | head -200)
             if [ -z "$CHANGELOG_BODY" ]; then
-              # Fallback: extract first section after the intro
               CHANGELOG_BODY=$(awk '/^## v[0-9]/{if(!first){first=1; next} else exit} first' CHANGELOG.md | head -200)
             fi
             echo "CHANGELOG_BODY<<EOF" >> "$GITHUB_ENV"
@@ -341,22 +372,18 @@ jobs:
             echo "CHANGELOG_BODY=See commit history for details." >> "$GITHUB_ENV"
           fi
 
-          cd "$HARMONY_ARTIFACTS_DIR"
-          ls -lh
+          mkdir -p "$RUNNER_TEMP/release_files"
+          cp "$RUNNER_TEMP/release_artifacts/arm64/"*.hap "$RUNNER_TEMP/release_files/"
+          cp "$RUNNER_TEMP/release_artifacts/x86_64/"*.hap "$RUNNER_TEMP/release_files/"
 
-      - name: Upload HarmonyOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: harmonyos-hap
-          path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
-          if-no-files-found: error
+          echo "Release files:"
+          ls -lh "$RUNNER_TEMP/release_files/"
 
       - name: Create GitHub Release
-        if: ${{ env.PUBLISH_RELEASE == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}
           body: ${{ env.CHANGELOG_BODY }}
           files: |
-            ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
+            ${{ runner.temp }}/release_files/*.hap
