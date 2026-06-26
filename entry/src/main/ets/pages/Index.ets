@@ -67,6 +67,11 @@ interface CoreModuleInfo {
   upstreamVersion: string;
 }
 
+interface RuntimeSummaryLine {
+  label: string;
+  value: string;
+}
+
 interface PeerInfoCacheEntry {
   hostname: string;
   username: string;
@@ -2401,18 +2406,114 @@ struct Index {
     Column({ space: ThemeConfig.SPACING_SM }) {
       this.buildSettingsSectionLabel(this.lt('Runtime Summary'))
       CardContainer() {
-        Text(this.getFullDebugSummary())
-          .fontSize(ThemeConfig.FONT_SIZE_SM)
-          .fontColor(this.theme_TEXT_SECONDARY)
-          .width('100%')
-          .maxLines(12)
-          .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
+        Column({ space: 2 }) {
+          ForEach(this.parseRuntimeSummaryLines(), (item: RuntimeSummaryLine) => {
+            Text(item.value.length > 0 ? `${item.label}: ${item.value}` : item.label)
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_SECONDARY)
+              .width('100%')
+          }, (item: RuntimeSummaryLine, index: number) => `${index}_${item.label}`)
+        }
+        .width('100%')
+        .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
       }
     }
     .width('100%')
     .gesture(LongPressGesture().onAction(() => {
       void this.copyText(this.getFullDebugSummary(), this.lt('Debug summary copied'));
     }))
+  }
+
+  private parseRuntimeSummaryLines(): RuntimeSummaryLine[] {
+    const raw = this.getFullDebugSummary();
+    if (raw.trim().length === 0) {
+      return [{ label: this.lt('No data'), value: '' }];
+    }
+    const segments: string[] = [];
+    const lines = raw.split('\n');
+    for (const line of lines) {
+      const parts = line.split(';');
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.length > 0) {
+          segments.push(trimmed);
+        }
+      }
+    }
+    const result: RuntimeSummaryLine[] = [];
+    for (const seg of segments) {
+      const eqIdx = seg.indexOf('=');
+      if (eqIdx > 0 && eqIdx < seg.length - 1) {
+        const rawKey = seg.substring(0, eqIdx).trim();
+        const rawValue = seg.substring(eqIdx + 1).trim();
+        result.push({ label: this.translateRuntimeKey(rawKey), value: rawValue });
+      } else if (eqIdx > 0) {
+        const rawKey = seg.substring(0, eqIdx).trim();
+        result.push({ label: this.translateRuntimeKey(rawKey), value: '' });
+      } else {
+        result.push({ label: this.translateRuntimeKey(seg), value: '' });
+      }
+    }
+    return result.length > 0 ? result : [{ label: this.lt('No data'), value: '' }];
+  }
+
+  private translateRuntimeKey(key: string): string {
+    const map: Record<string, string> = {
+      '[bridge]': '[桥接]',
+      '[core]': '[核心]',
+      'getCoreSnapshot ok': '核心快照获取成功',
+      'getCoreSnapshot': '核心快照获取',
+      'coreReady': '核心就绪',
+      'adapter': '适配器',
+      'load': '加载',
+      'peer': '对端',
+      'displayId': '显示ID',
+      'appDir': '应用目录',
+      'initializeRuntime': '初始化运行时',
+      'initializeRuntime ok': '初始化运行时成功',
+      'initializeRuntime missing': '初始化运行时缺失',
+      'initializeRuntime call failed': '初始化运行时调用失败',
+      'core': '核心',
+      'bridge': '桥接',
+      'no runtime events': '无运行事件',
+      'kind': '类型',
+      'status': '状态',
+      'session': '会话',
+      'stage': '阶段',
+      'reconnectSession invoked': '重连会话已调用',
+      'forceRelay': '强制中继',
+      'connectTo': '连接到',
+      'close': '关闭',
+      'error': '错误',
+      'version': '版本',
+      'hash': '哈希',
+      'size': '大小',
+      'time': '时间',
+      'path': '路径',
+      'source': '来源',
+      'file': '文件',
+      'compile': '编译',
+      'valid': '有效',
+      'compatible': '兼容',
+      'server': '服务器',
+      'fingerprint': '指纹',
+      'address': '地址',
+      'port': '端口',
+      'relay': '中继',
+      'direct': '直连',
+      'secure': '安全',
+      'connected': '已连接',
+      'disconnected': '已断开',
+      'connecting': '连接中',
+      'idle': '空闲',
+      'running': '运行中',
+      'stopped': '已停止',
+      'unknown': '未知',
+      'none': '无',
+      'true': '是',
+      'false': '否',
+    };
+    return map[key] ?? key;
   }
 
   private getFullDebugSummary(): string {

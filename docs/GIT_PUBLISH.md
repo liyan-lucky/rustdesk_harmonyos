@@ -2,6 +2,8 @@
 
 > 当前本地项目目录和 GitHub 展示目录已经统一为项目根结构。更新仓库前先读本文，避免重新引入旧的 `rustdesk_harmonyos/` 套娃目录。
 
+> 2026-06-27 单架构 HAP 构建 + UI 优化 + 平移回弹：本地构建脚本拆分 arm64/x86_64 单架构包；安装脚本自动检测设备 ABI；线上 workflow matrix 策略并行构建双架构；运行摘要按分号拆分+中文翻译+无分隔线；CoreLoaderService 动态 ABI 检测；平移回弹动画（松手缓速回弹）。
+
 > 2026-06-25 x86_64 线上产物构建脚本修复：`github_build_harmonyos_linux.sh` 添加 x86_64 下载失败 exit 1、大小验证、SHA256 校验、CLI 参数；`github_build_harmonyos.ps1` 添加 `$CoreX86_64Url`/`$ExpectedCoreX86_64Sha256` 参数和 x86_64 验证逻辑。待推送触发线上构建验证。
 
 > 2026-06-25 v0.33.16 日常维护：增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。5轮审计 770 PASS / 0 FAIL / 5 SKIP，连接链 83 PASS / 0 FAIL / 1 SKIP。

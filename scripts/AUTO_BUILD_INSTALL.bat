@@ -212,11 +212,47 @@ if not defined SKIP_BUILD (
 
 set "HAP_FILE="
 if defined RUSTDESK_HARMONY_SIGNED_HAP if exist "%RUSTDESK_HARMONY_SIGNED_HAP%" set "HAP_FILE=%RUSTDESK_HARMONY_SIGNED_HAP%"
-if not defined HAP_FILE if exist "%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap" set "HAP_FILE=%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap"
-if not defined HAP_FILE if exist "%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap" set "HAP_FILE=%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap"
-if not defined HAP_FILE if exist "%BUILD_ROOT%\windows_hap\entry-default-signed.hap" set "HAP_FILE=%BUILD_ROOT%\windows_hap\entry-default-signed.hap"
-if not defined HAP_FILE if exist "%PROJECT_ROOT%\entry-default-signed.hap" set "HAP_FILE=%PROJECT_ROOT%\entry-default-signed.hap"
-if not defined HAP_FILE if exist "%WORKSPACE_ROOT%\entry-default-signed.hap" set "HAP_FILE=%WORKSPACE_ROOT%\entry-default-signed.hap"
+
+if not defined HAP_FILE (
+  set "DEVICE_ABI="
+  for /f "usebackq delims=" %%A in (`"%HDC%" -t "%TARGET%" shell param get const.product.devicetype 2^>nul`) do set "DEVICE_ABI=%%A"
+  if not defined DEVICE_ABI (
+    for /f "usebackq delims=" %%A in (`"%HDC%" -t "%TARGET%" shell cat /etc/param/ohos.para 2^>nul ^| findstr /i "const.product.cpu.abilist"`) do (
+      for /f "tokens=2 delims==" %%B in ("%%A") do set "DEVICE_ABI=%%B"
+    )
+  )
+  if defined DEVICE_ABI echo Detected device ABI list: !DEVICE_ABI!
+
+  set "USE_X86_64="
+  if defined DEVICE_ABI (
+    echo !DEVICE_ABI! | findstr /i "x86_64" >nul 2>nul
+    if not errorlevel 1 set "USE_X86_64=1"
+  )
+
+  if defined USE_X86_64 (
+    echo Device supports x86_64, selecting x86_64 HAP
+    if exist "%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed-x86_64.hap" set "HAP_FILE=%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed-x86_64.hap"
+    if not defined HAP_FILE if exist "%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed-x86_64.hap" set "HAP_FILE=%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed-x86_64.hap"
+    if not defined HAP_FILE if exist "%BUILD_ROOT%\windows_hap\entry-default-signed-x86_64.hap" set "HAP_FILE=%BUILD_ROOT%\windows_hap\entry-default-signed-x86_64.hap"
+    if not defined HAP_FILE if exist "%PROJECT_ROOT%\entry-default-signed-x86_64.hap" set "HAP_FILE=%PROJECT_ROOT%\entry-default-signed-x86_64.hap"
+  ) else (
+    echo Device uses arm64, selecting arm64 HAP
+    if exist "%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed-arm64.hap" set "HAP_FILE=%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed-arm64.hap"
+    if not defined HAP_FILE if exist "%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed-arm64.hap" set "HAP_FILE=%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed-arm64.hap"
+    if not defined HAP_FILE if exist "%BUILD_ROOT%\windows_hap\entry-default-signed-arm64.hap" set "HAP_FILE=%BUILD_ROOT%\windows_hap\entry-default-signed-arm64.hap"
+    if not defined HAP_FILE if exist "%PROJECT_ROOT%\entry-default-signed-arm64.hap" set "HAP_FILE=%PROJECT_ROOT%\entry-default-signed-arm64.hap"
+  )
+)
+
+if not defined HAP_FILE (
+  echo No architecture-specific HAP found, falling back to legacy entry-default-signed.hap
+  if exist "%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap" set "HAP_FILE=%PROJECT_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap"
+  if not defined HAP_FILE if exist "%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap" set "HAP_FILE=%HARMONY_BUILD_ROOT%\entry\build\default\outputs\default\entry-default-signed.hap"
+  if not defined HAP_FILE if exist "%BUILD_ROOT%\windows_hap\entry-default-signed.hap" set "HAP_FILE=%BUILD_ROOT%\windows_hap\entry-default-signed.hap"
+  if not defined HAP_FILE if exist "%PROJECT_ROOT%\entry-default-signed.hap" set "HAP_FILE=%PROJECT_ROOT%\entry-default-signed.hap"
+  if not defined HAP_FILE if exist "%WORKSPACE_ROOT%\entry-default-signed.hap" set "HAP_FILE=%WORKSPACE_ROOT%\entry-default-signed.hap"
+)
+
 if not defined HAP_FILE (
   echo Signed HAP was not found. Build output is missing entry-default-signed.hap.
   exit /b 1

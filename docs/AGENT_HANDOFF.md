@@ -5,8 +5,28 @@
 > 0.33.14 审计修复更新：2026-06-24（Europe/Berlin）
 > 0.33.16 日常维护更新：2026-06-25
 > x86_64 线上产物构建脚本修复：2026-06-25
+> 单架构 HAP 构建 + UI 优化 + 平移回弹：2026-06-27
 
-## 2026-06-25 x86_64 线上产物构建脚本修复（最高优先级）
+## 2026-06-27 单架构 HAP 构建 + UI 优化 + 平移回弹
+
+### 已完成修改
+1. **单架构 HAP 构建**：`build_hap.bat`/`build_full_hap.bat` 支持 `arm64`/`x86_64` 参数，默认构建两个单架构包（`-arm64.hap`/`-x86_64.hap`），修正 `OUTPUT_DIR` 指向实际构建输出目录
+2. **安装脚本自动选择架构**：`AUTO_BUILD_INSTALL.bat` 通过 `hdc shell uname -m` 检测设备 ABI，x86_64 设备选 x86_64 HAP，arm64 设备选 arm64 HAP
+3. **线上 workflow matrix 策略**：`build-harmonyos.yml` 和 `build-harmonyos-linux.yml` 使用 matrix `[arm64-v8a, x86_64]` 并行构建，Release job 合并两个架构产物发布 4 个 HAP 文件
+4. **`github_build_harmonyos_linux.sh` 添加 `--abi-filter` 参数**：构建前 patch `abiFilters`，产物重命名带架构后缀
+5. **`HARMONYOS_HVIGOR_URL` → `HARMONYOS_FULL_URL` 重命名**
+6. **运行摘要 UI 优化**：按分号拆分摘要文本，每行 `标题: 数据` 格式，中文翻译 key，无分隔线，容器自适应
+7. **`CoreLoaderService.ts` 动态 ABI 检测**：不再硬编码 `libs/arm64/`，改为检测 `libs/x86_64/` 或 `libs/arm64/` 目录
+8. **平移回弹动画**：平移时画面完全跟随手指不受限制，松手后以 0.15 摩擦系数缓速回弹到限制线
+
+### 线上构建验证
+- Run #55（双架构单包）：success，产物 63 MB
+- Run #56（matrix 单架构）：success，arm64 31 MB + x86_64 33 MB
+
+### 本地构建验证
+- arm64-only: 18.6 MB ✅
+- x86_64-only: 19.6 MB ✅
+- 安装测试：x86_64 HAP 在 x86_64 模拟器上安装启动正常，核心加载成功
 
 ### 问题根因
 `github_build_harmonyos_linux.sh` 中 x86_64 core 下载失败时静默降级为 stub 模式（不报错、不退出），而 arm64 core 下载失败会直接 `exit 1`。此外 x86_64 core 下载成功后没有大小和 SHA256 验证（arm64 有 `MIN_CORE_BYTES` 和 SHA256 校验）。`github_build_harmonyos.ps1`（Windows 构建脚本）完全没有 x86_64 支持——没有 `CoreX86_64Url` 参数、没有 x86_64 下载逻辑。

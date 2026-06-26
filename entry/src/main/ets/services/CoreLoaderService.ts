@@ -8,7 +8,25 @@ import environment from '@ohos.file.environment';
 const CORE_SO_FILENAME = 'librustdesk_core.so';
 const CORE_SUBDIR = 'core';
 
-const BUNDLE_LIBS_DIR = '/data/storage/el1/bundle/libs/arm64/';
+function getBundleLibsDir(): string {
+  const x86_64Dir = '/data/storage/el1/bundle/libs/x86_64/';
+  const arm64Dir = '/data/storage/el1/bundle/libs/arm64/';
+  try {
+    const stat = fileFs.statSync(x86_64Dir);
+    if (stat.isDirectory()) {
+      return x86_64Dir;
+    }
+  } catch (_) {}
+  try {
+    const stat = fileFs.statSync(arm64Dir);
+    if (stat.isDirectory()) {
+      return arm64Dir;
+    }
+  } catch (_) {}
+  return arm64Dir;
+}
+
+const BUNDLE_LIBS_DIR = getBundleLibsDir();
 const BUNDLE_LIBS_PATH = BUNDLE_LIBS_DIR + CORE_SO_FILENAME;
 
 export interface CoreLoadResult {

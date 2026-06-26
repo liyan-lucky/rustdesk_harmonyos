@@ -1,9 +1,9 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-25 07:25:40
+- Generated: 2026-06-26 05:08:44
 - Project: E:\Visual_Studio_Code\11_Rustdesk_harmonyos
-- HAP: E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap
-- Summary: 83 PASS, 0 FAIL, 1 SKIP
+- HAP: not found
+- Summary: 82 PASS, 0 FAIL, 2 SKIP
 
 | # | Status | Check | Detail |
 |---:|:---:|---|---|
@@ -55,8 +55,8 @@
 | 46 | PASS | Quality parser captures target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches target_bitrate |
 | 47 | PASS | Quality parser captures codec format | entry\src\main\ets\pages\RemoteControl.ets matches codec_format |
 | 48 | PASS | Speed summary falls back to target bitrate | entry\src\main\ets\pages\RemoteControl.ets matches targetBitrateDisplay |
-| 49 | PASS | Built HAP contains required native libraries | E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap |
-| 50 | SKIP | Packaged native bridge has no missing time service dependency | readelf/llvm-readelf not found |
+| 49 | SKIP | Built HAP contains required native libraries | signed HAP not found; run assembleHap first or pass -HapPath |
+| 50 | SKIP | Packaged native bridge has no missing time service dependency | signed HAP not found; run assembleHap first or pass -HapPath |
 | 51 | PASS | CMake links native screen capture library | entry\src\main\cpp\CMakeLists.txt matches native_avscreen_capture |
 | 52 | PASS | CMake links native buffer library | entry\src\main\cpp\CMakeLists.txt matches native_buffer |
 | 53 | PASS | Screen capture service starts native capture through bridge | entry\src\main\ets\services\ScreenCaptureService.ets matches NativeRustDeskBridge\.startNativeScreenCapture |

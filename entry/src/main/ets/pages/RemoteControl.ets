@@ -269,6 +269,7 @@ struct RemoteControl {
   @State panOffsetX: number = 0;
   @State panOffsetY: number = 0;
   private preKeyboardPanOffsetY: number = 0;
+  private panSpringTimer: number = -1;
   @State showConnectionInfo: boolean = false;
   @State connectionLatency: number = 0;
   @State connectionFps: number = 0;
@@ -609,6 +610,7 @@ struct RemoteControl {
     this.stopConnectionInfoRefresh();
     this.disposeRenderedFrame();
     this.clearLongPressTimer();
+    this.stopPanSpringBack();
     if (this.sessionExitTimer !== -1) {
       clearTimeout(this.sessionExitTimer);
       this.sessionExitTimer = -1;
@@ -752,13 +754,10 @@ struct RemoteControl {
                     this.lastPinchScale = this.pinchScale;
                   })
                   .onActionUpdate((event: PinchGestureEvent) => {
-                    const newScale = this.lastPinchScale * event.scale;
-                    this.displayScaleMode = 2;
-                    this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, newScale));
-                    const clamped = this.clampPanOffset(this.panOffsetX, this.panOffsetY);
-                    this.panOffsetX = clamped[0];
-                    this.panOffsetY = clamped[1];
-                  })
+                     const newScale = this.lastPinchScale * event.scale;
+                     this.displayScaleMode = 2;
+                     this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, newScale));
+                   })
                   .onActionEnd(() => {
                     this.lastPinchScale = this.pinchScale;
                     this.customZoomPercent = Math.max(100, Math.min(600, Math.round(this.pinchScale * 100)));
@@ -4209,25 +4208,47 @@ struct RemoteControl {
       const half = (renderedW - pw) / 2;
       clampedX = Math.max(-half, Math.min(half, x));
     } else {
-      if (isPortrait) {
-        clampedX = 0;
-      } else {
-        clampedX = 0;
-      }
+      clampedX = 0;
     }
 
     if (renderedH > ph) {
       const half = (renderedH - ph) / 2;
       clampedY = Math.max(-half, Math.min(half, y));
     } else {
-      if (!isPortrait) {
-        clampedY = 0;
-      } else {
-        clampedY = 0;
-      }
+      clampedY = 0;
     }
 
     return [clampedX, clampedY];
+  }
+
+  private startPanSpringBack(): void {
+    this.stopPanSpringBack();
+    const clamped = this.clampPanOffset(this.panOffsetX, this.panOffsetY);
+    const targetX = clamped[0];
+    const targetY = clamped[1];
+    if (Math.abs(this.panOffsetX - targetX) < 0.5 && Math.abs(this.panOffsetY - targetY) < 0.5) {
+      this.panOffsetX = targetX;
+      this.panOffsetY = targetY;
+      return;
+    }
+    const STEP = 16;
+    const FRICTION = 0.15;
+    this.panSpringTimer = setInterval(() => {
+      this.panOffsetX += (targetX - this.panOffsetX) * FRICTION;
+      this.panOffsetY += (targetY - this.panOffsetY) * FRICTION;
+      if (Math.abs(this.panOffsetX - targetX) < 0.5 && Math.abs(this.panOffsetY - targetY) < 0.5) {
+        this.panOffsetX = targetX;
+        this.panOffsetY = targetY;
+        this.stopPanSpringBack();
+      }
+    }, STEP) as number;
+  }
+
+  private stopPanSpringBack(): void {
+    if (this.panSpringTimer !== -1) {
+      clearInterval(this.panSpringTimer);
+      this.panSpringTimer = -1;
+    }
   }
 
   private resolveDisplayScale(): number {
@@ -4568,6 +4589,7 @@ struct RemoteControl {
     this.lastGestureCenterX = 0;
     this.lastGestureCenterY = 0;
     this.resetTouchInteraction();
+    this.startPanSpringBack();
   }
 
   private handleGestureTouch(event: TouchEvent): boolean {
@@ -4609,12 +4631,9 @@ struct RemoteControl {
         return true;
       }
       if (event.type === TouchType.Move) {
-        const clamped = this.clampPanOffset(
-          this.gestureStartPanX + (center.x - this.gestureStartCenterX),
-          this.gestureStartPanY + (center.y - this.gestureStartCenterY)
-        );
-        this.panOffsetX = clamped[0];
-        this.panOffsetY = clamped[1];
+        this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
+        this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+        this.stopPanSpringBack();
         this.lastGestureCenterX = center.x;
         this.lastGestureCenterY = center.y;
         return true;
@@ -4646,24 +4665,18 @@ struct RemoteControl {
       }
       if (event.type === TouchType.Move) {
         if (this.mouseControlMode === 0) {
-          const clamped = this.clampPanOffset(
-            this.gestureStartPanX + (center.x - this.gestureStartCenterX),
-            this.gestureStartPanY + (center.y - this.gestureStartCenterY)
-          );
-          this.panOffsetX = clamped[0];
-          this.panOffsetY = clamped[1];
+          this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
+          this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+          this.stopPanSpringBack();
         } else {
           const scaleRatio = distance / Math.max(this.gestureStartDistance, 1);
           const distanceDelta = Math.abs(distance - this.gestureStartDistance);
           if (distanceDelta >= 8) {
             this.displayScaleMode = 2;
             this.pinchScale = Math.max(1, Math.min(this.maxPinchScale, this.gestureStartScale * scaleRatio));
-            const clamped = this.clampPanOffset(
-              this.gestureStartPanX + (center.x - this.gestureStartCenterX),
-              this.gestureStartPanY + (center.y - this.gestureStartCenterY)
-            );
-            this.panOffsetX = clamped[0];
-            this.panOffsetY = clamped[1];
+            this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
+            this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
+            this.stopPanSpringBack();
           } else if (this.hasPointerPosition && Math.abs(center.y - this.lastGestureCenterY) >= 16) {
             const scrollDown = center.y > this.lastGestureCenterY;
             const wheelMask = scrollDown

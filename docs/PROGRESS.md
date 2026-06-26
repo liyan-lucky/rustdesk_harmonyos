@@ -1,5 +1,22 @@
 # 功能进度与优化方向
 
+## 2026-06-27 单架构 HAP 构建 + UI 优化 + 平移回弹
+
+### 修改内容
+1. 本地构建脚本拆分 arm64/x86_64 单架构包（`build_hap.bat`/`build_full_hap.bat`）
+2. 安装脚本自动检测设备 ABI 选择对应 HAP（`AUTO_BUILD_INSTALL.bat`）
+3. 线上 workflow matrix 策略并行构建双架构，Release 发布 4 个 HAP
+4. `github_build_harmonyos_linux.sh` 添加 `--abi-filter` 参数
+5. `HARMONYOS_HVIGOR_URL` → `HARMONYOS_FULL_URL` 重命名
+6. 运行摘要 UI：按分号拆分、中文翻译、无分隔线、容器自适应
+7. `CoreLoaderService.ts` 动态 ABI 检测（不再硬编码 arm64）
+8. 平移回弹动画：手指移动时不受限，松手后缓速回弹
+
+### 状态
+- 本地构建验证通过（arm64 18.6 MB + x86_64 19.6 MB）
+- 安装测试通过（x86_64 模拟器核心加载正常）
+- 线上 Run #56 matrix 构建成功
+
 ## 2026-06-25 x86_64 线上产物构建脚本修复
 
 ### 问题

@@ -819,6 +819,7 @@ export class I18nService {
     this.translations.set('Core Stopped', '停止');
     this.translations.set('Core Unknown', '未识');
     this.translations.set('Runtime Summary', '运行摘要');
+    this.translations.set('No data', '暂无数据');
     this.translations.set('Runtime', '运行');
     this.translations.set('Not Loaded', '未加载');
     this.translations.set('Not running', '未运行');
@@ -1436,6 +1437,7 @@ export class I18nService {
     this.translations.set('Core Stopped', 'Stop');
     this.translations.set('Core Unknown', 'Unk');
     this.translations.set('Runtime Summary', 'Runtime');
+    this.translations.set('No data', 'No data');
     this.translations.set('Runtime', 'Runtime');
     this.translations.set('Not Loaded', 'Not Loaded');
     this.translations.set('Not running', 'Not running');
