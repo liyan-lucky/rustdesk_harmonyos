@@ -263,12 +263,12 @@ jobs:
         run: |
           chmod +x scripts/github_build_harmonyos_linux.sh
 
-           args=(
-             "--artifact-type" "$ARTIFACT_TYPE"
-             "--version-bump" "$VERSION_BUMP"
-             "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"
-             "--abi-filter" "${{ matrix.abi }}"
-           )
+          args=(
+            "--artifact-type" "$ARTIFACT_TYPE"
+            "--version-bump" "$VERSION_BUMP"
+            "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"
+            "--abi-filter" "${{ matrix.abi }}"
+          )
 
           if [ "$PREFLIGHT_ONLY" = "true" ]; then
             args+=("--preflight-only")

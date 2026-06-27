@@ -1457,7 +1457,12 @@ struct RemoteControl {
               .selected(this.displayScaleMode)
               .value(this.resolveDisplayScaleModeLabel())
               .fontColor(this.theme_TEXT_PRIMARY)
+              .backgroundColor(this.theme_INPUT_BG)
+              .optionBgColor(this.theme_CARD_BG)
+              .optionFontColor(this.theme_TEXT_PRIMARY)
               .selectedOptionBgColor(this.theme_ACCENT)
+              .selectedOptionFontColor(this.theme_ACCENT_TEXT)
+              .menuBackgroundColor(this.theme_CARD_BG)
               .onSelect((index: number, _value?: string) => {
                 this.applyDisplayScaleMode(index);
               })

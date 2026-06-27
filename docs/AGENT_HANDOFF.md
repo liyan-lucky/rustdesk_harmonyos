@@ -48,8 +48,9 @@
 3. **本地验证**：PS1 preflight 检查通过，x86_64 core 信息正确打印
 
 ### 待完成
-- 推送修改触发线上构建，验证 x86_64 产物是否正常包含在 HAP 中
-- 若线上构建失败，根据错误日志修复脚本，循环直到成功
+- 在 GitHub 网页手动触发 Release workflow（`build-harmonyos.yml`，version_bump=incremental，publish_release=true）
+- 验证 Release 产物包含 4 个 HAP 文件（arm64 + x86_64）
+- gh CLI 已安装但未认证（`C:\Program Files\GitHub CLI\gh.exe`），需 `gh auth login` 完成认证后可用命令行触发
 
 ## 2026-06-25 日常维护构建验证摘要
 
