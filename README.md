@@ -1,4 +1,4 @@
-﻿# RustDesk HarmonyOS 客户端 — 项目设计要求
+# RustDesk HarmonyOS 客户端 — 项目设计要求
 
 > 修改方向必须符合这些设计要求，避免偏离。新接手开发请先读 `docs/README.md`，再按文档阅读顺序继续。
 
@@ -21,7 +21,21 @@
 | UI框架 | ArkTS (HarmonyOS Stage 模型) |
 | 核心语言 | Rust (staticlib) |
 | 桥接 | C++ NAPI → Rust C ABI |
-| 许可 | AGPL-3.0 |
+| 许可 | AGPL-3.0-only |
+
+## 合规与发布入口
+
+- 许可：`LICENSE`，项目源码默认按 `AGPL-3.0-only` 分发。
+- 归属与声明：`NOTICE`、`THIRD_PARTY_NOTICES.md`、`TRADEMARKS.md`。
+- 隐私与安全：`PRIVACY.md`、`SECURITY.md`。
+- 贡献规则：`CONTRIBUTING.md`。
+- AGPL 对应源码说明：`SOURCE_OFFER.md`。
+- SDK/toolchain 使用规则：`docs/HARMONYOS_TOOLCHAIN.md`。
+- Release 产物规则：`docs/RELEASE_ARTIFACT_POLICY.md`、`RELEASE_COMPLIANCE_CHECKLIST.md`。
+- 供应链与 SBOM：`docs/SUPPLY_CHAIN.md`、`docs/SBOM_POLICY.md`。
+- 资产来源登记：`docs/ASSET_PROVENANCE.md`。
+
+不要把 HarmonyOS SDK、DevEco、hvigor、ohpm、签名材料、私钥、token、用户数据或构建缓存发布到公开 Release 或提交进仓库。线上构建只能通过授权来源的 `HARMONYOS_SDK_URL` 和 `HARMONYOS_FULL_URL` 获取工具链。
 
 ## 架构设计
 
@@ -209,7 +223,7 @@ RustDesk Server / Peer
 
 - 使用`.github/workflows/build-harmonyos.yml`，固定生成HAP-only
 - Release和workflow artifact只上传`.hap`，不再生成APP、`.app.zip`、`manifest.json`或`SHA256SUMS.txt`
-- SDK包拆分为`harmonyos-sdk-full.zip`和`harmonyos-hvigor-full.zip`
+- HarmonyOS SDK/hvigor/toolchain 必须通过授权来源的 `HARMONYOS_SDK_URL` 和 `HARMONYOS_FULL_URL` 提供，不要使用公开 Release 作为 vendor toolchain 默认来源
 - SDK包必须包含previewer的`libcjson.so`/`libsec_shared.so`和ets-loader的`libsec_shared.so`
 - workflow必须把这些目录加入`LD_LIBRARY_PATH`
 
