@@ -271,13 +271,13 @@ jobs:
           fetch-depth: 0
 
       - name: 下载 arm64 构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: harmonyos-hap-arm64-v8a
           path: ${{ runner.temp }}/release_artifacts/arm64
 
       - name: 下载 x86_64 构建产物
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: harmonyos-hap-x86_64
           path: ${{ runner.temp }}/release_artifacts/x86_64
