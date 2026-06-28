@@ -1,4 +1,4 @@
-name: Compliance Check
+name: 合规检查
 
 on:
   pull_request:
@@ -11,17 +11,17 @@ permissions:
 
 jobs:
   compliance:
-    name: Repository compliance guard
+    name: 仓库合规保护检查
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
+      - name: 拉取仓库
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Required compliance files
+      - name: 检查必需合规文件
         shell: bash
         run: |
           set -euo pipefail
@@ -46,13 +46,13 @@ jobs:
           missing=0
           for f in "${required[@]}"; do
             if [ ! -s "$f" ]; then
-              echo "Missing required compliance file: $f"
+              echo "缺少必需合规文件：$f"
               missing=1
             fi
           done
           exit "$missing"
 
-      - name: Package metadata license check
+      - name: 检查包元数据许可证
         shell: bash
         run: |
           set -euo pipefail
@@ -60,17 +60,17 @@ jobs:
           grep -q '"license"[[:space:]]*:[[:space:]]*"AGPL-3.0-only"' entry/oh-package.json5
           grep -q '"license"[[:space:]]*:[[:space:]]*"AGPL-3.0-only"' entry/src/main/cpp/types/librustdesk_bridge/oh-package.json5
 
-      - name: Block restricted committed artifacts
+      - name: 阻止提交受限产物和敏感文件
         shell: bash
         run: |
           set -euo pipefail
           blocked_regex='\.(hap|app|app\.zip|p12|pfx|jks|keystore|pem|key|p7b|p7s|profile|provisionprofile)$|(^|/)(harmonyos-sdk-full|harmonyos-hvigor-full|DevEco|HarmonyOS|OpenHarmony|command-line-tools|sdk-full|hvigor).*(\.zip|\.7z|\.tar|\.tar\.gz|\.tgz)$'
           if git ls-files | grep -E -i "$blocked_regex"; then
-            echo "Blocked artifact or sensitive file is tracked. Remove it from the repository."
+            echo "发现已跟踪的受限产物或敏感文件，请从仓库中移除。"
             exit 1
           fi
 
-      - name: Block public HarmonyOS toolchain fallbacks in active build docs
+      - name: 阻止公开 HarmonyOS 工具链默认地址
         shell: bash
         run: |
           set -euo pipefail
@@ -82,20 +82,20 @@ jobs:
             COMPLIANCE.md
           )
           if grep -R -n -E 'releases/download/harmonyos-(sdk|hvigor)-full|harmonyos-sdk-full\.zip|harmonyos-hvigor-full\.zip|HARMONYOS_HVIGOR_URL' "${scan_targets[@]}" 2>/dev/null; then
-            echo "Public HarmonyOS SDK/hvigor fallback or old variable found in active workflow/script/compliance docs. Use authorized HARMONYOS_SDK_URL and HARMONYOS_FULL_URL only."
+            echo "发现公开 HarmonyOS SDK/hvigor 默认地址或旧变量。只能使用授权来源的 HARMONYOS_SDK_URL 和 HARMONYOS_FULL_URL。"
             exit 1
           fi
 
-      - name: Block obvious secret names in tracked files
+      - name: 阻止明显敏感文件名
         shell: bash
         run: |
           set -euo pipefail
           if git ls-files | grep -E -i '(^|/)(.*secret.*|.*token.*|.*password.*|.*private.*)\.(txt|json|yaml|yml|env|ini|properties)$'; then
-            echo "Tracked file name looks sensitive. Rename/remove it or document why it is safe."
+            echo "发现疑似敏感文件名。请删除、改名，或确认它不包含敏感内容。"
             exit 1
           fi
 
-      - name: Show compliance status
+      - name: 显示合规检查结果
         shell: bash
         run: |
-          echo "Compliance guard passed."
+          echo "合规检查通过。"
