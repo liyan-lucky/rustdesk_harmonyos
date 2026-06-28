@@ -2,15 +2,14 @@
   "modelVersion": "6.1.1",
   "name": "rustdesk_harmonyos",
   "version": "1.0.0",
-  "description": "RustDesk远程桌面 - 鸿蒙版本",
+  "description": "Independent AGPL-licensed HarmonyOS client compatible with RustDesk services",
   "main": "index.ets",
-  "author": "",
-  "license": "AGPL-3.0",
+  "author": "liyan-lucky and contributors",
+  "license": "AGPL-3.0-only",
   "keywords": [
     "remote-desktop",
-    "vnc",
     "harmonyos",
-    "rustdesk"
+    "rustdesk-compatible"
   ],
   "dependencies": {},
   "devDependencies": {}
