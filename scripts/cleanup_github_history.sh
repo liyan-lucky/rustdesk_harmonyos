@@ -14,6 +14,7 @@ KEEP_LATEST_TAGS=0
 KEEP_TAG_PATTERN=""
 DELETE_FAILED_ONLY=0
 MAX_RUNS=""
+EXCLUDE_RUN_ID="${GITHUB_RUN_ID:-}"
 
 usage() {
   cat <<'USAGE'
@@ -43,6 +44,7 @@ Scope switches:
 Safety filters:
   --failed-only            Delete only failed/cancelled/timed_out workflow runs.
   --max-runs N             Delete at most N workflow runs.
+  --exclude-run-id ID      Do not delete this workflow run ID. Defaults to GITHUB_RUN_ID when present.
   --keep-latest-tags N     Keep the newest N tags by tagger/commit date when deleting tags.
   --keep-tag-pattern REGEX Keep tags matching REGEX, for example '^v[0-9]+\.'
 
@@ -129,6 +131,11 @@ parse_args() {
         MAX_RUNS="$2"
         shift 2
         ;;
+      --exclude-run-id)
+        [ "$#" -ge 2 ] || fail "--exclude-run-id requires a run ID"
+        EXCLUDE_RUN_ID="$2"
+        shift 2
+        ;;
       --keep-latest-tags)
         [ "$#" -ge 2 ] || fail "--keep-latest-tags requires a number"
         KEEP_LATEST_TAGS="$2"
@@ -158,6 +165,9 @@ parse_args() {
   if [ -n "$MAX_RUNS" ] && ! [[ "$MAX_RUNS" =~ ^[0-9]+$ ]]; then
     fail "--max-runs must be a non-negative integer"
   fi
+  if [ -n "$EXCLUDE_RUN_ID" ] && ! [[ "$EXCLUDE_RUN_ID" =~ ^[0-9]+$ ]]; then
+    fail "--exclude-run-id must be numeric when provided"
+  fi
 }
 
 cleanup_releases() {
@@ -184,6 +194,11 @@ cleanup_workflow_runs() {
     jq -r '.workflow_runs[] | [.id, .name, .status, .conclusion, .created_at] | @tsv' |
     while IFS=$'\t' read -r run_id name status conclusion created_at; do
       [ -n "$run_id" ] || continue
+
+      if [ -n "$EXCLUDE_RUN_ID" ] && [ "$run_id" = "$EXCLUDE_RUN_ID" ]; then
+        log "KEEP: workflow run id=$run_id reason=current-run"
+        continue
+      fi
 
       if [ "$DELETE_FAILED_ONLY" -eq 1 ]; then
         case "$conclusion" in
