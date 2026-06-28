@@ -10,23 +10,68 @@ native_rust_core/
 entry/build/
 **/build/
 entry/.cxx/
+.cxx/
 
 *.hap
+*.app
+*.app.zip
 *.a
 *.so
 *.dll
+*.dylib
 *.exe
 *.o
 *.obj
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.rar
 
 node_modules/
 oh_modules/
 **/oh_modules/
 local.properties
-.cxx/
-.hvigor/
 
+# Signing material and private credentials
 signing/
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.cer
+*.crt
+*.csr
+*.pem
+*.key
+*.mobileprovision
+*.p7b
+*.p7s
+*.profile
+*.provisionprofile
+*.json.secret
+*.env
+.env
+.env.*
+!.env.example
+secrets.*
+*_secret.*
+*_secrets.*
+*token*
+*password*
+
+# Vendor SDK/toolchain archives must not be committed unless redistribution rights are verified.
+harmonyos-sdk-full.zip
+harmonyos-hvigor-full.zip
+DevEco*.zip
+HarmonyOS*.zip
+OpenHarmony*.zip
+command-line-tools*.zip
+sdk-full*.zip
+hvigor*.zip
+
+# Logs, backups, and generated diagnostics
 backup_*/
 *.log
 *.tmp
@@ -35,3 +80,4 @@ check_i18n.py
 check_result.txt
 
 entry/src/main/libs/arm64/librustdesk_core.a
+entry/src/main/libs/x86_64/librustdesk_core.a
