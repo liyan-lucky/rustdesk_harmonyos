@@ -9,6 +9,7 @@ Use this checklist before publishing signed HAP files or GitHub Releases.
 - [ ] Corresponding Source for every released binary is available.
 - [ ] Release notes identify the source commit used for the build.
 - [ ] Native static libraries or generated native bridges are traceable to source.
+- [ ] `SOURCE_OFFER.md` accurately describes source availability.
 
 ## Vendor toolchains
 
@@ -16,6 +17,7 @@ Use this checklist before publishing signed HAP files or GitHub Releases.
 - [ ] `HARMONYOS_SDK_URL` points to an authorized SDK archive.
 - [ ] `HARMONYOS_FULL_URL` points to an authorized hvigor/toolchain archive.
 - [ ] Signing material is stored only in GitHub Secrets or another private secret store.
+- [ ] Build logs do not expose private artifact URLs or signing data.
 
 ## Trademarks and wording
 
@@ -34,7 +36,21 @@ Use this checklist before publishing signed HAP files or GitHub Releases.
 
 - [ ] New copied assets have documented origin and license.
 - [ ] Dependency/license changes are reflected in `THIRD_PARTY_NOTICES.md`.
+- [ ] `docs/ASSET_PROVENANCE.md` is updated for new icons/media/assets.
 - [ ] GitHub Actions and dependencies are reviewed for supply-chain risk.
+
+## Supply chain and SBOM
+
+- [ ] Native core URL and SHA256 are pinned for release builds.
+- [ ] Native core source commit or release tag is recorded.
+- [ ] Release notes include HAP artifact hashes.
+- [ ] A release SBOM is produced or the reason for not producing one is documented.
+- [ ] GitHub Actions are pinned to immutable SHAs for high-assurance releases, or the risk is accepted.
+- [ ] `docs/SUPPLY_CHAIN.md` and `docs/SBOM_POLICY.md` have been reviewed.
+
+## Automated check
+
+- [ ] The `Compliance Check` workflow passes on the release commit.
 
 ## Final gate
 
