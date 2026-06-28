@@ -1,0 +1,28 @@
+RustDesk HarmonyOS Client
+Copyright (C) 2026 liyan-lucky and contributors.
+
+This project is a HarmonyOS client implementation that is designed to interoperate with RustDesk-compatible servers and RustDesk core components. Unless otherwise stated in a specific file, this repository is licensed under the GNU Affero General Public License version 3 only (AGPL-3.0-only). See LICENSE.
+
+Third-party notices and attributions
+------------------------------------
+
+RustDesk
+- RustDesk is an upstream open-source remote desktop project.
+- The RustDesk name and related marks belong to their respective owners.
+- This repository is not an official RustDesk project unless explicitly stated by the RustDesk project owners.
+- Code or generated interfaces that are derived from, adapted from, or designed to interoperate with RustDesk remain subject to their original license requirements. The combined application is distributed under AGPL-3.0-only unless a file states a compatible license.
+
+HarmonyOS / OpenHarmony / DevEco / hvigor
+- HarmonyOS, OpenHarmony, DevEco Studio, hvigor, HMS, and related names or marks belong to Huawei or their respective owners.
+- This repository does not grant any license to Huawei SDKs, DevEco tools, hvigor packages, proprietary system libraries, or any other Huawei-distributed binary toolchain.
+- Build scripts may require a HarmonyOS SDK and command-line tools. Users must obtain those tools from authorized sources and comply with the applicable Huawei/OpenHarmony terms.
+- Do not publish, mirror, or redistribute proprietary SDK/toolchain archives in this repository or its public releases unless you have verified redistribution rights.
+
+Generated/native bridge files
+- Some native bridge declarations and wrappers are generated or synchronized from the companion native-core project and are provided as source or interface material for this application.
+- Binary static libraries or signed application packages are not a substitute for the Corresponding Source required by AGPL-3.0.
+
+No warranty
+-----------
+
+This project is provided AS IS, without warranty of any kind. See LICENSE for the full warranty disclaimer and limitation of liability.
