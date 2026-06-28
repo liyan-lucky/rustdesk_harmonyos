@@ -1,6 +1,6 @@
 # Compliance Policy
 
-This repository is maintained with the goal of minimizing license, attribution, trademark, privacy, and redistribution risk.
+This repository is maintained with the goal of minimizing license, attribution, trademark, privacy, security, supply-chain, and redistribution risk.
 
 ## License baseline
 
@@ -8,6 +8,7 @@ This repository is maintained with the goal of minimizing license, attribution, 
 - Keep `LICENSE` in the repository root.
 - Keep package metadata license fields aligned with the root license.
 - Any distribution of object code, signed HAP files, native libraries, or network-accessible modified versions must also provide Corresponding Source as required by AGPL-3.0.
+- See `SOURCE_OFFER.md` for source availability expectations.
 
 ## Third-party code and assets
 
@@ -19,13 +20,13 @@ Before adding third-party files, record at least:
 4. Whether the file was copied, modified, generated, or only referenced.
 5. Any extra attribution or notice requirement.
 
-Do not add files with unclear origin, incompatible licenses, or missing redistribution permission.
+Do not add files with unclear origin, incompatible licenses, or missing redistribution permission. See `THIRD_PARTY_NOTICES.md` and `docs/ASSET_PROVENANCE.md`.
 
 ## Proprietary SDK/toolchain materials
 
 Do not commit or publish proprietary SDKs, command-line tools, DevEco/hvigor archives, system libraries, private build caches, or downloaded vendor packages unless redistribution rights have been confirmed in writing.
 
-CI may use `HARMONYOS_SDK_URL` and `HARMONYOS_FULL_URL`, but those URLs must point to artifacts that the repository owner is authorized to use. Prefer private GitHub Actions secrets or internal storage over public release assets for vendor toolchains.
+CI may use `HARMONYOS_SDK_URL` and `HARMONYOS_FULL_URL`, but those URLs must point to artifacts that the repository owner is authorized to use. Prefer private GitHub Actions secrets or internal storage over public release assets for vendor toolchains. See `docs/HARMONYOS_TOOLCHAIN.md` and `docs/RELEASE_ARTIFACT_POLICY.md`.
 
 ## RustDesk compatibility and attribution
 
@@ -44,6 +45,15 @@ Never commit:
 - Production user data, logs with personal data, device IDs, or access tokens.
 - Full proprietary SDK/toolchain archives unless redistribution rights are confirmed.
 
+The `Compliance Check` workflow blocks common restricted files and public HarmonyOS SDK/toolchain fallback URLs from active workflows/scripts.
+
+## Supply chain and SBOM
+
+- Follow `docs/SUPPLY_CHAIN.md` when changing workflows, native core downloads, signing, dependencies, or release packaging.
+- Follow `docs/SBOM_POLICY.md` when preparing public or commercial releases.
+- Prefer SHA256-pinned native core artifacts for releases.
+- Prefer immutable GitHub Action SHAs for high-assurance release workflows.
+
 ## Release checklist
 
 Before publishing a release:
@@ -54,6 +64,7 @@ Before publishing a release:
 - Confirm package metadata license fields are accurate.
 - Confirm release notes do not imply RustDesk or Huawei endorsement.
 - Confirm hashes and build provenance are documented without exposing secrets.
+- Confirm release artifacts follow `docs/RELEASE_ARTIFACT_POLICY.md`.
 
 ## Audit status
 
