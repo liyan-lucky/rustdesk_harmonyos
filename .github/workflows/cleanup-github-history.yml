@@ -3,57 +3,42 @@ name: 清理 GitHub 运行记录和标签
 on:
   workflow_dispatch:
     inputs:
-      execute_mode:
-        description: "执行模式：默认只预览，不删除；选择执行删除才会真正清理"
+      执行删除:
+        description: "默认 false 只预览；改成 true 才会真正删除"
         required: true
-        default: "预览不删除"
-        type: choice
-        options:
-          - "预览不删除"
-          - "执行删除"
-      clean_runs:
-        description: "Actions 运行记录：是否清理其他脚本/流程的运行记录"
+        default: false
+        type: boolean
+      清理运行记录:
+        description: "是否清理其他脚本/流程的 GitHub Actions 运行记录"
         required: true
-        default: "清理运行记录"
-        type: choice
-        options:
-          - "清理运行记录"
-          - "不清理运行记录"
-      clean_tags:
-        description: "Git 标签：是否清理已发布的所有标签"
+        default: true
+        type: boolean
+      清理标签:
+        description: "是否清理已发布的所有 Git 标签"
         required: true
-        default: "清理标签"
-        type: choice
-        options:
-          - "清理标签"
-          - "不清理标签"
-      delete_releases:
-        description: "Release 发布内容：默认保留；只有选择删除发布内容才会删除 Release 和附件"
+        default: true
+        type: boolean
+      删除发布内容:
+        description: "危险选项：默认 false 保留 Release 和附件；true 会删除 Release 和附件"
         required: true
-        default: "保留发布内容"
-        type: choice
-        options:
-          - "保留发布内容"
-          - "删除发布内容"
-      failed_only:
-        description: "运行记录范围：清理全部运行记录，还是只清理失败/取消/超时记录"
+        default: false
+        type: boolean
+      只清理失败取消超时:
+        description: "false 清理全部运行记录；true 只清理失败/取消/超时记录"
         required: true
-        default: "清理全部运行记录"
-        type: choice
-        options:
-          - "清理全部运行记录"
-          - "只清理失败取消超时"
-      max_runs:
+        default: false
+        type: boolean
+      最多清理运行记录数:
         description: "最多清理多少条运行记录：留空表示不限制"
         required: false
         default: ""
         type: string
-      keep_latest_tags:
+      保留最新标签数:
         description: "保留最新几个标签：0 表示不保留，默认清理全部标签"
         required: false
         default: "0"
         type: string
-      keep_tag_pattern:
+      保留标签规则:
         description: "按规则保留标签：可填正则，例如 ^v[0-9]+\\.；留空表示不按规则保留"
         required: false
         default: ""
@@ -76,37 +61,37 @@ jobs:
       - name: 执行清理脚本
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_EXECUTE_MODE: ${{ inputs.execute_mode }}
-          INPUT_CLEAN_RUNS: ${{ inputs.clean_runs }}
-          INPUT_CLEAN_TAGS: ${{ inputs.clean_tags }}
-          INPUT_DELETE_RELEASES: ${{ inputs.delete_releases }}
-          INPUT_FAILED_ONLY: ${{ inputs.failed_only }}
-          INPUT_MAX_RUNS: ${{ inputs.max_runs }}
-          INPUT_KEEP_LATEST_TAGS: ${{ inputs.keep_latest_tags }}
-          INPUT_KEEP_TAG_PATTERN: ${{ inputs.keep_tag_pattern }}
+          INPUT_EXECUTE: ${{ inputs['执行删除'] }}
+          INPUT_CLEAN_RUNS: ${{ inputs['清理运行记录'] }}
+          INPUT_CLEAN_TAGS: ${{ inputs['清理标签'] }}
+          INPUT_DELETE_RELEASES: ${{ inputs['删除发布内容'] }}
+          INPUT_FAILED_ONLY: ${{ inputs['只清理失败取消超时'] }}
+          INPUT_MAX_RUNS: ${{ inputs['最多清理运行记录数'] }}
+          INPUT_KEEP_LATEST_TAGS: ${{ inputs['保留最新标签数'] }}
+          INPUT_KEEP_TAG_PATTERN: ${{ inputs['保留标签规则'] }}
         shell: bash
         run: |
           set -euo pipefail
 
           args=(--repo "$GITHUB_REPOSITORY" --exclude-run-id "$GITHUB_RUN_ID")
 
-          if [ "$INPUT_EXECUTE_MODE" = "执行删除" ]; then
+          if [ "$INPUT_EXECUTE" = "true" ]; then
             args+=(--yes)
           fi
 
-          if [ "$INPUT_CLEAN_RUNS" = "不清理运行记录" ]; then
+          if [ "$INPUT_CLEAN_RUNS" != "true" ]; then
             args+=(--no-runs)
           fi
 
-          if [ "$INPUT_CLEAN_TAGS" = "不清理标签" ]; then
+          if [ "$INPUT_CLEAN_TAGS" != "true" ]; then
             args+=(--no-tags)
           fi
 
-          if [ "$INPUT_DELETE_RELEASES" = "删除发布内容" ]; then
+          if [ "$INPUT_DELETE_RELEASES" = "true" ]; then
             args+=(--delete-releases)
           fi
 
-          if [ "$INPUT_FAILED_ONLY" = "只清理失败取消超时" ]; then
+          if [ "$INPUT_FAILED_ONLY" = "true" ]; then
             args+=(--failed-only)
           fi
 
