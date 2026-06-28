@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/liyan-lucky/rustdesk_harmonyos/security/advisories/new
+    about: Please report vulnerabilities privately when GitHub Security Advisories are available.
+  - name: Compliance policy
+    url: https://github.com/liyan-lucky/rustdesk_harmonyos/blob/master/COMPLIANCE.md
+    about: Read the compliance policy before reporting license, trademark, privacy, or redistribution issues.
