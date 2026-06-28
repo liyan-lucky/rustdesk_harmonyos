@@ -1,0 +1,110 @@
+name: Cleanup GitHub History
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: "Actually delete selected items. False means dry-run only."
+        required: true
+        default: false
+        type: boolean
+      clean_runs:
+        description: "Clean GitHub Actions workflow run records."
+        required: true
+        default: true
+        type: boolean
+      clean_tags:
+        description: "Clean Git tags."
+        required: true
+        default: true
+        type: boolean
+      delete_releases:
+        description: "Also delete GitHub Releases and release assets. Dangerous; default false."
+        required: true
+        default: false
+        type: boolean
+      failed_only:
+        description: "For workflow runs, delete only failed/cancelled/timed_out runs."
+        required: true
+        default: false
+        type: boolean
+      max_runs:
+        description: "Maximum workflow runs to delete. Empty means no limit."
+        required: false
+        default: ""
+        type: string
+      keep_latest_tags:
+        description: "Number of latest tags to keep. 0 means keep none."
+        required: false
+        default: "0"
+        type: string
+      keep_tag_pattern:
+        description: "Regex for tags to keep, for example ^v[0-9]+\\."
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    name: Cleanup GitHub Actions runs and tags
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run cleanup script
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_EXECUTE: ${{ inputs.execute }}
+          INPUT_CLEAN_RUNS: ${{ inputs.clean_runs }}
+          INPUT_CLEAN_TAGS: ${{ inputs.clean_tags }}
+          INPUT_DELETE_RELEASES: ${{ inputs.delete_releases }}
+          INPUT_FAILED_ONLY: ${{ inputs.failed_only }}
+          INPUT_MAX_RUNS: ${{ inputs.max_runs }}
+          INPUT_KEEP_LATEST_TAGS: ${{ inputs.keep_latest_tags }}
+          INPUT_KEEP_TAG_PATTERN: ${{ inputs.keep_tag_pattern }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          args=(--repo "$GITHUB_REPOSITORY" --exclude-run-id "$GITHUB_RUN_ID")
+
+          if [ "$INPUT_EXECUTE" = "true" ]; then
+            args+=(--yes)
+          fi
+
+          if [ "$INPUT_CLEAN_RUNS" != "true" ]; then
+            args+=(--no-runs)
+          fi
+
+          if [ "$INPUT_CLEAN_TAGS" != "true" ]; then
+            args+=(--no-tags)
+          fi
+
+          if [ "$INPUT_DELETE_RELEASES" = "true" ]; then
+            args+=(--delete-releases)
+          fi
+
+          if [ "$INPUT_FAILED_ONLY" = "true" ]; then
+            args+=(--failed-only)
+          fi
+
+          if [ -n "$INPUT_MAX_RUNS" ]; then
+            args+=(--max-runs "$INPUT_MAX_RUNS")
+          fi
+
+          if [ -n "$INPUT_KEEP_LATEST_TAGS" ]; then
+            args+=(--keep-latest-tags "$INPUT_KEEP_LATEST_TAGS")
+          fi
+
+          if [ -n "$INPUT_KEEP_TAG_PATTERN" ]; then
+            args+=(--keep-tag-pattern "$INPUT_KEEP_TAG_PATTERN")
+          fi
+
+          bash scripts/cleanup_github_history.sh "${args[@]}"
