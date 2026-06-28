@@ -1,5 +1,32 @@
 # 功能进度与优化方向
 
+## 2026-06-28 外部鼠标输入 + 滚动优化 + sessionSendChat 修复
+
+### 修改内容
+1. **外部鼠标输入支持**：`RemoteControl.ets` touch overlay 新增 `onMouse`/`onHover`/`onAxisEvent`
+   - `handlePreviewMouse`：鼠标移动（Hover/Move → MOVE|MOTION），按钮按下/释放（Left/Right/Middle）
+   - `handlePreviewAxis`：鼠标滚轮通过 `AxisEvent.getVerticalAxisValue()` + 累加器（`AXIS_SCROLL_THRESHOLD=1.0`）
+   - `handlePreviewHover`：鼠标悬停（移除 `hasPointerPosition` 重置以避免影响触摸操作）
+2. **触摸滚动优化**：直接触摸阈值 20px→60px，手势阈值 16px→60px，1:1 滚动手感
+3. **sessionSendChat 签名修复**：核心 ABI 期望 4 参数但 App 只传 1 参数（content）。已修复 `index.d.ts`、`NativeRustDeskBridge.ts`、`librustdesk_bridge.d.ts`、`OfficialSessionTransport.ets`
+
+### 关键技术发现
+- `MouseAction.Scroll` 在 ArkUI 组件层不存在（仅有 Press/Release/Move/Hover/ENTER_WINDOW/LEAVE_WINDOW/CANCEL）
+- `MouseEvent` 没有 ticks/scrollDelta/deltaY——滚轮数据只能通过 AxisEvent（API 17+）
+- HarmonyOS 鼠标事件分两层：ArkUI 组件层（onMouse/onHover/onAxisEvent）和多模输入层（@ohos.multimodalInput.mouseEvent）
+- `resolveMouseInput()` 使用固定 WHEEL_DELTA=120（Windows 标准）
+- `onHover` 不应重置 hasPointerPosition，因为会影响正在进行的触摸操作
+
+### 状态
+- arm64-v8a HAP: 18.69 MB ✅
+- x86_64 HAP: 19.53 MB ✅
+- 连接链路审计: 82 PASS / 0 FAIL / 2 SKIP ✅
+- App alive on emulator ✅
+- 暗色主题所有页面正确 ✅
+- App 版本 0.33.22 / versionCode 1000198
+- Core arm64: 133,500,296 bytes / SHA256 6F89F77D8A032340EBC4C8D89F7EA1370F17239844ECB8B848AAC335631F1CD4
+- Core x86_64: 130,807,338 bytes / SHA256 B81F6768B69A722D8DF9006DF258FF26441BE89383CA45F57BF8A1E4CC3D9C7B
+
 ## 2026-06-27 单架构 HAP 构建 + UI 优化 + 平移回弹
 
 ### 修改内容
@@ -155,7 +182,7 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
   - 最新线上 native core 已从 GitHub Releases 下载：
   - `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
   - 最新线上 release：`core-25`
-  - 最新线上大小：arm64 `132,777,178` bytes，x86_64 `130,416,964` bytes
+  - 最新线上大小：arm64 `133,500,296` bytes，x86_64 `130,807,338` bytes
   - 包含：被控端连接链路 + 重连稳定性 + Connecting重连修复 + 设备指纹修复 + 双架构真实核心 + IPv4/IPv6 地址族候选修复
 - 2026-06-19 x86_64 双架构支持：
   - `entry/build-profile.json5` 的 `abiFilters` 已添加 `"x86_64"`，HAP 同时包含 `arm64-v8a` 和 `x86_64` 两个 ABI
@@ -261,6 +288,8 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - native `send_mouse_input()` 已从 stub 改为转发到 active session。
 - 插入 `Ctrl+Alt+Del` 不再模拟普通键盘输入；ArkTS/C++/Rust ABI 已接入 `sendCtrlAltDel()`，native 侧调用 official `Session::ctrl_alt_del()`。
 - 自定义键盘上的 `Ins`、`PrtScr`、`Menu` 已补齐按键码，避免菜单上有键但点击无效。
+- **外部鼠标输入**（2026-06-28）：touch overlay 新增 `onMouse`/`onHover`/`onAxisEvent`，`handlePreviewMouse` 处理鼠标移动和按钮，`handlePreviewAxis` 处理鼠标滚轮（AxisEvent + 累加器 AXIS_SCROLL_THRESHOLD=1.0），`handlePreviewHover` 处理悬停（不重置 hasPointerPosition）。
+- **触摸滚动优化**（2026-06-28）：直接触摸阈值 20→60px，手势阈值 16→60px。
 
 共享页和发现：
 

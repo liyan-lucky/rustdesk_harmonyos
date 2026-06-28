@@ -83,7 +83,7 @@ export const mainStartService: (enabled: boolean, server: string, relay_server: 
 export const sessionSendMouse: (mask: number, x: number, y: number) => boolean;
 export const sessionInputKey: (key_code: number, is_pressed: boolean, modifiers: number) => boolean;
 export const sessionCtrlAltDel: () => boolean;
-export const sessionSendChat: (content: string) => boolean;
+export const sessionSendChat: (peerId: string, messageType: string, content: string, timestamp: number) => boolean;
 export const sessionStart: (peer_id: string, password: string, server: string, relay_server: string, api_server: string, key: string) => void;
 export const mainAccountAuth: (op: string, remember_me: boolean, server: string, relay_server: string, api_server: string) => void;
 export const mainAccountAuthCancel: () => void;

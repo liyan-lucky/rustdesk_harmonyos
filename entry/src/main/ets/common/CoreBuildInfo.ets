@@ -13,5 +13,5 @@ export class CoreBuildInfo {
   static readonly X86_64_HASH_FNV1A_1MB: string = "131e178b";
   static readonly X86_64_HASH_SHA256: string = "B81F6768B69A722D8DF9006DF258FF26441BE89383CA45F57BF8A1E4CC3D9C7B";
   static readonly COMPATIBLE_OFFICIAL_VERSION: string = "";
-  static readonly GENERATED_AT: string = "2026-06-28 06:34";
+  static readonly GENERATED_AT: string = "2026-06-28 21:16";
 }

@@ -2393,9 +2393,9 @@ export class NativeRustDeskBridge {
     try { return fn() || false; } catch { return false; }
   }
 
-  static sessionSendChat(content: string): boolean {
+  static sessionSendChat(peerId: string, messageType: string, content: string, timestamp: number): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[content: string], boolean>(
+    const fn = NativeRustDeskBridge.resolveFunction<[peerId: string, messageType: string, content: string, timestamp: number], boolean>(
       nativeModule,
       ['sessionSendChat', 'session_send_chat', 'rustdesk_bridge_session_send_chat']
     );
@@ -2404,8 +2404,7 @@ export class NativeRustDeskBridge {
       return false;
     }
     try {
-      const result = fn(content);
-      hilog.error(0xA03D00, 'NativeBridge', 'sessionSendChat: fn returned ' + result + ' contentLen=' + content.length);
+      const result = fn(peerId, messageType, content, timestamp);
       return result || false;
     } catch (e) {
       hilog.error(0xA03D00, 'NativeBridge', 'sessionSendChat: exception ' + JSON.stringify(e));

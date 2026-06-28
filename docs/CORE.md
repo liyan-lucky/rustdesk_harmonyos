@@ -1,5 +1,18 @@
 # 核心状态与 HAP 构建验证
 
+## 2026-06-28 Core ABI 兼容性审计（core commit 0e613cf）
+
+- C ABI 头文件：与 13 项目 `bridge_api.rs` 完全一致（374 函数，零漂移）
+- `sessionSendChat`：已修复（从 1 参数改为 4 参数匹配核心 ABI：peerId, messageType, content, timestamp）
+- `string_free`：未暴露给 TS 层（潜在内存泄漏，低优先级）
+- `drain_connect_events`：非 JSON 变体缺失（JSON 变体 `drain_connect_events_json` 可用，低优先级）
+- 13 个 App-only TS 函数（平台特定封装，预期行为，非 ABI 漂移）
+- 当前 Core 版本：
+  - arm64: 133,500,296 bytes / SHA256 `6F89F77D8A032340EBC4C8D89F7EA1370F17239844ECB8B848AAC335631F1CD4`
+  - x86_64: 130,807,338 bytes / SHA256 `B81F6768B69A722D8DF9006DF258FF26441BE89383CA45F57BF8A1E4CC3D9C7B`
+- 当前 App 版本：0.33.22 / versionCode 1000198
+- 构建验证：arm64-v8a HAP 18.69 MB ✅ / x86_64 HAP 19.53 MB ✅ / 连接链路审计 82 PASS / 0 FAIL / 2 SKIP ✅
+
 ## 2026-06-25 日常维护构建验证
 
 增量构建 `0.33.16` / versionCode `1000192`，BuildInfo `2026-06-25 07:22`。CoreBuildInfo 已更新为线上 core-34：arm64 `133,495,306` bytes / SHA256 `90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337`，x86_64 `131,336,988` bytes / SHA256 `E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4`。Signed HAP `35,096,258` bytes / SHA256 `97B66222ADD52B95763CC50F37A7EE5DAF5D8E0ACFE49024A84D1A87E01FCD25`。验包通过（签名有效、双 ABI native entries 存在）。5轮全功能审计 770 PASS / 0 FAIL / 5 SKIP，连接链路审计 83 PASS / 0 FAIL / 1 SKIP。SignHap 仍需手动签名（hap-sign-tool.jar），Hvigor SignHap 密码不匹配。
@@ -130,15 +143,15 @@ Native core:
 - 文件：`entry/src/main/libs/arm64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
 - Latest online release: `https://github.com/liyan-lucky/librustdesk_core/releases/tag/core-34`
-- Latest online size: `133,495,306` bytes (arm64, core-34)
+- Latest online size: `133,500,296` bytes (arm64, core commit 0e613cf)
 - Latest online workflow: `https://github.com/liyan-lucky/librustdesk_core/actions/runs/27920089950`
-- Current local core: core-34 arm64 `133,495,306` bytes
+- Current local core: core commit 0e613cf arm64 `133,500,296` bytes
 
 x86_64 native core:
 
 - 文件：`entry/src/main/libs/x86_64/librustdesk_core.a`
 - Source URL: `https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a`
-- 状态：CI 双架构构建已完成，`core-34` release 含真实 x86_64 核心；latest x86_64 asset `131,336,988` bytes。
+- 状态：CI 双架构构建已完成，`core-34` release 含真实 x86_64 核心；latest x86_64 asset `130,807,338` bytes。
 - 无 x86_64 真实核心时自动降级为 stub 模式（`rustdesk_core_stub.cpp`）
 
 HAP:

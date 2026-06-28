@@ -2,6 +2,38 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-06-28 外部鼠标输入与 sessionSendChat 修复
+
+### 14. MouseAction.Scroll 在 ArkUI 组件层不存在
+
+**现象**：尝试使用 `MouseAction.Scroll` 处理鼠标滚轮事件，但编译报错或运行时不触发。
+
+**根因**：ArkUI 组件层（`onMouse` 回调的 `MouseEvent`）只有 Press/Release/Move/Hover/ENTER_WINDOW/LEAVE_WINDOW/CANCEL，没有 `Scroll`。`MouseEvent` 也没有 `ticks`/`scrollDelta`/`deltaY` 字段。滚轮数据只能通过 `onAxisEvent`（API 17+）的 `AxisEvent.getVerticalAxisValue()` 获取。
+
+**解决**：使用 `onAxisEvent` 回调处理鼠标滚轮，通过累加器（`AXIS_SCROLL_THRESHOLD=1.0`）累积 `getVerticalAxisValue()` 值，达到阈值后发送滚动事件。`resolveMouseInput()` 使用固定 `WHEEL_DELTA=120`（Windows 标准）。
+
+**教训**：HarmonyOS 鼠标事件分两层：ArkUI 组件层（`onMouse`/`onHover`/`onAxisEvent`）和多模输入层（`@ohos.multimodalInput.mouseEvent`）。组件层没有 Scroll 动作和滚动 delta 字段，必须用 `onAxisEvent` + `AxisEvent` 获取滚轮数据。
+
+### 15. onHover 不应重置 hasPointerPosition
+
+**现象**：鼠标悬停时触摸操作异常中断或位置被重置。
+
+**根因**：`onHover` 回调中重置 `hasPointerPosition = false`，但鼠标悬停和触摸操作是并发的，重置会影响正在进行的触摸操作。
+
+**解决**：`handlePreviewHover` 中移除 `hasPointerPosition` 重置，鼠标悬停只处理光标位置更新，不影响触摸状态。
+
+**教训**：鼠标事件和触摸事件可以并发发生，鼠标 hover/move 不应修改触摸相关的状态标志。
+
+### 16. sessionSendChat 参数数量不匹配（1→4）
+
+**现象**：聊天发送消息时核心返回 `chat-error: failed=empty-content`。
+
+**根因**：核心 Rust ABI `rustdesk_bridge_session_send_chat` 期望 4 个参数（peer_id, message_type, content, timestamp），但 App 侧 TS/C++ 层只传了 1 个参数（content）。C 调用约定下参数错位，content 被映射到 peer_id 位置，真正的 content 位置是未初始化值。
+
+**解决**：修复 `index.d.ts`、`NativeRustDeskBridge.ts`、`librustdesk_bridge.d.ts`、`OfficialSessionTransport.ets`，将 `sessionSendChat` 签名从 1 参数改为 4 参数（peerId, messageType, content, timestamp），与核心 ABI 对齐。
+
+**教训**：C ABI 参数数量不匹配在 C 调用约定下是未定义行为，不会编译报错但运行时参数错位。核心项目修改 ABI 签名后，App 项目的 d.ts、TS wrapper、C++ 调用必须同步更新。三层签名（Rust `bridge_api.rs`、C++ `rustdesk_bridge_abi.h`、TS `NativeRustDeskBridge.ts`）必须完全一致。
+
 ## 2026-06-24 13项审计修复（commit c0131e9）
 
 ### 1. RemoteControl sessionExitTimer/reconnectWithPasswordTimer 泄漏

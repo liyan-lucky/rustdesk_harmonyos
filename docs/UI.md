@@ -2,6 +2,31 @@
 
 > 顶部渐变、Tab栏、连接页面布局、SVG图标主题适配
 
+## 2026-06-28 外部鼠标输入与滚动优化
+
+### 鼠标输入
+
+RemoteControl.ets touch overlay 新增三个鼠标事件回调：
+
+| 回调 | 事件 | 处理函数 | 行为 |
+|------|------|----------|------|
+| `onMouse` | 鼠标按钮按下/释放/移动 | `handlePreviewMouse` | Hover/Move → MOVE\|MOTION，Left/Right/Middle 按钮按下/释放 |
+| `onAxisEvent` | 鼠标滚轮 | `handlePreviewAxis` | `AxisEvent.getVerticalAxisValue()` + 累加器（`AXIS_SCROLL_THRESHOLD=1.0`），达到阈值后发送滚动事件 |
+| `onHover` | 鼠标悬停 | `handlePreviewHover` | 更新光标位置，**不重置** `hasPointerPosition`（避免影响触摸操作） |
+
+**关键技术约束**：
+- `MouseAction.Scroll` 在 ArkUI 组件层**不存在**（仅有 Press/Release/Move/Hover/ENTER_WINDOW/LEAVE_WINDOW/CANCEL）
+- `MouseEvent` 没有 `ticks`/`scrollDelta`/`deltaY`——滚轮数据只能通过 `AxisEvent`（API 17+）
+- HarmonyOS 鼠标事件分两层：ArkUI 组件层（`onMouse`/`onHover`/`onAxisEvent`）和多模输入层（`@ohos.multimodalInput.mouseEvent`）
+- `resolveMouseInput()` 使用固定 `WHEEL_DELTA=120`（Windows 标准）
+
+### 触摸滚动优化
+
+| 场景 | 旧阈值 | 新阈值 | 说明 |
+|------|--------|--------|------|
+| 直接触摸滚动 | 20px | 60px | 提升到与手势一致，1:1 滚动手感 |
+| 手势滚动 | 16px | 60px | 统一阈值，减少误触 |
+
 ## 2026-06-21 23:23 最终 UI 收口
 
 > 2026-06-22 00:25 发布验证：上述 UI 源码包含在 App 功能提交 `f7fbf217`，最终在线 HAP 由来源修复提交 `3ebdc726` 构建；线上包已下载、验签、双 ABI 核验并真机冷启动。未对已通过真机 UI 回归的布局再做发布后源码改动。
@@ -578,7 +603,7 @@ this.refreshAngle = 0;
 | 文件 | 修改内容 |
 |------|----------|
 | `entry/src/main/ets/pages/Index.ets` | 渐变背景、Tab栏、Tab图标fillColor/colorFilter、搜索、ID输入框 |
-| `entry/src/main/ets/pages/RemoteControl.ets` | 工具栏图标fillColor、箭头图标、buildToolBtnStroke、聊天模式菜单 |
+| `entry/src/main/ets/pages/RemoteControl.ets` | 工具栏图标fillColor、箭头图标、buildToolBtnStroke、聊天模式菜单、外部鼠标输入（onMouse/onHover/onAxisEvent）、触摸滚动阈值优化 |
 | `entry/src/main/ets/pages/LoginPage.ets` | 登录页搜索入口和 provider 过滤 |
 | `entry/src/main/ets/pages/AddressBook.ets` | 登录提示图标 |
 | `entry/src/main/ets/common/CommonComponents.ets` | PageHeader返回箭头fillColor、createStrokeIconColorFilter |
