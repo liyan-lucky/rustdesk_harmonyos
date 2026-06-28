@@ -64,14 +64,13 @@ jobs:
       VERSION_BUMP: ${{ github.event.inputs.version_bump || 'incremental' }}
       PREFLIGHT_ONLY: ${{ github.event.inputs.preflight_only || 'false' }}
       SKIP_PACKAGE_VERIFY: ${{ github.event.inputs.skip_package_verify || 'true' }}
-
       RUSTDESK_CORE_URL: ${{ inputs.core_url || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
       RUSTDESK_CORE_SHA256: ${{ inputs.core_sha256 || '' }}
       RUSTDESK_CORE_X86_64_URL: ${{ inputs.core_x86_64_url || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a' }}
       RUSTDESK_CORE_X86_64_SHA256: ${{ inputs.core_x86_64_sha256 || '' }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
-      HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip' }}
-      HARMONYOS_FULL_URL: ${{ secrets.HARMONYOS_FULL_URL || vars.HARMONYOS_FULL_URL || 'https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip' }}
+      HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL }}
+      HARMONYOS_FULL_URL: ${{ secrets.HARMONYOS_FULL_URL || vars.HARMONYOS_FULL_URL }}
 
     steps:
       - name: Checkout
@@ -98,16 +97,24 @@ jobs:
         with:
           version: 2.0.0.2
 
+      - name: Validate authorized toolchain inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${HARMONYOS_SDK_URL:-}" ]; then
+            echo "HARMONYOS_SDK_URL is required. Configure it as a Secret or Variable that points to an authorized SDK archive."
+            exit 1
+          fi
+          if [ -z "${HARMONYOS_FULL_URL:-}" ]; then
+            echo "HARMONYOS_FULL_URL is required. Configure it as a Secret or Variable that points to an authorized hvigor/toolchain archive."
+            exit 1
+          fi
+
       - name: Install full HarmonyOS SDK
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
-
-          if [ -z "${HARMONYOS_SDK_URL:-}" ]; then
-            echo "HARMONYOS_SDK_URL is empty"
-            exit 1
-          fi
 
           SDK_BASE="/home/runner/harmonyos-sdk"
           SDK_ZIP="$RUNNER_TEMP/harmonyos-sdk-full.zip"
@@ -116,14 +123,11 @@ jobs:
           rm -rf "$SDK_EXTRACT"
           mkdir -p "$SDK_EXTRACT"
 
-          echo "Download full HarmonyOS SDK..."
+          echo "Download full HarmonyOS SDK from authorized source..."
           curl -L --fail --retry 3 --retry-delay 5 -o "$SDK_ZIP" "$HARMONYOS_SDK_URL"
 
           echo "Unzip full HarmonyOS SDK..."
           unzip -oq "$SDK_ZIP" -d "$SDK_EXTRACT"
-
-          echo "SDK archive directories:"
-          find "$SDK_EXTRACT" -maxdepth 3 -type d | sort | head -80
 
           SDK_SOURCE=""
           for candidate in \
@@ -146,9 +150,7 @@ jobs:
             exit 1
           fi
 
-          echo "SDK source: $SDK_SOURCE"
           mkdir -p "$SDK_BASE"
-
           move_sdk_item() {
             local source_path="$1"
             local target_path="$2"
@@ -172,7 +174,6 @@ jobs:
 
           rm -f "$SDK_ZIP"
           rm -rf "$SDK_EXTRACT"
-
           chmod +x "$SDK_BASE/openharmony/toolchains"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/toolchains"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/openharmony/native/build-tools/cmake/bin"/* 2>/dev/null || true
@@ -181,68 +182,34 @@ jobs:
           chmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true
 
-          echo "Check full SDK files..."
           test -f "$SDK_BASE/sdk-pkg.json"
           test -x "$SDK_BASE/openharmony/toolchains/restool"
           test -d "$SDK_BASE/openharmony/native"
-          test -f "$SDK_BASE/hms/toolchains/modulecheck/app.json"
-          test -f "$SDK_BASE/hms/toolchains/lib/libimage_transcoder_shared.so"
-          test -f "$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin/libsec_shared.so"
-          test -f "$SDK_BASE/openharmony/previewer/common/bin/libcjson.so"
-          test -f "$SDK_BASE/openharmony/previewer/common/bin/libsec_shared.so"
-
-          ls -l "$SDK_BASE/openharmony/toolchains/restool"
-          ls -ld "$SDK_BASE/openharmony/native" "$SDK_BASE/hms/toolchains/modulecheck"
 
       - name: Patch full hvigor
         shell: bash
         run: |
-          set -e
-
-          if [ -z "${HARMONYOS_FULL_URL:-}" ]; then
-            echo "HARMONYOS_FULL_URL is empty"
-            exit 1
-          fi
-
+          set -euo pipefail
           TOOLS_DIR="/home/runner/harmonyos-sdk/command-line-tools"
-
           cd "$TOOLS_DIR"
-
-          echo "Remove incomplete hvigor..."
           rm -rf hvigor
-
-          echo "Download full hvigor..."
           HVIGOR_ZIP="$RUNNER_TEMP/harmonyos-hvigor-full.zip"
+          echo "Download full hvigor from authorized source..."
           curl -L --fail --retry 3 --retry-delay 5 -o "$HVIGOR_ZIP" "$HARMONYOS_FULL_URL"
-
-          echo "Unzip full hvigor..."
           unzip -oq "$HVIGOR_ZIP" -d "$TOOLS_DIR"
-
-          echo "Check patched hvigor..."
           find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
           find "$TOOLS_DIR/hvigor" -name "platform-sdks.js" | head -20
 
       - name: Locate HarmonyOS SDK
         shell: bash
         run: |
-          echo "HOS_SDK_HOME=$HOS_SDK_HOME"
-          echo "Listing HarmonyOS SDK..."
-          find /home/runner/harmonyos-sdk -maxdepth 6 -type d | sort || true
-
           SDK_BASE="/home/runner/harmonyos-sdk"
-
           echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
           echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
           echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$PATH" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
-
-          echo "DEVECO_SDK_HOME=$SDK_BASE"
-          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE"
-          echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools"
-          echo "DEVECO_NODE_EXE=$(command -v node)"
-          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}"
           node -v
 
       - name: Debug env
@@ -251,7 +218,6 @@ jobs:
           echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
           echo "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"
           echo "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"
-          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}"
           echo "RUSTDESK_CORE_URL empty? $([ -z "$RUSTDESK_CORE_URL" ] && echo yes || echo no)"
           echo "RUSTDESK_CORE_SHA256 empty? $([ -z "$RUSTDESK_CORE_SHA256" ] && echo yes || echo no)"
           echo "RUSTDESK_SIGNING_ZIP_B64 empty? $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo yes || echo no)"
@@ -262,22 +228,18 @@ jobs:
           HARMONY_ARTIFACTS_DIR: ${{ runner.temp }}/rustdesk_harmonyos_artifacts
         run: |
           chmod +x scripts/github_build_harmonyos_linux.sh
-
           args=(
             "--artifact-type" "$ARTIFACT_TYPE"
             "--version-bump" "$VERSION_BUMP"
             "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"
             "--abi-filter" "${{ matrix.abi }}"
           )
-
           if [ "$PREFLIGHT_ONLY" = "true" ]; then
             args+=("--preflight-only")
           fi
-
           if [ "$SKIP_PACKAGE_VERIFY" = "true" ]; then
             args+=("--skip-package-verify")
           fi
-
           scripts/github_build_harmonyos_linux.sh "${args[@]}"
 
       - name: Upload HarmonyOS artifacts
