@@ -1,10 +1,10 @@
 {
   "name": "entry",
   "version": "1.0.0",
-  "description": "Entry module for RustDesk HarmonyOS application",
+  "description": "Entry module for the independent AGPL-licensed RustDesk-compatible HarmonyOS client",
   "main": "index.ets",
-  "author": "",
-  "license": "AGPL-3.0",
+  "author": "liyan-lucky and contributors",
+  "license": "AGPL-3.0-only",
   "dependencies": {
     "librustdesk_bridge.so": "file:./src/main/cpp/types/librustdesk_bridge"
   }
