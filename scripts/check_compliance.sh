@@ -47,7 +47,7 @@ fi
 scan_targets=(
   .github/workflows/build-harmonyos.yml
   .github/workflows/build-harmonyos-linux.yml
-  scripts
+  scripts/README.md
   docs/HARMONYOS_TOOLCHAIN.md
   COMPLIANCE.md
 )
