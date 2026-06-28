@@ -1,0 +1,44 @@
+# Text normalization
+* text=auto
+
+# Build artifacts and binaries
+*.hap binary
+*.app binary
+*.app.zip binary
+*.a binary
+*.so binary
+*.dll binary
+*.dylib binary
+*.exe binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.tar.gz binary
+*.tgz binary
+*.rar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+
+# Exclude local/build-only material from generated source archives when possible
+.local_sdk/ export-ignore
+.hvigor/ export-ignore
+entry/build/ export-ignore
+**/build/ export-ignore
+node_modules/ export-ignore
+oh_modules/ export-ignore
+**/oh_modules/ export-ignore
+signing/ export-ignore
+backup_*/ export-ignore
+*.log export-ignore
+*.tmp export-ignore
+*.bak export-ignore
+*.hap export-ignore
+*.app export-ignore
+*.app.zip export-ignore
+*.a export-ignore
+*.so export-ignore
+*.zip export-ignore
+*.7z export-ignore
