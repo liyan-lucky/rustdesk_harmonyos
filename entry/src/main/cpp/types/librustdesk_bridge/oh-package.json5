@@ -1,6 +1,8 @@
 {
   "name": "librustdesk_bridge.so",
   "types": "./index.d.ts",
-  "version": "",
-  "description": "RustDesk native bridge module"
+  "version": "1.0.0",
+  "description": "Native bridge module for the independent RustDesk-compatible HarmonyOS client",
+  "author": "liyan-lucky and contributors",
+  "license": "AGPL-3.0-only"
 }
