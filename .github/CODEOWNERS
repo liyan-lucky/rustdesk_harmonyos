@@ -1,0 +1,24 @@
+# Sensitive areas requiring owner review
+
+/.github/workflows/ @liyan-lucky
+/.github/dependabot.yml @liyan-lucky
+/LICENSE @liyan-lucky
+/NOTICE @liyan-lucky
+/COMPLIANCE.md @liyan-lucky
+/THIRD_PARTY_NOTICES.md @liyan-lucky
+/TRADEMARKS.md @liyan-lucky
+/PRIVACY.md @liyan-lucky
+/SECURITY.md @liyan-lucky
+/CONTRIBUTING.md @liyan-lucky
+/SOURCE_OFFER.md @liyan-lucky
+/RELEASE_COMPLIANCE_CHECKLIST.md @liyan-lucky
+/docs/HARMONYOS_TOOLCHAIN.md @liyan-lucky
+/docs/LEGAL_AUDIT.md @liyan-lucky
+/docs/RELEASE_ARTIFACT_POLICY.md @liyan-lucky
+/docs/SUPPLY_CHAIN.md @liyan-lucky
+/docs/SBOM_POLICY.md @liyan-lucky
+/docs/ASSET_PROVENANCE.md @liyan-lucky
+/entry/src/main/cpp/ @liyan-lucky
+/entry/src/main/libs/ @liyan-lucky
+/entry/src/main/resources/ @liyan-lucky
+/scripts/ @liyan-lucky
