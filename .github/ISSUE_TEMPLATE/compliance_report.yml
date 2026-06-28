@@ -1,0 +1,43 @@
+name: Compliance report
+description: Report a license, attribution, trademark, privacy, or redistribution concern
+title: "[Compliance]: "
+labels: ["compliance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For security vulnerabilities, use the private security reporting path in SECURITY.md instead of a public issue.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - License
+        - Third-party attribution
+        - Trademark / branding
+        - Privacy / user data
+        - SDK or toolchain redistribution
+        - Release artifact / source availability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Describe the concern and point to the file, release, dependency, or artifact involved.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested_fix
+    attributes:
+      label: Suggested remediation
+    validations:
+      required: false
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Sensitive information check
+      options:
+        - label: This report does not include private credentials, keys, tokens, or unredacted personal data.
+          required: true
