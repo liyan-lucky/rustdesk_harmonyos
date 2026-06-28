@@ -26,7 +26,7 @@ Some scripts may recreate `99_Temp/harmonyos_stage/<project name>` or `99_Temp/r
 - `audit_full_function_rounds.ps1`: repeatable full-function static/package audit. It checks connection flow, retry/reset handling, LAN discovery, native core metadata, quality info display, service wrappers, GitHub packaging files, and optional HAP/APP artifacts. Use `-Rounds 100` after broad connection-chain changes. It writes `reports/full_function_audit_latest.md`.
 - `github_build_harmonyos.ps1`: GitHub Actions/self-hosted HAP-only build entry. It has `-PreflightOnly` for DevEco SDK, signing, native core completeness, native core size, and optional SHA256 checks before packaging. By default it builds from a staged copy under `99_Temp` and writes only HAP artifacts to `99_Temp/harmonyos_artifacts/<project name>`.
 - `github_build_harmonyos_linux.sh`: Linux GitHub Actions HAP-only build entry used by `.github/workflows/build-harmonyos.yml`. It builds from a staged copy, downloads/verifies the native core, produces HAP artifacts, and writes them to the workflow artifact directory.
-- `.github/workflows/build-harmonyos.yml`: current Linux online package workflow. It builds and uploads HAP only, downloads the split SDK packages (`harmonyos-sdk-full.zip` and `harmonyos-hvigor-full.zip`), downloads `RUSTDESK_CORE_URL`/`RUSTDESK_CORE_X86_64_URL` or the default latest core URLs, and verifies SHA256 values only when configured. Workflow inputs are `version_bump`, `skip_package_verify`, and `publish_release`.
+- `.github/workflows/build-harmonyos.yml`: current Linux online package workflow. It builds and uploads HAP only. HarmonyOS SDK and hvigor/toolchain archives must come from authorized `HARMONYOS_SDK_URL` and `HARMONYOS_FULL_URL` secrets or repository variables; public SDK/toolchain fallback URLs are intentionally not documented or used. It downloads `RUSTDESK_CORE_URL`/`RUSTDESK_CORE_X86_64_URL` or the default latest core URLs, and verifies SHA256 values only when configured. Workflow inputs are `version_bump`, `skip_package_verify`, and `publish_release`.
 
 ## Native core helpers
 
@@ -69,11 +69,14 @@ The Windows HAP entry points set `CI=true`, `RUSTDESK_HARMONY_TEMP_ROOT`, and `B
 
 The repository root should stay portable by default. `run_hvigor_with_sdk_patch.js` may write absolute build/cache paths while the wrapper is running, but it restores portable `../99_Temp/...` paths on exit. If DevEco Studio sync fails on relative paths, run `powershell -ExecutionPolicy Bypass -File scripts\switch_deveco_paths.ps1 -Mode DevEco`, verify signing, then run `-Mode Portable` before committing or handing the project to another machine.
 
-The online Linux workflow uses these default artifact URLs unless secrets or repository variables override them:
+## Online toolchain compliance
 
-- `HARMONYOS_SDK_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-sdk-full/harmonyos-sdk-full.zip`
-- `HARMONYOS_HVIGOR_URL=https://github.com/liyan-lucky/rustdesk_harmonyos/releases/download/harmonyos-hvigor-full/harmonyos-hvigor-full.zip`
-- `RUSTDESK_CORE_URL=https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a`
+The online Linux workflow requires these values to be configured as GitHub Secrets or repository Variables:
+
+- `HARMONYOS_SDK_URL`
+- `HARMONYOS_FULL_URL`
+
+These URLs must point to SDK/toolchain archives that the repository owner is authorized to use. Do not document, commit, or publish public fallback URLs for proprietary SDK/toolchain redistribution unless redistribution rights are verified. See `docs/HARMONYOS_TOOLCHAIN.md`.
 
 Release upload rule: upload only `.hap`. Do not create APP, `.app.zip`, `manifest.json`, or `SHA256SUMS.txt` in the online workflow.
 
