@@ -1,45 +1,60 @@
-name: Cleanup GitHub History
+name: 清理 GitHub 运行记录和标签
 
 on:
   workflow_dispatch:
     inputs:
-      execute:
-        description: "Actually delete selected items. False means dry-run only."
+      execute_mode:
+        description: "执行模式：默认只预览，不删除；选择执行删除才会真正清理"
         required: true
-        default: false
-        type: boolean
+        default: "预览不删除"
+        type: choice
+        options:
+          - "预览不删除"
+          - "执行删除"
       clean_runs:
-        description: "Clean GitHub Actions workflow run records."
+        description: "Actions 运行记录：是否清理其他脚本/流程的运行记录"
         required: true
-        default: true
-        type: boolean
+        default: "清理运行记录"
+        type: choice
+        options:
+          - "清理运行记录"
+          - "不清理运行记录"
       clean_tags:
-        description: "Clean Git tags."
+        description: "Git 标签：是否清理已发布的所有标签"
         required: true
-        default: true
-        type: boolean
+        default: "清理标签"
+        type: choice
+        options:
+          - "清理标签"
+          - "不清理标签"
       delete_releases:
-        description: "Also delete GitHub Releases and release assets. Dangerous; default false."
+        description: "Release 发布内容：默认保留；只有选择删除发布内容才会删除 Release 和附件"
         required: true
-        default: false
-        type: boolean
+        default: "保留发布内容"
+        type: choice
+        options:
+          - "保留发布内容"
+          - "删除发布内容"
       failed_only:
-        description: "For workflow runs, delete only failed/cancelled/timed_out runs."
+        description: "运行记录范围：清理全部运行记录，还是只清理失败/取消/超时记录"
         required: true
-        default: false
-        type: boolean
+        default: "清理全部运行记录"
+        type: choice
+        options:
+          - "清理全部运行记录"
+          - "只清理失败取消超时"
       max_runs:
-        description: "Maximum workflow runs to delete. Empty means no limit."
+        description: "最多清理多少条运行记录：留空表示不限制"
         required: false
         default: ""
         type: string
       keep_latest_tags:
-        description: "Number of latest tags to keep. 0 means keep none."
+        description: "保留最新几个标签：0 表示不保留，默认清理全部标签"
         required: false
         default: "0"
         type: string
       keep_tag_pattern:
-        description: "Regex for tags to keep, for example ^v[0-9]+\\."
+        description: "按规则保留标签：可填正则，例如 ^v[0-9]+\\.；留空表示不按规则保留"
         required: false
         default: ""
         type: string
@@ -50,18 +65,18 @@ permissions:
 
 jobs:
   cleanup:
-    name: Cleanup GitHub Actions runs and tags
+    name: 清理 Actions 运行记录和 Git 标签
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Checkout
+      - name: 拉取仓库
         uses: actions/checkout@v4
 
-      - name: Run cleanup script
+      - name: 执行清理脚本
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_EXECUTE: ${{ inputs.execute }}
+          INPUT_EXECUTE_MODE: ${{ inputs.execute_mode }}
           INPUT_CLEAN_RUNS: ${{ inputs.clean_runs }}
           INPUT_CLEAN_TAGS: ${{ inputs.clean_tags }}
           INPUT_DELETE_RELEASES: ${{ inputs.delete_releases }}
@@ -75,23 +90,23 @@ jobs:
 
           args=(--repo "$GITHUB_REPOSITORY" --exclude-run-id "$GITHUB_RUN_ID")
 
-          if [ "$INPUT_EXECUTE" = "true" ]; then
+          if [ "$INPUT_EXECUTE_MODE" = "执行删除" ]; then
             args+=(--yes)
           fi
 
-          if [ "$INPUT_CLEAN_RUNS" != "true" ]; then
+          if [ "$INPUT_CLEAN_RUNS" = "不清理运行记录" ]; then
             args+=(--no-runs)
           fi
 
-          if [ "$INPUT_CLEAN_TAGS" != "true" ]; then
+          if [ "$INPUT_CLEAN_TAGS" = "不清理标签" ]; then
             args+=(--no-tags)
           fi
 
-          if [ "$INPUT_DELETE_RELEASES" = "true" ]; then
+          if [ "$INPUT_DELETE_RELEASES" = "删除发布内容" ]; then
             args+=(--delete-releases)
           fi
 
-          if [ "$INPUT_FAILED_ONLY" = "true" ]; then
+          if [ "$INPUT_FAILED_ONLY" = "只清理失败取消超时" ]; then
             args+=(--failed-only)
           fi
 
@@ -107,4 +122,5 @@ jobs:
             args+=(--keep-tag-pattern "$INPUT_KEEP_TAG_PATTERN")
           fi
 
+          echo "即将执行参数：${args[*]}"
           bash scripts/cleanup_github_history.sh "${args[@]}"
