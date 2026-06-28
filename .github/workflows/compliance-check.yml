@@ -1,0 +1,92 @@
+name: Compliance Check
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compliance:
+    name: Repository compliance guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Required compliance files
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            LICENSE
+            NOTICE
+            COMPLIANCE.md
+            THIRD_PARTY_NOTICES.md
+            TRADEMARKS.md
+            PRIVACY.md
+            SECURITY.md
+            CONTRIBUTING.md
+            SOURCE_OFFER.md
+            RELEASE_COMPLIANCE_CHECKLIST.md
+            docs/HARMONYOS_TOOLCHAIN.md
+            docs/LEGAL_AUDIT.md
+            docs/ASSET_PROVENANCE.md
+            docs/RELEASE_ARTIFACT_POLICY.md
+          )
+          missing=0
+          for f in "${required[@]}"; do
+            if [ ! -s "$f" ]; then
+              echo "Missing required compliance file: $f"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Package metadata license check
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '"license"[[:space:]]*:[[:space:]]*"AGPL-3.0-only"' oh-package.json5
+          grep -q '"license"[[:space:]]*:[[:space:]]*"AGPL-3.0-only"' entry/oh-package.json5
+          grep -q '"license"[[:space:]]*:[[:space:]]*"AGPL-3.0-only"' entry/src/main/cpp/types/librustdesk_bridge/oh-package.json5
+
+      - name: Block restricted committed artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          blocked_regex='\.(hap|app|app\.zip|p12|pfx|jks|keystore|pem|key|p7b|p7s|profile|provisionprofile)$|(^|/)(harmonyos-sdk-full|harmonyos-hvigor-full|DevEco|HarmonyOS|OpenHarmony|command-line-tools|sdk-full|hvigor).*(\.zip|\.7z|\.tar|\.tar\.gz|\.tgz)$'
+          if git ls-files | grep -E -i "$blocked_regex"; then
+            echo "Blocked artifact or sensitive file is tracked. Remove it from the repository."
+            exit 1
+          fi
+
+      - name: Block public HarmonyOS toolchain fallbacks in workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n -E 'releases/download/harmonyos-(sdk|hvigor)-full|harmonyos-sdk-full\.zip|harmonyos-hvigor-full\.zip|HARMONYOS_HVIGOR_URL' .github/workflows scripts docs/HARMONYOS_TOOLCHAIN.md COMPLIANCE.md 2>/dev/null; then
+            echo "Public HarmonyOS SDK/hvigor fallback or old variable found in active workflow/script/compliance docs. Use authorized HARMONYOS_SDK_URL and HARMONYOS_FULL_URL only."
+            exit 1
+          fi
+
+      - name: Block obvious secret names in tracked files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E -i '(^|/)(.*secret.*|.*token.*|.*password.*|.*private.*)\.(txt|json|yaml|yml|env|ini|properties)$'; then
+            echo "Tracked file name looks sensitive. Rename/remove it or document why it is safe."
+            exit 1
+          fi
+
+      - name: Show compliance status
+        shell: bash
+        run: |
+          echo "Compliance guard passed."
