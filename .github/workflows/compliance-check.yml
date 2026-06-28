@@ -40,6 +40,8 @@ jobs:
             docs/LEGAL_AUDIT.md
             docs/ASSET_PROVENANCE.md
             docs/RELEASE_ARTIFACT_POLICY.md
+            docs/SUPPLY_CHAIN.md
+            docs/SBOM_POLICY.md
           )
           missing=0
           for f in "${required[@]}"; do
@@ -68,11 +70,18 @@ jobs:
             exit 1
           fi
 
-      - name: Block public HarmonyOS toolchain fallbacks in workflows
+      - name: Block public HarmonyOS toolchain fallbacks in active build docs
         shell: bash
         run: |
           set -euo pipefail
-          if grep -R -n -E 'releases/download/harmonyos-(sdk|hvigor)-full|harmonyos-sdk-full\.zip|harmonyos-hvigor-full\.zip|HARMONYOS_HVIGOR_URL' .github/workflows scripts docs/HARMONYOS_TOOLCHAIN.md COMPLIANCE.md 2>/dev/null; then
+          scan_targets=(
+            .github/workflows/build-harmonyos.yml
+            .github/workflows/build-harmonyos-linux.yml
+            scripts
+            docs/HARMONYOS_TOOLCHAIN.md
+            COMPLIANCE.md
+          )
+          if grep -R -n -E 'releases/download/harmonyos-(sdk|hvigor)-full|harmonyos-sdk-full\.zip|harmonyos-hvigor-full\.zip|HARMONYOS_HVIGOR_URL' "${scan_targets[@]}" 2>/dev/null; then
             echo "Public HarmonyOS SDK/hvigor fallback or old variable found in active workflow/script/compliance docs. Use authorized HARMONYOS_SDK_URL and HARMONYOS_FULL_URL only."
             exit 1
           fi
