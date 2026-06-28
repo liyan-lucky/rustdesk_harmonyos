@@ -1,0 +1,11 @@
+version = 1
+
+[[annotations]]
+path = ["**/*.md", "**/*.json5", "**/*.yml", "**/*.yaml", "**/*.ps1", "**/*.bat", "**/*.cmd", "**/*.sh", "**/*.ets", "**/*.ts", "**/*.cpp", "**/*.h", "**/*.js", "**/*.d.ts"]
+SPDX-FileCopyrightText = "2026 liyan-lucky and contributors"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = ["entry/src/main/resources/rawfile/*.svg", "entry/src/main/resources/base/media/*", "entry/src/main/resources/base/profile/*"]
+SPDX-FileCopyrightText = "2026 liyan-lucky and contributors or respective asset owners"
+SPDX-License-Identifier = "AGPL-3.0-only"
