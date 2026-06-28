@@ -43,6 +43,8 @@ Some scripts may recreate `99_Temp/harmonyos_stage/<project name>` or `99_Temp/r
 - `clean_project.ps1`: Windows cleanup for generated project artifacts. Use `-IncludeExternalBuild` to also remove `99_Temp/harmonyos_build/<project name>` and `99_Temp/harmonyos_stage/<project name>`; add `-IncludeHvigorCache` only when you explicitly need to remove `99_Temp/harmonyos_cache`.
 - `backup_project.ps1`: Windows project backup helper. It derives `%VSCODE_ROOT%` from the current project location, writes zip backups under `%VSCODE_ROOT%/99_Temp/rustdesk_harmonyos_backups`, and keeps the latest 2 archives.
 - `clean_project_artifacts.sh`: Linux/macOS cleanup for generated project artifacts.
+- `cleanup_github_history.sh`: GitHub remote cleanup helper for workflow run records and Git tags. It is dry-run by default, keeps GitHub Releases/assets by default, and deletes releases only when `--delete-releases` is explicitly passed. See `docs/GITHUB_HISTORY_CLEANUP.md`.
+- `check_compliance.sh`: local compliance guard mirroring the GitHub Actions compliance check.
 - `stage_project_for_build.ps1`: Copies a clean build snapshot into `99_Temp/harmonyos_stage/<project name>` and rewrites only the staged signing paths so root config can stay portable.
 - `sync_build_version_from_stage.ps1`: Copies `AppScope/app.json5` and `BuildInfo.ets` from the staged build back to the real project after a successful build.
 - `check_harmony_signing_profile.ps1`: signing preflight used by the HAP staging helper.
