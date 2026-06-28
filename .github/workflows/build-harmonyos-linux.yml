@@ -244,7 +244,7 @@ jobs:
 
       - name: 上传 HarmonyOS 构建产物
         if: ${{ inputs['只检查环境'] != true }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: harmonyos-hap-${{ matrix.abi }}
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap

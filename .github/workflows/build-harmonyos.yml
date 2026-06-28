@@ -250,7 +250,7 @@ jobs:
             $([ "$SKIP_PACKAGE_VERIFY" = "true" ] && echo --skip-package-verify)
 
       - name: 上传 HarmonyOS 构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: harmonyos-hap-${{ matrix.abi }}
           path: ${{ runner.temp }}/rustdesk_harmonyos_artifacts/*.hap
