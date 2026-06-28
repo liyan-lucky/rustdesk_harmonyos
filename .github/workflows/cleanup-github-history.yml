@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: 拉取仓库
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 执行清理脚本
         env:
