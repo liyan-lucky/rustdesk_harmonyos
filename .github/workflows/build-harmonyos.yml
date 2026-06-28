@@ -308,7 +308,7 @@ jobs:
           ls -lh "$RUNNER_TEMP/release_files/"
 
       - name: 创建 GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: ${{ env.RELEASE_NAME }}
