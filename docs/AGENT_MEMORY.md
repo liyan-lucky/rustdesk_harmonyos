@@ -626,3 +626,31 @@
 - 密码卡片必须跟随 `avoidKeyboardHeight` 上移。虚拟机原按钮范围 `y=1809..1875`，软键盘从 `y=1757` 开始，确认点击实际被输入法吞掉；修复后按钮位于 `y=1501..1567`。
 - ID 建议列表必须完全悬浮并覆盖下方内容，不得参与普通布局或挤压 Tab/列表。不要把它挂在整个连接面板 `.overlay(...)` 上；应使用 `Stack + position`，把候选框宽度严格截到输入文本区，候选自身使用 `HitTestMode.Block`，清除/连接命令区保持更高 zIndex 且位于候选命中矩形之外。
 - 2026-06-20 本地验证：arm64 core `130,756,888` bytes / SHA256 `1C7B47D058525C21E5EF53F61CD68CD99C9CD1C07FEA04F00FCE815979EAC4D6`；x86_64 core `129,523,566` bytes / SHA256 `67C4E0E726E236073826D85FA704E42889AF8BAC665BC58C6A88ED7333797B04`；signed HAP `33,964,454` bytes / SHA256 `1373FA150AF4B049A3F5F6F56BBB2098F22B1B5613DB1C6D428090A1856D0AD0`。连接链审计 `71 PASS`，100 轮全功能审计每轮 `106 PASS / 1 SKIP`（未请求 APP 包）。
+
+## 2026-06-28 外接鼠标输入 + 触摸滚动优化
+
+### 新增功能
+- **外接鼠标输入支持**：RemoteControl.ets 的触摸覆盖层 Column 上添加了 `.onMouse()`、`.onHover()`、`.onAxisEvent()` 事件处理
+  - `handlePreviewMouse()`：处理鼠标移动（Hover/Move → MOVE|MOTION）、按键（Press/Release → LEFT/RIGHT/MIDDLE_DOWN/UP）
+  - `handlePreviewAxis()`：处理鼠标滚轮（AxisAction.BEGIN/UPDATE + getVerticalAxisValue() 累积到阈值 1.0 才发送一次 WHEEL 事件）
+  - `handlePreviewHover()`：鼠标悬停事件（已移除 hasPointerPosition 重置，避免影响触摸）
+
+### 关键发现与修复
+- **MouseAction.Scroll 不存在**：ArkUI 组件层的 `MouseAction` 枚举只有 Press/Release/Move/Hover/ENTER_WINDOW/LEAVE_WINDOW/CANCEL，没有 Scroll。滚轮必须用 `onAxisEvent` + `AxisEvent.getVerticalAxisValue()` 处理（API 17+）
+- **MouseEvent 没有 ticks 属性**：ArkUI 组件层的 `MouseEvent` 没有 ticks/scrollDelta/deltaY，滚轮数据只能通过 `AxisEvent` 获取
+- **触摸滚动过快**：原触摸滚动阈值 20px 就发送一次完整 WHEEL 事件（y=±120），导致触摸移动一点画面就滚到底。修复：直接触摸滚动阈值 20→60px，双指手势滚动阈值 16→60px
+- **鼠标滚轮累积器**：`onAxisEvent` 的 `getVerticalAxisValue()` 可能返回连续小数值（触控板），需要 `axisScrollAccumulator` 累积到 `AXIS_SCROLL_THRESHOLD=1.0` 才发送一次，`AxisAction.END/CANCEL` 时重置
+- **onHover 不影响触摸**：`handlePreviewHover` 中 `hasPointerPosition = false` 会影响正在进行的触摸操作，已移除
+
+### 构建验证
+- arm64-v8a HAP: 18.69 MB ✅
+- x86_64 HAP: 19.53 MB ✅
+- 连接链审计: 82 PASS / 0 FAIL / 2 SKIP ✅
+- 虚拟机 APP 存活验证: 截图 111KB ✅
+- 暗色主题: 所有页面无白色背景 ✅
+
+### 经验教训
+- HarmonyOS 鼠标事件分两层：ArkUI 组件层（onMouse/onHover/onAxisEvent）和多模输入层（@ohos.multimodalInput.mouseEvent）。组件层没有 Scroll action，滚轮必须用 onAxisEvent
+- `resolveMouseInput()` 中 WHEEL_UP 固定 y=-120、WHEEL_DOWN 固定 y=120（Windows WHEEL_DELTA），触摸滚动需要按比例缩放阈值
+- 构建 HAP 时 SignHap 会失败（密码不匹配），需手动签名。unsigned HAP 在 `harmonyos_stage\99_Temp\harmonyos_build` 路径下而非直接 `harmonyos_build`
+- PowerShell `Start-Process -RedirectStandardError` 可以捕获编译器的 stderr 输出，`2>&1 | Out-File` 会吞掉部分错误

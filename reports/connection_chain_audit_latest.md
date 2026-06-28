@@ -1,6 +1,6 @@
 ﻿# Connection Chain Audit
 
-- Generated: 2026-06-26 05:08:44
+- Generated: 2026-06-28 06:31:47
 - Project: E:\Visual_Studio_Code\11_Rustdesk_harmonyos
 - HAP: not found
 - Summary: 82 PASS, 0 FAIL, 2 SKIP
@@ -14,10 +14,10 @@
 | 5 | PASS | App profile exists | AppScope\app.json5 |
 | 6 | PASS | Entry build profile exists | entry\build-profile.json5 |
 | 7 | PASS | Native core archive exists | E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\libs\arm64\librustdesk_core.a |
-| 8 | PASS | Native core archive size is plausible | 133495306 bytes |
+| 8 | PASS | Native core archive size is plausible | 133500296 bytes |
 | 9 | PASS | CoreBuildInfo exists | entry\src\main\ets\common\CoreBuildInfo.ets |
-| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=133495306 |
-| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=90A28361F8A7801E66B0854334490F6B340BEA26C95E3BC4C666D6C665078337 |
+| 10 | PASS | CoreBuildInfo size matches native core | FILE_SIZE=133500296 |
+| 11 | PASS | CoreBuildInfo SHA256 matches native core | HASH_SHA256=6F89F77D8A032340EBC4C8D89F7EA1370F17239844ECB8B848AAC335631F1CD4 |
 | 12 | PASS | CMake declares rustdesk_bridge shared library | entry\src\main\cpp\CMakeLists.txt matches add_library\(\s*rustdesk_bridge\s+SHARED |
 | 13 | PASS | CMake links static native core archive | entry\src\main\cpp\CMakeLists.txt matches librustdesk_core\.a |
 | 14 | PASS | CMake does not link time_service_ndk | entry\src\main\cpp\CMakeLists.txt does not match forbidden pattern |
@@ -87,7 +87,7 @@
 | 78 | PASS | Terminal persistence uses the official option key | entry\src\main\ets\pages\Index.ets matches applySessionAndLocalToggleOption\('terminal-persistent' |
 | 79 | PASS | Unsupported Harmony default display options are hidden | entry\src\main\ets\pages\Index.ets does not match forbidden pattern |
 | 80 | PASS | Clipboard toggle controls the local monitor lifecycle | entry\src\main\ets\pages\RemoteControl.ets matches toggleClipboardSync[\s\S]{0,700}stopMonitoring\(\)[\s\S]{0,250}startMonitoring\(\) |
-| 81 | PASS | x86_64 native core archive exists and is plausible | 131336988 bytes |
-| 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=131336988 |
-| 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=E587465E245DDA662A30110FC3FDEA139A2962295A4D73DCAAEEC9384FF18CE4 |
+| 81 | PASS | x86_64 native core archive exists and is plausible | 130807338 bytes |
+| 82 | PASS | CoreBuildInfo x86_64 size matches native core | X86_64_FILE_SIZE=130807338 |
+| 83 | PASS | CoreBuildInfo x86_64 SHA256 matches native core | X86_64_HASH_SHA256=B81F6768B69A722D8DF9006DF258FF26441BE89383CA45F57BF8A1E4CC3D9C7B |
 | 84 | PASS | Online HAP workflows cannot silently use stale core secrets | both workflows default to latest and accept explicit URL/SHA256 inputs |

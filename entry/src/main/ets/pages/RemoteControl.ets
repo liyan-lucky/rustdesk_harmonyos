@@ -155,6 +155,8 @@ struct RemoteControl {
   private leftButtonActive: boolean = false;
   private directTouchScrollMode: boolean = false;
   private directTouchLastY: number = 0;
+  private axisScrollAccumulator: number = 0;
+  private readonly AXIS_SCROLL_THRESHOLD: number = 1.0;
   private readonly SCROLL_THRESHOLD: number = 10;
   private gestureActive: boolean = false;
   private gestureStartDistance: number = 0;
@@ -732,6 +734,15 @@ struct RemoteControl {
                 .height('100%')
                 .onTouch((event: TouchEvent) => {
                   this.handlePreviewTouch(event);
+                })
+                .onMouse((event: MouseEvent) => {
+                  this.handlePreviewMouse(event);
+                })
+                .onHover((isHover: boolean) => {
+                  this.handlePreviewHover(isHover);
+                })
+                .onAxisEvent((event: AxisEvent) => {
+                  this.handlePreviewAxis(event);
                 });
             }
             .width('100%')
@@ -1463,6 +1474,7 @@ struct RemoteControl {
               .selectedOptionBgColor(this.theme_ACCENT)
               .selectedOptionFontColor(this.theme_ACCENT_TEXT)
               .menuBackgroundColor(this.theme_CARD_BG)
+              .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
               .onSelect((index: number, _value?: string) => {
                 this.applyDisplayScaleMode(index);
               })
@@ -1608,6 +1620,7 @@ struct RemoteControl {
               .selectedOptionBgColor(this.theme_ACCENT)
               .selectedOptionFontColor(this.theme_ACCENT_TEXT)
               .menuBackgroundColor(this.theme_CARD_BG)
+              .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
               .onSelect((index: number, _value?: string) => {
                 this.applyVideoCodec(index);
               })
@@ -4682,7 +4695,7 @@ struct RemoteControl {
             this.panOffsetX = this.gestureStartPanX + (center.x - this.gestureStartCenterX);
             this.panOffsetY = this.gestureStartPanY + (center.y - this.gestureStartCenterY);
             this.stopPanSpringBack();
-          } else if (this.hasPointerPosition && Math.abs(center.y - this.lastGestureCenterY) >= 16) {
+          } else if (this.hasPointerPosition && Math.abs(center.y - this.lastGestureCenterY) >= 60) {
             const scrollDown = center.y > this.lastGestureCenterY;
             const wheelMask = scrollDown
               ? (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN)
@@ -4856,7 +4869,7 @@ struct RemoteControl {
         }
         if (this.directTouchScrollMode) {
           const scrollDeltaY = touch.y - this.directTouchLastY;
-          if (Math.abs(scrollDeltaY) >= 20) {
+          if (Math.abs(scrollDeltaY) >= 60) {
             const scrollDown = scrollDeltaY > 0;
             const wheelMask = scrollDown
               ? (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN)
@@ -4886,6 +4899,87 @@ struct RemoteControl {
     }
 
     this.sendRemoteMouseMask(MOUSE_MASK.MOVE | MOUSE_MASK.MOTION, activeTouch.x, activeTouch.y, event.type);
+  }
+
+  private handlePreviewMouse(event: MouseEvent): void {
+    if (this.viewMode) {
+      return;
+    }
+    if (!this.hasRenderedFrame()) {
+      return;
+    }
+
+    const mappedPoint = this.mapTouchToRemote(event.x, event.y, false);
+    if (mappedPoint === null) {
+      return;
+    }
+
+    this.updatePointerPosition(mappedPoint);
+
+    if (event.action === MouseAction.Hover || event.action === MouseAction.Move) {
+      this.sendRemoteMouseMask(MOUSE_MASK.MOVE | MOUSE_MASK.MOTION, mappedPoint.x, mappedPoint.y, TouchType.Move);
+      return;
+    }
+
+    if (event.action === MouseAction.Press || event.action === MouseAction.Release) {
+      const isPress = event.action === MouseAction.Press;
+      let mask = MOUSE_MASK.MOVE | MOUSE_MASK.MOTION;
+
+      if (event.button === MouseButton.Left) {
+        mask |= isPress ? MOUSE_MASK.LEFT_DOWN : MOUSE_MASK.LEFT_UP;
+      } else if (event.button === MouseButton.Right) {
+        mask |= isPress ? MOUSE_MASK.RIGHT_DOWN : MOUSE_MASK.RIGHT_UP;
+      } else if (event.button === MouseButton.Middle) {
+        mask |= isPress ? MOUSE_MASK.MIDDLE_DOWN : MOUSE_MASK.MIDDLE_UP;
+      } else if (event.button === MouseButton.Back) {
+        mask |= isPress ? MOUSE_MASK.LEFT_DOWN : MOUSE_MASK.LEFT_UP;
+      } else if (event.button === MouseButton.Forward) {
+        mask |= isPress ? MOUSE_MASK.LEFT_DOWN : MOUSE_MASK.LEFT_UP;
+      } else {
+        mask = isPress ? MOUSE_MASK.LEFT_DOWN : MOUSE_MASK.LEFT_UP;
+      }
+
+      this.sendRemoteMouseMask(mask, mappedPoint.x, mappedPoint.y, isPress ? TouchType.Down : TouchType.Up);
+      this.maybeRequestVideoRefresh(true);
+      return;
+    }
+
+  }
+
+  private handlePreviewHover(isHover: boolean): void {
+    if (this.viewMode) {
+      return;
+    }
+  }
+
+  private handlePreviewAxis(event: AxisEvent): void {
+    if (this.viewMode) {
+      return;
+    }
+    if (!this.hasRenderedFrame()) {
+      return;
+    }
+
+    const mappedPoint = this.mapTouchToRemote(event.x, event.y, false);
+    if (mappedPoint === null) {
+      return;
+    }
+
+    if (event.action === AxisAction.BEGIN || event.action === AxisAction.UPDATE) {
+      const verticalDelta = event.getVerticalAxisValue();
+      this.axisScrollAccumulator += verticalDelta;
+      if (Math.abs(this.axisScrollAccumulator) >= this.AXIS_SCROLL_THRESHOLD) {
+        const scrollDown = this.axisScrollAccumulator < 0;
+        const wheelMask = scrollDown
+          ? (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN)
+          : (this.reverseScroll ? MOUSE_MASK.WHEEL_DOWN : MOUSE_MASK.WHEEL_UP);
+        this.sendRemoteMouseMask(wheelMask, mappedPoint.x, mappedPoint.y, TouchType.Move);
+        this.maybeRequestVideoRefresh(true);
+        this.axisScrollAccumulator = 0;
+      }
+    } else if (event.action === AxisAction.END || event.action === AxisAction.CANCEL) {
+      this.axisScrollAccumulator = 0;
+    }
   }
 
   private static readonly HARMONY_TO_VK: Record<number, number> = {

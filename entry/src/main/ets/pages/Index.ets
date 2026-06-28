@@ -5769,6 +5769,7 @@ struct Index {
                 .selectedOptionBgColor(this.theme_ACCENT)
                 .selectedOptionFontColor(this.theme_ACCENT_TEXT)
                 .menuBackgroundColor(this.theme_CARD_BG)
+                .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
                 .onSelect((index: number, _value?: string) => {
                   this.applyDefaultDisplayScaleMode(index);
                 })
@@ -5821,6 +5822,7 @@ struct Index {
                 .selectedOptionBgColor(this.theme_ACCENT)
                 .selectedOptionFontColor(this.theme_ACCENT_TEXT)
                 .menuBackgroundColor(this.theme_CARD_BG)
+                .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
                 .onSelect((index: number, _value?: string) => {
                   this.applyImageQualityModeIndex(index);
                 })
@@ -5892,6 +5894,7 @@ struct Index {
                 .selectedOptionBgColor(this.theme_ACCENT)
                 .selectedOptionFontColor(this.theme_ACCENT_TEXT)
                 .menuBackgroundColor(this.theme_CARD_BG)
+                .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
                 .onSelect((index: number, _value?: string) => {
                   this.applyDefaultCodecMode(index);
                 })
