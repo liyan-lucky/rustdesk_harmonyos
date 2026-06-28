@@ -1,0 +1,20 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rustdesk_harmonyos
+Source: https://github.com/liyan-lucky/rustdesk_harmonyos
+
+Files: *
+Copyright: 2026 liyan-lucky and contributors
+License: AGPL-3.0-only
+
+Files: LICENSE
+Copyright: 2007 Free Software Foundation, Inc.
+License: FSFAP
+
+Files: NOTICE COMPLIANCE.md THIRD_PARTY_NOTICES.md TRADEMARKS.md PRIVACY.md SECURITY.md docs/*.md .github/**/*.yml
+Copyright: 2026 liyan-lucky and contributors
+License: AGPL-3.0-only
+
+Comment:
+  This file provides repository-level licensing metadata for files that do
+  not yet contain individual SPDX headers. When adding third-party files,
+  prefer file-level SPDX identifiers and update THIRD_PARTY_NOTICES.md.
