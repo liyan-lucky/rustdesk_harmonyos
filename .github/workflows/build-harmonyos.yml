@@ -67,8 +67,9 @@ jobs:
       RUSTDESK_CORE_X86_64_URL: ${{ inputs['x86_64核心下载地址'] || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a' }}
       RUSTDESK_CORE_X86_64_SHA256: ${{ inputs['x86_64核心SHA256'] || '' }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
-      HARMONYOS_SDK_URL: ${{ secrets.HARMONYOS_SDK_URL || vars.HARMONYOS_SDK_URL }}
-      HARMONYOS_FULL_URL: ${{ secrets.HARMONYOS_FULL_URL || vars.HARMONYOS_FULL_URL }}
+      SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+      SDK_TAG: linux_command_line_tool_6.1.1
+      SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
 
     steps:
       - name: 拉取仓库
@@ -90,42 +91,65 @@ jobs:
       - name: 安装系统工具
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip zip curl jq python3 rsync
+          sudo apt-get install -y unzip zip p7zip-full curl jq python3 rsync
 
       - name: 设置基础 HarmonyOS SDK
         uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
         with:
           version: 2.0.0.2
 
-      - name: 校验授权工具链输入
+      - name: 校验 SDK Token 输入
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.HARMONYOS_SDK_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -z "${HARMONYOS_SDK_URL:-}" ]; then
-            echo "缺少 HARMONYOS_SDK_URL。请在 Secret 或 Variable 中配置授权 SDK 压缩包地址。"
-            exit 1
-          fi
-          if [ -z "${HARMONYOS_FULL_URL:-}" ]; then
-            echo "缺少 HARMONYOS_FULL_URL。请在 Secret 或 Variable 中配置授权 hvigor/toolchain 压缩包地址。"
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "缺少 HARMONYOS_SDK_TOKEN。请在仓库 Secrets 中配置可读取私有 SDK 仓库的 Token。"
             exit 1
           fi
 
       - name: 安装完整 HarmonyOS SDK
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.HARMONYOS_SDK_TOKEN }}
         run: |
           set -euo pipefail
           shopt -s nullglob
 
           SDK_BASE="/home/runner/harmonyos-sdk"
-          SDK_ZIP="$RUNNER_TEMP/authorized-sdk.zip"
+          SDK_ARCHIVE="$RUNNER_TEMP/$SDK_ASSET"
           SDK_EXTRACT="$RUNNER_TEMP/authorized-sdk"
+          TOOLS_DIR="$SDK_BASE/command-line-tools"
 
           rm -rf "$SDK_EXTRACT"
           mkdir -p "$SDK_EXTRACT"
 
-          echo "从授权来源下载完整 HarmonyOS SDK..."
-          curl -L --fail --retry 3 --retry-delay 5 -o "$SDK_ZIP" "$HARMONYOS_SDK_URL"
-          unzip -oq "$SDK_ZIP" -d "$SDK_EXTRACT"
+          echo "从私有 SDK 仓库下载完整 HarmonyOS SDK：$SDK_REPO / $SDK_TAG / $SDK_ASSET"
+          gh release download "$SDK_TAG" \
+            --repo "$SDK_REPO" \
+            --pattern "$SDK_ASSET" \
+            --dir "$RUNNER_TEMP"
+
+          if [ ! -f "$SDK_ARCHIVE" ]; then
+            echo "SDK 资产未下载成功：$SDK_ARCHIVE"
+            ls -la "$RUNNER_TEMP"
+            exit 1
+          fi
+
+          echo "解压完整 HarmonyOS SDK..."
+          case "$SDK_ASSET" in
+            *.zip)
+              unzip -oq "$SDK_ARCHIVE" -d "$SDK_EXTRACT"
+              ;;
+            *.7z)
+              7z x -y "$SDK_ARCHIVE" -o"$SDK_EXTRACT"
+              ;;
+            *)
+              echo "不支持的 SDK 压缩包格式：$SDK_ASSET"
+              exit 1
+              ;;
+          esac
 
           SDK_SOURCE=""
           for candidate in \
@@ -134,7 +158,8 @@ jobs:
             "$SDK_EXTRACT"/default \
             "$SDK_EXTRACT"/sdk/default \
             "$SDK_EXTRACT"/*/default \
-            "$SDK_EXTRACT"/*/sdk/default
+            "$SDK_EXTRACT"/*/sdk/default \
+            "$SDK_EXTRACT"/*/*/sdk/default
           do
             if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then
               SDK_SOURCE="$candidate"
@@ -143,12 +168,34 @@ jobs:
           done
 
           if [ -z "$SDK_SOURCE" ]; then
+            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
+          fi
+
+          if [ -z "$SDK_SOURCE" ]; then
             echo "未能在压缩包中定位 SDK 根目录。"
             find "$SDK_EXTRACT" -maxdepth 5 -type f | sort | head -120
             exit 1
           fi
 
+          TOOLS_SOURCE=""
+          for candidate in \
+            "$SDK_EXTRACT"/command-line-tools \
+            "$SDK_EXTRACT"/*/command-line-tools \
+            "$SDK_EXTRACT"/*/*/command-line-tools
+          do
+            if [ -d "$candidate" ]; then
+              TOOLS_SOURCE="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$TOOLS_SOURCE" ]; then
+            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type d -name command-line-tools -print -quit || true)
+          fi
+
+          rm -rf "$SDK_BASE"
           mkdir -p "$SDK_BASE"
+
           move_sdk_item() {
             local source_path="$1"
             local target_path="$2"
@@ -166,11 +213,17 @@ jobs:
           fi
           move_sdk_item "$SDK_SOURCE/sdk-pkg.json" "$SDK_BASE/sdk-pkg.json"
 
+          if [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then
+            rm -rf "$TOOLS_DIR"
+            mkdir -p "$(dirname "$TOOLS_DIR")"
+            mv "$TOOLS_SOURCE" "$TOOLS_DIR"
+          fi
+
           if [ ! -e "$SDK_BASE/HarmonyOS-6.1.1" ] && [ -d "$SDK_BASE/hms" ]; then
             ln -s hms "$SDK_BASE/HarmonyOS-6.1.1"
           fi
 
-          rm -f "$SDK_ZIP"
+          rm -f "$SDK_ARCHIVE"
           rm -rf "$SDK_EXTRACT"
           chmod +x "$SDK_BASE/openharmony/toolchains"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/toolchains"/* 2>/dev/null || true
@@ -179,24 +232,13 @@ jobs:
           chmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true
+          chmod +x "$TOOLS_DIR"/ohpm/bin/* 2>/dev/null || true
+          chmod +x "$TOOLS_DIR"/hvigor/bin/* 2>/dev/null || true
 
           test -f "$SDK_BASE/sdk-pkg.json"
           test -x "$SDK_BASE/openharmony/toolchains/restool"
           test -d "$SDK_BASE/openharmony/native"
-
-      - name: 安装完整 hvigor
-        shell: bash
-        run: |
-          set -euo pipefail
-          TOOLS_DIR="/home/runner/harmonyos-sdk/command-line-tools"
-          cd "$TOOLS_DIR"
-          rm -rf hvigor
-          HVIGOR_ZIP="$RUNNER_TEMP/authorized-hvigor.zip"
-          echo "从授权来源下载完整 hvigor..."
-          curl -L --fail --retry 3 --retry-delay 5 -o "$HVIGOR_ZIP" "$HARMONYOS_FULL_URL"
-          unzip -oq "$HVIGOR_ZIP" -d "$TOOLS_DIR"
-          find "$TOOLS_DIR/hvigor" -name "hvigorw.js" | head -20
-          find "$TOOLS_DIR/hvigor" -name "platform-sdks.js" | head -20
+          test -d "$TOOLS_DIR"
 
       - name: 定位 HarmonyOS SDK
         shell: bash
