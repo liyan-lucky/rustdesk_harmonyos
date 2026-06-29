@@ -22,26 +22,6 @@ on:
         required: true
         default: true
         type: boolean
-      arm64核心下载地址:
-        description: "arm64 核心下载地址；留空使用最新 Release"
-        required: false
-        default: ""
-        type: string
-      arm64核心SHA256:
-        description: "arm64 核心 SHA256；留空不校验"
-        required: false
-        default: ""
-        type: string
-      x86_64核心下载地址:
-        description: "x86_64 核心下载地址；留空使用最新 Release"
-        required: false
-        default: ""
-        type: string
-      x86_64核心SHA256:
-        description: "x86_64 核心 SHA256；留空不校验"
-        required: false
-        default: ""
-        type: string
 
 permissions:
   contents: write
@@ -62,10 +42,6 @@ jobs:
       VERSION_BUMP: ${{ inputs['版本号处理'] == '完整版本' && 'full' || inputs['版本号处理'] == '不改版本' && 'none' || 'incremental' }}
       PREFLIGHT_ONLY: "false"
       SKIP_PACKAGE_VERIFY: ${{ inputs['跳过包验证'] || true }}
-      RUSTDESK_CORE_URL: ${{ inputs['arm64核心下载地址'] || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a' }}
-      RUSTDESK_CORE_SHA256: ${{ inputs['arm64核心SHA256'] || '' }}
-      RUSTDESK_CORE_X86_64_URL: ${{ inputs['x86_64核心下载地址'] || 'https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a' }}
-      RUSTDESK_CORE_X86_64_SHA256: ${{ inputs['x86_64核心SHA256'] || '' }}
       RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
       SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
       SDK_TAG: linux_command_line_tool_6.1.1
@@ -274,8 +250,6 @@ jobs:
           echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
           echo "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"
           echo "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"
-          echo "RUSTDESK_CORE_URL 是否为空？ $([ -z "$RUSTDESK_CORE_URL" ] && echo 是 || echo 否)"
-          echo "RUSTDESK_CORE_SHA256 是否为空？ $([ -z "$RUSTDESK_CORE_SHA256" ] && echo 是 || echo 否)"
           echo "RUSTDESK_SIGNING_ZIP_B64 是否为空？ $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo 是 || echo 否)"
 
       - name: 构建 HAP
