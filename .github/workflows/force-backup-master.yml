@@ -44,7 +44,7 @@ jobs:
 
       - name: 检出 master
         if: steps.confirm.outputs.should_run == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           fetch-depth: 0
