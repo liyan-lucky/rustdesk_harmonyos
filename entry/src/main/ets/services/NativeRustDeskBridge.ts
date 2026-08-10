@@ -1923,6 +1923,7 @@ export class NativeRustDeskBridge {
       kind.startsWith('lan-') ||
       kind === 'cursor_position' ||
       kind === 'cursor_data' ||
+      kind === 'cursor_id' ||
       kind === 'display' ||
       kind === 'switch-display') {
       return;

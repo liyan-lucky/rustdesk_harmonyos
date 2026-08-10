@@ -501,7 +501,8 @@ export class OfficialRustDeskBridge {
       kind !== 'display' &&
       kind !== 'switch-display' &&
       kind !== 'cursor_position' &&
-      kind !== 'cursor_data';
+      kind !== 'cursor_data' &&
+      kind !== 'cursor_id';
   }
 
   private mapTransportPeerId(peerId: string): string {
