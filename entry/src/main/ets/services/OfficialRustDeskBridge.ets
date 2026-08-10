@@ -3,6 +3,7 @@ import { AppContextService } from './AppContextService';
 import { AppDataService, EffectiveServerConfig, LocalDeviceProfile, SettingsState } from './AppDataService';
 import { NativeBridgeSnapshot, NativeRustDeskBridge, NativeSessionEvent } from './NativeRustDeskBridge';
 import { OfficialSessionTextFormatter } from './OfficialSessionTextFormatter';
+import { Logger } from '../common/Logger';
 
 export interface OfficialCoreState {
   adapter: 'native-stub' | 'official-native';
@@ -165,6 +166,7 @@ export class OfficialRustDeskBridge {
     settings: SettingsState,
     displayPeerId?: string
   ): Promise<void> {
+    Logger.info('Bridge', `connectToPeer peerId=${peerId} displayPeerId=${displayPeerId ?? ''} coreReady=${this.state.coreReady}`);
     this.closeRequestedByUser = false;
     this.lastTerminalEventSignature = '';
     const requestedPeerId = peerId.trim();
@@ -554,6 +556,7 @@ export class OfficialRustDeskBridge {
   }
 
   private applyEventToState(event: OfficialSessionEvent): void {
+    Logger.debug('Bridge', `applyEventToState kind=${event.kind} stage=${this.state.sessionStage} activePeer=${this.state.activePeerId}`);
     if (event.kind === 'connect-requested' ||
       event.kind === 'login-requested' ||
       event.kind === 'login' ||

@@ -1,5 +1,52 @@
 # 功能进度与优化方向
 
+## 2026-08-10 触摸交互系统重构 + 虚拟鼠标控制功能
+
+### 新增功能
+
+1. **触摸交互系统重构**：
+   - `TouchActionConfig.ets`：7 项手势配置（单击/长按/滑动/短按拖动/长按拖动/双指开合/双指平移）
+   - `TouchInteractionManager.ets`：触摸交互状态机管理器
+   - `RemoteControl.ets` 触摸设置：RadioOptionItem 模式，三列布局，弹出式滑条和动作选择
+
+2. **虚拟鼠标覆盖层**：
+   - 虚拟光标：十字线 + 空心圆（蓝色描边 + 透明填充），clip 到 `getVisibleImageBounds()`
+   - 摇杆：左下角 100px 底座 + 44px 旋钮，最大半径 28px
+   - 摇杆 touch ID 跟踪：`joystickTouchId` 在 Down 时存储，Move/Up 时按 ID 查找
+   - 摇杆双模式：默认移动光标，按住 P 按钮切换为画面平移
+   - 摇杆速度可调：1-20 滑条，公式 `joystickSpeed / 12.5`，持久化 `joystick-speed`
+   - 光标到边缘自动平移：excess 转化为 panOffset，松开摇杆 `startPanSpringBack()` 回弹
+   - 按钮：L/R/M/P 菱形布局（靠右边缘），各 52px
+
+3. **悬浮工具栏**：
+   - 收起状态：60×48px，`<>` 图标（iconoir nav-arrow-left/right）
+   - 展开状态：`min(previewWidth-16, 380)` 宽，`><` 图标
+   - 拖拽不误展开：`toolbarTouchStartX/Y` 总位移 > 5px 不切换
+   - 位置持久化：`toolbar-side` 和 `toolbar-y`
+
+4. **鼠标控制菜单**：
+   - 内联 Row 替换 RadioOptionItem，菜单宽度 260px
+   - 鼠标设置：标题「鼠标设置」+ 三个滑条（灵敏度、滚动速度、摇杆速度）
+   - 灵敏度和滚动速度固化保存：启动时从 `getLocalOption` 加载
+
+5. **连接日志系统**：`Logger.ets` 统一日志工具类，关于页面「详细连接日志」开关
+
+6. **I18n 翻译**：所有新增字符串的中英文翻译
+
+### 关键修复
+
+- **摇杆卡住**：触摸过滤用坐标范围 [0,100] 不可靠 → 改用 `joystickTouchId` 跟踪
+- **光标超出画面**：clip 用容器尺寸 → 改用 `getVisibleImageBounds()` 计算实际渲染区域
+- **画面飞走**：`getVisibleImageBounds()` 含 panOffset 导致正反馈循环 → 解耦为 `getCursorClampBounds()`（不含 panOffset）和 `getVisibleImageBounds()`（含 panOffset）
+- **回弹卡住**：早期 return 路径未调用 `startPanSpringBack()` → 已修复所有 return 路径
+- **RadioOptionItem 不更新**：`@Prop selected` 在 `@Builder` 内不实时更新 → 用内联 Row 替换
+
+### 状态
+
+- 代码修改完成，构建验证通过
+- 远程光标 UI 组件存在（RemoteCursor），但 Core cursor 回调为空，功能未完成
+- 待推送仓库上线
+
 ## 2026-06-28 外部鼠标输入 + 滚动优化 + sessionSendChat 修复
 
 ### 修改内容

@@ -2,6 +2,70 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-08-10 触摸交互重构 + 虚拟鼠标控制
+
+### 17. 摇杆触摸过滤用坐标范围 [0,100] 不可靠
+
+**现象**：手指拖动摇杆超出底座区域后，Move 事件的坐标超出 [0,100] 范围，触摸过滤失败，摇杆卡住不响应。
+
+**根因**：使用坐标范围过滤触摸事件，但手指超出组件区域后坐标会超出预期范围，导致过滤条件不满足。
+
+**解决**：改用 touch ID 跟踪。Down 时存储 `joystickTouchId`，Move/Up 时按 touch ID 查找对应触摸点，不依赖坐标范围。
+
+**教训**：触摸跟踪必须用 touch ID，不能用坐标范围过滤。手指可以超出组件边界，坐标范围不可靠。
+
+### 18. 光标限定范围含 panOffset 导致正反馈循环
+
+**现象**：摇杆移动光标到画面边缘时，画面飞走，无法恢复。
+
+**根因**：`getVisibleImageBounds()` 包含 panOffset，平移后边界变化。光标被限定到新的边界，再次平移又改变边界，形成正反馈循环。
+
+**解决**：解耦为两个函数：
+- `getCursorClampBounds()`：不含 panOffset（基础区域），用于光标限定
+- `getVisibleImageBounds()`：含 panOffset（可见区域），用于 clip 裁剪
+
+**教训**：光标限定范围不能含 panOffset，否则平移后边界变化导致正反馈循环。限定和裁剪要用不同的边界计算。
+
+### 19. 光标超出画面区域（fit 模式黑边）
+
+**现象**：光标可以移动到画面黑边区域，不在实际渲染画面内。
+
+**根因**：clip Stack 使用容器尺寸（previewWidth × previewHeight），但 fit 模式下渲染画面可能更小（有黑边），光标可以移到黑边区域。
+
+**解决**：用 `getVisibleImageBounds()` 计算实际渲染画面区域，光标 clip 到该区域。
+
+**教训**：容器尺寸不等于渲染画面尺寸，fit 模式可能有黑边。光标裁剪必须基于实际渲染区域。
+
+### 20. 回弹卡住（早期 return 路径未调用 startPanSpringBack）
+
+**现象**：摇杆松开后画面不回弹，停在偏移位置。
+
+**根因**：`handleJoystickTouch` 的 Up/Cancel 路径中，触点过滤失败时早期 return，未调用 `startPanSpringBack()`。
+
+**解决**：所有 return 路径都调用 `startPanSpringBack()`，Up/Cancel 时重置 `joystickTouchId = -1`。
+
+**教训**：所有早期 return 路径都必须执行清理和回弹逻辑，不能跳过。
+
+### 21. RadioOptionItem @Prop selected 在 @Builder 内不实时更新
+
+**现象**：鼠标控制菜单中 RadioOptionItem 的选中状态不随 `mouseControlMode` 变化更新。
+
+**根因**：`@Prop` 在 `@Builder` 方法内不实时响应父组件状态变化。
+
+**解决**：用内联 Row 替换 RadioOptionItem，直接绑定 `this.mouseControlMode`，选中状态立即更新。
+
+**教训**：`@Builder` 内的 `@Prop` 子组件不保证实时更新。需要实时响应的选中状态用内联组件直接绑定父状态。
+
+### 22. HitTestMode.Block 在 overlay Stack 上阻止子元素接收触摸
+
+**现象**：虚拟鼠标覆盖层的按钮无法接收触摸事件。
+
+**根因**：overlay Stack 设置 `HitTestMode.Block` 会阻止子元素接收触摸。
+
+**解决**：overlay Stack 不设置 `HitTestMode.Block`，子元素各自设置合适的 HitTestMode。
+
+**教训**：`HitTestMode.Block` 会阻止子元素接收触摸，overlay 层不要用 Block，让子元素自行处理。
+
 ## 2026-06-28 外部鼠标输入与 sessionSendChat 修复
 
 ### 14. MouseAction.Scroll 在 ArkUI 组件层不存在

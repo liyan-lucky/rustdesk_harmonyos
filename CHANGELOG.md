@@ -2,6 +2,48 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## Unreleased (2026-08-10 触摸交互重构 + 虚拟鼠标控制)
+
+### 新增功能
+
+- **触摸交互系统重构**：新增 `TouchActionConfig.ets` 和 `TouchInteractionManager.ets`，7 项手势可配置（单击/长按/滑动/短按拖动/长按拖动/双指开合/双指平移），每项可设置时长和动作。
+- **虚拟鼠标覆盖层**：
+  - 虚拟光标：十字线 + 空心圆（蓝色描边 + 透明填充），clip 到实际渲染画面区域。
+  - 摇杆：左下角 100px 底座 + 44px 旋钮，最大半径 28px，touch ID 跟踪（`joystickTouchId`）。
+  - 摇杆双模式：默认移动光标，按住 P 按钮切换为画面平移。
+  - 摇杆速度可调：1-20 滑条，公式 `joystickSpeed / 12.5`，持久化 `joystick-speed`。
+  - 光标到边缘自动平移：excess 转化为 panOffset，松开摇杆 `startPanSpringBack()` 回弹。
+  - 按钮：L/R/M/P 菱形布局（靠右边缘），各 52px。
+- **悬浮工具栏**：收起 60×48px（`<>` 图标），展开 `min(previewWidth-16, 380)` 宽（`><` 图标），拖拽吸边，位置持久化（`toolbar-side` / `toolbar-y`）。
+- **鼠标控制菜单**：内联 Row 替换 RadioOptionItem，菜单宽度 260px，鼠标设置面板（灵敏度/滚动速度/摇杆速度）。
+- **连接日志系统**：`Logger.ets` 统一日志工具类，关于页面「详细连接日志」开关。
+- **I18n 翻译**：所有新增字符串的中英文翻译。
+- **iconoir SVG 图标**：`nav-arrow-left.svg` / `nav-arrow-right.svg`。
+
+### 修复
+
+- **摇杆卡住**：触摸过滤用坐标范围 [0,100] 不可靠，手指超出后过滤失败。改用 `joystickTouchId` 跟踪。
+- **光标超出画面**：clip Stack 使用容器尺寸，但渲染画面可能更小（fit 模式黑边）。改用 `getVisibleImageBounds()` 计算实际渲染区域。
+- **画面飞走**：`getVisibleImageBounds()` 包含 panOffset，平移后边界变化导致正反馈循环。解耦为 `getCursorClampBounds()`（不含 panOffset，用于 clamp）和 `getVisibleImageBounds()`（含 panOffset，用于 clip）。
+- **回弹卡住**：触点过滤失败时早期 return 路径未调用 `startPanSpringBack()`。已修复所有 return 路径。
+- **RadioOptionItem 不更新**：`@Prop selected` 在 `@Builder` 内不实时更新。已用内联 Row 替换。
+
+### 新增文件
+
+- `entry/src/main/ets/common/TouchActionConfig.ets`
+- `entry/src/main/ets/common/TouchInteractionManager.ets`
+- `entry/src/main/ets/common/Logger.ets`
+- `entry/src/main/resources/rawfile/nav-arrow-left.svg`
+- `entry/src/main/resources/rawfile/nav-arrow-right.svg`
+- `PROJECT_STATUS.md`
+
+### 修改文件
+
+- `entry/src/main/ets/pages/RemoteControl.ets`（+1321 行，覆盖层/摇杆/按钮/工具栏/触摸处理/菜单/设置）
+- `entry/src/main/ets/pages/Index.ets`（连接日志）
+- `entry/src/main/ets/services/I18nService.ets`（新增翻译）
+- `entry/src/main/ets/services/OfficialRustDeskBridge.ets`（状态转换日志）
+
 ## 0.33.6 release candidate (2026-06-21 23:48)
 
 - Published and verified online on 2026-06-22: Core run `27920089950` / `core-34`; HAP run `27920708116` / `OpenRustdesk-Build-v0.33.6`. Final online signed HAP SHA256 is `3D2711AF46FFF6C999362431FFDC7855A485BBBC5BBC1ACE629FA885F8A4E35C`.

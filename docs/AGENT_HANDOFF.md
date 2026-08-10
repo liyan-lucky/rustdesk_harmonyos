@@ -7,6 +7,45 @@
 > x86_64 线上产物构建脚本修复：2026-06-25
 > 单架构 HAP 构建 + UI 优化 + 平移回弹：2026-06-27
 > 外部鼠标输入 + 滚动优化 + sessionSendChat 修复：2026-06-28
+> 触摸交互重构 + 虚拟鼠标控制：2026-08-10
+
+## 2026-08-10 触摸交互系统重构 + 虚拟鼠标控制功能
+
+### 已完成修改
+
+1. **触摸交互系统重构**：新增 `TouchActionConfig.ets` 和 `TouchInteractionManager.ets`，7 项手势可配置
+2. **虚拟鼠标覆盖层**：
+   - 虚拟光标（十字线 + 空心圆），clip 到 `getVisibleImageBounds()`
+   - 摇杆（100px 底座 + 44px 旋钮），touch ID 跟踪，速度可调（`joystickSpeed / 12.5`），双模式（光标/平移）
+   - 光标到边缘自动平移 + `startPanSpringBack()` 回弹
+   - L/R/M/P 菱形按钮（52px，靠右边缘）
+3. **悬浮工具栏**：收起/展开、拖拽吸边、位置持久化（`toolbar-side` / `toolbar-y`）
+4. **鼠标控制菜单**：内联 Row 替换 RadioOptionItem，菜单 260px，鼠标设置面板（3 滑条）
+5. **连接日志系统**：`Logger.ets`，关于页面「详细连接日志」开关
+6. **I18n 翻译**：所有新增字符串
+
+### 关键修复
+
+- 摇杆卡住：坐标范围过滤 → touch ID 跟踪
+- 光标超出画面：容器尺寸 → `getVisibleImageBounds()`
+- 画面飞走：`getVisibleImageBounds()` 含 panOffset 正反馈 → 解耦 `getCursorClampBounds()`（不含 panOffset）
+- 回弹卡住：早期 return 未调用 `startPanSpringBack()` → 已修复
+- RadioOptionItem 不更新：`@Prop` 在 `@Builder` 内不实时 → 内联 Row
+
+### 新增文件
+
+- `entry/src/main/ets/common/TouchActionConfig.ets`
+- `entry/src/main/ets/common/TouchInteractionManager.ets`
+- `entry/src/main/ets/common/Logger.ets`
+- `entry/src/main/resources/rawfile/nav-arrow-left.svg`
+- `entry/src/main/resources/rawfile/nav-arrow-right.svg`
+- `PROJECT_STATUS.md`
+
+### 待完成
+
+- 推送仓库上线并监控 CI 结果
+- 审计项目优化设计问题
+- 研究远程光标显示实现方案（当前 UI 组件存在，Core cursor 回调为空）
 
 ## 2026-06-28 外部鼠标输入 + 滚动优化 + sessionSendChat 修复
 

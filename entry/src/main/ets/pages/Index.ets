@@ -37,6 +37,7 @@ import { PermissionService } from '../services/PermissionService';
 import { PermissionStatus } from '../services/PermissionService';
 import { Permissions } from '@ohos.abilityAccessCtrl';
 import hilog from '@ohos.hilog';
+import { Logger } from '../common/Logger';
 import connection from '@ohos.net.connection';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
@@ -503,6 +504,7 @@ struct Index {
     }
   }
   @State isConnecting: boolean = false;
+  @State verboseLogEnabled: boolean = false;
   @State settings: SettingsState = this.appData.getSettings();
   @State draftIdServer: string = '';
   @State draftRelayServer: string = '';
@@ -657,6 +659,10 @@ struct Index {
     this.buildVersion = BuildInfo.VERSION;
     this.requestConnectTabFocus(100, 'connect-bottom-tab-btn');
     hilog.info(0xA03D00, 'CONN', 'onPageShow denyLanDiscovery=' + this.settings.denyLanDiscovery);
+    const verboseRaw = NativeRustDeskBridge.getLocalOption('verbose-connection-log').trim().toUpperCase();
+    this.verboseLogEnabled = verboseRaw === 'Y' || verboseRaw === 'YES' || verboseRaw === 'TRUE' || verboseRaw === '1';
+    Logger.setDebugEnabled(this.verboseLogEnabled);
+    Logger.info('CONN', `Index aboutToAppear verboseLog=${this.verboseLogEnabled}`);
     if (!this.settings.denyLanDiscovery) {
       LanDiscoveryService.getInstance().startDiscovery();
     }
@@ -1803,6 +1809,14 @@ struct Index {
           this.buildSettingsToggleSettingRow(this.lt('Debug Keep Screen Awake'), this.settings.debugKeepScreenAwake, (value: boolean) => {
             this.updateSettings({ debugKeepScreenAwake: value });
           }, '', true, 'settings_keepscreen.svg', false)
+          this.buildSettingsToggleSettingRow(this.lt('Verbose Connection Log'), this.verboseLogEnabled, (value: boolean) => {
+            this.verboseLogEnabled = value;
+            NativeRustDeskBridge.setLocalOption('verbose-connection-log', value ? 'Y' : 'N');
+            Logger.setDebugEnabled(value);
+            if (value) {
+              Logger.info('CONN', 'Verbose connection logging enabled by user');
+            }
+          }, '', true, 'settings_debug.svg', false)
           this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`, 'settings_info_circle.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Build Time'), this.buildTime, 'settings_timer.svg', '', true)
           Row({ space: ThemeConfig.SPACING_MD }) {
@@ -4245,20 +4259,25 @@ struct Index {
   private async handleConnect(overrideTargetId?: string): Promise<void> {
     this.cachedHostname = '';
     const targetId = this.sanitizeConnectionTargetInput(overrideTargetId ?? this.deviceId);
+    Logger.info('CONN', `handleConnect start targetId=${targetId} override=${overrideTargetId !== undefined}`);
     if (targetId.length === 0) {
       this.setStatusMessage("enter_id");
+      Logger.warn('CONN', 'handleConnect: empty targetId');
       return;
     }
     if (!this.isValidConnectionTarget(targetId)) {
       this.setStatusMessage("id_incorrect");
+      Logger.warn('CONN', `handleConnect: invalid targetId=${targetId}`);
       return;
     }
 
     this.selectLatestChatPeer(targetId);
     let coreState = await this.officialBridge.refresh(this.settings);
     this.officialCoreState = coreState;
+    Logger.debug('CONN', `handleConnect coreState: coreReady=${coreState.coreReady} stage=${coreState.sessionStage} activePeer=${coreState.activePeerId}`);
     if (!coreState.coreReady) {
       this.setStatusMessage("core_not_ready");
+      Logger.error('CONN', `handleConnect core not ready: ${JSON.stringify(coreState)}`);
       console.error('Core not ready:', JSON.stringify(coreState));
       return;
     }
@@ -4327,9 +4346,11 @@ struct Index {
     displayPeerId: string = transportTarget,
     password: string = ''
   ): Promise<boolean> {
+    Logger.info('CONN', `initiateBackgroundConnection start transport=${transportTarget} displayPeer=${displayPeerId} hasPassword=${password.length > 0}`);
     try {
       await this.officialBridge.connectToPeer(transportTarget, password, this.settings, displayPeerId);
       this.officialCoreState = this.officialBridge.getCoreState();
+      Logger.info('CONN', `initiateBackgroundConnection completed stage=${this.officialCoreState.sessionStage} activePeer=${this.officialCoreState.activePeerId}`);
       console.info('[Connect] Background connectToPeer completed');
       return true;
     } catch (error) {
@@ -6536,6 +6557,7 @@ struct Index {
   }
 
   private async handleConnectWithPassword(peerId: string, password: string): Promise<void> {
+    Logger.info('CONN', `handleConnectWithPassword peerId=${peerId} passwordLen=${password.length}`);
     this.pendingConnectionMonitorId += 1;
     this.pendingConnectionRetryCount = 0;
     this.pendingConnectionInactivePollCount = 0;
@@ -6628,6 +6650,7 @@ struct Index {
 
   private openRemoteControlForPendingSession(peerId: string, state: OfficialCoreState): void {
     const normalizedPeerId = peerId.trim();
+    Logger.info('CONN', `openRemoteControlForPendingSession peerId=${normalizedPeerId} stage=${state.sessionStage} detail=${state.detailMessage.substring(0, 100)}`);
     if (normalizedPeerId.length === 0) {
       return;
     }
@@ -6661,6 +6684,7 @@ struct Index {
 
   private async monitorConnectionWhileWaiting(): Promise<void> {
     const peerId = this.pendingPeerId.trim();
+    Logger.info('CONN', `monitorConnectionWhileWaiting start peerId=${peerId}`);
     if (peerId.length === 0) {
       return;
     }
@@ -6677,11 +6701,13 @@ struct Index {
       }
       this.syncPendingConnectionUi(state);
       if (state.sessionStage === 'connected') {
+        Logger.info('CONN', `monitor detected connected at poll ${i} peerId=${peerId}`);
         this.openRemoteControlForPendingSession(peerId, state);
         return;
       }
       if (state.sessionStage === 'error') {
         const errMsg = state.lastError || state.detailMessage;
+        Logger.error('CONN', `monitor detected error at poll ${i}: ${errMsg.substring(0, 200)}`);
         if (this.shouldPromptForPassword(errMsg)) {
           this.pendingConnectionInactivePollCount = 0;
           continue;
