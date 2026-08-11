@@ -177,8 +177,8 @@ jobs:
             ls -la "$TOOLS_SOURCE" | head -20
           fi
 
-          rm -rf "$SDK_BASE"
-          mkdir -p "$SDK_BASE"
+          # 不删除整个 SDK_BASE，因为 setup-harmonyos-sdk 已经安装了 command-line-tools
+          # 只覆盖 sdk/default 目录
 
           move_sdk_item() {
             local source_path="$1"
