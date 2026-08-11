@@ -157,6 +157,9 @@ jobs:
             exit 1
           fi
 
+          echo "找到 SDK_SOURCE: $SDK_SOURCE"
+          ls -la "$SDK_SOURCE"
+
           TOOLS_SOURCE=""
           for candidate in \
             "$SDK_EXTRACT"/command-line-tools \
@@ -173,6 +176,11 @@ jobs:
 
           if [ -z "$TOOLS_SOURCE" ]; then
             TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 3 -type d \( -name extract -o -name command-line-tools \) -print -quit || true)
+          fi
+
+          echo "找到 TOOLS_SOURCE: $TOOLS_SOURCE"
+          if [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then
+            ls -la "$TOOLS_SOURCE" | head -20
           fi
 
           rm -rf "$SDK_BASE"
@@ -223,6 +231,16 @@ jobs:
           chmod +x "$TOOLS_DIR"/ohpm/bin/* 2>/dev/null || true
           chmod +x "$TOOLS_DIR"/hvigor/bin/* 2>/dev/null || true
           chmod +x "$TOOLS_DIR"/tool/node/bin/node 2>/dev/null || true
+
+          echo "SDK_BASE 目录结构:"
+          ls -la "$SDK_BASE"
+
+          echo "TOOLS_DIR 目录结构:"
+          if [ -d "$TOOLS_DIR" ]; then
+            ls -la "$TOOLS_DIR" | head -20
+          else
+            echo "TOOLS_DIR 不存在: $TOOLS_DIR"
+          fi
 
           test -f "$SDK_BASE/sdk-pkg.json"
           test -x "$SDK_BASE/openharmony/toolchains/restool"
