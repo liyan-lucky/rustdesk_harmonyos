@@ -1,4 +1,4 @@
-name: 测试 HarmonyOS SDK Token
+name: 测试 HarmonyOS SDK Access
 
 on:
   workflow_dispatch:

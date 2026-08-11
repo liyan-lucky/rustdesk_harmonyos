@@ -135,7 +135,11 @@ jobs:
             "$SDK_EXTRACT"/sdk/default \
             "$SDK_EXTRACT"/*/default \
             "$SDK_EXTRACT"/*/sdk/default \
-            "$SDK_EXTRACT"/*/*/sdk/default
+            "$SDK_EXTRACT"/*/*/sdk/default \
+            "$SDK_EXTRACT"/extract \
+            "$SDK_EXTRACT"/*/extract \
+            "$SDK_EXTRACT"/extract/sdk/default \
+            "$SDK_EXTRACT"/*/extract/sdk/default
           do
             if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then
               SDK_SOURCE="$candidate"
@@ -144,7 +148,7 @@ jobs:
           done
 
           if [ -z "$SDK_SOURCE" ]; then
-            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
+            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 8 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
           fi
 
           if [ -z "$SDK_SOURCE" ]; then
@@ -157,7 +161,9 @@ jobs:
           for candidate in \
             "$SDK_EXTRACT"/command-line-tools \
             "$SDK_EXTRACT"/*/command-line-tools \
-            "$SDK_EXTRACT"/*/*/command-line-tools
+            "$SDK_EXTRACT"/*/*/command-line-tools \
+            "$SDK_EXTRACT"/extract \
+            "$SDK_EXTRACT"/*/extract
           do
             if [ -d "$candidate" ]; then
               TOOLS_SOURCE="$candidate"
@@ -166,7 +172,7 @@ jobs:
           done
 
           if [ -z "$TOOLS_SOURCE" ]; then
-            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type d -name command-line-tools -print -quit || true)
+            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 3 -type d \( -name extract -o -name command-line-tools \) -print -quit || true)
           fi
 
           rm -rf "$SDK_BASE"
@@ -190,9 +196,13 @@ jobs:
           move_sdk_item "$SDK_SOURCE/sdk-pkg.json" "$SDK_BASE/sdk-pkg.json"
 
           if [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then
-            rm -rf "$TOOLS_DIR"
-            mkdir -p "$(dirname "$TOOLS_DIR")"
-            mv "$TOOLS_SOURCE" "$TOOLS_DIR"
+            if [ "$(basename "$TOOLS_SOURCE")" = "extract" ] || [ "$(basename "$TOOLS_SOURCE")" = "command-line-tools" ]; then
+              rm -rf "$TOOLS_DIR"
+              mkdir -p "$(dirname "$TOOLS_DIR")"
+              mv "$TOOLS_SOURCE" "$TOOLS_DIR"
+            else
+              echo "警告：找到的工具目录不是 extract 或 command-line-tools，跳过移动：$TOOLS_SOURCE"
+            fi
           fi
 
           if [ ! -e "$SDK_BASE/HarmonyOS-6.1.1" ] && [ -d "$SDK_BASE/hms" ]; then
@@ -208,8 +218,11 @@ jobs:
           chmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true
+          chmod +x "$TOOLS_DIR"/bin/hvigorw 2>/dev/null || true
+          chmod +x "$TOOLS_DIR"/bin/ohpm 2>/dev/null || true
           chmod +x "$TOOLS_DIR"/ohpm/bin/* 2>/dev/null || true
           chmod +x "$TOOLS_DIR"/hvigor/bin/* 2>/dev/null || true
+          chmod +x "$TOOLS_DIR"/tool/node/bin/node 2>/dev/null || true
 
           test -f "$SDK_BASE/sdk-pkg.json"
           test -x "$SDK_BASE/openharmony/toolchains/restool"
@@ -224,7 +237,7 @@ jobs:
           echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
           echo "DEVECO_TOOLS_HOME=$SDK_BASE/command-line-tools" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
-          echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$PATH" >> "$GITHUB_ENV"
+          echo "PATH=$SDK_BASE/command-line-tools/bin:$SDK_BASE/command-line-tools/ohpm/bin:$SDK_BASE/command-line-tools/hvigor/bin:$SDK_BASE/command-line-tools/tool/node/bin:$PATH" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           node -v
 
