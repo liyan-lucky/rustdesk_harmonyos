@@ -334,6 +334,13 @@ if [[ ! -d "$SDK_ROOT/command-line-tools/hvigor/bin" ]]; then
   mkdir -p "$HVIGOR_DIR"
   cd "$HVIGOR_DIR"
   if [[ -f "$OHPM_BIN" ]]; then
+    cat > oh-package.json5 <<'EOF'
+{
+  "name": "hvigor-install",
+  "version": "1.0.0",
+  "dependencies": {}
+}
+EOF
     "$OHPM_BIN" install @ohos/hvigor@5.0.6 2>&1 || true
     "$OHPM_BIN" install @ohos/hvigor-ohos-plugin@5.0.6 2>&1 || true
   fi
