@@ -44,7 +44,6 @@ jobs:
       VERSION_BUMP: ${{ inputs['版本号处理'] == '完整版本' && 'full' || inputs['版本号处理'] == '不改版本' && 'none' || 'incremental' }}
       PREFLIGHT_ONLY: ${{ inputs['只检查环境'] || false }}
       SKIP_PACKAGE_VERIFY: ${{ inputs['跳过包验证'] || true }}
-      RUSTDESK_SIGNING_ZIP_B64: ${{ secrets.RUSTDESK_SIGNING_ZIP_B64 }}
       SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
       SDK_TAG: linux_command_line_tool_6.1.1
       SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
