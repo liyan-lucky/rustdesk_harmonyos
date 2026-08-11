@@ -76,7 +76,7 @@ jobs:
 
       - name: 初始化 ohpm
         run: |
-          /home/runner/harmonyos-sdk/command-line-tools/ohpm/init.sh
+          ls -la /home/runner/harmonyos-sdk/command-line-tools/ohpm/
 
       - name: 校验 SDK Token 输入
         shell: bash
