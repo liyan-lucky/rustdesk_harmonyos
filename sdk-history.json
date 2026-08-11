@@ -1,0 +1,117 @@
+﻿{
+  "schema_version": 1,
+  "description": "SD
+K 更新历史记录。后续 workflow 可在
+每次重打包或分析完成后追加版本
+、平台、文件大小、SHA256 和 Release
+ 信息。",
+  "history": [
+    {
+      "vers
+ion": "6.1.1.280",
+      "date": "2026-06-28"
+,
+      "platforms": [
+        "linux",
+     
+   "windows",
+        "mac"
+      ],
+      "s
+ource_config": "metadata/sdk-sources.json",
+ 
+     "release_tags": {
+        "linux": "linu
+x_harmonyos_command_line_tool_full",
+        
+"windows": "windows_harmonyos_command_line_to
+ol_full",
+        "mac": "mac_harmonyos_comma
+nd_line_tool_full"
+      },
+      "archive_fo
+rmat": "7z",
+      "status": "configured",
+  
+    "notes": "初始配置中心版本。当�
+��记录仅表示来源配置已登记，不�
+��表资产已经全部重新打包并上传�
+��成。"
+    },
+    {
+      "version": "6.1.
+1.280",
+      "platform": "mac",
+      "platf
+orm_name": "macOS",
+      "release_tag": "mac
+_command_line_tool_6.1.1",
+      "asset_name"
+: "mac-harmonyos-command-line-tool-full.7z",
+
+      "archive_format": "7z",
+      "sha256":
+ "37db29a8fc04054760459b5b858550d70f2aa8eed2c
+cbd7f82cb065fbd226482",
+      "size_bytes": 1
+259322707,
+      "updated_at": "2026-06-28T20
+:15:19.626305+00:00",
+      "source_config": 
+"metadata/sdk-download-urls.json",
+      "sta
+tus": "repacked_uploaded"
+    },
+    {
+      
+"version": "6.1.1.280",
+      "platform": "ma
+c",
+      "platform_name": "macOS",
+      "re
+lease_tag": "mac_command_line_tool_6.1.1",
+  
+    "asset_name": "mac-harmonyos-command-line
+-tool-full.7z",
+      "archive_format": "7z",
+
+      "sha256": "37db29a8fc04054760459b5b858
+550d70f2aa8eed2ccbd7f82cb065fbd226482",
+     
+ "size_bytes": 1259322707,
+      "updated_at"
+: "2026-06-28T22:22:11.467884+00:00",
+      "
+source_config": "metadata/sdk-download-urls.j
+son",
+      "status": "repacked_uploaded"
+   
+ },
+    {
+      "version": "6.1.1.280",
+     
+ "platform": "windows",
+      "platform_name"
+: "Windows",
+      "release_tag": "windows_co
+mmand_line_tool_6.1.1",
+      "asset_name": "
+windows-harmonyos-command-line-tool-full.7z",
+
+      "archive_format": "7z",
+      "sha256"
+: "a9fd9f00333c378af2ccbd5b62c5b93b09ce200126
+9dbd7595e0eced8e9481af",
+      "size_bytes": 
+1117538017,
+      "updated_at": "2026-06-29T0
+0:51:29.238515+00:00",
+      "source_config":
+ "metadata/sdk-download-urls.json",
+      "st
+atus": "repacked_uploaded"
+    }
+  ]
+}
+
+

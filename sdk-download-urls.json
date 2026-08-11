@@ -1,0 +1,36 @@
+﻿{
+  "schema_version": 1,
+  "description": "SD
+K 下载链接配置。后续升级 SDK 时�
+�优先只修改本文件中的三个 URL。�
+��本会从 URL 文件名自动提取版本�
+�并生成 Release Tag 和资产名。",
+  "u
+rls": {
+    "linux": "https://contentcenter-v
+ali-drcn.dbankcdn.cn/pvt_2/DeveloperAlliance_
+package_901_9/62/v3/RvvCGfpiRDKldePRc_d2Ng/co
+mmandline-tools-linux-x64-6.1.1.280.zip?HW-CC
+-KV=V1&HW-CC-Date=20260625T205109Z&HW-CC-Expi
+re=315360000&HW-CC-Sign=70F03413A5F0EF100FD9E
+591F8CA5BD800BFDB1E251F98E59F44932BF3116F95",
+
+    "windows": "https://contentcenter-vali-d
+rcn.dbankcdn.cn/pvt_2/DeveloperAlliance_packa
+ge_901_9/2d/v3/Uu9pN0UfS72za-sJYyQcuw/command
+line-tools-windows-x64-6.1.1.280.zip?HW-CC-KV
+=V1&HW-CC-Date=20260625T205220Z&HW-CC-Expire=
+315360000&HW-CC-Sign=1AEDF27ACF003593F05E3ECD
+68A24AFD620F64DF8B3FF361BAE4926EAFCA4D6C",
+  
+  "mac": "https://contentcenter-vali-drcn.dba
+nkcdn.cn/pvt_2/DeveloperAlliance_package_901_
+9/71/v3/d7NsvX-WS7i-Z3WAheW94w/commandline-to
+ols-mac-x64-6.1.1.280.zip?HW-CC-KV=V1&HW-CC-D
+ate=20260625T205229Z&HW-CC-Expire=315360000&H
+W-CC-Sign=921CDC6681F7F747DEFB781F641629F119E
+1B87DFBD7B98F4AF51B6CDAF69172"
+  }
+}
+
+

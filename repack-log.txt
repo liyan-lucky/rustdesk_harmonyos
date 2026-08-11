@@ -1,0 +1,302 @@
+﻿µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	∩╗┐2026-06-29T00:16:23.9848592Z Current runner version: '2.335.1'
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9886245Z ##[group]Runner Image Provisioner
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9887678Z Hosted Compute Agent
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9888576Z Version: 20260611.554
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9889664Z Commit: 5e0782fdc9014723d3be820dd114dd31555c2bd1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9891030Z Build Date: 2026-06-11T21:40:46Z
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9892100Z Worker ID: {355b0251-6d52-4d6f-8945-c58bd50bc129}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9893327Z Azure Region: centralus
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9894676Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9896978Z ##[group]Operating System
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9898363Z Ubuntu
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9899215Z 24.04.4
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9900096Z LTS
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9900921Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9901861Z ##[group]Runner Image
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9902904Z Image: ubuntu-24.04
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9903804Z Version: 20260622.220.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9906174Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260622.220/images/ubuntu/Ubuntu2404-Readme.md
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9908752Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260622.220
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9910369Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9912074Z ##[group]GITHUB_TOKEN Permissions
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9915967Z Contents: write
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9916937Z Metadata: read
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9918301Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9921561Z Secret source: Actions
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:23.9923104Z Prepare workflow directory
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:24.2010113Z Prepare all required actions
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:24.2182382Z Getting action download info
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:24.5348754Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.2475725Z Complete job name: µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3383792Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3395162Z ##[group]Run actions/checkout@v4
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3395930Z with:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3396421Z   fetch-depth: 0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3396975Z   repository: liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3402329Z   token: ***
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3402833Z   ssh-strict: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3403336Z   ssh-user: git
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3403842Z   persist-credentials: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3404554Z   clean: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3405055Z   sparse-checkout-cone-mode: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3405631Z   fetch-tags: false
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3406122Z   show-progress: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3406636Z   lfs: false
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3407177Z   submodules: false
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3407674Z   set-safe-directory: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.3408398Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4593292Z Syncing repository: liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4596733Z ##[group]Getting Git version info
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4598516Z Working directory is '/home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools'
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4600873Z [command]/usr/bin/git version
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4655021Z git version 2.54.0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4672790Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4692678Z Temporarily overriding HOME='/home/runner/work/_temp/6a49a3c4-2447-4479-bb0e-174dc5424530' before making global git config changes
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4695710Z Adding repository directory to the temporary git global config as a safe directory
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4699200Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4754402Z Deleting the contents of '/home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools'
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4762373Z ##[group]Initializing the repository
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4775953Z [command]/usr/bin/git init /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4854731Z hint: Using 'master' as the name for the initial branch. This default branch name
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4857397Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4859432Z hint: to use in all of your new repositories, which will suppress this warning,
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4861068Z hint: call:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4862039Z hint:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4863238Z hint: 	git config --global init.defaultBranch <name>
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4864850Z hint:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4866133Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4868105Z hint: 'development'. The just-created branch can be renamed via this command:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4869629Z hint:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4870528Z hint: 	git branch -m <name>
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4871888Z hint:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4873586Z hint: Disable this message with "git config set advice.defaultBranchName false"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4876505Z Initialized empty Git repository in /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools/.git/
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4880536Z [command]/usr/bin/git remote add origin https://github.com/liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4957522Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4959116Z ##[group]Disabling automatic garbage collection
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.4962103Z [command]/usr/bin/git config --local gc.auto 0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5002996Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5004908Z ##[group]Setting up auth
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5011290Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5052808Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5410609Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5448279Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5705830Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.5751273Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.6029109Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.6072885Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.6075160Z ##[group]Fetching the repository
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:25.6086138Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0577419Z From https://github.com/liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0579713Z  * [new branch]      compliance-hardening        -> origin/compliance-hardening
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0581971Z  * [new branch]      main                        -> origin/main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0584421Z  * [new tag]         linux_command_line_tool_6.1.1 -> linux_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0586694Z  * [new tag]         linux_ohos_sdk_min_6.1.1    -> linux_ohos_sdk_min_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0588822Z  * [new tag]         mac_command_line_tool_6.1.1 -> mac_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0591161Z  * [new tag]         windows_command_line_tool_6.1.1 -> windows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0593508Z  * [new tag]         windows_ohos_sdk_min_6.1.0  -> windows_ohos_sdk_min_6.1.0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0650655Z [command]/usr/bin/git branch --list --remote origin/main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0673486Z   origin/main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0685952Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0713261Z 795222f4a94ba779a0591fedab551c15d0d31ab9
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0719219Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0721519Z ##[group]Determining the checkout info
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0725231Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0727326Z [command]/usr/bin/git sparse-checkout disable
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0776593Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0815298Z ##[group]Checking out the ref
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0818622Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0927053Z Switched to a new branch 'main'
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0935794Z branch 'main' set up to track 'origin/main'.
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0944646Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.0993623Z [command]/usr/bin/git log -1 --format=%H
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1027756Z 795222f4a94ba779a0591fedab551c15d0d31ab9
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1309233Z ##[group]Run set -eu
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1310441Z ^[[36;1mset -eu^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1311491Z ^[[36;1msudo apt-get update^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1313038Z ^[[36;1msudo apt-get install -y p7zip-full unzip jq python3 curl^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1462067Z shell: /usr/bin/bash -e {0}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.1463368Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.3601113Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4035991Z Hit:6 https://packages.microsoft.com/repos/azure-cli noble InRelease
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4068503Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4106096Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4227465Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4277405Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.4346726Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.5634469Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [187 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.5677056Z Get:9 https://dl.google.com/linux/chrome-stable/deb stable InRelease [1825 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.6023256Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [156 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.7527801Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1041 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.7697024Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [261 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.7746543Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.7766273Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [17.5 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.7826574Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1656 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.8087360Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [326 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.8180324Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.8248005Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [34.8 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.8305185Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1134 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.8517282Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [257 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:26.9017161Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.0093069Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5776 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.0179526Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2326687Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [788 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2365859Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [179 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2383575Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [44.9 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2397181Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [11.6 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2425867Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1171 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2502365Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [229 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2545533Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2565183Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [24.1 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2607948Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1071 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.2726252Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [245 kB]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:27.4020164Z Get:34 https://dl.google.com/linux/chrome-stable/deb stable/main amd64 Packages [1210 B]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:32.8249319Z Fetched 9881 kB in 2s (5101 kB/s)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:33.6094477Z Reading package lists...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:33.6437975Z Reading package lists...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:33.8751095Z Building dependency tree...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:33.8774318Z Reading state information...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1370623Z p7zip-full is already the newest version (16.02+transitional.1).
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1371523Z unzip is already the newest version (6.0-28ubuntu4.1).
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1372337Z jq is already the newest version (1.7.1-3ubuntu0.24.04.2).
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1391580Z python3 is already the newest version (3.12.3-0ubuntu2.1).
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1394970Z curl is already the newest version (8.5.0-2ubuntu10.9).
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1396526Z 0 upgraded, 0 newly installed, 0 to remove and 11 not upgraded.
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1457923Z ##[group]Run set -eu
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1458218Z ^[[36;1mset -eu^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1458446Z ^[[36;1mtest -f "$CONFIG_FILE"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1458723Z ^[[36;1mjq empty "$CONFIG_FILE"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1459057Z ^[[36;1mif [ -f tools/metadata/validate_metadata.py ]; then^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1459476Z ^[[36;1m  python3 tools/metadata/validate_metadata.py^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1459781Z ^[[36;1mfi^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1496779Z shell: /usr/bin/bash -e {0}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1497085Z env:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1497320Z   CONFIG_FILE: metadata/sdk-sources.json
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1497610Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1866055Z SDK σàâµò░µì«µáíΘ¬îΘÇÜΦ┐çπÇé
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1938245Z ##[group]Run set -eu
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1938540Z ^[[36;1mset -eu^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1938809Z ^[[36;1mbash tools/repack/repack_command_line_tools.sh^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1972447Z shell: /usr/bin/bash -e {0}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1972729Z env:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1976500Z   GH_TOKEN: ***
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1976747Z   TARGET_PLATFORM: windows
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1977017Z   CONFIG_FILE: metadata/sdk-sources.json
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1977309Z   DELETE_OLD_ASSETS: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1977552Z   UPDATE_RELEASE_NOTES: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1977802Z   RUN_ANALYZER: true
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.1978049Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.2279100Z σ╝ÇσºïσñäτÉå∩╝ÜWindows / σ«îµò┤τëêµ£¼ 6.1.1.280 / µáçτ¡╛ windows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.2403984Z Σ╕ïΦ╜╜ SDK zip...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.2416014Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.2416997Z                                  Dload  Upload   Total   Spent    Left  Speed
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.2417782Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:34.9272205Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:35.9265800Z   0 2481M    0 1870k    0     0  2719k      0  0:15:34 --:--:--  0:15:34 2718k
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:36.9270378Z   8 2481M    8  205M    0     0   121M      0  0:00:20  0:00:01  0:00:19  121M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:37.9265026Z  16 2481M   16  417M    0     0   155M      0  0:00:15  0:00:02  0:00:13  155M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:38.9268867Z  25 2481M   25  628M    0     0   170M      0  0:00:14  0:00:03  0:00:11  170M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:39.9270056Z  33 2481M   33  840M    0     0   179M      0  0:00:13  0:00:04  0:00:09  179M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:40.9267268Z  42 2481M   42 1052M    0     0   184M      0  0:00:13  0:00:05  0:00:08  210M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:41.9271257Z  50 2481M   50 1263M    0     0   188M      0  0:00:13  0:00:06  0:00:07  211M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:42.9265347Z  59 2481M   59 1474M    0     0   191M      0  0:00:12  0:00:07  0:00:05  211M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:43.9275822Z  67 2481M   67 1686M    0     0   194M      0  0:00:12  0:00:08  0:00:04  211M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:44.9515017Z  76 2481M   76 1898M    0     0   195M      0  0:00:12  0:00:09  0:00:03  211M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:45.9601206Z  84 2481M   84 2091M    0     0   195M      0  0:00:12  0:00:10  0:00:02  206M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:46.9269231Z  89 2481M   89 2228M    0     0   190M      0  0:00:13  0:00:11  0:00:02  191M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:47.5093263Z  95 2481M   95 2357M    0     0   185M      0  0:00:13  0:00:12  0:00:01  176M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:47.5094464Z 100 2481M  100 2481M    0     0   186M      0  0:00:13  0:00:13 --:--:--  173M
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:16:47.5126097Z ΦºúσÄï SDK zip...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:17:57.5857178Z σ«₧ΘÖàµëôσîàτ¢«σ╜ò∩╝Ü/tmp/harmonyos-sdk-repack/windows/extracted/command-line-tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:17:57.5874982Z Θçìµû░µëôσîà 7z...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6142462Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6143361Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6144450Z  64-bit locale=C.UTF-8 Threads:2 OPEN_MAX:65536
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6145012Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6145281Z Scanning the drive:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6145794Z 8984 folders, 93448 files, 7572631315 bytes (7222 MiB)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6149003Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6160628Z Creating archive: /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools/repacked-assets/windows-harmonyos-command-line-tool-full.7z
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6161720Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6162192Z Add new data to archive: 8984 folders, 93448 files, 7572631315 bytes (7222 MiB)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6162845Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6162991Z 
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6163276Z Files read from disk: 93302
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6163814Z Archive size: 1117538017 bytes (1066 MiB)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:49.6164599Z Everything is Ok
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:51.3118306Z a9fd9f00333c378af2ccbd5b62c5b93b09ce2001269dbd7595e0eced8e9481af  /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools/repacked-assets/windows-harmonyos-command-line-tool-full.7z
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:51.7154387Z Release σ╖▓σ¡ÿσ£¿∩╝Üwindows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:51.7155914Z µ╕àτÉåµùºΦ╡äΣ║º∩╝Üwindows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:52.0381291Z σêáΘÖñµùºΦ╡äΣ║º∩╝Üwindows-harmonyos-command-line-tool-full.7z
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:52.5254348Z σêáΘÖñµùºΦ╡äΣ║º∩╝Üwindows-harmonyos-command-line-tool-full.7z.sha256
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:50:52.9738819Z Σ╕èΣ╝áσê░ Release∩╝Üwindows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:23.7411552Z https://github.com/liyan-lucky/HarmonyOS_SDK_Tools/releases/tag/windows_command_line_tool_6.1.1
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2041820Z {"tag": "windows_command_line_tool_6.1.1", "score": 100, "type": "full-command-line-sdk", "platform": "windows", "output": "/home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools/reports/windows_command_line_tool_6.1.1"}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2519544Z ##[group]Run set -eu
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2519850Z ^[[36;1mset -eu^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2520104Z ^[[36;1mgit config user.name "github-actions[bot]"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2520576Z ^[[36;1mgit config user.email "41898282+github-actions[bot]@users.noreply.github.com"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2521000Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2521359Z ^[[36;1mgit add metadata/sdk-history.json metadata/sdk-fingerprint.json reports || true^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2521768Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2521982Z ^[[36;1mif git diff --cached --quiet; then^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2522271Z ^[[36;1m  echo "µ▓íµ£ëτöƒµêÉσåàσ«╣Θ£ÇΦªüµÅÉΣ║ñπÇé"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2522506Z ^[[36;1m  exit 0^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2522699Z ^[[36;1mfi^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2522877Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2523137Z ^[[36;1mgit commit -m "docs: update SDK metadata and reports"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2523457Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2523639Z ^[[36;1mfor i in 1 2 3; do^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2524342Z ^[[36;1m  echo "τ¼¼ ${i} µ¼íσ░¥Φ»òσÉîµ¡Ñσ╣╢µÄ¿ΘÇü..."^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2524612Z ^[[36;1m  git fetch origin main^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2524941Z ^[[36;1m  if git rebase origin/main && git push origin HEAD:main; then^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2525288Z ^[[36;1m    echo "σàâµò░µì«σÆîµèÑσæèσ╖▓µÅÉΣ║ñπÇé"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2525515Z ^[[36;1m    exit 0^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2525713Z ^[[36;1m  fi^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2525901Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2526080Z ^[[36;1m  echo "µÄ¿ΘÇüσñ▒Φ┤Ñ∩╝îσçåσñçΘçìΦ»ò..."^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2526317Z ^[[36;1m  git rebase --abort || true^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2526566Z ^[[36;1m  sleep 5^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2526766Z ^[[36;1mdone^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2526948Z ^[[36;1m^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2527156Z ^[[36;1mecho "σñÜµ¼íµÄ¿ΘÇüΣ╗ìσñ▒Φ┤Ñ∩╝îΦ»╖µúÇµƒÑµÿ»σÉªµ£ëσ╣╢σÅæµÅÉΣ║ñµêûσêåµö»Σ┐¥µèñΦºäσêÖπÇé"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2527421Z ^[[36;1mexit 1^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2847094Z shell: /usr/bin/bash -e {0}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.2847367Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.3182011Z [main 1dc999a] docs: update SDK metadata and reports
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.3182920Z  9 files changed, 344 insertions(+), 75 deletions(-)
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.3183729Z  create mode 100644 reports/windows_command_line_tool_6.1.1/sdk-layout.md
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.3188450Z τ¼¼ 1 µ¼íσ░¥Φ»òσÉîµ¡Ñσ╣╢µÄ¿ΘÇü...
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.5558161Z From https://github.com/liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.5580688Z  * branch            main       -> FETCH_HEAD
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:29.5654913Z Current branch main is up to date.
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4462129Z To https://github.com/liyan-lucky/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4463208Z    795222f..1dc999a  HEAD -> main
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4508308Z σàâµò░µì«σÆîµèÑσæèσ╖▓µÅÉΣ║ñπÇé
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4569504Z ##[group]Run echo "# Θ╕┐ΦÆÖSDK Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝áσ«îµêÉ" >> "$GITHUB_STEP_SUMMARY"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4569981Z ^[[36;1mecho "# Θ╕┐ΦÆÖSDK Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝áσ«îµêÉ" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4570343Z ^[[36;1mecho "" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4570674Z ^[[36;1mecho "σ╣│σÅ░∩╝Ü\`windows\`" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4571094Z ^[[36;1mecho "Θàìτ╜«µûçΣ╗╢∩╝Ü\`metadata/sdk-sources.json\`" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4571537Z ^[[36;1mecho "Θí║σ╕ªσêåµ₧É∩╝Ü\`true\`" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4571850Z ^[[36;1mecho "" >> "$GITHUB_STEP_SUMMARY"^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4572338Z ^[[36;1mfind repacked-assets -maxdepth 1 -type f -printf '- %f\n' | sort >> "$GITHUB_STEP_SUMMARY" || true^[[0m
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4605755Z shell: /usr/bin/bash -e {0}
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4606006Z ##[endgroup]
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4806231Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.4807650Z Post job cleanup.
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6585117Z [command]/usr/bin/git version
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6667518Z git version 2.54.0
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6756042Z Temporarily overriding HOME='/home/runner/work/_temp/5f1f6c21-1d57-4bde-a8a9-411361102bf4' before making global git config changes
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6770384Z Adding repository directory to the temporary git global config as a safe directory
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6772142Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/HarmonyOS_SDK_Tools/HarmonyOS_SDK_Tools
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6827019Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.6893689Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7292157Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7333805Z http.https://github.com/.extraheader
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7361633Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7417765Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7798062Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.7848106Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.8274631Z Cleaning up orphan processes
+µëïσè¿Σ╕ïΦ╜╜ΘçìµëôσîàΣ╕èΣ╝á	UNKNOWN STEP	2026-06-29T00:51:30.8611782Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
