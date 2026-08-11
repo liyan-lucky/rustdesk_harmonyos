@@ -1,0 +1,1496 @@
+﻿µ₧äσ╗║ HAP Linux (x86_64)	Set up job	∩╗┐2026-08-11T04:43:24.5838155Z Current runner version: '2.336.0'
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5855949Z ##[group]Runner Image Provisioner
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5856594Z Hosted Compute Agent
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5856932Z Version: 20260707.563
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5857319Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5857744Z Build Date: 2026-07-07T19:33:50Z
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5858178Z Worker ID: {f136a47f-874b-4dca-8103-2cbe9db60d38}
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5858631Z Azure Region: westus3
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5858966Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5859747Z ##[group]Operating System
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5860165Z Ubuntu
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5860502Z 24.04.4
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5860853Z LTS
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5861179Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5861524Z ##[group]Runner Image
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5861876Z Image: ubuntu-24.04
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5862238Z Version: 20260720.247.2
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5862850Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260720.247/images/ubuntu/Ubuntu2404-Readme.md
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5863841Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260720.247
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5864377Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5865112Z ##[group]GITHUB_TOKEN Permissions
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5866422Z Contents: read
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5866773Z Metadata: read
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5867158Z Packages: read
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5867507Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5868783Z Secret source: Actions
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.5869402Z Prepare workflow directory
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.6181715Z Prepare all required actions
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.6210647Z Getting action download info
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:24.9023059Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:25.7768663Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:26.7701401Z Download action repository 'actions/setup-node@v6' (SHA:249970729cb0ef3589644e2896645e5dc5ba9c38)
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:27.5780330Z Download action repository 'harmonyos-dev/setup-harmonyos-sdk@0.2.1' (SHA:0dbcc1a862a976a2a8f9805f4f2d36fdec8cecee)
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:27.9821717Z Download action repository 'actions/upload-artifact@v7' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+µ₧äσ╗║ HAP Linux (x86_64)	Set up job	2026-08-11T04:43:28.5432552Z Complete job name: µ₧äσ╗║ HAP Linux (x86_64)
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	∩╗┐2026-08-11T04:43:28.5844359Z ##[group]Run actions/checkout@v7
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5844829Z with:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5845030Z   repository: liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5846679Z   token: ***
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5846912Z   ssh-strict: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5847099Z   ssh-user: git
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5847326Z   persist-credentials: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5847536Z   clean: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5847779Z   sparse-checkout-cone-mode: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5848030Z   fetch-depth: 1
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5848226Z   fetch-tags: false
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5848444Z   show-progress: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5848629Z   lfs: false
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5848795Z   submodules: false
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5849105Z   set-safe-directory: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5849312Z   allow-unsafe-pr-checkout: false
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5849628Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5849799Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5849964Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5850226Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5850426Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5850727Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5880388Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5880651Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5880891Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5881190Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.5881459Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.6668465Z Syncing repository: liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.6669802Z ##[group]Getting Git version info
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.6670041Z Working directory is '/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos'
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.6670379Z [command]/usr/bin/git version
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7723989Z git version 2.54.0
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7739910Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7748699Z Temporarily overriding HOME='/home/runner/work/_temp/1772e41b-f2eb-4efb-8c5e-939c34485915' before making global git config changes
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7749577Z Adding repository directory to the temporary git global config as a safe directory
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7754186Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7791257Z Deleting the contents of '/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos'
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7793749Z ##[group]Determining repository object format
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7795076Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7795371Z ##[group]Initializing the repository
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:28.7798768Z [command]/usr/bin/git init /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0577906Z hint: Using 'master' as the name for the initial branch. This default branch name
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0578806Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0579328Z hint: to use in all of your new repositories, which will suppress this warning,
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0579656Z hint: call:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0579822Z hint:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0580104Z hint: 	git config --global init.defaultBranch <name>
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0580390Z hint:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0580644Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0581058Z hint: 'development'. The just-created branch can be renamed via this command:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0581258Z hint:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0581376Z hint: 	git branch -m <name>
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0581503Z hint:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0581675Z hint: Disable this message with "git config set advice.defaultBranchName false"
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0582002Z Initialized empty Git repository in /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0585818Z [command]/usr/bin/git remote add origin https://github.com/liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0618119Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0620929Z ##[group]Disabling automatic garbage collection
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0621179Z [command]/usr/bin/git config --local gc.auto 0
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0652293Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0652840Z ##[group]Setting up auth
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0653126Z Removing SSH command configuration
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0657019Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0686718Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0924192Z Removing HTTP extra header
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0927442Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.0960925Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1154334Z Removing includeIf entries pointing to credentials config files
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1160543Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1194623Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1390598Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1424954Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path /home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1451900Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1479105Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1506084Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1532817Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1533252Z ##[group]Fetching the repository
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:29.1537905Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89:refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0803478Z From https://github.com/liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0804126Z  * [new ref]         8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89 -> origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0829163Z [command]/usr/bin/git branch --list --remote origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0854505Z   origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0861419Z [command]/usr/bin/git rev-parse refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0884442Z 8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0888611Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0888967Z ##[group]Determining the checkout info
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0896273Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0896567Z [command]/usr/bin/git sparse-checkout disable
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0931104Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0960404Z ##[group]Checking out the ref
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.0963726Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.1189038Z Reset branch 'master'
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.1191153Z branch 'master' set up to track 'origin/master'.
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.1197548Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.1256711Z [command]/usr/bin/git log -1 --format=%H
+µ₧äσ╗║ HAP Linux (x86_64)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:30.1266169Z 8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	∩╗┐2026-08-11T04:43:30.1451346Z ##[group]Run actions/setup-java@v5
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1451530Z with:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1451643Z   distribution: zulu
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1451762Z   java-version: 17
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1451878Z   java-package: jdk
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1451995Z   check-latest: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452115Z   set-default: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452236Z   verify-signature: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452364Z   server-id: github
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452484Z   server-username: GITHUB_ACTOR
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452627Z   server-password: GITHUB_TOKEN
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452791Z   overwrite-settings: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1452949Z   job-status: success
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454205Z   token: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454326Z   show-download-progress: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454464Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454582Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454688Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454811Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1454941Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1455070Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1485047Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1485201Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1485366Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1485657Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.1485834Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.2456567Z ##[group]Installed distributions
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.2473109Z Trying to resolve the latest version from remote
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.4820556Z Resolved latest version as 17.0.20+8
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.4820963Z Trying to download...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:30.4821278Z Downloading Java 17.0.20+8 (Zulu) from https://cdn.azul.com/zulu/bin/zulu17.68.17-ca-jdk17.0.20-linux_x64.tar.gz ...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.9756627Z Extracting Java archive...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.9843989Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/adbbd637-6071-46f3-a35f-5c5bd75b5752 -f /home/runner/work/_temp/abdeac05-c28f-4b44-8796-28fea933a8be
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3542513Z Java 17.0.20+8 was downloaded
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3542735Z Setting Java 17.0.20+8 as the default
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3547222Z Creating toolchains.xml for JDK version 17 from zulu
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3591140Z Writing to /home/runner/.m2/toolchains.xml
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3591666Z 
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3591760Z Java configuration:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3591964Z   Distribution: zulu
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3592149Z   Version: 17.0.20+8
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3592366Z   Path: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3592571Z 
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3592961Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3616270Z Creating settings.xml with server-id: github
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3616538Z Writing to /home/runner/.m2/settings.xml
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Java 17	2026-08-11T04:43:40.3616930Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	∩╗┐2026-08-11T04:43:40.3740991Z ##[group]Run actions/setup-node@v6
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3741144Z with:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3741252Z   node-version: 20
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3741368Z   check-latest: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3742588Z   token: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3742707Z   package-manager-cache: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3742843Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3742941Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3743045Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3743164Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3743293Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3743415Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3773088Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3773240Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3773400Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3773579Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3773801Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3774019Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3774232Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.3774346Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:40.4643697Z Attempting to download 20...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:41.4518739Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:41.8209141Z Extracting ...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:41.8294532Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/d2979f4d-bd58-49ab-a9ff-db001deb68d3 -f /home/runner/work/_temp/f7296671-a89b-44aa-baef-0f430a6eea04
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:42.5682658Z Adding to the cache ...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:44.3254051Z ##[group]Environment details
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:44.4706155Z node: v20.20.2
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:44.4706479Z npm: 10.8.2
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:44.4706648Z yarn: 1.22.22
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜« Node 20	2026-08-11T04:43:44.4707129Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	∩╗┐2026-08-11T04:43:44.4869218Z ##[group]Run sudo apt-get update
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4869523Z ^[[36;1msudo apt-get update^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4869840Z ^[[36;1msudo apt-get install -y unzip zip p7zip-full curl jq python3 rsync^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908102Z shell: /usr/bin/bash -e {0}
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908245Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908345Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908447Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908569Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908703Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4908825Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4938682Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4938828Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4938988Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4939169Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4939386Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4939601Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4939986Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.4940101Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6139580Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6315488Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6494845Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6532100Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6557856Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6647111Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.6664612Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.7217478Z Get:8 https://packages.microsoft.com/repos/azure-cli noble/main amd64 Packages [2375 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.7385162Z Get:9 https://dl.google.com/linux/chrome-stable/deb stable InRelease [2548 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.8224867Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [275 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.8441498Z Get:11 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [316 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.8549352Z Get:12 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.2 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.8599502Z Get:13 https://packages.microsoft.com/ubuntu/24.04/prod noble/main all Packages [643 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.8964334Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1187 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9013353Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [281 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9037090Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9050731Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1682 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9119533Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [335 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9139254Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9161120Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1416 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9212125Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [321 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9236120Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [45.4 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9242441Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [12.3 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9692151Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9700401Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5776 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9736662Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9743285Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9750961Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [927 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9795664Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [201 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9804450Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9826652Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1200 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9865161Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [239 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9878932Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9890258Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1320 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9982439Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [302 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:44.9988233Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [40.3 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:45.0000737Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [10.6 kB]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:45.0571326Z Get:38 https://dl.google.com/linux/chrome-stable/deb stable/main amd64 Packages [1412 B]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:51.9576925Z Fetched 11.3 MB in 1s (10.5 MB/s)
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.3843671Z Reading package lists...
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.4079096Z Reading package lists...
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.5419757Z Building dependency tree...
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.5424456Z Reading state information...
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6701247Z unzip is already the newest version (6.0-28ubuntu4.1).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6701641Z zip is already the newest version (3.0-13ubuntu0.2).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6701935Z p7zip-full is already the newest version (16.02+transitional.1).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6702219Z curl is already the newest version (8.5.0-2ubuntu10.11).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6702466Z jq is already the newest version (1.7.1-3ubuntu0.24.04.2).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6702712Z python3 is already the newest version (3.12.3-0ubuntu2.1).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6702952Z rsync is already the newest version (3.2.7-1ubuntu1.5).
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:52.6703252Z 0 upgraded, 0 newly installed, 0 to remove and 97 not upgraded.
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	∩╗┐2026-08-11T04:43:52.6752199Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6752932Z ##[group]Run harmonyos-dev/setup-harmonyos-sdk@0.2.1
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753109Z with:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753224Z   version: 2.0.0.2
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753350Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753459Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753567Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753693Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753829Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6753956Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6785277Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6785437Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6785721Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6785908Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6786149Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6786377Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6786568Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.6786686Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.7091125Z Downloading HarmonyOS SDK...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:52.9727505Z Downloading SDK-linux-2.0.0.2 from https://github.com/harmonyos-dev/hos-sdk/releases/download/v2.0.2/commandline-tools-linux-2.0.0.2.zip...
+µ₧äσ╗║ HAP Linux (x86_64)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:43:54.0395340Z SDK downloaded and extracted to /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	∩╗┐2026-08-11T04:43:54.0537759Z ##[group]Run ls -la /home/runner/harmonyos-sdk/command-line-tools/ohpm/
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0538065Z ^[[36;1mls -la /home/runner/harmonyos-sdk/command-line-tools/ohpm/^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0575841Z shell: /usr/bin/bash -e {0}
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0575983Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0576094Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0576218Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0576348Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0576488Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0576623Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0608120Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0608280Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0608449Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0608641Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0608864Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0609238Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0609453Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0609613Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0609816Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0673828Z total 76
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0674178Z drwxr-xr-x 5 runner runner  4096 Aug 11 04:43 .
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0674548Z drwxr-xr-x 6 runner runner  4096 Aug 11 04:43 ..
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0674851Z drwxr-xr-x 2 runner runner  4096 Aug 11 04:43 bin
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0675069Z drwxr-xr-x 8 runner runner  4096 Aug 11 04:43 lib
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0675322Z -rw-rw-rw- 1 runner runner 51045 Jun 19  2023 package-lock.json
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0675744Z -rw-rw-rw- 1 runner runner   833 Jun 19  2023 package.json
+µ₧äσ╗║ HAP Linux (x86_64)	σê¥σºïσîû ohpm	2026-08-11T04:43:54.0675990Z drwxr-xr-x 3 runner runner  4096 Aug 11 04:43 resources
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	∩╗┐2026-08-11T04:43:54.0695805Z ##[group]Run set -euo pipefail
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0696010Z ^[[36;1mset -euo pipefail^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0696158Z ^[[36;1mif [ -z "${GH_TOKEN:-}" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0696419Z ^[[36;1m  echo "τ╝║σ░æ HARMONYOS_SDK_TOKENπÇéΦ»╖σ£¿Σ╗ôσ║ô Secrets Σ╕¡Θàìτ╜«σÅ»Φ»╗σÅûτºüµ£ë SDK Σ╗ôσ║ôτÜä TokenπÇé"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0696649Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0696763Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0730377Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0730576Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0730688Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0730802Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0730932Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0731069Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0731200Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0763394Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0763555Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0763726Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0763916Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0764185Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0764427Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0764618Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0764778Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0765157Z   GH_TOKEN: ***
+µ₧äσ╗║ HAP Linux (x86_64)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:43:54.0765278Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	∩╗┐2026-08-11T04:43:54.0838449Z ##[group]Run set -euo pipefail
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0838978Z ^[[36;1mset -euo pipefail^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839119Z ^[[36;1mshopt -s nullglob^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839248Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839401Z ^[[36;1mSDK_BASE="/home/runner/harmonyos-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839580Z ^[[36;1mSDK_ARCHIVE="$RUNNER_TEMP/$SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839763Z ^[[36;1mSDK_EXTRACT="$RUNNER_TEMP/authorized-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0839953Z ^[[36;1mTOOLS_DIR="$SDK_BASE/command-line-tools"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840118Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840234Z ^[[36;1mrm -rf "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840389Z ^[[36;1mmkdir -p "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840528Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840735Z ^[[36;1mecho "Σ╗Äτºüµ£ë SDK Σ╗ôσ║ôΣ╕ïΦ╜╜σ«îµò┤ HarmonyOS SDK∩╝Ü$SDK_REPO / $SDK_TAG / $SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0840961Z ^[[36;1mgh release download "$SDK_TAG" \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841130Z ^[[36;1m  --repo "$SDK_REPO" \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841382Z ^[[36;1m  --pattern "$SDK_ASSET" \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841572Z ^[[36;1m  --dir "$RUNNER_TEMP"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841708Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841822Z ^[[36;1mif [ ! -f "$SDK_ARCHIVE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0841983Z ^[[36;1m  echo "SDK Φ╡äΣ║ºµ£¬Σ╕ïΦ╜╜µêÉσèƒ∩╝Ü$SDK_ARCHIVE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842144Z ^[[36;1m  ls -la "$RUNNER_TEMP"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842284Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842396Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842502Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842614Z ^[[36;1mecho "ΦºúσÄïσ«îµò┤ HarmonyOS SDK..."^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842765Z ^[[36;1mcase "$SDK_ASSET" in^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0842900Z ^[[36;1m  *.zip)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843192Z ^[[36;1m    unzip -oq "$SDK_ARCHIVE" -d "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843366Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843476Z ^[[36;1m  *.7z)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843623Z ^[[36;1m    7z x -y "$SDK_ARCHIVE" -o"$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843786Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0843894Z ^[[36;1m  *)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844017Z ^[[36;1m    echo "Σ╕ìµö»µîüτÜä SDK σÄïτ╝⌐σîàµá╝σ╝Å∩╝Ü$SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844181Z ^[[36;1m    exit 1^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844299Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844407Z ^[[36;1mesac^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844512Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844620Z ^[[36;1mSDK_SOURCE=""^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844752Z ^[[36;1mfor candidate in \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0844888Z ^[[36;1m  "$SDK_EXTRACT" \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845024Z ^[[36;1m  "$SDK_EXTRACT"/* \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845165Z ^[[36;1m  "$SDK_EXTRACT"/default \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845318Z ^[[36;1m  "$SDK_EXTRACT"/sdk/default \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845480Z ^[[36;1m  "$SDK_EXTRACT"/*/default \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845805Z ^[[36;1m  "$SDK_EXTRACT"/*/sdk/default \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0845963Z ^[[36;1m  "$SDK_EXTRACT"/*/*/sdk/default^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846106Z ^[[36;1mdo^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846341Z ^[[36;1m  if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846615Z ^[[36;1m    SDK_SOURCE="$candidate"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846757Z ^[[36;1m    break^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846873Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0846982Z ^[[36;1mdone^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847090Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847202Z ^[[36;1mif [ -z "$SDK_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847492Z ^[[36;1m  SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847777Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847881Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0847991Z ^[[36;1mif [ -z "$SDK_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848146Z ^[[36;1m  echo "µ£¬Φâ╜σ£¿σÄïτ╝⌐σîàΣ╕¡σ«ÜΣ╜ì SDK µá╣τ¢«σ╜òπÇé"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848334Z ^[[36;1m  find "$SDK_EXTRACT" -maxdepth 5 -type f | sort | head -120^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848524Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848636Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848740Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0848856Z ^[[36;1mecho "µë╛σê░ SDK_SOURCE: $SDK_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849014Z ^[[36;1mls -la "$SDK_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849293Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849400Z ^[[36;1mTOOLS_SOURCE=""^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849532Z ^[[36;1mfor candidate in \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849686Z ^[[36;1m  "$SDK_EXTRACT"/command-line-tools \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0849864Z ^[[36;1m  "$SDK_EXTRACT"/*/command-line-tools \^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850044Z ^[[36;1m  "$SDK_EXTRACT"/*/*/command-line-tools^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850199Z ^[[36;1mdo^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850316Z ^[[36;1m  if [ -d "$candidate" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850469Z ^[[36;1m    TOOLS_SOURCE="$candidate"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850621Z ^[[36;1m    break^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850737Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850844Z ^[[36;1mdone^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0850951Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0851064Z ^[[36;1mif [ -z "$TOOLS_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0851331Z ^[[36;1m  TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 2 -type d -name command-line-tools -print -quit || true)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0851591Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0851703Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0851825Z ^[[36;1mecho "µë╛σê░ TOOLS_SOURCE: $TOOLS_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852024Z ^[[36;1mif [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852222Z ^[[36;1m  ls -la "$TOOLS_SOURCE" | head -20^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852373Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852477Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852680Z ^[[36;1m# Σ╕ìσêáΘÖñµò┤Σ╕¬ SDK_BASE∩╝îσ¢áΣ╕║ setup-harmonyos-sdk σ╖▓τ╗Åσ«ëΦúàΣ║å command-line-tools^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0852899Z ^[[36;1m# σÅ¬Φªåτ¢û sdk/default τ¢«σ╜ò^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853030Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853245Z ^[[36;1mmove_sdk_item() {^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853383Z ^[[36;1m  local source_path="$1"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853532Z ^[[36;1m  local target_path="$2"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853682Z ^[[36;1m  if [ -e "$source_path" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853839Z ^[[36;1m    rm -rf "$target_path"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0853998Z ^[[36;1m    mv "$source_path" "$target_path"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854192Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854299Z ^[[36;1m}^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854404Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854566Z ^[[36;1mmove_sdk_item "$SDK_SOURCE/openharmony" "$SDK_BASE/openharmony"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854781Z ^[[36;1mif [ -e "$SDK_SOURCE/hms" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0854967Z ^[[36;1m  move_sdk_item "$SDK_SOURCE/hms" "$SDK_BASE/hms"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0855171Z ^[[36;1melif [ -e "$SDK_SOURCE/HarmonyOS-6.1.1" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0855391Z ^[[36;1m  move_sdk_item "$SDK_SOURCE/HarmonyOS-6.1.1" "$SDK_BASE/hms"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0855738Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0855910Z ^[[36;1mmove_sdk_item "$SDK_SOURCE/sdk-pkg.json" "$SDK_BASE/sdk-pkg.json"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0856110Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0856238Z ^[[36;1m# SDK σîàΣ╕ìσîàσÉ½ command-line-tools τ¢«σ╜ò∩╝îΦ╖│Φ┐çσ╖Ñσà╖τ¢«σ╜òτº╗σè¿^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0856450Z ^[[36;1m# σ╖Ñσà╖∩╝êhvigorπÇüohpm τ¡ë∩╝ëτö▒ setup-harmonyos-sdk@0.2.1 µ¡ÑΘ¬ñσ«ëΦúà^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0856627Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0856798Z ^[[36;1mif [ ! -e "$SDK_BASE/HarmonyOS-6.1.1" ] && [ -d "$SDK_BASE/hms" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857034Z ^[[36;1m  ln -s hms "$SDK_BASE/HarmonyOS-6.1.1"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857192Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857296Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857406Z ^[[36;1mrm -f "$SDK_ARCHIVE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857547Z ^[[36;1mrm -rf "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857738Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/toolchains"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0857977Z ^[[36;1mchmod +x "$SDK_BASE/hms/toolchains"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0858249Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/native/build-tools/cmake/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0858551Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/native/llvm/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0858829Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0859114Z ^[[36;1mchmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0859491Z ^[[36;1mchmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0859679Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0859790Z ^[[36;1mecho "SDK_BASE τ¢«σ╜òτ╗ôµ₧ä:"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0859932Z ^[[36;1mls -la "$SDK_BASE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0860062Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0860178Z ^[[36;1mtest -f "$SDK_BASE/sdk-pkg.json"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0860367Z ^[[36;1mtest -x "$SDK_BASE/openharmony/toolchains/restool"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0860567Z ^[[36;1mtest -d "$SDK_BASE/openharmony/native"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893170Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893369Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893477Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893589Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893722Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893859Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0893991Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0925877Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0926034Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0926209Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0926400Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0926625Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0926882Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0927076Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0927237Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0927597Z   GH_TOKEN: ***
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0927716Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:43:54.0999318Z Σ╗Äτºüµ£ë SDK Σ╗ôσ║ôΣ╕ïΦ╜╜σ«îµò┤ HarmonyOS SDK∩╝Üliyan-lucky/HarmonyOS_SDK_Tools / linux_command_line_tool_6.1.1 / linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:35.8296654Z ΦºúσÄïσ«îµò┤ HarmonyOS SDK...
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1392992Z 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1393668Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1393979Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1394136Z 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1394219Z Scanning the drive for archives:
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1394391Z 1 file, 1486635222 bytes (1418 MiB)
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1394493Z 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:36.1394932Z Extracting archive: /home/runner/work/_temp/linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4452393Z --
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4452886Z Path = /home/runner/work/_temp/linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4453222Z Type = 7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4453431Z Physical Size = 1486635222
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4453623Z Headers Size = 886513
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4453869Z Method = ARM64 LZMA2:26 LZMA:20 BCJ2 ARM
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4454129Z Solid = +
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4454292Z Blocks = 4
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4454384Z 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4457273Z Everything is Ok
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4457385Z 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4457478Z Folders: 9665
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4457649Z Files: 96604
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4457839Z Size:       9808337504
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4458039Z Compressed: 1486635222
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4475890Z µë╛σê░ SDK_SOURCE: /home/runner/work/_temp/authorized-sdk/sdk/default
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4488894Z total 20
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4489198Z drwx------ 4 runner runner 4096 May 22 22:17 .
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4489532Z drwx------ 3 runner runner 4096 May 22 22:14 ..
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4489857Z drwxr-xr-x 7 runner runner 4096 May 21 05:49 hms
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4490130Z drwxr-xr-x 7 runner runner 4096 May 21 05:51 openharmony
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4490370Z -rw-r--r-- 1 runner runner  318 May 21 05:46 sdk-pkg.json
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:42.4562805Z µë╛σê░ TOOLS_SOURCE: 
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3960256Z SDK_BASE τ¢«σ╜òτ╗ôµ₧ä:
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3966790Z total 24
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3967323Z drwxr-xr-x  5 runner runner 4096 Aug 11 04:45 .
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3967744Z drwxr-x--- 14 runner runner 4096 Aug 11 04:43 ..
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3968133Z lrwxrwxrwx  1 runner runner    3 Aug 11 04:45 HarmonyOS-6.1.1 -> hms
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3968421Z drwxr-xr-x  6 runner runner 4096 Aug 11 04:43 command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3969095Z drwxr-xr-x  7 runner runner 4096 May 21 05:49 hms
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3969390Z drwxr-xr-x  7 runner runner 4096 May 21 05:51 openharmony
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:43.3969621Z -rw-r--r--  1 runner runner  318 May 21 05:46 sdk-pkg.json
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	∩╗┐2026-08-11T04:45:43.3997612Z ##[group]Run SDK_BASE="/home/runner/harmonyos-sdk"
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3997843Z ^[[36;1mSDK_BASE="/home/runner/harmonyos-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3998026Z ^[[36;1mecho "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3998235Z ^[[36;1mecho "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3998449Z ^[[36;1mecho "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3998711Z ^[[36;1mecho "PATH=$SDK_BASE/openharmony/native/llvm/bin:$PATH" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.3999396Z ^[[36;1mecho "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4000011Z ^[[36;1mnode -v^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4651902Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4652532Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4652709Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4652939Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4653137Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4653366Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4653631Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4683714Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4684115Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4684432Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4684699Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4684982Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4685308Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4685646Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4685861Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.4686211Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:43.5711404Z v20.20.2
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	∩╗┐2026-08-11T04:45:43.5737991Z ##[group]Run echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5738295Z ^[[36;1mecho "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5738576Z ^[[36;1mecho "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5738872Z ^[[36;1mecho "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5739203Z ^[[36;1mecho "RUSTDESK_SIGNING_ZIP_B64 µÿ»σÉªΣ╕║τ⌐║∩╝ƒ $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo µÿ» || echo σÉª)"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5773956Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5774260Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5774467Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5774666Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5774873Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5775075Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5775303Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5805943Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5806172Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5806448Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5806812Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5807161Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5807450Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5807732Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5807964Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5808261Z   DEVECO_SDK_HOME: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5808563Z   OHOS_HVIGOR_SDK_ROOT: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5808855Z   DEVECO_NODE_EXE: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5809819Z   PATH: /home/runner/harmonyos-sdk/openharmony/native/llvm/bin:/home/runner/harmonyos-sdk/command-line-tools/bin:/opt/hostedtoolcache/node/20.20.2/x64/bin:/opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5811330Z   LD_LIBRARY_PATH: /home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.5812179Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.6272576Z DEVECO_SDK_HOME=/home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.6272956Z OHOS_HVIGOR_SDK_ROOT=/home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.6277178Z DEVECO_NODE_EXE=/opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (x86_64)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:43.6277754Z RUSTDESK_SIGNING_ZIP_B64 µÿ»σÉªΣ╕║τ⌐║∩╝ƒ σÉª
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	∩╗┐2026-08-11T04:45:43.6311218Z ##[group]Run chmod +x scripts/github_build_harmonyos_linux.sh
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6311465Z ^[[36;1mchmod +x scripts/github_build_harmonyos_linux.sh^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6311635Z ^[[36;1margs=(^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6311761Z ^[[36;1m  "--artifact-type" "$ARTIFACT_TYPE"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6311927Z ^[[36;1m  "--version-bump" "$VERSION_BUMP"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312100Z ^[[36;1m  "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312391Z ^[[36;1m  "--abi-filter" "x86_64"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312522Z ^[[36;1m)^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312640Z ^[[36;1mif [ "$PREFLIGHT_ONLY" = "true" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312799Z ^[[36;1m  args+=("--preflight-only")^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6312935Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6313062Z ^[[36;1mif [ "$SKIP_PACKAGE_VERIFY" = "true" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6313227Z ^[[36;1m  args+=("--skip-package-verify")^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6313368Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6313506Z ^[[36;1mscripts/github_build_harmonyos_linux.sh "${args[@]}"^[[0m
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6345793Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6345970Z env:
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6346071Z   CI: true
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6346175Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6346298Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6346423Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6346544Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6376386Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6376544Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6376703Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6376884Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377089Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377301Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377479Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377626Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377813Z   DEVECO_SDK_HOME: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6377982Z   OHOS_HVIGOR_SDK_ROOT: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6378173Z   DEVECO_NODE_EXE: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6379033Z   PATH: /home/runner/harmonyos-sdk/openharmony/native/llvm/bin:/home/runner/harmonyos-sdk/command-line-tools/bin:/opt/hostedtoolcache/node/20.20.2/x64/bin:/opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6380432Z   LD_LIBRARY_PATH: /home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6381205Z   HARMONY_ARTIFACTS_DIR: /home/runner/work/_temp/rustdesk_harmonyos_artifacts
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.6381410Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7617199Z HarmonyOS Linux build preflight
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7617994Z Project: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7618448Z Temp root: /home/runner/work/rustdesk_harmonyos/99_Temp
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7618801Z Artifact type: hap
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7619035Z Version bump: incremental
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7619615Z Native core URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7620557Z Node: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7620919Z HarmonyOS SDK root: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7621389Z DevEco tools root: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.7624919Z LD_LIBRARY_PATH=/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8153855Z Signing material available at: /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8192727Z Signing files in /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing:
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8205651Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.cer
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8206199Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.p12
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8206538Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.p7b
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8447510Z Patched build-profile.json5 signing paths to ./signing/ (signed build)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8549718Z Downloading native core (arm64).
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8550240Z   URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8550644Z   To : /home/runner/work/rustdesk_harmonyos/99_Temp/librustdesk_core/librustdesk_core_20260811044543.a.tmp
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8631862Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8632608Z                                  Dload  Upload   Total   Spent    Left  Speed
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:43.8632935Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:44.1147132Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:44.1147827Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:44.2941582Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:44.2942401Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:44.3230969Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:45.3505871Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:46.3203298Z  39  127M   39 50.0M    0     0  33.6M      0  0:00:03  0:00:01  0:00:02 48.7M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.3167615Z  70  127M   70 90.0M    0     0  36.6M      0  0:00:03  0:00:02  0:00:01 45.0M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7334682Z  94  127M   94  120M    0     0  34.7M      0  0:00:03  0:00:03 --:--:-- 40.0M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7335067Z 100  127M  100  127M    0     0  32.8M      0  0:00:03  0:00:03 --:--:-- 37.3M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7398936Z Downloading native core (x86_64).
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7399586Z   URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7400333Z   To : /home/runner/work/rustdesk_harmonyos/99_Temp/librustdesk_core/librustdesk_core_x86_64_20260811044547.a.tmp
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7483740Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7484258Z                                  Dload  Upload   Total   Spent    Left  Speed
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.7484468Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.9763688Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:47.9764044Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:48.1237086Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:48.1237835Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:48.3155760Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.3388379Z   2  124M    2 3710k    0     0  6539k      0  0:00:19 --:--:--  0:00:19 6539k
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.3153614Z  32  124M   32 40.0M    0     0  25.1M      0  0:00:04  0:00:01  0:00:03 35.5M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.3287698Z  63  124M   63 78.6M    0     0  30.6M      0  0:00:04  0:00:02  0:00:02 37.5M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.8956150Z  80  124M   80  100M    0     0  27.9M      0  0:00:04  0:00:03  0:00:01 32.0M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.8956549Z 100  124M  100  124M    0     0  30.0M      0  0:00:04  0:00:04 --:--:-- 33.8M
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.8998505Z x86_64 core downloaded successfully.
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.9732151Z Native x86_64 core: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/entry/src/main/libs/x86_64/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.9733225Z Native x86_64 core size: 130807338
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.9733521Z Native x86_64 core sha256: FE33EE2323945049A8C4BE5E731A511634E82E0614505254F1E22920CB553FB8
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.0527520Z Native core: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/entry/src/main/libs/arm64/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.0528109Z Native core size: 133500296
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.0528530Z Native core sha256: ACB84C822B74D0C7B1660E5F804EA3778CBE5BDB4E9BF011F7A580985EEC136A
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.0528963Z Patching abiFilters to: x86_64
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.2282498Z abiFilters patched to: x86_64
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.2315193Z Running Hvigor tasks: assembleHap
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.2315617Z Installing hvigor via ohpm...
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.2621200Z ERROR: ohpm has not been initialized yet. Execute the init script to initialize it first.
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.2859242Z ERROR: ohpm has not been initialized yet. Execute the init script to initialize it first.
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3526821Z node:internal/modules/cjs/loader:1210
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3527215Z   throw err;
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3527408Z   ^
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3527519Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3528233Z Error: Cannot find module '/home/runner/harmonyos-sdk/command-line-tools/hvigor/hvigor-ohos-plugin/node_modules/@ohos/hos-sdkmanager-common/build/src/hos/mapper/platform-sdks.js'
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3528772Z Require stack:
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3528988Z - /home/runner/harmonyos-sdk/command-line-tools/hvigor/bin/hvigorw.js
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3529313Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3529772Z     at Function.patchedResolveFilename [as _resolveFilename] (/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/scripts/run_hvigor_with_sdk_patch.js:250:34)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3530180Z     at Module._load (node:internal/modules/cjs/loader:1038:27)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3530417Z     at Module.require (node:internal/modules/cjs/loader:1289:19)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3530641Z     at require (node:internal/modules/helpers:182:18)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3531013Z     at Object.<anonymous> (/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/scripts/run_hvigor_with_sdk_patch.js:278:26)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3531368Z     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3531621Z     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3531868Z     at Module.load (node:internal/modules/cjs/loader:1266:32)
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532097Z     at Module._load (node:internal/modules/cjs/loader:1091:12) {
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532282Z   code: 'MODULE_NOT_FOUND',
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532418Z   requireStack: [
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532613Z     '/home/runner/harmonyos-sdk/command-line-tools/hvigor/bin/hvigorw.js'
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532808Z   ]
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532911Z }
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3532968Z 
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3533020Z Node.js v20.20.2
+µ₧äσ╗║ HAP Linux (x86_64)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.3554578Z ##[error]Process completed with exit code 1.
+µ₧äσ╗║ HAP Linux (x86_64)	Post Φ«╛τ╜« Java 17	∩╗┐2026-08-11T04:45:52.4118641Z Post job cleanup.
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	∩╗┐2026-08-11T04:45:52.5890372Z Post job cleanup.
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.6943474Z [command]/usr/bin/git version
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.6984764Z git version 2.54.0
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7006546Z Temporarily overriding HOME='/home/runner/work/_temp/77977df5-9057-4770-956b-3fb8e7272fd0' before making global git config changes
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7007357Z Adding repository directory to the temporary git global config as a safe directory
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7010006Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7041995Z Removing SSH command configuration
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7048125Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7080538Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7330427Z Removing HTTP extra header
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7336455Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7369794Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7579996Z Removing includeIf entries pointing to credentials config files
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7585966Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7611953Z includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7612600Z includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7613079Z includeif.gitdir:/github/workspace/.git.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7613475Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7618860Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7642134Z /home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7649428Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-05064ac9\-be70\-4603\-aeec\-f31e7a04f4c3\.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7682093Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7705320Z /home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7712323Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-05064ac9\-be70\-4603\-aeec\-f31e7a04f4c3\.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7741173Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7763597Z /github/runner_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7768741Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-05064ac9\-be70\-4603\-aeec\-f31e7a04f4c3\.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7797162Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7819075Z /github/runner_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7833986Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-05064ac9\-be70\-4603\-aeec\-f31e7a04f4c3\.config
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.7859122Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µ₧äσ╗║ HAP Linux (x86_64)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:52.8064704Z Removing credentials config '/home/runner/work/_temp/git-credentials-05064ac9-be70-4603-aeec-f31e7a04f4c3.config'
+µ₧äσ╗║ HAP Linux (x86_64)	Complete job	∩╗┐2026-08-11T04:45:52.8177376Z Cleaning up orphan processes
+µ₧äσ╗║ HAP Linux (x86_64)	Complete job	2026-08-11T04:45:52.8368521Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: harmonyos-dev/setup-harmonyos-sdk@0.2.1. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	∩╗┐2026-08-11T04:43:30.8926231Z Current runner version: '2.336.0'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8950503Z ##[group]Runner Image Provisioner
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8951430Z Hosted Compute Agent
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8952018Z Version: 20260707.563
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8952614Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8953296Z Build Date: 2026-07-07T19:33:50Z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8954370Z Worker ID: {44cc4a8d-a94c-4134-bb71-3a1a7a5b4550}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8955064Z Azure Region: westus3
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8955591Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8956928Z ##[group]Operating System
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8957497Z Ubuntu
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8958039Z 24.04.4
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8958522Z LTS
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8958991Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8959531Z ##[group]Runner Image
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8960076Z Image: ubuntu-24.04
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8960671Z Version: 20260720.247.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8961633Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260720.247/images/ubuntu/Ubuntu2404-Readme.md
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8963234Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260720.247
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8964261Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8965363Z ##[group]GITHUB_TOKEN Permissions
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8967259Z Contents: read
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8967827Z Metadata: read
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8968337Z Packages: read
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8968830Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8970679Z Secret source: Actions
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.8971587Z Prepare workflow directory
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.9510628Z Prepare all required actions
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:30.9559020Z Getting action download info
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:31.2628616Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:31.9468894Z Download action repository 'actions/setup-java@v5' (SHA:b6effb05e454b25005698d916606bdc6ffcbf961)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:32.9625876Z Download action repository 'actions/setup-node@v6' (SHA:249970729cb0ef3589644e2896645e5dc5ba9c38)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:34.1530007Z Download action repository 'harmonyos-dev/setup-harmonyos-sdk@0.2.1' (SHA:0dbcc1a862a976a2a8f9805f4f2d36fdec8cecee)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:34.9530343Z Download action repository 'actions/upload-artifact@v7' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Set up job	2026-08-11T04:43:35.5208285Z Complete job name: µ₧äσ╗║ HAP Linux (arm64-v8a)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	∩╗┐2026-08-11T04:43:35.5782569Z ##[group]Run actions/checkout@v7
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5783132Z with:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5783904Z   repository: liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5786392Z   token: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5786760Z   ssh-strict: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5787113Z   ssh-user: git
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5787434Z   persist-credentials: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5787830Z   clean: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5788148Z   sparse-checkout-cone-mode: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5788533Z   fetch-depth: 1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5788901Z   fetch-tags: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5789185Z   show-progress: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5789510Z   lfs: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5789793Z   submodules: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5790199Z   set-safe-directory: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5790535Z   allow-unsafe-pr-checkout: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5791060Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5791371Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5791654Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5791994Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5792357Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5792755Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5844597Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5845132Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5845640Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5846252Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.5846736Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6788481Z Syncing repository: liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6789995Z ##[group]Getting Git version info
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6790538Z Working directory is '/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6801637Z [command]/usr/bin/git version
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6882050Z git version 2.54.0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6902520Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6912516Z Temporarily overriding HOME='/home/runner/work/_temp/c1a116eb-13b7-453b-9c47-671d4a21e1ac' before making global git config changes
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6914210Z Adding repository directory to the temporary git global config as a safe directory
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6919123Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6951634Z Deleting the contents of '/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6956096Z ##[group]Determining repository object format
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6957778Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6958366Z ##[group]Initializing the repository
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.6964008Z [command]/usr/bin/git init /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7062994Z hint: Using 'master' as the name for the initial branch. This default branch name
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7064527Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7065848Z hint: to use in all of your new repositories, which will suppress this warning,
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7066682Z hint: call:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7067283Z hint:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7067852Z hint: 	git config --global init.defaultBranch <name>
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7068434Z hint:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7069037Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7069839Z hint: 'development'. The just-created branch can be renamed via this command:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7070477Z hint:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7070887Z hint: 	git branch -m <name>
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7071205Z hint:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7071674Z hint: Disable this message with "git config set advice.defaultBranchName false"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7072526Z Initialized empty Git repository in /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7076269Z [command]/usr/bin/git remote add origin https://github.com/liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7107128Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7108172Z ##[group]Disabling automatic garbage collection
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7110326Z [command]/usr/bin/git config --local gc.auto 0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7137296Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7139043Z ##[group]Setting up auth
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7139773Z Removing SSH command configuration
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7142121Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7209298Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7482996Z Removing HTTP extra header
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7489124Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7521653Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7716605Z Removing includeIf entries pointing to credentials config files
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7721318Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7756558Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7941706Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7973705Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path /home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.7999907Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.8027336Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.8054594Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.8078753Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.8079534Z ##[group]Fetching the repository
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:35.8086401Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89:refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7462665Z From https://github.com/liyan-lucky/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7464184Z  * [new ref]         8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89 -> origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7490968Z [command]/usr/bin/git branch --list --remote origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7515722Z   origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7525008Z [command]/usr/bin/git rev-parse refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7549653Z 8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7553310Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7554402Z ##[group]Determining the checkout info
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7555441Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7561562Z [command]/usr/bin/git sparse-checkout disable
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7600248Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7627343Z ##[group]Checking out the ref
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7632385Z [command]/usr/bin/git checkout --progress --force -B master refs/remotes/origin/master
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7898156Z Reset branch 'master'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7899825Z branch 'master' set up to track 'origin/master'.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7911887Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7941272Z [command]/usr/bin/git log -1 --format=%H
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µïëσÅûΣ╗ôσ║ô	2026-08-11T04:43:36.7964176Z 8b7cf86d5a6cb1a712ad426c9f582eb528c3ad89
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	∩╗┐2026-08-11T04:43:36.8214344Z ##[group]Run actions/setup-java@v5
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8214792Z with:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8215092Z   distribution: zulu
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8215430Z   java-version: 17
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8215776Z   java-package: jdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8216086Z   check-latest: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8216431Z   set-default: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8216745Z   verify-signature: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8217080Z   server-id: github
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8217468Z   server-username: GITHUB_ACTOR
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8217804Z   server-password: GITHUB_TOKEN
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8218233Z   overwrite-settings: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8218562Z   job-status: success
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8220937Z   token: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8221249Z   show-download-progress: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8221607Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8221926Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8222215Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8222549Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8222880Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8223181Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8275608Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8276032Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8276438Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8276918Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.8277348Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.9749194Z ##[group]Installed distributions
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:36.9775798Z Trying to resolve the latest version from remote
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:37.2331167Z Resolved latest version as 17.0.20+8
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:37.2332032Z Trying to download...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:37.2335023Z Downloading Java 17.0.20+8 (Zulu) from https://cdn.azul.com/zulu/bin/zulu17.68.17-ca-jdk17.0.20-linux_x64.tar.gz ...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:42.7574085Z Extracting Java archive...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:42.7675245Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/710dbbc8-3b2a-4814-983c-43973a3b04ed -f /home/runner/work/_temp/f8ec14f2-74b7-4568-ad29-6ff6c25e9491
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4180169Z Java 17.0.20+8 was downloaded
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4180671Z Setting Java 17.0.20+8 as the default
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4187971Z Creating toolchains.xml for JDK version 17 from zulu
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4258248Z Writing to /home/runner/.m2/toolchains.xml
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4258917Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4259672Z Java configuration:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4260194Z   Distribution: zulu
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4260675Z   Version: 17.0.20+8
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4261330Z   Path: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4261759Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4262417Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4306627Z Creating settings.xml with server-id: github
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4307610Z Writing to /home/runner/.m2/settings.xml
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Java 17	2026-08-11T04:43:47.4308921Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	∩╗┐2026-08-11T04:43:47.4446823Z ##[group]Run actions/setup-node@v6
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4447220Z with:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4447596Z   node-version: 20
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4447913Z   check-latest: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4450257Z   token: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4450567Z   package-manager-cache: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4450965Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4451261Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4451568Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4451912Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4452287Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4452622Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4504236Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4504726Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4505200Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4505732Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4506342Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4506950Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4507607Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.4508003Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:47.5941756Z Attempting to download 20...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:48.5626175Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:49.0772862Z Extracting ...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:49.0887124Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a5d9bc4c-58a9-45bf-bed4-db266ecad3db -f /home/runner/work/_temp/f19cc0a4-ab7a-497a-a1a6-df9c71a94229
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:50.1630726Z Adding to the cache ...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:52.6334695Z ##[group]Environment details
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:53.0982876Z node: v20.20.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:53.0983256Z npm: 10.8.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:53.0983620Z yarn: 1.22.22
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜« Node 20	2026-08-11T04:43:53.0984503Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	∩╗┐2026-08-11T04:43:53.1106911Z ##[group]Run sudo apt-get update
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1107409Z ^[[36;1msudo apt-get update^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1107931Z ^[[36;1msudo apt-get install -y unzip zip p7zip-full curl jq python3 rsync^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1139778Z shell: /usr/bin/bash -e {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1140199Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1140511Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1140793Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1141182Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1141504Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1141832Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1191631Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1192086Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1192485Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1192916Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1193432Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1194127Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1194892Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.1195202Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.5989347Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6650841Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6652542Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6668958Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6693246Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6723982Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.6744141Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.7035139Z Get:8 https://dl.google.com/linux/chrome-stable/deb stable InRelease [2548 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.7918950Z Get:9 https://packages.microsoft.com/repos/azure-cli noble/main amd64 Packages [2375 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8333819Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main all Packages [643 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8406899Z Get:11 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [275 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8538674Z Get:12 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [316 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8648019Z Get:13 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.2 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8726374Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1187 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8785697Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [281 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8805601Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [180 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8821121Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1682 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8902854Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [335 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8926011Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.8952204Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1416 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9018154Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [321 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9044280Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [45.4 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9057297Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [12.3 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9515088Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9516924Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5776 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9518481Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9527478Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9660699Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [927 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9714265Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [201 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9730894Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.3 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9742386Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1200 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9801275Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [239 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9821407Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.2 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9831691Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1320 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9895471Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [302 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9916340Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [40.3 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:53.9927164Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [10.6 kB]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:43:54.0536117Z Get:38 https://dl.google.com/linux/chrome-stable/deb stable/main amd64 Packages [1412 B]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:04.0566147Z Fetched 11.3 MB in 1s (7957 kB/s)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:04.7492759Z Reading package lists...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:04.7764933Z Reading package lists...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:04.8882188Z Building dependency tree...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:04.8886611Z Reading state information...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0951991Z unzip is already the newest version (6.0-28ubuntu4.1).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0952836Z zip is already the newest version (3.0-13ubuntu0.2).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0954021Z p7zip-full is already the newest version (16.02+transitional.1).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0954886Z curl is already the newest version (8.5.0-2ubuntu10.11).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0955684Z jq is already the newest version (1.7.1-3ubuntu0.24.04.2).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0956392Z python3 is already the newest version (3.12.3-0ubuntu2.1).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0956885Z rsync is already the newest version (3.2.7-1ubuntu1.5).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàτ│╗τ╗ƒσ╖Ñσà╖	2026-08-11T04:44:05.0957695Z 0 upgraded, 0 newly installed, 0 to remove and 97 not upgraded.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	∩╗┐2026-08-11T04:44:05.1018989Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1020428Z ##[group]Run harmonyos-dev/setup-harmonyos-sdk@0.2.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1020823Z with:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1021118Z   version: 2.0.0.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1021432Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1021746Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1022064Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1022371Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1022706Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1023028Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1073272Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1073885Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1074302Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1074836Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1075478Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1076050Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1076572Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1076945Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.1452838Z Downloading HarmonyOS SDK...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:05.4785898Z Downloading SDK-linux-2.0.0.2 from https://github.com/harmonyos-dev/hos-sdk/releases/download/v2.0.2/commandline-tools-linux-2.0.0.2.zip...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ«╛τ╜«σƒ║τíÇ HarmonyOS SDK	2026-08-11T04:44:06.5502975Z SDK downloaded and extracted to /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	∩╗┐2026-08-11T04:44:06.5679964Z ##[group]Run ls -la /home/runner/harmonyos-sdk/command-line-tools/ohpm/
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5680587Z ^[[36;1mls -la /home/runner/harmonyos-sdk/command-line-tools/ohpm/^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5709581Z shell: /usr/bin/bash -e {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5709962Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5710346Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5710639Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5710973Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5711347Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5711670Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5763909Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5764461Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5764989Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5765488Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5766048Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5766904Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5767541Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5768067Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5768553Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5836293Z total 76
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5836931Z drwxr-xr-x 5 runner runner  4096 Aug 11 04:44 .
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5837484Z drwxr-xr-x 6 runner runner  4096 Aug 11 04:44 ..
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5837995Z drwxr-xr-x 2 runner runner  4096 Aug 11 04:44 bin
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5838473Z drwxr-xr-x 8 runner runner  4096 Aug 11 04:44 lib
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5838988Z -rw-rw-rw- 1 runner runner 51045 Jun 19  2023 package-lock.json
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5839588Z -rw-rw-rw- 1 runner runner   833 Jun 19  2023 package.json
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σê¥σºïσîû ohpm	2026-08-11T04:44:06.5840081Z drwxr-xr-x 3 runner runner  4096 Aug 11 04:44 resources
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	∩╗┐2026-08-11T04:44:06.5876000Z ##[group]Run set -euo pipefail
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5876479Z ^[[36;1mset -euo pipefail^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5876821Z ^[[36;1mif [ -z "${GH_TOKEN:-}" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5877333Z ^[[36;1m  echo "τ╝║σ░æ HARMONYOS_SDK_TOKENπÇéΦ»╖σ£¿Σ╗ôσ║ô Secrets Σ╕¡Θàìτ╜«σÅ»Φ»╗σÅûτºüµ£ë SDK Σ╗ôσ║ôτÜä TokenπÇé"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5877835Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5878124Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5903419Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5904008Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5904315Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5904614Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5904957Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5905350Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5905672Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5957047Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5957515Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5958036Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5958567Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5959314Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5959877Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5960437Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5960916Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5961808Z   GH_TOKEN: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µáíΘ¬î SDK Token Φ╛ôσàÑ	2026-08-11T04:44:06.5962165Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	∩╗┐2026-08-11T04:44:06.6036884Z ##[group]Run set -euo pipefail
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6037628Z ^[[36;1mset -euo pipefail^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6037989Z ^[[36;1mshopt -s nullglob^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6038278Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6038557Z ^[[36;1mSDK_BASE="/home/runner/harmonyos-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6038950Z ^[[36;1mSDK_ARCHIVE="$RUNNER_TEMP/$SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6039334Z ^[[36;1mSDK_EXTRACT="$RUNNER_TEMP/authorized-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6039778Z ^[[36;1mTOOLS_DIR="$SDK_BASE/command-line-tools"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6040117Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6040366Z ^[[36;1mrm -rf "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6040719Z ^[[36;1mmkdir -p "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6041022Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6041470Z ^[[36;1mecho "Σ╗Äτºüµ£ë SDK Σ╗ôσ║ôΣ╕ïΦ╜╜σ«îµò┤ HarmonyOS SDK∩╝Ü$SDK_REPO / $SDK_TAG / $SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6041962Z ^[[36;1mgh release download "$SDK_TAG" \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6042292Z ^[[36;1m  --repo "$SDK_REPO" \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6042728Z ^[[36;1m  --pattern "$SDK_ASSET" \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6043149Z ^[[36;1m  --dir "$RUNNER_TEMP"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6043689Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6044151Z ^[[36;1mif [ ! -f "$SDK_ARCHIVE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6044523Z ^[[36;1m  echo "SDK Φ╡äΣ║ºµ£¬Σ╕ïΦ╜╜µêÉσèƒ∩╝Ü$SDK_ARCHIVE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6044863Z ^[[36;1m  ls -la "$RUNNER_TEMP"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6045172Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6045513Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6045782Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6046079Z ^[[36;1mecho "ΦºúσÄïσ«îµò┤ HarmonyOS SDK..."^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6046465Z ^[[36;1mcase "$SDK_ASSET" in^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6046742Z ^[[36;1m  *.zip)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6047159Z ^[[36;1m    unzip -oq "$SDK_ARCHIVE" -d "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6047483Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6047727Z ^[[36;1m  *.7z)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6048020Z ^[[36;1m    7z x -y "$SDK_ARCHIVE" -o"$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6048367Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6048629Z ^[[36;1m  *)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6048887Z ^[[36;1m    echo "Σ╕ìµö»µîüτÜä SDK σÄïτ╝⌐σîàµá╝σ╝Å∩╝Ü$SDK_ASSET"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6049200Z ^[[36;1m    exit 1^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6049455Z ^[[36;1m    ;;^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6049710Z ^[[36;1mesac^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6049963Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6050224Z ^[[36;1mSDK_SOURCE=""^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6050498Z ^[[36;1mfor candidate in \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6050781Z ^[[36;1m  "$SDK_EXTRACT" \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6051072Z ^[[36;1m  "$SDK_EXTRACT"/* \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6051361Z ^[[36;1m  "$SDK_EXTRACT"/default \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6051658Z ^[[36;1m  "$SDK_EXTRACT"/sdk/default \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6051999Z ^[[36;1m  "$SDK_EXTRACT"/*/default \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6052307Z ^[[36;1m  "$SDK_EXTRACT"/*/sdk/default \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6052631Z ^[[36;1m  "$SDK_EXTRACT"/*/*/sdk/default^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6052937Z ^[[36;1mdo^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6053389Z ^[[36;1m  if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6054044Z ^[[36;1m    SDK_SOURCE="$candidate"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6054413Z ^[[36;1m    break^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6054662Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6054926Z ^[[36;1mdone^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6055163Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6055391Z ^[[36;1mif [ -z "$SDK_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6055917Z ^[[36;1m  SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6056451Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6056696Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6056940Z ^[[36;1mif [ -z "$SDK_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6057236Z ^[[36;1m  echo "µ£¬Φâ╜σ£¿σÄïτ╝⌐σîàΣ╕¡σ«ÜΣ╜ì SDK µá╣τ¢«σ╜òπÇé"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6057633Z ^[[36;1m  find "$SDK_EXTRACT" -maxdepth 5 -type f | sort | head -120^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6057993Z ^[[36;1m  exit 1^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6058275Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6058498Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6058729Z ^[[36;1mecho "µë╛σê░ SDK_SOURCE: $SDK_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6059086Z ^[[36;1mls -la "$SDK_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6059453Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6059691Z ^[[36;1mTOOLS_SOURCE=""^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6059972Z ^[[36;1mfor candidate in \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6060289Z ^[[36;1m  "$SDK_EXTRACT"/command-line-tools \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6060677Z ^[[36;1m  "$SDK_EXTRACT"/*/command-line-tools \^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6061010Z ^[[36;1m  "$SDK_EXTRACT"/*/*/command-line-tools^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6061314Z ^[[36;1mdo^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6061569Z ^[[36;1m  if [ -d "$candidate" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6061870Z ^[[36;1m    TOOLS_SOURCE="$candidate"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6062225Z ^[[36;1m    break^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6062463Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6062693Z ^[[36;1mdone^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6062930Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6063169Z ^[[36;1mif [ -z "$TOOLS_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6063866Z ^[[36;1m  TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 2 -type d -name command-line-tools -print -quit || true)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6064353Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6064597Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6064868Z ^[[36;1mecho "µë╛σê░ TOOLS_SOURCE: $TOOLS_SOURCE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6065237Z ^[[36;1mif [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6065631Z ^[[36;1m  ls -la "$TOOLS_SOURCE" | head -20^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6065925Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6066190Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6066564Z ^[[36;1m# Σ╕ìσêáΘÖñµò┤Σ╕¬ SDK_BASE∩╝îσ¢áΣ╕║ setup-harmonyos-sdk σ╖▓τ╗Åσ«ëΦúàΣ║å command-line-tools^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6066964Z ^[[36;1m# σÅ¬Φªåτ¢û sdk/default τ¢«σ╜ò^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6067247Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6067546Z ^[[36;1mmove_sdk_item() {^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6067817Z ^[[36;1m  local source_path="$1"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6068159Z ^[[36;1m  local target_path="$2"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6068471Z ^[[36;1m  if [ -e "$source_path" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6068794Z ^[[36;1m    rm -rf "$target_path"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6069108Z ^[[36;1m    mv "$source_path" "$target_path"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6069403Z ^[[36;1m  fi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6069657Z ^[[36;1m}^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6069906Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6070258Z ^[[36;1mmove_sdk_item "$SDK_SOURCE/openharmony" "$SDK_BASE/openharmony"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6070643Z ^[[36;1mif [ -e "$SDK_SOURCE/hms" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6070968Z ^[[36;1m  move_sdk_item "$SDK_SOURCE/hms" "$SDK_BASE/hms"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6071359Z ^[[36;1melif [ -e "$SDK_SOURCE/HarmonyOS-6.1.1" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6071768Z ^[[36;1m  move_sdk_item "$SDK_SOURCE/HarmonyOS-6.1.1" "$SDK_BASE/hms"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6072156Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6072470Z ^[[36;1mmove_sdk_item "$SDK_SOURCE/sdk-pkg.json" "$SDK_BASE/sdk-pkg.json"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6072820Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6073103Z ^[[36;1m# SDK σîàΣ╕ìσîàσÉ½ command-line-tools τ¢«σ╜ò∩╝îΦ╖│Φ┐çσ╖Ñσà╖τ¢«σ╜òτº╗σè¿^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6073595Z ^[[36;1m# σ╖Ñσà╖∩╝êhvigorπÇüohpm τ¡ë∩╝ëτö▒ setup-harmonyos-sdk@0.2.1 µ¡ÑΘ¬ñσ«ëΦúà^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6074013Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6074380Z ^[[36;1mif [ ! -e "$SDK_BASE/HarmonyOS-6.1.1" ] && [ -d "$SDK_BASE/hms" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6074786Z ^[[36;1m  ln -s hms "$SDK_BASE/HarmonyOS-6.1.1"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6075105Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6075352Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6075591Z ^[[36;1mrm -f "$SDK_ARCHIVE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6075885Z ^[[36;1mrm -rf "$SDK_EXTRACT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6076255Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/toolchains"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6076715Z ^[[36;1mchmod +x "$SDK_BASE/hms/toolchains"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6077198Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/native/build-tools/cmake/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6077714Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/native/llvm/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6078199Z ^[[36;1mchmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6078726Z ^[[36;1mchmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6079313Z ^[[36;1mchmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6079658Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6079910Z ^[[36;1mecho "SDK_BASE τ¢«σ╜òτ╗ôµ₧ä:"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6080207Z ^[[36;1mls -la "$SDK_BASE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6080472Z ^[[36;1m^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6080777Z ^[[36;1mtest -f "$SDK_BASE/sdk-pkg.json"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6081127Z ^[[36;1mtest -x "$SDK_BASE/openharmony/toolchains/restool"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6081490Z ^[[36;1mtest -d "$SDK_BASE/openharmony/native"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6101880Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6102349Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6102592Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6102858Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6103128Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6103417Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6103972Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6148992Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6149434Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6149925Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6150407Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6150931Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6151607Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6152101Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6152631Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6153590Z   GH_TOKEN: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6154011Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:06.6220047Z Σ╗Äτºüµ£ë SDK Σ╗ôσ║ôΣ╕ïΦ╜╜σ«îµò┤ HarmonyOS SDK∩╝Üliyan-lucky/HarmonyOS_SDK_Tools / linux_command_line_tool_6.1.1 / linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:15.5457648Z ΦºúσÄïσ«îµò┤ HarmonyOS SDK...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2309263Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2310587Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2311509Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2312045Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2312264Z Scanning the drive for archives:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2312776Z 1 file, 1486635222 bytes (1418 MiB)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2313007Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:44:16.2313780Z Extracting archive: /home/runner/work/_temp/linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4479352Z --
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4481348Z Path = /home/runner/work/_temp/linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4482000Z Type = 7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4482598Z Physical Size = 1486635222
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4483102Z Headers Size = 886513
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4483882Z Method = ARM64 LZMA2:26 LZMA:20 BCJ2 ARM
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4484434Z Solid = +
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4484758Z Blocks = 4
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4485012Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4485409Z Everything is Ok
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4485703Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4486034Z Folders: 9665
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4486491Z Files: 96604
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4486842Z Size:       9808337504
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4487237Z Compressed: 1486635222
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4506245Z µë╛σê░ SDK_SOURCE: /home/runner/work/_temp/authorized-sdk/sdk/default
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4516901Z total 20
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4517579Z drwx------ 4 runner runner 4096 May 22 22:17 .
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4518139Z drwx------ 3 runner runner 4096 May 22 22:14 ..
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4518610Z drwxr-xr-x 7 runner runner 4096 May 21 05:49 hms
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4519114Z drwxr-xr-x 7 runner runner 4096 May 21 05:51 openharmony
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4519633Z -rw-r--r-- 1 runner runner  318 May 21 05:46 sdk-pkg.json
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:48.4651007Z µë╛σê░ TOOLS_SOURCE: 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2695473Z SDK_BASE τ¢«σ╜òτ╗ôµ₧ä:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2706241Z total 24
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2706787Z drwxr-xr-x  5 runner runner 4096 Aug 11 04:45 .
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2707612Z drwxr-x--- 14 runner runner 4096 Aug 11 04:44 ..
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2708466Z lrwxrwxrwx  1 runner runner    3 Aug 11 04:45 HarmonyOS-6.1.1 -> hms
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2709311Z drwxr-xr-x  6 runner runner 4096 Aug 11 04:44 command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2710443Z drwxr-xr-x  7 runner runner 4096 May 21 05:49 hms
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2711238Z drwxr-xr-x  7 runner runner 4096 May 21 05:51 openharmony
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ëΦúàσ«îµò┤ HarmonyOS SDK	2026-08-11T04:45:49.2711732Z -rw-r--r--  1 runner runner  318 May 21 05:46 sdk-pkg.json
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	∩╗┐2026-08-11T04:45:49.2742915Z ##[group]Run SDK_BASE="/home/runner/harmonyos-sdk"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2743404Z ^[[36;1mSDK_BASE="/home/runner/harmonyos-sdk"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2744169Z ^[[36;1mecho "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2744667Z ^[[36;1mecho "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2745167Z ^[[36;1mecho "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2745749Z ^[[36;1mecho "PATH=$SDK_BASE/openharmony/native/llvm/bin:$PATH" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2747088Z ^[[36;1mecho "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.2748333Z ^[[36;1mnode -v^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4401630Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4402469Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4403023Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4403321Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4404041Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4404385Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4404699Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4457293Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4457986Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4458406Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4458857Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4459401Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4459909Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4460406Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4460815Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4461272Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	σ«ÜΣ╜ì HarmonyOS SDK	2026-08-11T04:45:49.4621821Z v20.20.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	∩╗┐2026-08-11T04:45:49.4661275Z ##[group]Run echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4662031Z ^[[36;1mecho "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4662629Z ^[[36;1mecho "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4663198Z ^[[36;1mecho "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4663974Z ^[[36;1mecho "RUSTDESK_SIGNING_ZIP_B64 µÿ»σÉªΣ╕║τ⌐║∩╝ƒ $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo µÿ» || echo σÉª)"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4697527Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4698103Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4698653Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4699056Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4699519Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4699980Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4700355Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4750401Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4750781Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4751233Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4751790Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4752357Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4752911Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4753383Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4753854Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4754327Z   DEVECO_SDK_HOME: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4754803Z   OHOS_HVIGOR_SDK_ROOT: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4755357Z   DEVECO_NODE_EXE: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4757597Z   PATH: /home/runner/harmonyos-sdk/openharmony/native/llvm/bin:/home/runner/harmonyos-sdk/command-line-tools/bin:/opt/hostedtoolcache/node/20.20.2/x64/bin:/opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4760445Z   LD_LIBRARY_PATH: /home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4762014Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4817997Z DEVECO_SDK_HOME=/home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4818584Z OHOS_HVIGOR_SDK_ROOT=/home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4819144Z DEVECO_NODE_EXE=/opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Φ╛ôσç║Φ░âΦ»òτÄ»σóâ	2026-08-11T04:45:49.4824602Z RUSTDESK_SIGNING_ZIP_B64 µÿ»σÉªΣ╕║τ⌐║∩╝ƒ σÉª
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	∩╗┐2026-08-11T04:45:49.4871895Z ##[group]Run chmod +x scripts/github_build_harmonyos_linux.sh
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4872473Z ^[[36;1mchmod +x scripts/github_build_harmonyos_linux.sh^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4872881Z ^[[36;1margs=(^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4873238Z ^[[36;1m  "--artifact-type" "$ARTIFACT_TYPE"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4873891Z ^[[36;1m  "--version-bump" "$VERSION_BUMP"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4874471Z ^[[36;1m  "--artifacts-dir" "$HARMONY_ARTIFACTS_DIR"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4875029Z ^[[36;1m  "--abi-filter" "arm64-v8a"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4875387Z ^[[36;1m)^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4875738Z ^[[36;1mif [ "$PREFLIGHT_ONLY" = "true" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4876122Z ^[[36;1m  args+=("--preflight-only")^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4876482Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4876843Z ^[[36;1mif [ "$SKIP_PACKAGE_VERIFY" = "true" ]; then^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4877241Z ^[[36;1m  args+=("--skip-package-verify")^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4877647Z ^[[36;1mfi^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4877998Z ^[[36;1mscripts/github_build_harmonyos_linux.sh "${args[@]}"^[[0m
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4903292Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4903864Z env:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4904158Z   CI: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4904436Z   ARTIFACT_TYPE: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4904819Z   VERSION_BUMP: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4905188Z   PREFLIGHT_ONLY: false
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4905519Z   SKIP_PACKAGE_VERIFY: true
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4956762Z   RUSTDESK_SIGNING_ZIP_B64: ***
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4957278Z   SDK_REPO: liyan-lucky/HarmonyOS_SDK_Tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4957776Z   SDK_TAG: linux_command_line_tool_6.1.1
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4958237Z   SDK_ASSET: linux-harmonyos-command-line-tool-full.7z
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4958747Z   JAVA_HOME: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4959283Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4959845Z   MAVEN_ARGS: -ntp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4960311Z   HOS_SDK_HOME: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4960913Z   DEVECO_SDK_HOME: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4961418Z   OHOS_HVIGOR_SDK_ROOT: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4962576Z   DEVECO_NODE_EXE: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4964699Z   PATH: /home/runner/harmonyos-sdk/openharmony/native/llvm/bin:/home/runner/harmonyos-sdk/command-line-tools/bin:/opt/hostedtoolcache/node/20.20.2/x64/bin:/opt/hostedtoolcache/Java_Zulu_jdk/17.0.20-8/x64/bin:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4967577Z   LD_LIBRARY_PATH: /home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4969200Z   HARMONY_ARTIFACTS_DIR: /home/runner/work/_temp/rustdesk_harmonyos_artifacts
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.4969758Z ##[endgroup]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5105381Z HarmonyOS Linux build preflight
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5106186Z Project: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5107148Z Temp root: /home/runner/work/rustdesk_harmonyos/99_Temp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5107737Z Artifact type: hap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5108193Z Version bump: incremental
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5108855Z Native core URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5110089Z Node: /opt/hostedtoolcache/node/20.20.2/x64/bin/node
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5110809Z HarmonyOS SDK root: /home/runner/harmonyos-sdk
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5111330Z DevEco tools root: /home/runner/harmonyos-sdk/command-line-tools
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5117323Z LD_LIBRARY_PATH=/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/hms/toolchains/lib:/home/runner/harmonyos-sdk/openharmony/previewer/common/bin:/home/runner/harmonyos-sdk/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:/home/runner/harmonyos-sdk/openharmony/toolchains:/home/runner/harmonyos-sdk/openharmony/toolchains/lib:/home/runner/harmonyos-sdk/hms/native/sysroot/usr/lib/x86_64-linux-ohos:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5252803Z Signing material available at: /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5297924Z Signing files in /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5314066Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.cer
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5314993Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.p12
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5315754Z /home/runner/work/rustdesk_harmonyos/99_Temp/rustdesk_harmonyos_signing/debug_hos.p7b
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5458959Z Patched build-profile.json5 signing paths to ./signing/ (signed build)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5479324Z Downloading native core (arm64).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5480494Z   URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5481750Z   To : /home/runner/work/rustdesk_harmonyos/99_Temp/librustdesk_core/librustdesk_core_20260811044549.a.tmp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5573364Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5574918Z                                  Dload  Upload   Total   Spent    Left  Speed
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.5575531Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.7896838Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.7897726Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:49.9110671Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.0605836Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.0606250Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.4883237Z   2  127M    2 2900k    0     0  5764k      0  0:00:22 --:--:--  0:00:22 5764k
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.4884200Z 100  127M  100  127M    0     0   136M      0 --:--:-- --:--:-- --:--:--  291M
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.4940899Z Downloading native core (x86_64).
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.4942268Z   URL: https://github.com/liyan-lucky/librustdesk_core/releases/latest/download/librustdesk_core_x86_64.a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.4943476Z   To : /home/runner/work/rustdesk_harmonyos/99_Temp/librustdesk_core/librustdesk_core_x86_64_20260811044550.a.tmp
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.5022268Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.5023275Z                                  Dload  Upload   Total   Spent    Left  Speed
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.5023874Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.7214483Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.7215139Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.8610432Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:50.8610950Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:51.0620796Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:52.0606659Z   0  124M    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:53.0603597Z  31  124M   31 39.0M    0     0  25.0M      0  0:00:04  0:00:01  0:00:03 39.0M
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:53.9209322Z  57  124M   57 71.7M    0     0  28.0M      0  0:00:04  0:00:02  0:00:02 35.9M
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:53.9210473Z 100  124M  100  124M    0     0  36.4M      0  0:00:03  0:00:03 --:--:-- 43.6M
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:53.9250539Z x86_64 core downloaded successfully.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.0364280Z Native x86_64 core: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/entry/src/main/libs/x86_64/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.0365419Z Native x86_64 core size: 130807338
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.1504975Z Native x86_64 core sha256: FE33EE2323945049A8C4BE5E731A511634E82E0614505254F1E22920CB553FB8
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.1505910Z Native core: /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/entry/src/main/libs/arm64/librustdesk_core.a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.1507352Z Native core size: 133500296
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.1508252Z Native core sha256: ACB84C822B74D0C7B1660E5F804EA3778CBE5BDB4E9BF011F7A580985EEC136A
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.1509022Z Patching abiFilters to: arm64-v8a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.2131608Z abiFilters patched to: arm64-v8a
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.2168749Z Running Hvigor tasks: assembleHap
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.2169457Z Installing hvigor via ohpm...
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.2531618Z ERROR: ohpm has not been initialized yet. Execute the init script to initialize it first.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.2874895Z ERROR: ohpm has not been initialized yet. Execute the init script to initialize it first.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3180784Z node:internal/modules/cjs/loader:1210
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3181465Z   throw err;
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3181946Z   ^
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3182106Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3182970Z Error: Cannot find module '/home/runner/harmonyos-sdk/command-line-tools/hvigor/hvigor-ohos-plugin/node_modules/@ohos/hos-sdkmanager-common/build/src/hos/mapper/platform-sdks.js'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3184365Z Require stack:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3185230Z - /home/runner/harmonyos-sdk/command-line-tools/hvigor/bin/hvigorw.js
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3186170Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3187636Z     at Function.patchedResolveFilename [as _resolveFilename] (/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/scripts/run_hvigor_with_sdk_patch.js:250:34)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3188919Z     at Module._load (node:internal/modules/cjs/loader:1038:27)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3189480Z     at Module.require (node:internal/modules/cjs/loader:1289:19)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3189971Z     at require (node:internal/modules/helpers:182:18)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3190716Z     at Object.<anonymous> (/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/scripts/run_hvigor_with_sdk_patch.js:278:26)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3191462Z     at Module._compile (node:internal/modules/cjs/loader:1521:14)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3192011Z     at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3192612Z     at Module.load (node:internal/modules/cjs/loader:1266:32)
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3193156Z     at Module._load (node:internal/modules/cjs/loader:1091:12) {
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3193780Z   code: 'MODULE_NOT_FOUND',
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3194171Z   requireStack: [
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3194682Z     '/home/runner/harmonyos-sdk/command-line-tools/hvigor/bin/hvigorw.js'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3195147Z   ]
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3195431Z }
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3195601Z 
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3195718Z Node.js v20.20.2
+µ₧äσ╗║ HAP Linux (arm64-v8a)	µ₧äσ╗║ HarmonyOS σîà	2026-08-11T04:45:54.3221902Z ##[error]Process completed with exit code 1.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post Φ«╛τ╜« Java 17	∩╗┐2026-08-11T04:45:54.3359633Z Post job cleanup.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	∩╗┐2026-08-11T04:45:54.5584792Z Post job cleanup.
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6501617Z [command]/usr/bin/git version
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6551074Z git version 2.54.0
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6583429Z Temporarily overriding HOME='/home/runner/work/_temp/0dbce2bd-1b30-444a-ac42-5539308a6ad5' before making global git config changes
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6585098Z Adding repository directory to the temporary git global config as a safe directory
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6590309Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6645623Z Removing SSH command configuration
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6655933Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6685737Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6905730Z Removing HTTP extra header
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6910598Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.6943717Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7155804Z Removing includeIf entries pointing to credentials config files
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7160703Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7183342Z includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7184954Z includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7186164Z includeif.gitdir:/github/workspace/.git.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7187107Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7191404Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7216596Z /home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7229728Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-562cdeb9\-06e2\-414f\-85da\-19a2713c2b2f\.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7354501Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7379384Z /home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7389567Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/rustdesk_harmonyos/rustdesk_harmonyos/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-562cdeb9\-06e2\-414f\-85da\-19a2713c2b2f\.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7551884Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7572866Z /github/runner_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7579112Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-562cdeb9\-06e2\-414f\-85da\-19a2713c2b2f\.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7754693Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7774911Z /github/runner_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7781273Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-562cdeb9\-06e2\-414f\-85da\-19a2713c2b2f\.config
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.7947411Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Post µïëσÅûΣ╗ôσ║ô	2026-08-11T04:45:54.8143362Z Removing credentials config '/home/runner/work/_temp/git-credentials-562cdeb9-06e2-414f-85da-19a2713c2b2f.config'
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Complete job	∩╗┐2026-08-11T04:45:54.8271360Z Cleaning up orphan processes
+µ₧äσ╗║ HAP Linux (arm64-v8a)	Complete job	2026-08-11T04:45:54.8509303Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: harmonyos-dev/setup-harmonyos-sdk@0.2.1. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
