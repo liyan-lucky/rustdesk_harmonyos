@@ -372,12 +372,24 @@ struct Index {
     return segments.length >= 3 && segments.length <= 8 && segments.every((part: string) => part.length <= 4);
   }
 
+  private isValidDomainTarget(value: string): boolean {
+    const match = value.match(/^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z][a-zA-Z-]{0,61}[a-zA-Z](?::(\d{1,5}))?$/);
+    if (match === null) {
+      return false;
+    }
+    return this.isValidPort(match[2]);
+  }
+
+  private isDomainConnectionTarget(value: string): boolean {
+    return /^[a-zA-Z]/.test(value.trim());
+  }
+
   private isValidConnectionTarget(value: string): boolean {
     const normalized = value.trim();
     if (this.isNumericConnectionTarget(normalized)) {
       return normalized.length >= 9;
     }
-    return this.isValidIpv4Target(normalized) || this.isValidIpv6Target(normalized);
+    return this.isValidIpv4Target(normalized) || this.isValidIpv6Target(normalized) || this.isValidDomainTarget(normalized);
   }
 
   private selectLatestChatPeer(peerId: string): void {
@@ -4270,6 +4282,9 @@ struct Index {
   private async handleConnect(overrideTargetId?: string): Promise<void> {
     this.cachedHostname = '';
     const targetId = this.sanitizeConnectionTargetInput(overrideTargetId ?? this.deviceId);
+    console.error(`[CONN] handleConnect start targetId=${targetId} override=${overrideTargetId !== undefined} deviceId=${this.deviceId}`);
+    const _accessToken = NativeRustDeskBridge.getLocalOption('access_token').trim();
+    console.error(`[CONN] access_token: len=${_accessToken.length} empty=${_accessToken.length === 0}`);
     Logger.info('CONN', `handleConnect start targetId=${targetId} override=${overrideTargetId !== undefined}`);
     if (targetId.length === 0) {
       this.setStatusMessage("enter_id");
@@ -4285,7 +4300,7 @@ struct Index {
     this.selectLatestChatPeer(targetId);
     let coreState = await this.officialBridge.refresh(this.settings);
     this.officialCoreState = coreState;
-    Logger.debug('CONN', `handleConnect coreState: coreReady=${coreState.coreReady} stage=${coreState.sessionStage} activePeer=${coreState.activePeerId}`);
+    Logger.info('CONN', `handleConnect coreState: coreReady=${coreState.coreReady} stage=${coreState.sessionStage} activePeer=${coreState.activePeerId}`);
     if (!coreState.coreReady) {
       this.setStatusMessage("core_not_ready");
       Logger.error('CONN', `handleConnect core not ready: ${JSON.stringify(coreState)}`);
@@ -4311,6 +4326,7 @@ struct Index {
     this.pendingPeerId = targetId;
     const forceRelay = PreferenceStore.getPeerConnectMode(targetId) === 'relay';
     this.pendingTransportTarget = forceRelay ? targetId : this.resolveConnectionTransportTarget(targetId);
+    console.error(`[CONN] handleConnect transport: targetId=${targetId} forceRelay=${forceRelay} pendingTransportTarget=${this.pendingTransportTarget}`);
     NativeRustDeskBridge.mainSetPeerOption(
       this.pendingTransportTarget,
       'force-always-relay',
@@ -4334,11 +4350,35 @@ struct Index {
   }
 
   private resolveConnectionTransportTarget(peerId: string): string {
+    console.error(`[CONN] resolve START: peerId=${peerId} enableDirectIp=${this.settings.enableDirectIp} isNumeric=${this.isNumericConnectionTarget(peerId)} isDomain=${this.isDomainConnectionTarget(peerId)}`);
+    Logger.info('CONN', `resolve: peerId=${peerId} enableDirectIp=${this.settings.enableDirectIp} isNumeric=${this.isNumericConnectionTarget(peerId)} isDomain=${this.isDomainConnectionTarget(peerId)}`);
+    if (this.isDomainConnectionTarget(peerId)) {
+      if (peerId.includes(':')) {
+        Logger.info('CONN', `resolve: domain with port, returning as-is: ${peerId}`);
+        return peerId;
+      }
+      Logger.info('CONN', `resolve: domain without port, adding :21118 -> ${peerId}:21118`);
+      return `${peerId}:21118`;
+    }
     if (!this.settings.enableDirectIp || !this.isNumericConnectionTarget(peerId)) {
+      Logger.info('CONN', `resolve: skipping direct IP (enableDirectIp=${this.settings.enableDirectIp} isNumeric=${this.isNumericConnectionTarget(peerId)}), returning peerId=${peerId}`);
       return peerId;
     }
-    const directAddress = LanDiscoveryService.getInstance().getDirectAddress(peerId).trim();
-    return directAddress.length > 0 ? directAddress : peerId;
+    const lanService = LanDiscoveryService.getInstance();
+    const discoveredPeer = lanService.getDiscoveredPeerById(peerId);
+    if (discoveredPeer === null) {
+      Logger.info('CONN', `resolve: peer ${peerId} not found in LAN discovery, returning peerId`);
+      return peerId;
+    }
+    Logger.info('CONN', `resolve: peer ${peerId} found in LAN discovery: online=${discoveredPeer.online} directAddress=${discoveredPeer.directAddress}`);
+    if (!discoveredPeer.online) {
+      Logger.warn('CONN', `resolve: peer ${peerId} offline in LAN, fallback to ID connect`);
+      return peerId;
+    }
+    const directAddress = discoveredPeer.directAddress.trim();
+    const result = directAddress.length > 0 ? directAddress : peerId;
+    Logger.info('CONN', `resolve: peer ${peerId} online, using directAddress=${result}`);
+    return result;
   }
 
   private clearNativePeerPassword(peerId: string, transportTarget: string = ''): void {

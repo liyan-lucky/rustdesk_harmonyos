@@ -1847,7 +1847,7 @@ export class NativeRustDeskBridge {
       return;
     }
     NativeRustDeskBridge.lastDebugSummary = nextSummary;
-    console.info(`NativeRustDeskBridge debug: ${NativeRustDeskBridge.lastDebugSummary}`);
+    console.error(`NativeRustDeskBridge debug: ${NativeRustDeskBridge.lastDebugSummary}`);
   }
 
   static requestInputInjectionAuthorization(): number {
@@ -1935,17 +1935,17 @@ export class NativeRustDeskBridge {
     const detailText = detail.length > 0 ? ` ${detail}` : '';
     const line = `${timestamp} ${kind}${peerText}${detailText}`;
     NativeRustDeskBridge.runtimeEventLog.push(line);
-    if (NativeRustDeskBridge.runtimeEventLog.length > 24) {
+    if (NativeRustDeskBridge.runtimeEventLog.length > 100) {
       NativeRustDeskBridge.runtimeEventLog.shift();
     }
-    console.info(`[CORE_EVENT] ${line}`);
+    console.error(`[CORE_EVENT] ${line}`);
   }
 
   private static setModuleLoadSummary(summary: string): void {
     NativeRustDeskBridge.lastModuleLoadSummary = NativeRustDeskBridge.truncate(summary.trim(), 900);
     NativeRustDeskBridge.lastDebugSummary = NativeRustDeskBridge.lastModuleLoadSummary;
     if (NativeRustDeskBridge.lastModuleLoadSummary.length > 0) {
-      console.info(`NativeRustDeskBridge load: ${NativeRustDeskBridge.lastModuleLoadSummary}`);
+      console.error(`NativeRustDeskBridge load: ${NativeRustDeskBridge.lastModuleLoadSummary}`);
     }
   }
 

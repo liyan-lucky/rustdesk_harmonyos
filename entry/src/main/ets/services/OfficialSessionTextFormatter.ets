@@ -156,7 +156,22 @@ export class OfficialSessionTextFormatter {
     if (normalized.includes('Timeout')) {
       return '连接超时';
     }
-    // 新增：更详细的错误提示
+    if (normalized.includes('Failed to connect to') && normalized.includes('Please try later')) {
+      const portMatch = normalized.match(/Failed to connect to\s+([\d.]+:\d+)/);
+      if (portMatch !== null && portMatch[1].endsWith(':21118')) {
+        const host = portMatch[1].substring(0, portMatch[1].lastIndexOf(':'));
+        return `无法直连 ${host}：目标未运行被控端或不在同一网络`;
+      }
+      return '无法连接到目标地址，请稍后重试';
+    }
+    if (normalized.includes('Failed to connect to') && normalized.includes(':21118')) {
+      const portMatch = normalized.match(/Failed to connect to\s+([\d.]+:\d+)/);
+      if (portMatch !== null) {
+        const host = portMatch[1].substring(0, portMatch[1].lastIndexOf(':'));
+        return `无法直连 ${host}：目标端口 21118 未开放`;
+      }
+      return '直连目标端口未开放';
+    }
     if (normalized.includes('Failed to connect')) {
       return '连接失败';
     }
@@ -164,7 +179,7 @@ export class OfficialSessionTextFormatter {
       return '无效的连接参数';
     }
     if (normalized.length > 0 && normalized.length < 100) {
-      return normalized; // 返回原始错误信息
+      return normalized;
     }
     return '官方会话出错';
   }

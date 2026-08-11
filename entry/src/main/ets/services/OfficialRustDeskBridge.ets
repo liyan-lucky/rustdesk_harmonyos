@@ -167,6 +167,7 @@ export class OfficialRustDeskBridge {
     displayPeerId?: string
   ): Promise<void> {
     Logger.info('Bridge', `connectToPeer peerId=${peerId} displayPeerId=${displayPeerId ?? ''} coreReady=${this.state.coreReady}`);
+    console.error(`[Bridge] connectToPeer CALLED: peerId=${peerId} displayPeerId=${displayPeerId ?? ''} coreReady=${this.state.coreReady}`);
     this.closeRequestedByUser = false;
     this.lastTerminalEventSignature = '';
     const requestedPeerId = peerId.trim();
@@ -178,6 +179,7 @@ export class OfficialRustDeskBridge {
     this.sessionTransportPeerId = transportPeerId;
     this.sessionDisplayPeerId = explicitDisplayPeerId.length > 0 ? explicitDisplayPeerId : requestedPeerId;
     const serverConfig = AppDataService.resolveServerConfig(settings);
+    console.error(`[Bridge] serverConfig: idServer=${serverConfig.idServer} relay=${serverConfig.relayServer} api=${serverConfig.apiServer} keyLen=${serverConfig.key.length} keyEmpty=${serverConfig.key.length === 0}`);
     const coreState = await this.refresh(settings);
     if (!coreState.coreReady && !NativeRustDeskBridge.hasNativeModule()) {
       const missingCoreState = OfficialRustDeskBridge.copyCoreState(coreState);
@@ -557,7 +559,7 @@ export class OfficialRustDeskBridge {
   }
 
   private applyEventToState(event: OfficialSessionEvent): void {
-    Logger.debug('Bridge', `applyEventToState kind=${event.kind} stage=${this.state.sessionStage} activePeer=${this.state.activePeerId}`);
+    Logger.info('Bridge', `applyEventToState kind=${event.kind} stage=${this.state.sessionStage} activePeer=${this.state.activePeerId}`);
     if (event.kind === 'connect-requested' ||
       event.kind === 'login-requested' ||
       event.kind === 'login' ||

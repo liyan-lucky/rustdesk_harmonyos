@@ -3838,8 +3838,8 @@ struct RemoteControl {
   }
 
   private applyBridgeState(coreState: OfficialCoreState): void {
-    hilog.info(0xA03D00, 'RC', `applyBridgeState stage=${coreState.sessionStage} showOsPwd=${this.showOsPasswordDialog} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} err=${coreState.lastError.substring(0, 60)}`);
-    Logger.debug('RC', `applyBridgeState stage=${coreState.sessionStage} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} activePeer=${coreState.activePeerId} detail=${coreState.detailMessage.substring(0, 80)}`);
+    hilog.error(0xA03D00, 'RC', `applyBridgeState stage=${coreState.sessionStage} showOsPwd=${this.showOsPasswordDialog} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} err=${coreState.lastError.substring(0, 60)}`);
+    Logger.info('RC', `applyBridgeState stage=${coreState.sessionStage} connected=${this.isConnected} hasFrame=${this.hasReceivedFrame} activePeer=${coreState.activePeerId} detail=${coreState.detailMessage.substring(0, 80)}`);
     if (this.sessionExitScheduled) {
       return;
     }

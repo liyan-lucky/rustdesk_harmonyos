@@ -231,6 +231,27 @@ export class LanDiscoveryService {
     return this.discoveredPeers.get(normalizedId)?.directAddress ?? '';
   }
 
+  getDiscoveredPeerById(peerId: string): DiscoveredPeer | null {
+    const normalizedId = DeviceIdFormatter.parse(peerId);
+    if (normalizedId.length === 0) {
+      return null;
+    }
+    return this.discoveredPeers.get(normalizedId) ?? null;
+  }
+
+  getPeerByDirectAddress(ip: string): DiscoveredPeer | null {
+    const normalizedIp = ip.trim();
+    if (normalizedIp.length === 0) {
+      return null;
+    }
+    for (const peer of this.discoveredPeers.values()) {
+      if (peer.directAddress === normalizedIp) {
+        return peer;
+      }
+    }
+    return null;
+  }
+
   removeDiscoveredPeer(id: string): void {
     const normalizedId = DeviceIdFormatter.parse(id);
     if (normalizedId.length === 0) {
