@@ -196,7 +196,17 @@ if [[ -d "$SIGNING_ROOT" ]] && [[ -d "$SIGNING_ROOT/material" ]]; then
   fi
 
   sed -i 's|../99_Temp/rustdesk_harmonyos_signing/|./signing/|g' "$PROJECT_ROOT/build-profile.json5"
-  echo "Patched build-profile.json5 signing paths to ./signing/ (signed build)"
+  python3 -c "
+import re
+with open('$PROJECT_ROOT/build-profile.json5', 'r') as f:
+    content = f.read()
+content = re.sub(r'\"certpath\"\s*:\s*\"[^\"]*\"', '\"certpath\": \"./signing/debug_hos.cer\"', content)
+content = re.sub(r'\"profile\"\s*:\s*\"[^\"]*\"', '\"profile\": \"./signing/debug_hos.p7b\"', content)
+content = re.sub(r'\"storeFile\"\s*:\s*\"[^\"]*\"', '\"storeFile\": \"./signing/debug_hos.p12\"', content)
+with open('$PROJECT_ROOT/build-profile.json5', 'w') as f:
+    f.write(content)
+print('Patched build-profile.json5 signing paths to ./signing/debug_hos.* (signed build)')
+"
 else
   echo "No valid signing material found; building unsigned HAP"
   python3 -c "
