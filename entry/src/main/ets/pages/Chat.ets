@@ -51,6 +51,7 @@ struct Chat {
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
   @StorageProp('theme_CONTRAST_TEXT') theme_CONTRAST_TEXT: string = '#F8FAFC';
   @StorageProp('theme_ERROR_TEXT') theme_ERROR_TEXT: string = '#FCA5A5';
+  @StorageProp('theme_ERROR_BG') theme_ERROR_BG: string = '#3B1D24';
   @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
   @StorageProp('theme_INPUT_BG') theme_INPUT_BG: string = '#232835';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
@@ -247,14 +248,14 @@ struct Chat {
   @Builder
   private buildActionBar() {
     Row({ space: 8 }) {
-      this.buildActionButton($rawfile('message_24dp_5F6368.svg'), this.lt('System Note'), this.theme_INPUT_BG, this.theme_CONTRAST_TEXT, () => {
+      this.buildActionButton($rawfile('message_24dp_5F6368.svg'), this.lt('System Note'), this.theme_CARD_BG, this.theme_CONTRAST_TEXT, () => {
         this.chatService.sendSystemMessage(this.deviceId, this.lt('Local note: entered support session.'));
         this.refreshMessages();
       })
       this.buildActionButton($rawfile('file.svg'), this.lt('File Reference'), this.theme_ACCENT, this.theme_ACCENT_TEXT, () => {
         void this.sendFileReference();
       })
-      this.buildActionButton($rawfile('trash.svg'), this.lt('Clear Chat'), this.theme_ERROR_TEXT, this.theme_CONTRAST_TEXT, () => {
+      this.buildActionButton($rawfile('trash.svg'), this.lt('Clear Chat'), this.theme_ERROR_BG, this.theme_ERROR_TEXT, () => {
         this.chatService.clearMessages(this.deviceId);
         this.refreshMessages();
       })
@@ -290,7 +291,7 @@ struct Chat {
         Image($rawfile('chat2.svg'))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
           .margin({ right: 8 })
         TextInput({ placeholder: this.lt('Input message'), text: this.draft })
           .layoutWeight(1)

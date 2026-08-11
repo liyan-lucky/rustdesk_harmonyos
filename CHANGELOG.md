@@ -2,6 +2,35 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## Unreleased (2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器)
+
+### 新增功能
+
+- **鼠标模式光标用 iconoir 图标**：从 iconoir 图标库获取 `cursor-pointer.svg`（白色填充+黑色边框箭头），替换十字光标。用 `scale` 变换（固定基础尺寸24 + `.scale({ x: size/24, y: size/24 })`）支持动态大小。热点偏移 (0.195, 0.261)。
+- **光标大小滑条**：`cursorIconSize` @State（16-64，默认28），在鼠标设置面板添加滑条，持久化 `cursor-icon-size`。
+- **远程光标跟随摇杆**：handleJoystickTouch Move 分支中同步更新 `remoteCursorX/Y` 和 `remoteCursorVisible`。
+- **远程光标放大缩小**：RemoteCursor 组件添加 `cursorScale` prop，显示菜单"Show Remote Cursor"下方添加滑条（0.5x-3.0x，默认1.0），持久化 `remote-cursor-scale`。
+- **远程光标默认 Windows 样式**：RemoteCursor else 分支从自绘 Path 改为 `Image($rawfile('cursor-pointer.svg'))`，热点修正到箭头尖端。
+- **自定义选择器浮层**：缩放/编码菜单弃用 HarmonyOS Select 组件，用自定义 `Column+ForEach+Row` 弹出列表替代，独立浮层模式（Stack+zIndex(120)+居中 Blank 关闭），背景 `theme_MENU_BG`。
+
+### 修复
+
+- **缩放/编码菜单白色背景**：HarmonyOS Select 组件 `menuBackgroundColor` 单独不生效，暗色主题下显示白色背景。配合 `menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)` 可显示深色，但最终方案完全弃用 Select 组件，用自定义弹出列表替代。
+- **聊天工具栏浅色主题配色**：`theme_ERROR_TEXT` 被误用为按钮背景（浅色下深红#991B1B），配 `theme_CONTRAST_TEXT`（近黑#111827）几乎不可见。改为 `theme_ERROR_BG`（浅红#FEE2E2）背景 + `theme_ERROR_TEXT`（深红）前景；chat2.svg 图标从 `theme_TEXT_TERTIARY` 改为 `theme_TEXT_SECONDARY`；系统备注按钮背景从 `theme_INPUT_BG` 改为 `theme_CARD_BG`。
+- **ID输入框光标错位**：格式化添加空格后 `deviceIdDisplay` 更新触发 TextInput 重新渲染，光标被重置到旧位置（空格位置）。用户快速连续输入时字符插入空格位置，导致顺序错乱（如输入123456789得到"123 987 654"）。修复方案三层保障：① onChange 中 `deviceIdDisplay` 更新前先调用 `caretPosition` ② `restoreDeviceIdCaret` 同步调用+4次异步重试[16,50,100,200]ms ③ `onTextSelectionChange` 中检测 `deviceIdExpectedCaret`，若光标被重置到错误位置则立即修正。
+
+### 新增文件
+
+- `entry/src/main/resources/rawfile/cursor-pointer.svg` — iconoir 鼠标箭头图标（白色填充+黑色边框）
+
+### 修改文件
+
+- `entry/src/main/ets/pages/RemoteControl.ets` — 光标图标替换、光标大小滑条、自定义选择器浮层、远程光标跟随摇杆、远程光标缩放滑条
+- `entry/src/main/ets/components/RemoteCursor.ets` — 远程光标 cursorScale prop、默认 Windows 样式图标、热点修正
+- `entry/src/main/ets/pages/Index.ets` — ID输入框光标错位修复（deviceIdExpectedCaret + onTextSelectionChange 检测）
+- `entry/src/main/ets/pages/Chat.ets` — 聊天工具栏浅色主题配色修复
+- `entry/src/main/ets/services/I18nService.ets` — 新增翻译：Cursor Size→光标大小、Cursor Scale→光标缩放
+
 ## Unreleased (2026-08-10 触摸交互重构 + 虚拟鼠标控制)
 
 ### 新增功能

@@ -1,6 +1,6 @@
 # 当前仓库状态
 
-更新时间：2026-08-10
+更新时间：2026-08-11
 
 ## 定位
 
@@ -23,10 +23,14 @@
 - 远程连接：已接入 RustDesk session 路径，真实视频帧渲染，peer info 获取。
 - 访问端控制：手机作为访问端控制远端 PC 的触摸、鼠标、滚轮、键盘等仍按 native active session 路径收口。
 - 触摸交互系统：7 项手势可配置（单击/长按/滑动/短按拖动/长按拖动/双指开合/双指平移），自然滚动，平移回弹。
-- 虚拟鼠标控制：鼠标模式下提供虚拟光标（十字线+空心圆）、摇杆（touch ID 跟踪、速度可调、双模式）、L/R/M/P 菱形按钮、光标到边缘自动平移。
+- 虚拟鼠标控制：鼠标模式下提供虚拟光标（iconoir cursor-pointer.svg 箭头图标，可调大小16-64）、摇杆（touch ID 跟踪、速度可调、双模式）、L/R/M/P 菱形按钮、光标到边缘自动平移。
+- 远程光标：跟随摇杆移动，支持缩放（0.5x-3.0x），默认 Windows 箭头样式（cursor-pointer.svg），热点偏移 (0.195, 0.261)。
 - 悬浮工具栏：可收起/展开、拖拽吸边、位置持久化。
-- 鼠标控制菜单：内联 Row 模式选择、鼠标设置面板（灵敏度/滚动速度/摇杆速度）。
+- 鼠标控制菜单：内联 Row 模式选择、鼠标设置面板（灵敏度/滚动速度/摇杆速度/光标大小）。
+- 显示菜单：缩放/编码选择弃用 Select 组件，改用自定义浮层弹出列表（Stack+zIndex(120)+居中），暗色主题正确显示。
 - 连接日志系统：统一 Logger 工具类，关于页面详细日志开关。
+- ID 输入框：格式化光标位置修正（deviceIdExpectedCaret + onTextSelectionChange 检测），快速连续输入不再错位。
+- 聊天工具栏：浅色/暗色主题配色均正确（清空按钮 theme_ERROR_BG+theme_ERROR_TEXT，图标 theme_TEXT_SECONDARY）。
 - 被控端限制：华为手机作为被控端的远程操控/输入注入按平台不支持处理，当前搁置，不作为发布阻塞项。
 - 文件传输、五编码和全部访问端会话菜单仍需端到端回归。远程光标显示功能已基本完整实现（App UI + Core 回调 + Bridge 事件消费 + PixelMap 渲染），剩余仅为健壮性优化（事件队列容量、载荷编码、cursor clip）。
 - 线上构建当前为 HAP-only；Release 和 workflow artifact 只上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
@@ -44,7 +48,7 @@
 - `docs/`：接手、路径、构建、测试、发布、合规和当前状态文档。
 - `docs/AGENT_HANDOFF.md`：跨对话接手第一入口。
 - `docs/README.md`：文档阅读顺序。
-- `docs/WORKSPACE_PATHS.md`：构建、测试、日志、备份和临时证据路径规范。
+- `docs/DIRECTORY_CONVENTIONS.md`：项目目录、路径、构建环境和清理规范。
 
 ## 合规边界
 

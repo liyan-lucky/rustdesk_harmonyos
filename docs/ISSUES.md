@@ -2,6 +2,54 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器
+
+### 23. HarmonyOS Select 组件 menuBackgroundColor 暗色主题不生效
+
+**现象**：缩放/编码菜单使用 Select 组件，暗色主题下弹出列表背景为白色，`menuBackgroundColor` 设置无效。
+
+**根因**：HarmonyOS Select 组件的 `menuBackgroundColor` 属性单独设置不生效，必须配合 `menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)` 才能显示深色背景。即使配合使用，在某些主题切换场景下仍不稳定。
+
+**解决**：完全弃用 Select 组件，用自定义 `Column+ForEach+Row` 弹出列表替代。独立浮层模式：`Stack` + `zIndex(120)` + `Blank` 居中浮层，点击空白关闭列表，背景用 `theme_MENU_BG`。
+
+**教训**：HarmonyOS Select 组件的 `menuBackgroundColor` 不可靠，暗色主题下不要用 Select 组件做弹出选择。自定义弹出列表需用独立浮层（Stack+zIndex），内联展开会挤压面板内容。
+
+### 24. ArkTS @Builder 内 Image 对 SVG 的 width/height 动态更新不可靠
+
+**现象**：鼠标光标大小滑条调整时，`@Builder` 内的 `Image($rawfile('cursor-pointer.svg'))` 的 `.width(size).height(size)` 不响应 @State 变化，光标大小不变。
+
+**根因**：ArkTS `@Builder` 方法内对 SVG Image 的 width/height 属性动态绑定不可靠，@State 变化不会触发 Image 尺寸重新渲染。
+
+**解决**：改用 `scale` 变换。固定基础尺寸 24px（`.width(24).height(24)`），通过 `.scale({ x: size/24, y: size/24, centerX: 0, centerY: 0 })` 实现动态缩放，@State 变化时 scale 立即响应。
+
+**教训**：ArkTS `@Builder` 内 Image 对 SVG 的 width/height 动态更新不可靠。需要动态调整 SVG 图标尺寸时，用固定基础尺寸 + `.scale()` 变换替代直接修改 width/height。
+
+### 25. TextInput 格式化导致光标错位
+
+**现象**：ID 输入框输入数字时，格式化添加空格（如 "123 456 789"）后光标被重置到旧位置（空格位置）。用户快速连续输入时字符插入空格位置，导致顺序错乱（如输入 123456789 得到 "123 987 654"）。
+
+**根因**：格式化添加空格后 `deviceIdDisplay` 更新触发 TextInput 重新渲染，光标被重置到旧位置。`caretPosition` 在 setTimeout 中调用来不及生效，用户快速连续输入时字符插入空格位置。
+
+**解决**：三层保障修复：
+1. onChange 中 `deviceIdDisplay` 更新前先调用 `caretPosition(caretPos)` — 在渲染前设置光标位置
+2. `restoreDeviceIdCaret` 同步调用 + 4 次异步重试 [16, 50, 100, 200]ms — 多次确保光标到位
+3. `onTextSelectionChange` 中检测 `deviceIdExpectedCaret` — 若光标被重置到错误位置则立即修正
+
+**教训**：TextInput 的 `deviceIdDisplay`（受控文本）更新会触发重新渲染并重置光标。格式化受控输入框的光标管理必须：① 更新文本前先设置光标 ② 多次异步重试 ③ 用 `onTextSelectionChange` 检测并修正光标位置。仅靠 setTimeout 设置 caretPosition 不够可靠。
+
+### 26. 聊天工具栏浅色主题配色错误
+
+**现象**：浅色主题下聊天工具栏的清空聊天按钮几乎不可见（深红背景+近黑文字）。
+
+**根因**：`theme_ERROR_TEXT`（深红 #991B1B）被误用为按钮背景色，配 `theme_CONTRAST_TEXT`（近黑 #111827）作前景色，浅色主题下深红+近黑对比度极低。
+
+**解决**：
+- 清空聊天按钮：背景改用 `theme_ERROR_BG`（浅红 #FEE2E2）+ 前景 `theme_ERROR_TEXT`（深红 #991B1B）
+- chat2.svg 图标：从 `theme_TEXT_TERTIARY` 改为 `theme_TEXT_SECONDARY`（提高对比度）
+- 系统备注按钮：背景从 `theme_INPUT_BG` 改为 `theme_CARD_BG`（与卡片一致）
+
+**教训**：`theme_ERROR_TEXT` 是文字色（深红），不能用作背景色。背景色用 `theme_ERROR_BG`（浅红）。颜色变量命名有 `_TEXT`（文字）和 `_BG`（背景）后缀，使用时必须区分用途。
+
 ## 2026-08-10 触摸交互重构 + 虚拟鼠标控制
 
 ### 17. 摇杆触摸过滤用坐标范围 [0,100] 不可靠
@@ -258,13 +306,13 @@
 
 **现象**：历史上同时出现 `%VSCODE_ROOT%\99_Temp`、盘符根 `F:\99_Temp`、App 仓库 `.codex_*`、`%TEMP%\rustdesk_*`、`99_Temp\backups` 与项目专用 backup 目录，容易导致 HAP/日志/备份新旧混淆和体积碰撞。
 
-**规则**：唯一权威根目录是 `%VSCODE_ROOT%\99_Temp`（当前 `F:\Visual_Studio_Code\99_Temp`）。构建、验包、测试日志、HDC dump、Core target、Hvigor stage/build/cache 和备份必须放入该目录下的固定子目录，详见 `docs/WORKSPACE_PATHS.md`。
+**规则**：唯一权威根目录是 `%VSCODE_ROOT%\99_Temp`。构建、验包、测试日志、HDC dump、Core target、Hvigor stage/build/cache 和备份必须放入该目录下的固定子目录，详见 `docs/DIRECTORY_CONVENTIONS.md`。
 
 **完成标准**：清理后仓库根不再保留 `.codex_*` 构建/布局探针；盘符根 `F:\99_Temp` 不再作为本项目工作目录；备份只剩 `rustdesk_harmonyos_backups` 与 `rustdesk_core_backups` 两类；文档中的构建命令全部指向 `%VSCODE_ROOT%\99_Temp`。
 
 **2026-06-21 执行结果**：上述清理已完成。`reports/` 收敛为 Markdown 审计报告；旧截图/布局 JSON/XML、`F:\99_Temp`、旧 `99_Temp\backups`、仓库 `.codex_*` 与 `%TEMP%` 签名解包目录已删除。最新 HAP/Core 产物已迁移到 `99_Temp` 标准路径，并重新创建 App/Core 两个备份。16:26 二次清理继续删除 `%VSCODE_ROOT%\_tmp_rustdesk_1_4_7_src` 官方 1.4.7 临时 clone、旧 `rustdesk_harmonyos_build\native_rust_core\target`、旧 `windows_hap`、旧 `rustdesk-1.4.7-clone`、HAP intermediates/cache/generated、App/Core IDE/工具缓存、Core `rustdesk-master/target` 与 `native_rust_core/target`。
 
-**当前允许保留的 ignored 项**：App 仓库只应剩 `13_librustdesk_core/` junction、`entry/src/main/libs/` native core 副本、`local.properties`、`signing/`；Core 仓库只应剩 `entry/` 静态库副本、`rdev-fork/` OHOS 输入 fork 源码、`rustdesk-master/src/version.rs` 生成版本文件。其他 ignored build/cache/log 若再次出现，交接前按 `docs/WORKSPACE_PATHS.md` 迁移或删除。
+**当前允许保留的 ignored 项**：App 仓库只应剩 `13_librustdesk_core/` junction、`entry/src/main/libs/` native core 副本、`local.properties`、`signing/`；Core 仓库只应剩 `entry/` 静态库副本、`rdev-fork/` OHOS 输入 fork 源码、`rustdesk-master/src/version.rs` 生成版本文件。其他 ignored build/cache/log 若再次出现，交接前按 `docs/DIRECTORY_CONVENTIONS.md` 迁移或删除。
 
 ## 2026-06-21 华为手机被控操控不支持，功能搁置
 

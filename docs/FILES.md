@@ -6,7 +6,7 @@
 
 > 2026-06-22 线上构建文件职责：`.github/workflows/build-harmonyos*.yml` 只能从显式 dispatch 输入或 latest Release 获取两架构 Core，禁止隐藏 secret/var URL 静默覆盖；`run_hvigor_with_sdk_patch.js` 把 arm64/x86_64 大小与 SHA256 一并写入 `CoreBuildInfo.ets`；两个审计脚本必须核对这些字段和 workflow 来源规则。
 
-> 2026-06-21 更新：路径职责以 `docs/WORKSPACE_PATHS.md` 为准。所有构建、测试、缓存、日志和备份必须统一放在 `F:\Visual_Studio_Code\99_Temp` / `%VSCODE_ROOT%\99_Temp`，不要再使用 `F:\99_Temp`、`C:\99_Temp`、仓库内 `.codex_*` 或散落备份目录。
+> 2026-08-11 更新：路径职责以 `docs/DIRECTORY_CONVENTIONS.md` 为准。所有构建、测试、缓存、日志和备份必须统一放在 `%VSCODE_ROOT%\99_Temp`，不要再使用盘符根临时目录、仓库内 `.codex_*` 或散落备份目录。
 
 ## 工作区项目匹配
 
@@ -32,7 +32,7 @@
 | 文件 | 作用 |
 |------|------|
 | `README.md` | 新对话接手入口，说明当前状态、问题结构和阅读顺序 |
-| `WORKSPACE_PATHS.md` | 构建/测试/缓存/备份路径权威规范；定义 `99_Temp` 子目录职责和废弃路径 |
+| `DIRECTORY_CONVENTIONS.md` | 项目目录/路径/构建环境/清理规范；定义 `99_Temp` 子目录职责、废弃路径和清理检查清单 |
 | `CORE.md` | 核心架构、可复现编译、HDC安装启动、运行验证清单 |
 | `PROGRESS.md` | 当前功能进度、已完成事项、重点问题 |
 | `CONNECTION_DEBUG_LOG.md` | 连接问题逐轮排查记录 |
@@ -48,7 +48,8 @@
 
 | 文件 | 作用 |
 |------|------|
-| `AGENT_HANDOFF.md` | 2026-06-20 当前跨对话接棒入口；包含全部用户目标、验证证据、未完成边界、构建产物和继续顺序 |
+| `AGENT_HANDOFF.md` | 新对话交接入口；当前项目状态、工作规则、用户偏好、构建命令和必读顺序 |
+| `AGENT_MEMORY.md` | 技术经验参考；ArkTS/原生桥接/构建/连接会话/UI图标/核心架构经验库 |
 | `switch_deveco_paths.ps1` | 在 portable `../99_Temp/...` 配置与 DevEco Studio 绝对路径配置之间切换；提交、脚本构建和换电脑前必须切回 portable |
 
 ## C++桥接层 (entry/src/main/cpp/)
@@ -182,7 +183,7 @@
 | `rustdesk_harmonyos_build/deveco-sdk/` | DevEco/OpenHarmony SDK缓存，HAP构建使用 |
 | `rustdesk_harmonyos_build/external-src/` | C依赖源码 (opus/libsodium/aom/libyuv/libvpx) |
 | `rustdesk_harmonyos_build/build/` | **已清理**。旧依赖 build 输出，不再作为当前保留项 |
-| `rustdesk_harmonyos_build/native_rust_core/target/` | **已清理**。旧 Windows native core target；当前 verified core 在 `99_Temp/librustdesk_core/cargo_target/`，见 `WORKSPACE_PATHS.md` 和 `CORE.md` |
+| `rustdesk_harmonyos_build/native_rust_core/target/` | **已清理**。旧 Windows native core target；当前 verified core 在 `99_Temp/librustdesk_core/cargo_target/`，见 `DIRECTORY_CONVENTIONS.md` 和 `CORE.md` |
 | `rustdesk_harmonyos_build/vcpkg/` | vcpkg包管理器及已安装依赖；`downloads/buildtrees/packages`缓存已清理 |
 | `harmonyos_build/` | 当前 HAP 输出目录，项目子目录名与 `11_Rustdesk_harmonyos/` 保持一致 |
 | `harmonyos_stage/` | 临时 staged build 目录，可删除，可由脚本重新生成 |

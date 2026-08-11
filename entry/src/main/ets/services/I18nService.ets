@@ -1112,6 +1112,8 @@ export class I18nService {
     this.translations.set('Mouse Sensitivity', '鼠标灵敏度');
     this.translations.set('Scroll Speed', '滚动速度');
     this.translations.set('Joystick Speed', '摇杆速度');
+    this.translations.set('Cursor Size', '光标大小');
+    this.translations.set('Cursor Scale', '光标缩放');
     this.translations.set('Show Cursor', '显示光标');
     this.translations.set('Tap to Click', '轻点单击');
     this.translations.set('Duration', '时长');
@@ -1335,6 +1337,8 @@ export class I18nService {
     this.translations.set('鼠标灵敏度', 'Mouse Sensitivity');
     this.translations.set('滚动速度', 'Scroll Speed');
     this.translations.set('摇杆速度', 'Joystick Speed');
+    this.translations.set('光标大小', 'Cursor Size');
+    this.translations.set('光标缩放', 'Cursor Scale');
     this.translations.set('显示光标', 'Show Cursor');
     this.translations.set('轻点单击', 'Tap to Click');
     this.translations.set('时长', 'Duration');
@@ -2192,6 +2196,8 @@ this.translations.set('About', 'About');
     this.translations.set('Mouse Sensitivity', 'Mouse Sensitivity');
     this.translations.set('Scroll Speed', 'Scroll Speed');
     this.translations.set('Joystick Speed', 'Joystick Speed');
+    this.translations.set('Cursor Size', 'Cursor Size');
+    this.translations.set('Cursor Scale', 'Cursor Scale');
     this.translations.set('Show Cursor', 'Show Cursor');
     this.translations.set('Tap to Click', 'Tap to Click');
     this.translations.set('Duration', 'Duration');

@@ -214,6 +214,7 @@ struct Index {
   private deviceIdInputController: TextInputController = new TextInputController();
   private deviceIdSelectionEnd: number = 0;
   private deviceIdCaretRestoreVersion: number = 0;
+  private deviceIdExpectedCaret: number = -1;
   private pendingDeviceIdSelection: string = '';
   @State hasHadSession: boolean = false;
   @State lastSessionPeerId: string = '';
@@ -304,8 +305,10 @@ struct Index {
 
   private restoreDeviceIdCaret(position: number): void {
     this.deviceIdSelectionEnd = position;
+    this.deviceIdExpectedCaret = position;
     const restoreVersion = ++this.deviceIdCaretRestoreVersion;
-    [0, 40, 120].forEach((delay: number) => {
+    this.deviceIdInputController.caretPosition(position);
+    [16, 50, 100, 200].forEach((delay: number) => {
       setTimeout(() => {
         if (restoreVersion === this.deviceIdCaretRestoreVersion) {
           this.deviceIdInputController.caretPosition(position);
@@ -1019,13 +1022,21 @@ struct Index {
                 const numericTarget = raw.length === 0 || this.isNumericConnectionTarget(raw);
                 const rawCaret = this.resolveRawCaretAfterEdit(this.deviceIdDisplay, value, this.deviceIdSelectionEnd);
                 const formattedValue = numericTarget ? this.formatId(raw) : raw;
+                const caretPos = this.mapConnectionTargetCaret(formattedValue, rawCaret);
                 this.deviceId = raw;
+                this.deviceIdInputController.caretPosition(caretPos);
                 this.deviceIdDisplay = formattedValue;
                 this.showIdSuggestions = this.deviceIdInputFocused && raw.length >= 3;
-                this.restoreDeviceIdCaret(this.mapConnectionTargetCaret(formattedValue, rawCaret));
+                this.restoreDeviceIdCaret(caretPos);
               })
               .onTextSelectionChange((_selectionStart: number, selectionEnd: number) => {
                 this.deviceIdSelectionEnd = selectionEnd;
+                if (this.deviceIdExpectedCaret >= 0 && selectionEnd !== this.deviceIdExpectedCaret) {
+                  const expected = this.deviceIdExpectedCaret;
+                  this.deviceIdExpectedCaret = -1;
+                  this.deviceIdInputController.caretPosition(expected);
+                  this.deviceIdSelectionEnd = expected;
+                }
               })
               .onFocus(() => {
                 this.deviceIdInputFocused = true;

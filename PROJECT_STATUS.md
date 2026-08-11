@@ -45,11 +45,13 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 
 ### 3.2 虚拟鼠标指针
 
-- **样式**：十字线 + 空心圆（蓝色描边 + 透明填充）
+- **样式**：iconoir `cursor-pointer.svg`（白色填充+黑色边框箭头），用 `scale` 变换支持动态大小
+- **大小**：`cursorIconSize` @State（16-64，默认28），鼠标设置面板「光标大小」滑条，持久化 `cursor-icon-size`
 - **位置**：`cursorScreenX` / `cursorScreenY` 状态变量
 - **初始化**：进入鼠标模式时光标初始化到屏幕中心，`hasPointerPosition = true`
 - **裁剪**：clip 到实际渲染画面区域（`getVisibleImageBounds()`，含 panOffset）
 - **限定**：`getCursorClampBounds()`（不含 panOffset 的基础区域）防止正反馈循环
+- **热点**：箭头尖端在 (4.68, 6.26)/24 比例处，热点偏移 (0.195, 0.261)
 
 ### 3.3 摇杆
 
@@ -153,6 +155,15 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - **鼠标模式选中**：关闭菜单 + 收起工具栏
 - **鼠标设置**：标题「鼠标设置」+ 三个滑条（灵敏度、滚动速度、摇杆速度）
 - **灵敏度和滚动速度**：启动时从 `getLocalOption('mouse-sensitivity')` 和 `getLocalOption('mouse-scroll-speed')` 加载
+- **光标大小**：`cursorIconSize`（16-64，默认28），持久化 `cursor-icon-size`
+
+## 5.5 显示菜单
+
+- **缩放/编码选择**：弃用 HarmonyOS Select 组件，改用自定义浮层弹出列表
+- **浮层结构**：`Stack` + `zIndex(120)` + `Blank` 居中浮层，点击空白关闭列表
+- **背景**：`theme_MENU_BG`，暗色/浅色主题均正确显示
+- **远程光标缩放**：`cursorScale`（0.5x-3.0x，默认1.0），持久化 `remote-cursor-scale`
+- **远程光标默认样式**：Windows 箭头（`cursor-pointer.svg`），热点修正到箭头尖端
 
 ## 6. 连接日志系统
 
@@ -185,6 +196,10 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - **RadioOptionItem 的 @Prop selected 在 @Builder 内不实时更新**：已用内联 Row 替换
 - **摇杆触摸过滤用坐标范围 [0,100] 不可靠**：手指超出区域后坐标超出范围，已改用 touch ID 跟踪
 - **光标限定范围含 panOffset 会导致正反馈循环**：画面飞走，已解耦为 clamp 用基础区域（不含 panOffset），clip 用可见区域（含 panOffset）
+- **HarmonyOS Select 组件 menuBackgroundColor 暗色主题不生效**：已完全弃用 Select 组件，用自定义浮层弹出列表替代
+- **ArkTS @Builder 内 Image 对 SVG 的 width/height 动态更新不可靠**：改用 `scale` 变换（固定基础尺寸24 + scale）
+- **TextInput 格式化导致光标错位**：三层保障修复（更新前设置 caretPosition + 多次重试 + onTextSelectionChange 检测）
+- **聊天工具栏浅色主题配色错误**：`theme_ERROR_TEXT` 误用为背景 → 改用 `theme_ERROR_BG`+`theme_ERROR_TEXT`
 
 ## 9. 构建和测试
 
@@ -229,6 +244,9 @@ C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe
 | `entry/src/main/ets/services/I18nService.ets` | 国际化翻译 |
 | `entry/src/main/resources/rawfile/nav-arrow-left.svg` | iconoir 左箭头图标 |
 | `entry/src/main/resources/rawfile/nav-arrow-right.svg` | iconoir 右箭头图标 |
+| `entry/src/main/resources/rawfile/cursor-pointer.svg` | iconoir 鼠标箭头图标（白色填充+黑色边框） |
+| `entry/src/main/ets/components/RemoteCursor.ets` | 远程光标组件（cursorScale、Windows 样式图标） |
+| `entry/src/main/ets/pages/Chat.ets` | 聊天页面（工具栏主题配色） |
 
 ## 11. 需求变更历史
 
@@ -252,3 +270,11 @@ C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe
 18. 光标限定到画面区域（getCursorClampBounds / getVisibleImageBounds 解耦）
 19. 光标到边缘自动平移 + 松手回弹
 20. 摇杆速度公式降低 20%（joystickSpeed / 12.5）
+21. 鼠标光标用 iconoir cursor-pointer.svg 替换十字线
+22. 光标大小滑条（16-64，默认28，持久化 cursor-icon-size）
+23. 远程光标跟随摇杆移动
+24. 远程光标缩放滑条（0.5x-3.0x，持久化 remote-cursor-scale）
+25. 远程光标默认 Windows 箭头样式
+26. 缩放/编码菜单弃用 Select 组件，自定义浮层弹出列表
+27. 聊天工具栏浅色主题配色修复
+28. ID 输入框光标错位修复（三层保障）

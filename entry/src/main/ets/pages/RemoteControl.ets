@@ -161,8 +161,8 @@ struct RemoteControl {
   private twoFingerScrollAccumulator: number = 0;
   private readonly AXIS_SCROLL_THRESHOLD: number = 1.0;
   private readonly SCROLL_THRESHOLD: number = 10;
-  private readonly TWO_FINGER_SCROLL_THRESHOLD: number = 15;
-  private readonly TOUCH_SCROLL_THRESHOLD: number = 10;
+  private readonly TWO_FINGER_SCROLL_THRESHOLD: number = 100;
+  private readonly TOUCH_SCROLL_THRESHOLD: number = 100;
   private touchInteractionManager: TouchInteractionManager | null = null;
   @State showMarquee: boolean = false;
   @State marqueeRect: MarqueeRect = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -279,6 +279,7 @@ struct RemoteControl {
   @State previewHeight: number = 0;
   @State viewRotation: number = 0;
   @State isLandscapeMode: boolean = false;
+  private originalLandscapeMode: boolean = false;
   @State zoomLevelIndex: number = 0;
   @State pinchScale: number = 1;
   private lastPinchScale: number = 1;
@@ -300,6 +301,7 @@ struct RemoteControl {
   @State qualityRefreshTick: number = 0;
   private qualityRefreshTimer: number = -1;
   @State showDisplayMenu: boolean = false;
+  @State displayMenuPopupId: string = '';
   @State showMoreMenu: boolean = false;
   @State showMouseModeMenu: boolean = false;
   @State showChatModeMenu: boolean = false;
@@ -334,7 +336,7 @@ struct RemoteControl {
   @State keyboardTranslateSupported: boolean = false;
   @State sessionRecording: boolean = false;
   @State voiceCallActive: boolean = false;
-  @State showRemoteCursor: boolean = false;
+  @State showRemoteCursor: boolean = true;
   @State showQualityMonitor: boolean = false;
   @State muteAudio: boolean = false;
   @State disableClipboard: boolean = false;
@@ -350,6 +352,8 @@ struct RemoteControl {
   @State touchSettings: TouchSettings = DEFAULT_TOUCH_SETTINGS;
   @State touchPopupId: string = '';
   @State touchPopupRow: number = 0;
+  @State touchPopupDurVal: number = 0;
+  @State touchPopupSpdVal: number = 0;
   @State joystickActive: boolean = false;
   @State joystickKnobX: number = 0;
   @State joystickKnobY: number = 0;
@@ -366,6 +370,7 @@ struct RemoteControl {
   @State mouseMenuTab: number = 0;
   @State mouseSensitivity: number = 8;
   @State mouseScrollSpeed: number = 3;
+  @State cursorIconSize: number = 28;
   @State stickyAlt: boolean = false;
   @State stickyShift: boolean = false;
   @State stickyWin: boolean = false;
@@ -386,6 +391,7 @@ struct RemoteControl {
   @State remoteCursorHotY: number = 0;
   @State remoteCursorWidth: number = 0;
   @State remoteCursorHeight: number = 0;
+  @State remoteCursorScale: number = 1.0;
   private remoteCursorPositionEventCount: number = 0;
   private remoteCursorDataEventCount: number = 0;
   private remoteCursorIdEventCount: number = 0;
@@ -416,8 +422,8 @@ struct RemoteControl {
     this.privacyMode = this.resolveToggleOption('privacy-mode');
     const joystickSpeedValue = NativeRustDeskBridge.getLocalOption('joystick-speed');
     if (joystickSpeedValue) {
-      const parsed = parseInt(joystickSpeedValue, 10);
-      if (!isNaN(parsed) && parsed >= 1 && parsed <= 20) {
+      const parsed = parseFloat(joystickSpeedValue);
+      if (!isNaN(parsed) && parsed >= 0.1 && parsed <= 20) {
         this.joystickSpeed = parsed;
       }
     }
@@ -433,6 +439,20 @@ struct RemoteControl {
       const parsed = parseInt(mouseScrollValue, 10);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 10) {
         this.mouseScrollSpeed = parsed;
+      }
+    }
+    const cursorIconSizeValue = NativeRustDeskBridge.getLocalOption('cursor-icon-size');
+    if (cursorIconSizeValue) {
+      const parsed = parseInt(cursorIconSizeValue, 10);
+      if (!isNaN(parsed) && parsed >= 16 && parsed <= 64) {
+        this.cursorIconSize = parsed;
+      }
+    }
+    const remoteCursorScaleValue = NativeRustDeskBridge.getLocalOption('remote-cursor-scale');
+    if (remoteCursorScaleValue) {
+      const parsed = parseFloat(remoteCursorScaleValue);
+      if (!isNaN(parsed) && parsed >= 0.5 && parsed <= 3.0) {
+        this.remoteCursorScale = parsed;
       }
     }
     const toolbarSideValue = NativeRustDeskBridge.getLocalOption('toolbar-side');
@@ -510,13 +530,13 @@ struct RemoteControl {
 
   private loadTouchSettings(): TouchSettings {
     const s: TouchSettings = {
-      tap: { duration: this.resolveNumberOption('touch-tap-ms', 300, 50, 1000), action: this.resolveTouchAction('touch-tap-action', TouchAction.LEFT_CLICK) },
-      longPress: { duration: this.resolveNumberOption('touch-long-press-ms', 500, 200, 2000), action: this.resolveTouchAction('touch-long-press-action', TouchAction.RIGHT_CLICK) },
-      swipe: { duration: this.resolveNumberOption('touch-swipe-speed', 300, 100, 2000), action: this.resolveTouchAction('touch-swipe-action', TouchAction.SCREEN_PAN) },
-      shortPressDrag: { duration: this.resolveNumberOption('touch-short-press-drag-ms', 400, 100, 2000), action: this.resolveTouchAction('touch-short-press-drag-action', TouchAction.SCREEN_SCROLL) },
-      longPressDrag: { duration: this.resolveNumberOption('touch-long-press-drag-ms', 600, 200, 2000), action: this.resolveTouchAction('touch-long-press-drag-action', TouchAction.MARQUEE_SELECT) },
-      twoFingerPinch: { duration: this.resolveNumberOption('touch-two-finger-pinch-ms', 100, 0, 1000), action: this.resolveTouchAction('touch-two-finger-pinch-action', TouchAction.ZOOM) },
-      twoFingerPan: { duration: this.resolveNumberOption('touch-two-finger-pan-ms', 400, 200, 2000), action: this.resolveTouchAction('touch-two-finger-pan-action', TouchAction.SCREEN_PAN) },
+      tap: { duration: this.resolveNumberOption('touch-tap-ms', 300, 50, 1000), action: this.resolveTouchAction('touch-tap-action', TouchAction.LEFT_CLICK), speed: 1 },
+      longPress: { duration: this.resolveNumberOption('touch-long-press-ms', 500, 200, 2000), action: this.resolveTouchAction('touch-long-press-action', TouchAction.RIGHT_CLICK), speed: 1 },
+      swipe: { duration: this.resolveNumberOption('touch-swipe-ms', 300, 100, 2000), action: this.resolveTouchAction('touch-swipe-action', TouchAction.SCREEN_PAN), speed: this.resolveNumberOption('touch-swipe-speed', 5, 1, 20) },
+      shortPressDrag: { duration: this.resolveNumberOption('touch-short-press-drag-ms', 400, 100, 2000), action: this.resolveTouchAction('touch-short-press-drag-action', TouchAction.SCREEN_SCROLL), speed: this.resolveNumberOption('touch-short-press-drag-speed', 5, 1, 20) },
+      longPressDrag: { duration: this.resolveNumberOption('touch-long-press-drag-ms', 600, 200, 2000), action: this.resolveTouchAction('touch-long-press-drag-action', TouchAction.MARQUEE_SELECT), speed: this.resolveNumberOption('touch-long-press-drag-speed', 5, 1, 20) },
+      twoFingerPinch: { duration: this.resolveNumberOption('touch-two-finger-pinch-ms', 100, 0, 1000), action: this.resolveTouchAction('touch-two-finger-pinch-action', TouchAction.ZOOM), speed: 1 },
+      twoFingerPan: { duration: this.resolveNumberOption('touch-two-finger-pan-ms', 400, 200, 2000), action: this.resolveTouchAction('touch-two-finger-pan-action', TouchAction.SCREEN_PAN), speed: 1 },
     };
     return s;
   }
@@ -526,12 +546,15 @@ struct RemoteControl {
     NativeRustDeskBridge.setLocalOption('touch-tap-action', this.touchSettings.tap.action);
     NativeRustDeskBridge.setLocalOption('touch-long-press-ms', String(this.touchSettings.longPress.duration));
     NativeRustDeskBridge.setLocalOption('touch-long-press-action', this.touchSettings.longPress.action);
-    NativeRustDeskBridge.setLocalOption('touch-swipe-speed', String(this.touchSettings.swipe.duration));
+    NativeRustDeskBridge.setLocalOption('touch-swipe-ms', String(this.touchSettings.swipe.duration));
     NativeRustDeskBridge.setLocalOption('touch-swipe-action', this.touchSettings.swipe.action);
+    NativeRustDeskBridge.setLocalOption('touch-swipe-speed', String(this.touchSettings.swipe.speed));
     NativeRustDeskBridge.setLocalOption('touch-short-press-drag-ms', String(this.touchSettings.shortPressDrag.duration));
     NativeRustDeskBridge.setLocalOption('touch-short-press-drag-action', this.touchSettings.shortPressDrag.action);
+    NativeRustDeskBridge.setLocalOption('touch-short-press-drag-speed', String(this.touchSettings.shortPressDrag.speed));
     NativeRustDeskBridge.setLocalOption('touch-long-press-drag-ms', String(this.touchSettings.longPressDrag.duration));
     NativeRustDeskBridge.setLocalOption('touch-long-press-drag-action', this.touchSettings.longPressDrag.action);
+    NativeRustDeskBridge.setLocalOption('touch-long-press-drag-speed', String(this.touchSettings.longPressDrag.speed));
     NativeRustDeskBridge.setLocalOption('touch-two-finger-pinch-ms', String(this.touchSettings.twoFingerPinch.duration));
     NativeRustDeskBridge.setLocalOption('touch-two-finger-pinch-action', this.touchSettings.twoFingerPinch.action);
     NativeRustDeskBridge.setLocalOption('touch-two-finger-pan-ms', String(this.touchSettings.twoFingerPan.duration));
@@ -653,6 +676,7 @@ struct RemoteControl {
     }
     this.disposeRenderedFrame();
     this.settings = this.appData.getSettings();
+    this.originalLandscapeMode = this.isLandscapeMode;
     this.sessionBecameActive = false;
     this.sessionBecameActiveAt = 0;
     this.sessionCloseRequestedLocally = false;
@@ -826,7 +850,8 @@ struct RemoteControl {
                       displayOriginX: this.remoteDisplayOriginX,
                       displayOriginY: this.remoteDisplayOriginY,
                       remoteWidth: this.resolveInteractiveWidth(),
-                      remoteHeight: this.resolveInteractiveHeight()
+                      remoteHeight: this.resolveInteractiveHeight(),
+                      cursorScale: this.remoteCursorScale
                     });
                   }
                 }
@@ -967,10 +992,27 @@ struct RemoteControl {
       if (this.showDisplayMenu) {
         Column() {
           Blank()
-          Column() {
-            this.buildDisplayMenuPanel();
+          Stack({ alignContent: Alignment.Bottom }) {
+            Column() {
+              this.buildDisplayMenuPanel();
+            }
+            .width('100%')
+
+            if (this.displayMenuPopupId.length > 0) {
+              Column() {
+                Blank()
+                Column() {
+                  this.buildDisplaySelectPopup();
+                }
+                Blank()
+              }
+              .width('100%')
+              .height('100%')
+              .zIndex(120)
+              .onClick(() => { this.displayMenuPopupId = ''; });
+            }
           }
-          .alignItems(HorizontalAlign.Center)
+          .width('100%')
         }
         .width('100%')
         .height('100%')
@@ -978,6 +1020,7 @@ struct RemoteControl {
         .zIndex(110)
         .onClick(() => {
           this.showDisplayMenu = false;
+          this.displayMenuPopupId = '';
         })
       }
 
@@ -1118,7 +1161,7 @@ struct RemoteControl {
   @Builder
   private buildFloatingToolbar() {
     if (this.showToolbar) {
-      Row({ space: 0 }) {
+      Row({ space: 2 }) {
         Column() {
           Image($rawfile('nav-arrow-right.svg'))
             .width(20).height(20)
@@ -1127,8 +1170,6 @@ struct RemoteControl {
         .width(32).height(48)
         .justifyContent(FlexAlign.Center)
         .onTouch((event: TouchEvent) => { this.handleToolbarDrag(event); });
-
-        Blank();
 
         this.buildToolBtnSvg($rawfile('close.svg'), () => { this.closeSession(); });
         this.buildToolBtnSvg($rawfile('display.svg'), () => { this.showDisplayMenu = !this.showDisplayMenu; this.showMouseModeMenu = false; }, this.showDisplayMenu);
@@ -1145,8 +1186,6 @@ struct RemoteControl {
         this.buildToolBtnSvg($rawfile('chat.svg'), () => { this.showChatModeMenu = !this.showChatModeMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showChatPanel || this.showChatModeMenu);
         this.buildToolBtnSvg($rawfile('dots_vertical.svg'), () => { this.showMoreMenu = !this.showMoreMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showMoreMenu);
 
-        Blank();
-
         Column() {
           Image($rawfile('nav-arrow-left.svg'))
             .width(20).height(20)
@@ -1160,8 +1199,7 @@ struct RemoteControl {
       .padding({ left: 4, right: 4 })
       .backgroundColor('#CC222222')
       .borderRadius(28)
-      .width(this.previewWidth > 0 ? Math.min(this.previewWidth - 16, 380) : 340)
-      .position({ x: this.toolbarSide === 'right' && this.previewWidth > 0 ? Math.max(8, this.previewWidth - 8 - Math.min(this.previewWidth - 16, 380)) : 8, y: this.toolbarY < 0 ? this.previewHeight - 70 : this.toolbarY })
+      .position({ x: this.toolbarSide === 'right' && this.previewWidth > 0 ? Math.max(8, this.previewWidth - 8 - 348) : 8, y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100);
     } else {
       Row() {
@@ -1176,7 +1214,7 @@ struct RemoteControl {
       .justifyContent(FlexAlign.SpaceEvenly)
       .backgroundColor('#CC222222')
       .borderRadius(24)
-      .position({ x: this.toolbarX < 0 ? 8 : this.toolbarX, y: this.toolbarY < 0 ? this.previewHeight - 70 : this.toolbarY })
+      .position({ x: this.toolbarX < 0 ? 8 : Math.max(0, Math.min(this.previewWidth - 68, this.toolbarX)), y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100)
       .onTouch((event: TouchEvent) => { this.handleToolbarDrag(event); });
     }
@@ -1223,13 +1261,15 @@ struct RemoteControl {
     const isRight = this.toolbarX >= 0 && this.toolbarX >= this.previewWidth / 2;
     this.toolbarSide = isRight ? 'right' : 'left';
     if (isRight) {
-      this.toolbarX = this.previewWidth - 68;
+      this.toolbarX = Math.max(8, this.previewWidth - 68);
       NativeRustDeskBridge.setLocalOption('toolbar-side', 'right');
     } else {
       this.toolbarX = 8;
       NativeRustDeskBridge.setLocalOption('toolbar-side', 'left');
     }
-    NativeRustDeskBridge.setLocalOption('toolbar-y', String(Math.round(this.toolbarY < 0 ? this.previewHeight - 70 : this.toolbarY)));
+    const clampedY = Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY < 0 ? this.previewHeight - 70 : this.toolbarY));
+    this.toolbarY = clampedY;
+    NativeRustDeskBridge.setLocalOption('toolbar-y', String(Math.round(clampedY)));
   }
 
   @Builder
@@ -1371,6 +1411,8 @@ struct RemoteControl {
     this.panOffsetX = 0;
     this.panOffsetY = 0;
     WindowChromeService.getInstance().setLandscape(this.isLandscapeMode);
+    this.toolbarX = -1;
+    this.toolbarY = -1;
   }
 
   private toggleZoomLevel(): void {
@@ -1737,6 +1779,89 @@ struct RemoteControl {
   }
 
   @Builder
+  private buildDisplaySelectPopup() {
+    Column({ space: 0 }) {
+      if (this.displayMenuPopupId === 'zoom') {
+        Row() {
+          Text(this.lt('Original Size'))
+            .fontSize(13)
+            .fontColor(this.displayScaleMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+            .layoutWeight(1);
+          if (this.displayScaleMode === 0) {
+            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+          }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyDisplayScaleMode(0); this.displayMenuPopupId = ''; });
+        Row() {
+          Text(this.lt('Fit Window'))
+            .fontSize(13)
+            .fontColor(this.displayScaleMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+            .layoutWeight(1);
+          if (this.displayScaleMode === 1) {
+            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+          }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyDisplayScaleMode(1); this.displayMenuPopupId = ''; });
+        Row() {
+          Text(this.lt('Custom Zoom'))
+            .fontSize(13)
+            .fontColor(this.displayScaleMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+            .layoutWeight(1);
+          if (this.displayScaleMode === 2) {
+            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+          }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyDisplayScaleMode(2); this.displayMenuPopupId = ''; });
+      } else if (this.displayMenuPopupId === 'codec') {
+        Row() {
+          Text('Auto').fontSize(13).fontColor(this.videoCodecMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 0) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(0); this.displayMenuPopupId = ''; });
+        Row() {
+          Text('VP8').fontSize(13).fontColor(this.videoCodecMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 1) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(1); this.displayMenuPopupId = ''; });
+        Row() {
+          Text('VP9').fontSize(13).fontColor(this.videoCodecMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 2) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(2); this.displayMenuPopupId = ''; });
+        Row() {
+          Text('AV1').fontSize(13).fontColor(this.videoCodecMode === 3 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 3) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(3); this.displayMenuPopupId = ''; });
+        Row() {
+          Text('H264').fontSize(13).fontColor(this.videoCodecMode === 4 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 4) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(4); this.displayMenuPopupId = ''; });
+        Row() {
+          Text('H265').fontSize(13).fontColor(this.videoCodecMode === 5 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
+          if (this.videoCodecMode === 5) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+        }
+        .width('100%').height(40).padding({ left: 16, right: 16 })
+        .onClick(() => { this.applyVideoCodec(5); this.displayMenuPopupId = ''; });
+      }
+    }
+    .width(200)
+    .borderRadius(12)
+    .backgroundColor(this.theme_MENU_BG)
+    .border({ width: 1, color: this.theme_BORDER_SOFT })
+    .shadow({ radius: 16, color: '#60000000', offsetY: -4 });
+  }
+
+  @Builder
   private buildDisplayMenuPanel() {
     Column() {
       this.buildSessionPanelHeader(this.lt('Display Settings'), 'display', { icon: 'opt_rotate.svg', isStroke: true, action: () => { this.toggleRotation(); } });
@@ -1748,27 +1873,16 @@ struct RemoteControl {
               .fontSize(14)
               .fontColor(this.theme_TEXT_PRIMARY)
               .layoutWeight(1)
-            Select([
-              { value: this.lt('Original Size') },
-              { value: this.lt('Fit Window') },
-              { value: this.lt('Custom Zoom') }
-            ])
-              .selected(this.displayScaleMode)
-              .value(this.resolveDisplayScaleModeLabel())
-              .fontColor(this.theme_TEXT_PRIMARY)
-              .backgroundColor(this.theme_INPUT_BG)
-              .optionBgColor(this.theme_CARD_BG)
-              .optionFontColor(this.theme_TEXT_PRIMARY)
-              .selectedOptionBgColor(this.theme_ACCENT)
-              .selectedOptionFontColor(this.theme_ACCENT_TEXT)
-              .menuBackgroundColor(this.theme_CARD_BG)
-              .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
-              .onSelect((index: number, _value?: string) => {
-                this.applyDisplayScaleMode(index);
-              })
+            Text(this.resolveDisplayScaleModeLabel())
+              .fontSize(13)
+              .fontColor(this.theme_TEXT_SECONDARY)
+            Text(this.displayMenuPopupId === 'zoom' ? '▲' : '▼')
+              .fontSize(10)
+              .fontColor(this.theme_TEXT_TERTIARY)
           }
           .width('100%')
           .height(48)
+          .onClick(() => { this.displayMenuPopupId = this.displayMenuPopupId === 'zoom' ? '' : 'zoom'; })
 
           if (this.displayScaleMode === 2) {
             Column() {
@@ -1891,31 +2005,17 @@ struct RemoteControl {
               .fontSize(14)
               .fontColor(this.theme_TEXT_PRIMARY)
               .layoutWeight(1)
-            Select([
-              { value: 'Auto' },
-              { value: 'VP8' },
-              { value: 'VP9' },
-              { value: 'AV1' },
-              { value: 'H264' },
-              { value: 'H265' }
-            ])
-              .selected(this.videoCodecMode)
-              .value(this.resolveVideoCodecLabel())
-              .fontColor(this.theme_TEXT_PRIMARY)
-              .backgroundColor(this.theme_INPUT_BG)
-              .optionBgColor(this.theme_CARD_BG)
-              .optionFontColor(this.theme_TEXT_PRIMARY)
-              .selectedOptionBgColor(this.theme_ACCENT)
-              .selectedOptionFontColor(this.theme_ACCENT_TEXT)
-              .menuBackgroundColor(this.theme_CARD_BG)
-              .menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
-              .onSelect((index: number, _value?: string) => {
-                this.applyVideoCodec(index);
-              })
+            Text(this.resolveVideoCodecLabel())
+              .fontSize(13)
+              .fontColor(this.theme_TEXT_SECONDARY)
+            Text(this.displayMenuPopupId === 'codec' ? '▲' : '▼')
+              .fontSize(10)
+              .fontColor(this.theme_TEXT_TERTIARY)
           }
           .width('100%')
           .height(48)
           .margin({ top: 8 })
+          .onClick(() => { this.displayMenuPopupId = this.displayMenuPopupId === 'codec' ? '' : 'codec'; })
 
           Text(this.lt('Keyboard Mode'))
             .fontSize(13)
@@ -1937,6 +2037,38 @@ struct RemoteControl {
             .margin({ top: 12, bottom: 8 });
 
           CheckboxOptionItem({ label: this.lt('Show Remote Cursor'), icon: 'opt_mouse.svg', checked: this.showRemoteCursor, onToggle: () => { this.showRemoteCursor = !this.showRemoteCursor; this.applyToggleOption('show-remote-cursor', this.showRemoteCursor); } })
+          if (this.showRemoteCursor) {
+            Column() {
+              Row() {
+                Text(this.lt('Cursor Scale'))
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_SECONDARY)
+                  .layoutWeight(1)
+                Text(`${this.remoteCursorScale.toFixed(1)}x`)
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_PRIMARY)
+              }
+              .width('100%')
+              .padding({ left: 16, right: 16 })
+              Slider({
+                value: this.remoteCursorScale,
+                min: 0.5,
+                max: 3.0,
+                step: 0.1,
+                style: SliderStyle.OutSet
+              })
+                .selectedColor(this.theme_ACCENT)
+                .trackColor(this.theme_BORDER_SOFT)
+                .width('100%')
+                .padding({ left: 16, right: 16 })
+                .onChange((v: number, mode: SliderChangeMode) => {
+                  if (mode === SliderChangeMode.Moving) { this.remoteCursorScale = Math.round(v * 10) / 10; }
+                  if (mode === SliderChangeMode.End) { this.remoteCursorScale = Math.round(v * 10) / 10; NativeRustDeskBridge.setLocalOption('remote-cursor-scale', String(this.remoteCursorScale)); }
+                })
+            }
+            .width('100%')
+            .padding({ bottom: 6 })
+          }
           CheckboxOptionItem({ label: this.lt('Show Quality Monitor'), icon: 'opt_activity.svg', checked: this.showQualityMonitor, onToggle: () => { this.showQualityMonitor = !this.showQualityMonitor; this.setConnectionInfoVisible(this.showQualityMonitor); this.applyToggleOption('show-quality-monitor', this.showQualityMonitor); } })
           CheckboxOptionItem({ label: this.lt('Mute'), icon: 'opt_mute.svg', checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); } })
           CheckboxOptionItem({ label: this.lt('Disable Clipboard'), icon: 'menu_clipboard.svg', checked: this.disableClipboard, onToggle: () => { this.toggleClipboardSync(); } })
@@ -2049,28 +2181,13 @@ struct RemoteControl {
   private buildVirtualMouseOverlay() {
     Stack() {
     Stack() {
-      Stack() {
-        Column()
-          .width(2)
-          .height(24)
-          .backgroundColor('#FFFFFF')
-          .borderWidth(1)
-          .borderColor('#000000');
-        Row()
-          .width(24)
-          .height(2)
-          .backgroundColor('#FFFFFF')
-          .borderWidth(1)
-          .borderColor('#000000');
-        Circle({ width: 10, height: 10 })
-          .fill(Color.Transparent)
-          .stroke('rgba(0, 113, 255, 1)')
-          .strokeWidth(2);
-      }
-      .width(24)
-      .height(24)
-      .position({ x: this.cursorScreenX - 12 - this.getVisibleImageBounds()[0], y: this.cursorScreenY - 12 - this.getVisibleImageBounds()[1] })
-      .hitTestBehavior(HitTestMode.Transparent);
+      Image($rawfile('cursor-pointer.svg'))
+        .width(24)
+        .height(24)
+        .objectFit(ImageFit.Fill)
+        .scale({ x: this.cursorIconSize / 24, y: this.cursorIconSize / 24, centerX: 0, centerY: 0 })
+        .position({ x: this.cursorScreenX - this.cursorIconSize * 0.195 - this.getVisibleImageBounds()[0], y: this.cursorScreenY - this.cursorIconSize * 0.261 - this.getVisibleImageBounds()[1] })
+        .hitTestBehavior(HitTestMode.Transparent);
     }
     .width(this.getVisibleImageBounds()[2])
     .height(this.getVisibleImageBounds()[3])
@@ -2230,10 +2347,10 @@ struct RemoteControl {
       this.joystickKnobY = clampedY;
       if (Math.abs(clampedX) > 0 || Math.abs(clampedY) > 0) {
         if (this.joystickPanMode) {
-          this.panOffsetX = this.panOffsetX + Math.round(clampedX * (this.joystickSpeed / 5));
-          this.panOffsetY = this.panOffsetY + Math.round(clampedY * (this.joystickSpeed / 5));
+          this.panOffsetX = this.panOffsetX - Math.round(clampedX * (this.joystickSpeed / 5));
+          this.panOffsetY = this.panOffsetY - Math.round(clampedY * (this.joystickSpeed / 5));
         } else {
-          const speedFactor = this.joystickSpeed / 12.5;
+          const speedFactor = this.joystickSpeed / 25;
           const moveX = Math.round(clampedX * speedFactor);
           const moveY = Math.round(clampedY * speedFactor);
           const newScreenX = this.cursorScreenX + moveX;
@@ -2255,6 +2372,9 @@ struct RemoteControl {
             this.lastPointerRemoteY = mapped.y;
             this.hasPointerPosition = true;
             this.sendRemoteMouseMask(MOUSE_MASK.MOVE | MOUSE_MASK.MOTION, mapped.x, mapped.y, TouchType.Move);
+            this.remoteCursorX = mapped.x;
+            this.remoteCursorY = mapped.y;
+            this.remoteCursorVisible = true;
           }
         }
       }
@@ -2333,13 +2453,13 @@ struct RemoteControl {
         .fontColor(this.theme_TEXT_TERTIARY)
         .width('100%')
         .padding({ left: 12, right: 12, top: 4, bottom: 4 });
-      TouchGestureRow({ label: this.lt('Tap'), durationText: `${this.touchSettings.tap.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.tap.action), onTimeClick: () => { this.touchPopupRow = 0; this.touchPopupId = this.touchPopupId === 'tap:slider' ? '' : 'tap:slider'; }, onActionClick: () => { this.touchPopupRow = 0; this.touchPopupId = this.touchPopupId === 'tap:action' ? '' : 'tap:action'; } })
-      TouchGestureRow({ label: this.lt('Long Press'), durationText: `${this.touchSettings.longPress.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.longPress.action), onTimeClick: () => { this.touchPopupRow = 1; this.touchPopupId = this.touchPopupId === 'long-press:slider' ? '' : 'long-press:slider'; }, onActionClick: () => { this.touchPopupRow = 1; this.touchPopupId = this.touchPopupId === 'long-press:action' ? '' : 'long-press:action'; } })
-      TouchGestureRow({ label: this.lt('Swipe'), durationText: `${this.touchSettings.swipe.duration}px/s`, actionText: this.getTouchActionLabel(this.touchSettings.swipe.action), onTimeClick: () => { this.touchPopupRow = 2; this.touchPopupId = this.touchPopupId === 'swipe:slider' ? '' : 'swipe:slider'; }, onActionClick: () => { this.touchPopupRow = 2; this.touchPopupId = this.touchPopupId === 'swipe:action' ? '' : 'swipe:action'; } })
-      TouchGestureRow({ label: this.lt('Short Press Drag'), durationText: `${this.touchSettings.shortPressDrag.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.shortPressDrag.action), onTimeClick: () => { this.touchPopupRow = 3; this.touchPopupId = this.touchPopupId === 'short-press-drag:slider' ? '' : 'short-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 3; this.touchPopupId = this.touchPopupId === 'short-press-drag:action' ? '' : 'short-press-drag:action'; } })
-      TouchGestureRow({ label: this.lt('Long Press Drag'), durationText: `${this.touchSettings.longPressDrag.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.longPressDrag.action), onTimeClick: () => { this.touchPopupRow = 4; this.touchPopupId = this.touchPopupId === 'long-press-drag:slider' ? '' : 'long-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 4; this.touchPopupId = this.touchPopupId === 'long-press-drag:action' ? '' : 'long-press-drag:action'; } })
-      TouchGestureRow({ label: this.lt('Two-finger Pinch'), durationText: `${this.touchSettings.twoFingerPinch.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPinch.action), onTimeClick: () => { this.touchPopupRow = 5; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:slider' ? '' : 'two-finger-pinch:slider'; }, onActionClick: () => { this.touchPopupRow = 5; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:action' ? '' : 'two-finger-pinch:action'; } })
-      TouchGestureRow({ label: this.lt('Two-finger Pan'), durationText: `${this.touchSettings.twoFingerPan.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPan.action), onTimeClick: () => { this.touchPopupRow = 6; this.touchPopupId = this.touchPopupId === 'two-finger-pan:slider' ? '' : 'two-finger-pan:slider'; }, onActionClick: () => { this.touchPopupRow = 6; this.touchPopupId = this.touchPopupId === 'two-finger-pan:action' ? '' : 'two-finger-pan:action'; } })
+      TouchGestureRow({ label: this.lt('Tap'), durationText: `${this.touchSettings.tap.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.tap.action), onTimeClick: () => { this.touchPopupRow = 0; this.touchPopupDurVal = this.touchSettings.tap.duration; this.touchPopupId = this.touchPopupId === 'tap:slider' ? '' : 'tap:slider'; }, onActionClick: () => { this.touchPopupRow = 0; this.touchPopupId = this.touchPopupId === 'tap:action' ? '' : 'tap:action'; } })
+      TouchGestureRow({ label: this.lt('Long Press'), durationText: `${this.touchSettings.longPress.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.longPress.action), onTimeClick: () => { this.touchPopupRow = 1; this.touchPopupDurVal = this.touchSettings.longPress.duration; this.touchPopupId = this.touchPopupId === 'long-press:slider' ? '' : 'long-press:slider'; }, onActionClick: () => { this.touchPopupRow = 1; this.touchPopupId = this.touchPopupId === 'long-press:action' ? '' : 'long-press:action'; } })
+      TouchGestureRow({ label: this.lt('Swipe'), durationText: `${this.touchSettings.swipe.duration}ms ${this.touchSettings.swipe.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.swipe.action), onTimeClick: () => { this.touchPopupRow = 2; this.touchPopupDurVal = this.touchSettings.swipe.duration; this.touchPopupSpdVal = this.touchSettings.swipe.speed; this.touchPopupId = this.touchPopupId === 'swipe:slider' ? '' : 'swipe:slider'; }, onActionClick: () => { this.touchPopupRow = 2; this.touchPopupId = this.touchPopupId === 'swipe:action' ? '' : 'swipe:action'; } })
+      TouchGestureRow({ label: this.lt('Short Press Drag'), durationText: `${this.touchSettings.shortPressDrag.duration}ms ${this.touchSettings.shortPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.shortPressDrag.action), onTimeClick: () => { this.touchPopupRow = 3; this.touchPopupDurVal = this.touchSettings.shortPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.shortPressDrag.speed; this.touchPopupId = this.touchPopupId === 'short-press-drag:slider' ? '' : 'short-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 3; this.touchPopupId = this.touchPopupId === 'short-press-drag:action' ? '' : 'short-press-drag:action'; } })
+      TouchGestureRow({ label: this.lt('Long Press Drag'), durationText: `${this.touchSettings.longPressDrag.duration}ms ${this.touchSettings.longPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.longPressDrag.action), onTimeClick: () => { this.touchPopupRow = 4; this.touchPopupDurVal = this.touchSettings.longPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.longPressDrag.speed; this.touchPopupId = this.touchPopupId === 'long-press-drag:slider' ? '' : 'long-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 4; this.touchPopupId = this.touchPopupId === 'long-press-drag:action' ? '' : 'long-press-drag:action'; } })
+      TouchGestureRow({ label: this.lt('Two-finger Pinch'), durationText: `${this.touchSettings.twoFingerPinch.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPinch.action), onTimeClick: () => { this.touchPopupRow = 5; this.touchPopupDurVal = this.touchSettings.twoFingerPinch.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:slider' ? '' : 'two-finger-pinch:slider'; }, onActionClick: () => { this.touchPopupRow = 5; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:action' ? '' : 'two-finger-pinch:action'; } })
+      TouchGestureRow({ label: this.lt('Two-finger Pan'), durationText: `${this.touchSettings.twoFingerPan.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPan.action), onTimeClick: () => { this.touchPopupRow = 6; this.touchPopupDurVal = this.touchSettings.twoFingerPan.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pan:slider' ? '' : 'two-finger-pan:slider'; }, onActionClick: () => { this.touchPopupRow = 6; this.touchPopupId = this.touchPopupId === 'two-finger-pan:action' ? '' : 'two-finger-pan:action'; } })
     }
     .width('100%');
   }
@@ -2362,6 +2482,7 @@ struct RemoteControl {
           .layoutWeight(1)
           .selectedColor(this.theme_ACCENT)
           .onChange((v: number, mode: SliderChangeMode) => {
+            if (mode === SliderChangeMode.Moving) { this.mouseSensitivity = Math.round(v); }
             if (mode === SliderChangeMode.End) { this.mouseSensitivity = Math.round(v); NativeRustDeskBridge.setLocalOption('mouse-sensitivity', String(this.mouseSensitivity)); }
           });
         Text(`${this.mouseSensitivity}`)
@@ -2383,6 +2504,7 @@ struct RemoteControl {
           .layoutWeight(1)
           .selectedColor(this.theme_ACCENT)
           .onChange((v: number, mode: SliderChangeMode) => {
+            if (mode === SliderChangeMode.Moving) { this.mouseScrollSpeed = Math.round(v); }
             if (mode === SliderChangeMode.End) { this.mouseScrollSpeed = Math.round(v); NativeRustDeskBridge.setLocalOption('mouse-scroll-speed', String(this.mouseScrollSpeed)); }
           });
         Text(`${this.mouseScrollSpeed}`)
@@ -2400,13 +2522,36 @@ struct RemoteControl {
         .width('100%')
         .padding({ left: 12, right: 12 });
       Row() {
-        Slider({ value: this.joystickSpeed, min: 1, max: 20, step: 1, style: SliderStyle.OutSet })
+        Slider({ value: this.joystickSpeed, min: 0.1, max: 20, step: 0.1, style: SliderStyle.OutSet })
           .layoutWeight(1)
           .selectedColor(this.theme_ACCENT)
           .onChange((v: number, mode: SliderChangeMode) => {
-            if (mode === SliderChangeMode.End) { this.joystickSpeed = Math.round(v); NativeRustDeskBridge.setLocalOption('joystick-speed', String(this.joystickSpeed)); }
+            if (mode === SliderChangeMode.Moving) { this.joystickSpeed = Math.round(v * 10) / 10; }
+            if (mode === SliderChangeMode.End) { this.joystickSpeed = Math.round(v * 10) / 10; NativeRustDeskBridge.setLocalOption('joystick-speed', String(this.joystickSpeed)); }
           });
-        Text(`${this.joystickSpeed}`)
+        Text(`${this.joystickSpeed >= 1 ? Math.floor(this.joystickSpeed) : this.joystickSpeed.toFixed(1)}`)
+          .fontSize(11)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .width(30)
+          .textAlign(TextAlign.Center);
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12 });
+
+      Text(this.lt('Cursor Size'))
+        .fontSize(12)
+        .fontColor(this.theme_TEXT_TERTIARY)
+        .width('100%')
+        .padding({ left: 12, right: 12 });
+      Row() {
+        Slider({ value: this.cursorIconSize, min: 16, max: 64, step: 2, style: SliderStyle.OutSet })
+          .layoutWeight(1)
+          .selectedColor(this.theme_ACCENT)
+          .onChange((v: number, mode: SliderChangeMode) => {
+            if (mode === SliderChangeMode.Moving) { this.cursorIconSize = Math.round(v); }
+            if (mode === SliderChangeMode.End) { this.cursorIconSize = Math.round(v); NativeRustDeskBridge.setLocalOption('cursor-icon-size', String(this.cursorIconSize)); }
+          });
+        Text(`${this.cursorIconSize}`)
           .fontSize(11)
           .fontColor(this.theme_TEXT_SECONDARY)
           .width(30)
@@ -2423,39 +2568,85 @@ struct RemoteControl {
     if (this.touchPopupId.length > 0) {
       Column() {
         if (this.touchPopupId === 'tap:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.tap.duration, 50, 1000, 50, (v: number) => { this.touchSettings.tap = { duration: v, action: this.touchSettings.tap.action }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
+          this.buildTouchSliderPopup(this.touchSettings.tap.duration, 50, 1000, 50, (v: number) => { this.touchSettings.tap = { duration: v, action: this.touchSettings.tap.action, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'long-press:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.longPress.duration, 200, 2000, 50, (v: number) => { this.touchSettings.longPress = { duration: v, action: this.touchSettings.longPress.action }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
+          this.buildTouchSliderPopup(this.touchSettings.longPress.duration, 200, 2000, 50, (v: number) => { this.touchSettings.longPress = { duration: v, action: this.touchSettings.longPress.action, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'swipe:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.swipe.duration, 100, 2000, 50, (v: number) => { this.touchSettings.swipe = { duration: v, action: this.touchSettings.swipe.action }; this.saveTouchSettings(); this.initTouchInteractionManager(); }, 'px/s');
+          this.buildTouchDualSliderPopup(this.touchSettings.swipe.duration, this.touchSettings.swipe.speed, (v: number) => { this.touchSettings.swipe = { duration: v, action: this.touchSettings.swipe.action, speed: this.touchSettings.swipe.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); }, (v: number) => { this.touchSettings.swipe = { duration: this.touchSettings.swipe.duration, action: this.touchSettings.swipe.action, speed: v }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'short-press-drag:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.shortPressDrag.duration, 100, 2000, 50, (v: number) => { this.touchSettings.shortPressDrag = { duration: v, action: this.touchSettings.shortPressDrag.action }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
+          this.buildTouchDualSliderPopup(this.touchSettings.shortPressDrag.duration, this.touchSettings.shortPressDrag.speed, (v: number) => { this.touchSettings.shortPressDrag = { duration: v, action: this.touchSettings.shortPressDrag.action, speed: this.touchSettings.shortPressDrag.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); }, (v: number) => { this.touchSettings.shortPressDrag = { duration: this.touchSettings.shortPressDrag.duration, action: this.touchSettings.shortPressDrag.action, speed: v }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'long-press-drag:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.longPressDrag.duration, 200, 2000, 50, (v: number) => { this.touchSettings.longPressDrag = { duration: v, action: this.touchSettings.longPressDrag.action }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
+          this.buildTouchDualSliderPopup(this.touchSettings.longPressDrag.duration, this.touchSettings.longPressDrag.speed, (v: number) => { this.touchSettings.longPressDrag = { duration: v, action: this.touchSettings.longPressDrag.action, speed: this.touchSettings.longPressDrag.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); }, (v: number) => { this.touchSettings.longPressDrag = { duration: this.touchSettings.longPressDrag.duration, action: this.touchSettings.longPressDrag.action, speed: v }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'two-finger-pinch:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.twoFingerPinch.duration, 0, 1000, 50, (v: number) => { this.touchSettings.twoFingerPinch = { duration: v, action: this.touchSettings.twoFingerPinch.action }; this.saveTouchSettings(); });
+          this.buildTouchSliderPopup(this.touchSettings.twoFingerPinch.duration, 0, 1000, 50, (v: number) => { this.touchSettings.twoFingerPinch = { duration: v, action: this.touchSettings.twoFingerPinch.action, speed: 1 }; this.saveTouchSettings(); });
         } else if (this.touchPopupId === 'two-finger-pan:slider') {
-          this.buildTouchSliderPopup(this.touchSettings.twoFingerPan.duration, 200, 2000, 50, (v: number) => { this.touchSettings.twoFingerPan = { duration: v, action: this.touchSettings.twoFingerPan.action }; this.saveTouchSettings(); });
+          this.buildTouchSliderPopup(this.touchSettings.twoFingerPan.duration, 200, 2000, 50, (v: number) => { this.touchSettings.twoFingerPan = { duration: v, action: this.touchSettings.twoFingerPan.action, speed: 1 }; this.saveTouchSettings(); });
         } else if (this.touchPopupId === 'tap:action') {
-          this.buildTouchActionPopup(TAP_ACTIONS, this.touchSettings.tap.action, (a: TouchAction) => { this.touchSettings.tap = { duration: this.touchSettings.tap.duration, action: a }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(TAP_ACTIONS, this.touchSettings.tap.action, (a: TouchAction) => { this.touchSettings.tap = { duration: this.touchSettings.tap.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'long-press:action') {
-          this.buildTouchActionPopup(LONG_PRESS_ACTIONS, this.touchSettings.longPress.action, (a: TouchAction) => { this.touchSettings.longPress = { duration: this.touchSettings.longPress.duration, action: a }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(LONG_PRESS_ACTIONS, this.touchSettings.longPress.action, (a: TouchAction) => { this.touchSettings.longPress = { duration: this.touchSettings.longPress.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'swipe:action') {
-          this.buildTouchActionPopup(SWIPE_ACTIONS, this.touchSettings.swipe.action, (a: TouchAction) => { this.touchSettings.swipe = { duration: this.touchSettings.swipe.duration, action: a }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(SWIPE_ACTIONS, this.touchSettings.swipe.action, (a: TouchAction) => { this.touchSettings.swipe = { duration: this.touchSettings.swipe.duration, action: a, speed: this.touchSettings.swipe.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'short-press-drag:action') {
-          this.buildTouchActionPopup(SHORT_PRESS_DRAG_ACTIONS, this.touchSettings.shortPressDrag.action, (a: TouchAction) => { this.touchSettings.shortPressDrag = { duration: this.touchSettings.shortPressDrag.duration, action: a }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(SHORT_PRESS_DRAG_ACTIONS, this.touchSettings.shortPressDrag.action, (a: TouchAction) => { this.touchSettings.shortPressDrag = { duration: this.touchSettings.shortPressDrag.duration, action: a, speed: this.touchSettings.shortPressDrag.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'long-press-drag:action') {
-          this.buildTouchActionPopup(LONG_PRESS_DRAG_ACTIONS, this.touchSettings.longPressDrag.action, (a: TouchAction) => { this.touchSettings.longPressDrag = { duration: this.touchSettings.longPressDrag.duration, action: a }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(LONG_PRESS_DRAG_ACTIONS, this.touchSettings.longPressDrag.action, (a: TouchAction) => { this.touchSettings.longPressDrag = { duration: this.touchSettings.longPressDrag.duration, action: a, speed: this.touchSettings.longPressDrag.speed }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'two-finger-pinch:action') {
-          this.buildTouchActionPopup(TWO_FINGER_PINCH_ACTIONS, this.touchSettings.twoFingerPinch.action, (a: TouchAction) => { this.touchSettings.twoFingerPinch = { duration: this.touchSettings.twoFingerPinch.duration, action: a }; this.saveTouchSettings(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(TWO_FINGER_PINCH_ACTIONS, this.touchSettings.twoFingerPinch.action, (a: TouchAction) => { this.touchSettings.twoFingerPinch = { duration: this.touchSettings.twoFingerPinch.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'two-finger-pan:action') {
-          this.buildTouchActionPopup(TWO_FINGER_PAN_ACTIONS, this.touchSettings.twoFingerPan.action, (a: TouchAction) => { this.touchSettings.twoFingerPan = { duration: this.touchSettings.twoFingerPan.duration, action: a }; this.saveTouchSettings(); this.touchPopupId = ''; });
+          this.buildTouchActionPopup(TWO_FINGER_PAN_ACTIONS, this.touchSettings.twoFingerPan.action, (a: TouchAction) => { this.touchSettings.twoFingerPan = { duration: this.touchSettings.twoFingerPan.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.touchPopupId = ''; });
         }
       }
       .onClick(() => {});
     }
   }
 
+  @Builder
+  private buildTouchDualSliderPopup(duration: number, speed: number, onDurationChange: (v: number) => void, onSpeedChange: (v: number) => void) {
+    Column({ space: 10 }) {
+      Row() {
+        Text(this.lt('Duration'))
+          .fontSize(12)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .layoutWeight(1);
+        Text(`${this.touchPopupDurVal}ms`)
+          .fontSize(12)
+          .fontColor(this.theme_ACCENT);
+      }
+      .width('100%');
+
+      Slider({ value: this.touchPopupDurVal, min: 100, max: 2000, step: 50, style: SliderStyle.OutSet })
+        .width('100%')
+        .selectedColor(this.theme_ACCENT)
+        .onChange((v: number, mode: SliderChangeMode) => {
+          if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupDurVal = Math.round(v); onDurationChange(Math.round(v)); }
+        });
+
+      Row() {
+        Text(this.lt('Speed'))
+          .fontSize(12)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .layoutWeight(1);
+        Text(`${this.touchPopupSpdVal}x`)
+          .fontSize(12)
+          .fontColor(this.theme_ACCENT);
+      }
+      .width('100%');
+
+      Slider({ value: this.touchPopupSpdVal, min: 1, max: 20, step: 1, style: SliderStyle.OutSet })
+        .width('100%')
+        .selectedColor(this.theme_ACCENT)
+        .onChange((v: number, mode: SliderChangeMode) => {
+          if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupSpdVal = Math.round(v); onSpeedChange(Math.round(v)); }
+        });
+    }
+    .width(260)
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor(this.theme_MENU_BG)
+    .border({ width: 1, color: this.theme_BORDER_SOFT })
+    .shadow({ radius: 12, color: '#60000000', offsetY: -2 });
+  }
   @Builder
   private buildTouchSliderPopup(value: number, min: number, max: number, step: number, onChange: (v: number) => void, unit: string = 'ms') {
     Column({ space: 8 }) {
@@ -2464,17 +2655,17 @@ struct RemoteControl {
           .fontSize(12)
           .fontColor(this.theme_TEXT_SECONDARY)
           .layoutWeight(1);
-        Text(`${value}${unit}`)
+        Text(`${this.touchPopupDurVal}${unit}`)
           .fontSize(12)
           .fontColor(this.theme_ACCENT);
       }
       .width('100%');
 
-      Slider({ value: value, min: min, max: max, step: step, style: SliderStyle.OutSet })
+      Slider({ value: this.touchPopupDurVal, min: min, max: max, step: step, style: SliderStyle.OutSet })
         .width('100%')
         .selectedColor(this.theme_ACCENT)
         .onChange((v: number, mode: SliderChangeMode) => {
-          if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { onChange(Math.round(v)); }
+          if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupDurVal = Math.round(v); onChange(Math.round(v)); }
         });
     }
     .width(260)
@@ -3072,9 +3263,9 @@ struct RemoteControl {
     this.isSubmittingPassword = false;
     this.statusText = this.lt('Session closed');
     this.videoStatus = this.lt('Disconnecting...');
-    if (this.isLandscapeMode) {
-      this.isLandscapeMode = false;
-      WindowChromeService.getInstance().setLandscape(false);
+    if (this.isLandscapeMode !== this.originalLandscapeMode) {
+      this.isLandscapeMode = this.originalLandscapeMode;
+      WindowChromeService.getInstance().setLandscape(this.originalLandscapeMode);
     }
     if (this.lockAfterSession && wasSessionActive) {
       NativeRustDeskBridge.lockRemoteScreen();
@@ -4910,8 +5101,6 @@ struct RemoteControl {
   private shouldRenderRemoteCursor(): boolean {
     return this.showRemoteCursor &&
       this.remoteCursorVisible &&
-      !this.remoteCursorEmbedded &&
-      this.remoteCursorPixelMap !== null &&
       this.resolveInteractiveWidth() > 0 &&
       this.resolveInteractiveHeight() > 0;
   }
@@ -5337,10 +5526,10 @@ struct RemoteControl {
 
   private resolveMouseInput(mask: number, x: number, y: number): RemoteMouseInput {
     if ((mask & MOUSE_MASK.WHEEL_UP) !== 0) {
-      return { mask: 0x03, x: 0, y: -120 };
+      return { mask: 0x03, x: 0, y: -1 };
     }
     if ((mask & MOUSE_MASK.WHEEL_DOWN) !== 0) {
-      return { mask: 0x03, x: 0, y: 120 };
+      return { mask: 0x03, x: 0, y: 1 };
     }
     return {
       mask: this.resolveMouseMask(mask),
@@ -5563,7 +5752,8 @@ struct RemoteControl {
             this.stopPanSpringBack();
           } else if (this.hasPointerPosition) {
             this.twoFingerScrollAccumulator += center.y - this.lastGestureCenterY;
-            if (Math.abs(this.twoFingerScrollAccumulator) >= this.TWO_FINGER_SCROLL_THRESHOLD) {
+            const dynamicTwoFingerThreshold = this.TWO_FINGER_SCROLL_THRESHOLD * 5 / this.touchSettings.shortPressDrag.speed;
+            if (Math.abs(this.twoFingerScrollAccumulator) >= dynamicTwoFingerThreshold) {
               const scrollDown = this.twoFingerScrollAccumulator > 0;
               const wheelMask = scrollDown
                 ? (this.reverseScroll ? MOUSE_MASK.WHEEL_DOWN : MOUSE_MASK.WHEEL_UP)
@@ -5744,15 +5934,13 @@ struct RemoteControl {
       case TouchAction.SCREEN_SCROLL:
         if (this.touchInteractionManager === null || !this.hasPointerPosition) return;
         const scrollDeltaY = this.touchInteractionManager.getScrollDeltaY();
-        if (Math.abs(scrollDeltaY) >= this.TOUCH_SCROLL_THRESHOLD) {
+        const dynamicThreshold = this.TOUCH_SCROLL_THRESHOLD * 5 / this.touchSettings.shortPressDrag.speed;
+        if (Math.abs(scrollDeltaY) >= dynamicThreshold) {
           const scrollDown = scrollDeltaY > 0;
           const wheelMask = scrollDown
-            ? (this.reverseScroll ? MOUSE_MASK.WHEEL_DOWN : MOUSE_MASK.WHEEL_UP)
-            : (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN);
-          const wheelCount = Math.floor(Math.abs(scrollDeltaY) / this.TOUCH_SCROLL_THRESHOLD);
-          for (let i = 0; i < wheelCount; i++) {
-            this.sendRemoteMouseMask(wheelMask, this.lastPointerRemoteX, this.lastPointerRemoteY, TouchType.Move);
-          }
+            ? (this.reverseScroll ? MOUSE_MASK.WHEEL_UP : MOUSE_MASK.WHEEL_DOWN)
+            : (this.reverseScroll ? MOUSE_MASK.WHEEL_DOWN : MOUSE_MASK.WHEEL_UP);
+          this.sendRemoteMouseMask(wheelMask, this.lastPointerRemoteX, this.lastPointerRemoteY, TouchType.Move);
           this.touchInteractionManager.updateScrollBaseline();
           this.maybeRequestVideoRefresh(true);
         }
@@ -5985,9 +6173,9 @@ struct RemoteControl {
     this.setConnectionInfoVisible(false);
     this.statusText = statusText;
     this.videoStatus = videoStatus;
-    if (this.isLandscapeMode) {
-      this.isLandscapeMode = false;
-      WindowChromeService.getInstance().setLandscape(false);
+    if (this.isLandscapeMode !== this.originalLandscapeMode) {
+      this.isLandscapeMode = this.originalLandscapeMode;
+      WindowChromeService.getInstance().setLandscape(this.originalLandscapeMode);
     }
     this.officialBridge.requestSessionClose();
     this.scheduleSessionExit(delayMs);
@@ -6086,9 +6274,9 @@ struct RemoteControl {
   }
 
   private goBack(): void {
-    if (this.isLandscapeMode) {
-      this.isLandscapeMode = false;
-      WindowChromeService.getInstance().setLandscape(false);
+    if (this.isLandscapeMode !== this.originalLandscapeMode) {
+      this.isLandscapeMode = this.originalLandscapeMode;
+      WindowChromeService.getInstance().setLandscape(this.originalLandscapeMode);
     }
     try {
       this.getUIContext().getRouter().back();

@@ -1,13 +1,29 @@
 {
   "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B3CE7021F6ABB7853E25F0B451A38C72D1458C53E3C5FE2237694F2FA598D366294EB00BD6C94DA",
+          "profile": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.p12",
+          "storePassword": "0000001B05777EEC3F28DECA70D761BF0260D3D38E6FB05359847072FF96FFDA0E71CED0FED99D473000D0"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
+        "signingConfig": "default",
         "compileSdkVersion": "6.1.1(24)",
-        "compatibleSdkVersion": "6.0.0(20)",
+        "compatibleSdkVersion": "6.1.0(23)",
         "targetSdkVersion": "6.1.0(23)",
         "runtimeOS": "HarmonyOS",
-        "signingConfig": "default"
+        "bundleName": "com.open.rundesk"
       },
       {
         "name": "openharmony_verify",
@@ -23,21 +39,6 @@
       },
       {
         "name": "release"
-      }
-    ],
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001A0C94291F53C2B93E9BFFE84DDF725AC5696FB7B32D59624D1722549C95F7F5447D1216000DCC",
-          "profile": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.p12",
-          "storePassword": "0000001A775485241F1AB2FB359748F282034FE3E25D8DBCD73454A91A5B09CFEA74BCB525170C879D9E"
-        }
       }
     ],
     "capabilities": [

@@ -1,7 +1,7 @@
-﻿# 项目目录规范手册
+﻿# 项目目录规范
 
-> 从 WORKSPACE_PATHS.md、AGENT_MEMORY.md、ISSUES.md 等所有文档中提取的目录规范汇总。
-> 整理项目时以此文档为唯一依据，逐项对照执行。
+> 更新时间：2026-08-11
+> 本文件是项目目录、路径、构建环境和清理规范的唯一权威依据。
 
 ---
 
@@ -306,5 +306,4 @@ $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
 ---
 
-> 文档来源：WORKSPACE_PATHS.md、AGENT_MEMORY.md、ISSUES.md、CORE.md、PROGRESS.md
-> 生成时间：2026-06-23
+> 文档来源：已合并原 WORKSPACE_PATHS.md、AGENT_MEMORY.md、ISSUES.md、CORE.md、PROGRESS.md 的目录规范内容。

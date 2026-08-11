@@ -37,7 +37,7 @@ Core `a7f7795` / run `27920089950` / `core-34`：arm64 `133495306 / 90A28361F8A7
 
 同一线上权威包也已在 `127.0.0.1:5555` x86_64 虚拟机补验：`0.33.6 / 1000182`、`updateTime=1782084584518`、PID `694`、NAPI 413 functions，初始化后 `coreReady=true`，应用进程无 fatal/panic/signal。
 
-> 2026-06-21 路径规则：本地构建、验包、Core target、Hvigor stage/build/cache 和测试日志统一写入 `%VSCODE_ROOT%\99_Temp`。细则见 `docs/WORKSPACE_PATHS.md`，不要再把 `.codex_*`、Cargo target 或 HAP 输出长期留在 App 仓库根。
+> 2026-06-21 路径规则：本地构建、验包、Core target、Hvigor stage/build/cache 和测试日志统一写入 `%VSCODE_ROOT%\99_Temp`。细则见 `docs/DIRECTORY_CONVENTIONS.md`，不要再把 `.codex_*`、Cargo target 或 HAP 输出长期留在 App 仓库根。
 
 ## 2026-06-21 17:12 真机共享与 HAP 历史快照（已被 23:48 基线替代）
 

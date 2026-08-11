@@ -1,5 +1,80 @@
 # 功能进度与优化方向
 
+## 2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器
+
+### 新增功能
+
+1. **鼠标模式光标用 iconoir 图标**：
+   - 从 iconoir 图标库获取 `cursor-pointer.svg`（白色填充+黑色边框箭头）
+   - 替换原十字线+空心圆光标
+   - 用 `scale` 变换（固定基础尺寸24 + `.scale({ x: size/24, y: size/24, centerX: 0, centerY: 0 })`）响应 @State 变化
+   - 热点偏移 (0.195, 0.261) — 箭头尖端在 (4.68, 6.26)/24 比例处
+
+2. **光标大小滑条**：
+   - `@State cursorIconSize: number = 28`（范围 16-64）
+   - 鼠标设置面板新增「光标大小」滑条
+   - 持久化 `cursor-icon-size`
+
+3. **远程光标跟随摇杆**：
+   - `handleJoystickTouch` Move 分支中同步更新 `remoteCursorX/Y` 和 `remoteCursorVisible`
+   - 摇杆移动时远程光标实时跟随
+
+4. **远程光标放大缩小**：
+   - RemoteCursor 组件新增 `@Prop cursorScale`
+   - 显示菜单"Show Remote Cursor"下方新增「光标缩放」滑条（0.5x-3.0x，默认1.0）
+   - 持久化 `remote-cursor-scale`
+   - `resolveCursorScale/resolveCursorRenderWidth/Height` 应用 cursorScale
+
+5. **远程光标默认 Windows 样式**：
+   - RemoteCursor else 分支从自绘 Path 改为 `Image($rawfile('cursor-pointer.svg'))`
+   - `resolveCursorHotX/Y` 热点修正到箭头尖端
+
+6. **自定义选择器浮层**：
+   - 缩放/编码菜单弃用 HarmonyOS Select 组件
+   - 用自定义 `Column+ForEach+Row` 弹出列表替代
+   - 独立浮层模式：`Stack` + `zIndex(120)` + `Blank` 居中浮层
+   - 点击空白关闭列表（`displayMenuPopupId = ''`），不影响面板
+   - 背景 `theme_MENU_BG`，暗色主题正确显示
+
+### 修复
+
+1. **缩放/编码菜单白色背景**：
+   - 根因：HarmonyOS Select 组件 `menuBackgroundColor` 单独不生效，暗色主题下显示白色
+   - 配合 `menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)` 可显示深色，但不稳定
+   - 最终方案：完全弃用 Select 组件，用自定义弹出列表替代
+
+2. **聊天工具栏浅色主题配色**：
+   - 根因：`theme_ERROR_TEXT` 被误用为按钮背景（浅色下深红#991B1B），配 `theme_CONTRAST_TEXT`（近黑#111827）几乎不可见
+   - 修复：清空聊天按钮改为 `theme_ERROR_BG`（浅红#FEE2E2）背景 + `theme_ERROR_TEXT`（深红）前景
+   - chat2.svg 图标从 `theme_TEXT_TERTIARY` 改为 `theme_TEXT_SECONDARY`
+   - 系统备注按钮背景从 `theme_INPUT_BG` 改为 `theme_CARD_BG`
+
+3. **ID输入框光标错位**：
+   - 根因：格式化添加空格后 `deviceIdDisplay` 更新触发 TextInput 重新渲染，光标被重置到旧位置（空格位置）
+   - 用户快速连续输入时字符插入空格位置，导致顺序错乱（如输入123456789得到"123 987 654"）
+   - 修复方案三层保障：
+     ① onChange 中 `deviceIdDisplay` 更新前先调用 `caretPosition`
+     ② `restoreDeviceIdCaret` 同步调用+4次异步重试[16,50,100,200]ms
+     ③ `onTextSelectionChange` 中检测 `deviceIdExpectedCaret`，若光标被重置到错误位置则立即修正
+
+### 新增文件
+
+- `entry/src/main/resources/rawfile/cursor-pointer.svg` — iconoir 鼠标箭头图标
+
+### 修改文件
+
+- `entry/src/main/ets/pages/RemoteControl.ets` — 光标图标、光标大小滑条、自定义选择器浮层、远程光标跟随摇杆、远程光标缩放
+- `entry/src/main/ets/components/RemoteCursor.ets` — cursorScale prop、默认 Windows 样式图标、热点修正
+- `entry/src/main/ets/pages/Index.ets` — ID输入框光标错位修复
+- `entry/src/main/ets/pages/Chat.ets` — 聊天工具栏浅色主题配色修复
+- `entry/src/main/ets/services/I18nService.ets` — 新增翻译：Cursor Size、Cursor Scale
+
+### 状态
+
+- 代码修改完成，构建验证通过
+- 设备安装测试通过（192.168.8.152:36169）
+- 暗色主题所有页面正确
+
 ## 2026-08-10 触摸交互系统重构 + 虚拟鼠标控制功能
 
 ### 新增功能
@@ -178,7 +253,7 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 ### 2026-06-21 17:06 文档/清理暂停历史快照
 
 - 2026-06-21 17:06 用户确认：华为手机被控端远程操控/输入注入能力不支持，本轮搁置。`entry/src/main/module.json5` 已移除 accessibility extension 与 `ohos.permission.INPUT_MONITORING`，`ohinput` 实现、ArkTS accessibility service 和 extension 原型已从活动树清理；仅在 `ohos_stubs.cpp` 保留固定返回 `201` 的 native 链接兼容符号。后续收口不再以“Windows 实际操控手机 UI”为阻塞项。其他功能仍需继续收口：真实画面共享、ID/IP、文件传输、五编码、远程光标、访问端会话菜单、审计、备份、提交推送和线上资产验证。
-- 用户已要求暂停功能推进，优先完成文档同步、路径统一和项目清理。恢复测试前先读 `docs/AGENT_HANDOFF.md` 与 `docs/WORKSPACE_PATHS.md`。
+- 用户已要求暂停功能推进，优先完成文档同步、路径统一和项目清理。恢复测试前先读 `docs/AGENT_HANDOFF.md` 与 `docs/DIRECTORY_CONVENTIONS.md`。
 - 最新本地构建/验包 HAP 为 SHA256 `A18FCCEE04A1903372124399035444B5BEBDF84FBB2B9F1918142C994C0797C9`，BuildInfo `2026-06-21 17:12`，签名和双 ABI 验包通过，尚未安装到真机。最后一次真机已安装仍是 15:00 HAP：SHA256 `487EB88719B505013666D74841974A9CF4B031BF6EBFBF2BD6A352089822A35E`，设备 `updateTime=1782050494366`，BuildInfo `2026-06-21 14:59`。
 - 真机被控共享已验证到 Windows 端真实画面持续刷新，`videoBufferReady/frameCount/coreFrameCount/corePushOk` 均为正向证据；虚拟机零帧仍按设备/AVScreenCapture 限制候选处理。
 - 被控端手机操控已搁置：远端 mouse event 已到达，但 native 注入返回 `result=201`，Huawei 设置未列出 OpenRDesk；用户已确认华为手机不支持该能力，因此不再作为本轮发布阻塞项。
@@ -471,7 +546,7 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - 文件传输链路发现断点：`read_remote_directory()`、`create_remote_directory()`、`delete_remote_path()`、`start_file_transfer()` 原先均为 `false` stub。已接入 official `FileManager`/`Session` 方法，远端读目录、建目录、删除、启动传输现在会向 active session 发送对应 RustDesk 文件动作。
 - 文件传输请求链路：`send_file_transfer_request()` 现在写入 `file-transfer-request` 事件并在有 active session 时返回 true，避免 UI 请求被静默判定为失败。
 - 剪贴板链路保留风险：`send_clipboard_data()` 仍未伪装实现。当前没有找到 Harmony 路径下可安全调用的 official “设置远端剪贴板文本”公开 session 方法；不会用 `input_string()` 冒充剪贴板发送，避免把剪贴板内容直接打到远端当前输入焦点。
-- 历史 native 构建验证：`build_bridge_now.bat` 曾通过，`librustdesk_core.a` 已复制到 `entry/src/main/libs/arm64/`；该旧脚本已清理，当前 Core 构建入口见 `docs/WORKSPACE_PATHS.md`。
+- 历史 native 构建验证：`build_bridge_now.bat` 曾通过，`librustdesk_core.a` 已复制到 `entry/src/main/libs/arm64/`；该旧脚本已清理，当前 Core 构建入口见 `docs/DIRECTORY_CONVENTIONS.md`。
 - HAP 构建验证：`node scripts\run_hvigor_with_sdk_patch.js assembleHap` 已通过，构建时间 `2026-06-03 11:26`。
 
 ## 2026-06-03 全功能检查第 7 轮

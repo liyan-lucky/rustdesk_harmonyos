@@ -8,7 +8,7 @@ This directory keeps only the current HarmonyOS build and verification helpers.
 
 ## Workspace and temporary output rule
 
-All build, package, verification, HDC, backup, and temporary outputs must live under `%VSCODE_ROOT%/99_Temp` (current machine: `F:\Visual_Studio_Code\99_Temp`). See `docs/WORKSPACE_PATHS.md` for the authoritative directory map.
+All build, package, verification, HDC, backup, and temporary outputs must live under `%VSCODE_ROOT%/99_Temp`. See `docs/DIRECTORY_CONVENTIONS.md` for the authoritative directory map.
 
 Do not write persistent outputs to `F:\99_Temp`, `C:\99_Temp`, the app repository root `.codex_*`, or `%TEMP%`. If a one-off diagnostic tool creates files there, delete or move them before handoff.
 

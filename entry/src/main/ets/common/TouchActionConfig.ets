@@ -14,6 +14,7 @@ export enum TouchAction {
 export interface TouchGestureConfig {
   duration: number;
   action: TouchAction;
+  speed: number;
 }
 
 export interface TouchSettings {
@@ -27,13 +28,13 @@ export interface TouchSettings {
 }
 
 export const DEFAULT_TOUCH_SETTINGS: TouchSettings = {
-  tap: { duration: 300, action: TouchAction.LEFT_CLICK },
-  longPress: { duration: 500, action: TouchAction.RIGHT_CLICK },
-  swipe: { duration: 300, action: TouchAction.SCREEN_PAN },
-  shortPressDrag: { duration: 400, action: TouchAction.SCREEN_SCROLL },
-  longPressDrag: { duration: 600, action: TouchAction.MARQUEE_SELECT },
-  twoFingerPinch: { duration: 100, action: TouchAction.ZOOM },
-  twoFingerPan: { duration: 400, action: TouchAction.SCREEN_PAN },
+  tap: { duration: 300, action: TouchAction.LEFT_CLICK, speed: 1 },
+  longPress: { duration: 500, action: TouchAction.RIGHT_CLICK, speed: 1 },
+  swipe: { duration: 300, action: TouchAction.SCREEN_PAN, speed: 5 },
+  shortPressDrag: { duration: 400, action: TouchAction.SCREEN_SCROLL, speed: 5 },
+  longPressDrag: { duration: 600, action: TouchAction.MARQUEE_SELECT, speed: 5 },
+  twoFingerPinch: { duration: 100, action: TouchAction.ZOOM, speed: 1 },
+  twoFingerPan: { duration: 400, action: TouchAction.SCREEN_PAN, speed: 1 },
 };
 
 export const TOUCH_ACTION_LABELS: Record<string, string> = {

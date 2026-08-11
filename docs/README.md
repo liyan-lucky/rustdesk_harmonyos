@@ -3,8 +3,9 @@
 ## 新接手必读顺序
 
 1. `CURRENT_STATUS.md`：当前仓库事实、功能边界、分支/备份策略、构建状态和合规边界。
-2. `AGENT_HANDOFF.md`：跨对话接手摘要和当前执行顺序。
-3. `WORKSPACE_PATHS.md`：构建、测试、验包、日志、备份和临时证据路径规范。
+2. `AGENT_HANDOFF.md`：新对话交接入口，当前项目状态、工作规则、用户偏好和构建命令。
+3. `AGENT_MEMORY.md`：技术经验参考（ArkTS/原生/构建/连接/UI 经验库）。
+4. `DIRECTORY_CONVENTIONS.md`：项目目录、路径、构建环境和清理规范。
 4. `CORE.md`：核心状态、HAP 构建安装、运行验证清单。
 5. `PROGRESS.md`：已完成、未完成和端到端验证状态。
 6. `ISSUES.md`：已知问题、根因和处理记录。

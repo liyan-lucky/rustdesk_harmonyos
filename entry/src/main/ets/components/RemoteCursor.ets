@@ -17,6 +17,7 @@ export struct RemoteCursor {
   @Prop remoteHeight: number = 0;
   @Prop displayOriginX: number = 0;
   @Prop displayOriginY: number = 0;
+  @Prop cursorScale: number = 1.0;
 
   private readonly cursorSize: number = 24;
   private readonly minCursorSize: number = 12;
@@ -48,13 +49,10 @@ export struct RemoteCursor {
           .width(this.resolveCursorRenderWidth())
           .height(this.resolveCursorRenderHeight());
       } else {
-        Path()
-          .width(this.cursorSize)
-          .height(this.cursorSize)
-          .commands(this.getCursorPath())
-          .fill('#FFFFFF')
-          .stroke('#000000')
-          .strokeWidth(1);
+        Image($rawfile('cursor-pointer.svg'))
+          .width(this.resolveCursorRenderWidth())
+          .height(this.resolveCursorRenderHeight())
+          .objectFit(ImageFit.Fill);
       }
     }
     .hitTestBehavior(HitTestMode.None);
@@ -93,37 +91,37 @@ export struct RemoteCursor {
     if (this.cursorImage !== null && this.cursorImageWidth > 0 && this.cursorImageHeight > 0) {
       const baseScale = this.resolveDisplayScale();
       const minScale = this.minCursorSize / Math.max(this.cursorImageWidth, this.cursorImageHeight);
-      return Math.max(baseScale, minScale);
+      return Math.max(baseScale, minScale) * this.cursorScale;
     }
-    return 1;
+    return this.cursorScale;
   }
 
   private resolveCursorRenderWidth(): number {
     if (this.cursorImage !== null && this.cursorImageWidth > 0) {
       return Math.max(1, Math.round(this.cursorImageWidth * this.resolveCursorScale()));
     }
-    return this.cursorSize;
+    return Math.max(1, this.cursorSize * this.cursorScale);
   }
 
   private resolveCursorRenderHeight(): number {
     if (this.cursorImage !== null && this.cursorImageHeight > 0) {
       return Math.max(1, Math.round(this.cursorImageHeight * this.resolveCursorScale()));
     }
-    return this.cursorSize;
+    return Math.max(1, this.cursorSize * this.cursorScale);
   }
 
   private resolveCursorHotX(): number {
     if (this.cursorImage !== null) {
       return this.cursorHotX * this.resolveCursorScale();
     }
-    return 0;
+    return this.resolveCursorRenderWidth() * 0.195;
   }
 
   private resolveCursorHotY(): number {
     if (this.cursorImage !== null) {
       return this.cursorHotY * this.resolveCursorScale();
     }
-    return 0;
+    return this.resolveCursorRenderHeight() * 0.261;
   }
 
   private getCursorPath(): string {
