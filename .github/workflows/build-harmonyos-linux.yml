@@ -135,11 +135,7 @@ jobs:
             "$SDK_EXTRACT"/sdk/default \
             "$SDK_EXTRACT"/*/default \
             "$SDK_EXTRACT"/*/sdk/default \
-            "$SDK_EXTRACT"/*/*/sdk/default \
-            "$SDK_EXTRACT"/extract \
-            "$SDK_EXTRACT"/*/extract \
-            "$SDK_EXTRACT"/extract/sdk/default \
-            "$SDK_EXTRACT"/*/extract/sdk/default
+            "$SDK_EXTRACT"/*/*/sdk/default
           do
             if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then
               SDK_SOURCE="$candidate"
@@ -148,7 +144,7 @@ jobs:
           done
 
           if [ -z "$SDK_SOURCE" ]; then
-            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 8 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
+            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
           fi
 
           if [ -z "$SDK_SOURCE" ]; then
@@ -164,9 +160,7 @@ jobs:
           for candidate in \
             "$SDK_EXTRACT"/command-line-tools \
             "$SDK_EXTRACT"/*/command-line-tools \
-            "$SDK_EXTRACT"/*/*/command-line-tools \
-            "$SDK_EXTRACT"/extract \
-            "$SDK_EXTRACT"/*/extract
+            "$SDK_EXTRACT"/*/*/command-line-tools
           do
             if [ -d "$candidate" ]; then
               TOOLS_SOURCE="$candidate"
@@ -175,7 +169,7 @@ jobs:
           done
 
           if [ -z "$TOOLS_SOURCE" ]; then
-            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 3 -type d \( -name extract -o -name command-line-tools \) -print -quit || true)
+            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 2 -type d -name command-line-tools -print -quit || true)
           fi
 
           echo "找到 TOOLS_SOURCE: $TOOLS_SOURCE"
