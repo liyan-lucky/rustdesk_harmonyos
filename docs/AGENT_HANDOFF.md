@@ -15,6 +15,15 @@
 
 ## 最近完成的工作
 
+### 2026-08-11 CI 构建修复（HAP Linux）
+
+1. **移除 `setup-harmonyos-sdk@0.2.1`**：不再使用公共 SDK 2.0.0.2，直接用私有 SDK 6.1.1 的完整 command-line-tools 包
+2. **修正 SDK 路径映射**：`DEVECO_SDK_HOME` 指向 `sdk/default`（openharmony/hms 所在），`DEVECO_TOOLS_HOME` 指向 SDK 根目录（bin/hvigor/ohpm 所在）
+3. **修复构建脚本**：尊重工作流设置的 `DEVECO_TOOLS_HOME`，修正 `SDK_LIBRARY_PATHS` 和 hvigor 检查路径
+4. **修复签名路径**：用 Python regex 替换 `build-profile.json5` 中所有 `certpath`/`profile`/`storeFile` 为 `./signing/debug_hos.*`
+5. **在线构建不签名**：移除 `RUSTDESK_SIGNING_ZIP_B64` 传递，构建 unsigned HAP
+6. CI 全部通过：arm64-v8a 2m10s，x86_64 2m29s
+
 ### 2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器
 
 1. 鼠标模式光标用 iconoir `cursor-pointer.svg` 替换十字线，`scale` 变换支持动态大小（16-64）
@@ -33,7 +42,6 @@
 
 ## 待完成任务
 
-- 推送仓库上线并监控 CI 结果
 - 远程光标显示健壮性优化（事件队列容量、载荷编码、cursor clip）
 - 全部会话菜单端到端回归验证（Core cursor 回调仍为空实现）
 - 文件传输完整链路实现

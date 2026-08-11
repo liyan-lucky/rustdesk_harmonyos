@@ -100,6 +100,17 @@
 - **同设备 APK+HAP 并存时，OHOS→APK 发现不了是 Android 兼容层网络隔离限制**，非代码 bug
 - 服务器设置不影响 LAN 发现（LAN 是纯 UDP 广播/响应），但影响 ID 注册和远程连接
 
+## GitHub Actions CI 构建经验
+
+- **SDK 包是完整 command-line-tools**：包含 `bin/`、`hvigor/`、`ohpm/`、`sdk/default/`、`tool/` 等，不是单独的 SDK 内容
+- **路径映射**：`DEVECO_SDK_HOME` 指向 `sdk/default`（openharmony/hms 所在），`DEVECO_TOOLS_HOME` 指向 SDK 根目录（bin/hvigor/ohpm 所在）
+- **不要用 `setup-harmonyos-sdk@0.2.1`**：它安装的 SDK 2.0.0.2 与私有 SDK 6.1.1 不兼容，且会被 `rm -rf` 清除
+- **构建脚本必须尊重工作流设置的 `DEVECO_TOOLS_HOME`**：不要覆盖为 `$SDK_ROOT/command-line-tools`
+- **签名密码是机器加密的**：`build-profile.json5` 中 `0000001B` 前缀的密码只能在本机解密，CI 必须构建 unsigned HAP
+- **签名路径替换**：`sed` 只能替换已知路径模式，Windows 路径 `C:\\Users\\...` 需用 Python regex 替换所有 `certpath`/`profile`/`storeFile` 值
+- **7z 解压**：SDK 包是 `.7z` 格式，需安装 `p7zip-full` 包，用 `7z x -y` 解压
+- **SDK_ROOT 检测**：解压后查找含 `sdk/` 和 `bin/`/`hvigor/`/`ohpm/` 的目录作为 SDK 根
+
 ## 构建经验
 
 - **构建安装必须全部用脚本**（bat/ps1），不要手动拼接 hdc 命令
