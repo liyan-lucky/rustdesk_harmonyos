@@ -2,6 +2,108 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-08-11 secure_tcp 超时回退 + Logger 标签修复 + 构建路径修复
+
+### 35. secure_tcp 超时导致自建服务器连接失败
+
+**现象**：连接自建服务器 `liyan-fnosnas.dynv6.net` 时，18 秒后失败 "Failed to secure tcp: deadline has elapsed: Please try later"。
+
+**根因**：Core `client.rs:429` 在 `!key.is_empty() && !token.is_empty()` 时调用 `secure_tcp()`。`secure_tcp` 等待服务器发送 KeyExchange 消息，但服务器不支持 secure_tcp（不发送 KeyExchange），导致 `READ_TIMEOUT`（18秒）超时。`secure_tcp` 失败后 `?` 操作符直接传播错误，终止整个连接。
+
+**条件**：用户有非空 `access_token`（24字符，来自之前 API 登录残留）+ 非空 `key`（44字符，自建服务器 key）。两者都非空触发 `secure_tcp` 调用。
+
+**解决**：修改 Core `client.rs` 两处 `secure_tcp` 调用（line 431 主路径 + line 889 relay 路径），将 `secure_tcp().await?` 改为 `if let Err(e) = secure_tcp().await { log::warn!(...) }`。超时后记录警告并继续非加密连接，不终止连接。端到端加密不受影响（RustDesk 协议始终使用端到端加密，secure_tcp 仅保护 token 传输）。
+
+**教训**：`secure_tcp` 注释说 "mainly for the security of token"——它只保护 token 传输安全，不影响实际会话加密。自建服务器可能不支持 secure_tcp，客户端必须能回退。
+
+### 34. Logger 自定义标签被 hilog 过滤不输出
+
+**现象**：`Logger.info('CONN', ...)` 等日志在设备上完全不输出，但 `hilog.error(0xA03D00, 'JSAPP', ...)` 和 `console.error` 可以输出。
+
+**根因**：OHOS hilog 按标签过滤，只有 `JSAPP` 标签可见，自定义标签如 `CONN`、`Bridge` 被过滤。`Logger.ets` 使用 `hilog.error(LOG_DOMAIN, tag, msg)` 其中 `tag` 是自定义标签。
+
+**解决**：`Logger.ets` 的 `info()`/`warn()`/`error()`/`debug()` 方法统一使用 `'JSAPP'` 作为 hilog 标签，自定义标签放入消息内容：`hilog.error(LOG_DOMAIN, 'JSAPP', \`[${tag}] ${msg}\`)`。
+
+**教训**：OHOS hilog 不输出自定义标签日志。所有 hilog 调用必须使用 `'JSAPP'` 标签。`console.error`/`console.info` 映射到 hilog `JSAPP` 标签，始终可见。
+
+### 33. 构建脚本输出目录与安装路径不一致导致安装旧版本
+
+**现象**：构建脚本报告成功生成新 HAP（18:10:39），但安装到设备后版本是旧的（8月9日构建）。
+
+**根因**：`rebuild.ps1` 设置 `RUSTDESK_HARMONY_BUILD_DIR=E:\Visual_Studio_Code\99_Temp\harmonyos_build`，构建输出到临时目录。但安装命令使用相对路径 `entry\build\default\outputs\default\...`，解析为项目目录 `E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\build\...`，其中残留旧 HAP（8月9日）。
+
+**解决**：每次构建后从临时目录复制新 HAP 到项目目录：`Copy-Item '...\harmonyos_build\...\entry-default-signed.hap' '...\11_Rustdesk_harmonyos\entry\build\...\entry-default-signed.hap' -Force`，然后用相对路径安装。
+
+**教训**：构建脚本输出目录与安装路径必须一致。每次构建后必须从正确的目录复制或安装。
+
+## 2026-08-11 连接调试输出优化 + 直连 IP 错误友好提示
+
+### 32. 添加 DDNS 域名解析连接支持
+
+**现象**：应用只支持 ID、IPv4、IPv6 三种连接方式，不支持 DDNS 域名解析连接（如 `host.example.com:21118`）。
+
+**根因**：`isValidConnectionTarget` 只验证纯数字 ID、IPv4、IPv6，缺少域名验证。Core `client.rs:274` 的 `is_domain_port_str` 已支持域名连接，但 App 侧未放行。
+
+**解决**：
+1. 添加 `isValidDomainTarget` 方法，验证域名格式（RFC1123 主机名 + 可选端口）
+2. 添加 `isDomainConnectionTarget` 方法，判断是否以字母开头（域名特征）
+3. `isValidConnectionTarget` 添加域名验证分支
+4. `resolveConnectionTransportTarget` 处理域名：不带端口时默认添加 `:21118`（Core 要求域名必须带端口）
+
+**教训**：Core 的 `is_domain_port_str` 要求域名必须带端口，App 侧需补默认端口 21118。域名以字母开头，不会与纯数字 ID 或 IP 地址冲突。
+
+### 31. ID 连接被转为 offline 设备的直连 IP 导致失败
+
+**现象**：用户输入 ID `187720470` 连接，但连接记录显示 `peer=192.168.8.241`，18 秒后失败 "Failed to connect to 192.168.8.241:21118: Please try later"。
+
+**根因**：`Index.ets:resolveConnectionTransportTarget()` 在 `enableDirectIp=true` 且 peerId 是纯数字 ID 时，调用 `LanDiscoveryService.getDirectAddress(peerId)` 获取直连 IP。但 `getDirectAddress` **不检查 online 状态**，即使设备 offline 也返回其 IP。LAN 发现中 `187720470` 对应 `192.168.8.241` 但 `online=false`，导致用 IP 直连 21118 端口失败（目标未运行被控端）。
+
+**链路**：用户输入 ID `187720470` → `resolveConnectionTransportTarget` 转为 `192.168.8.241` → Core `is_ip_str=true` → 直连 `192.168.8.241:21118` → 18 秒超时 → "Failed to connect to 192.168.8.241:21118: Please try later"
+
+**解决**：`resolveConnectionTransportTarget` 改用 `getDiscoveredPeerById(peerId)` 获取完整 peer 对象，检查 `online` 状态。如果 `online=false`，记录警告并回退到 ID 连接（通过 rendezvous 服务器），不使用直连 IP。
+
+**教训**：直连 IP 优化（enableDirectIp）必须检查 LAN 发现的 online 状态。offline 设备的 IP 地址不可达，用 ID 通过 rendezvous 服务器连接才是正确路径。`getDirectAddress` 只返回地址不包含状态信息，调用者必须额外检查 online。
+
+### 27. hilog.info/warn 在设备上被隐私过滤不输出
+
+**现象**：连接失败时 hilog 中看不到 `[CONN]`、`[Bridge]` 等关键日志，无法诊断连接问题。
+
+**根因**：`Logger.ets` 的 `info()` 用 `hilog.info`、`warn()` 用 `hilog.warn`，OHOS 设备上 info/warn 级别被隐私过滤不输出，只有 `hilog.error` 和 `console.error` 能可靠输出（AGENT_MEMORY.md 已记录此经验）。
+
+**解决**：`Logger.ets` 的 `info()`/`warn()`/`debug()` 全部改用 `hilog.error` 输出。`NativeRustDeskBridge.ts` 的 `[CORE_EVENT]`、`setDebugSummary`、`setModuleLoadSummary` 的 `console.info` 改为 `console.error`。`RemoteControl.ets` 的 `hilog.info` 改为 `hilog.error`。
+
+**教训**：OHOS hilog.info/warn 在设备上不可靠，所有需要设备可见的日志必须用 `hilog.error`/`console.error`。Logger 类应统一用 error 级别输出。
+
+### 28. runtimeEventLog 容量 24 条不足，连接事件链丢失
+
+**现象**：连接失败后 `getRuntimeEventLog()` 只保留最近 24 条事件，早期关键事件（如 `connect`、`connecting`）被丢弃，无法完整复盘连接过程。
+
+**根因**：`NativeRustDeskBridge.ts:1938` 容量限制为 24 条，连接过程包含 connect→connecting→login→session-error 等多事件，加上其他事件易超 24 条。
+
+**解决**：容量从 24 扩大到 100，保留完整连接事件链。
+
+**教训**：事件日志容量应考虑完整连接流程的 event 数量，24 条不足以覆盖一次完整连接尝试。
+
+### 29. 直连 IP 失败错误提示不友好
+
+**现象**：连接 `192.168.8.241` 失败时显示 "Failed to connect to 192.168.8.241:21118: Please try later"，用户无法理解原因。
+
+**根因**：`OfficialSessionTextFormatter.deriveErrorSummary()` 对 "Failed to connect to" 只返回通用 "连接失败"，未区分直连 IP 的特定场景。Core `client.rs:259` 检测到 peer 是 IP 地址时跳过 rendezvous/relay 直接 TCP 连接 `peer:21118`（RELAY_PORT+1），18 秒超时后返回 "Failed to connect to {ip}:21118: Please try later"。
+
+**解决**：`deriveErrorSummary()` 新增对 "Failed to connect to" + ":21118" + "Please try later" 的匹配，提取 IP 地址并返回友好提示："无法直连 {ip}：目标未运行被控端或不在同一网络"。对仅含 ":21118" 的返回："无法直连 {ip}：目标端口 21118 未开放"。
+
+**教训**：直连 IP 模式（is_ip_str=true）跳过信令服务器直接连 21118 端口，失败原因通常是目标未运行被控端或跨网段不可达。错误提示应区分此场景并给出可操作建议。
+
+### 30. 关键连接日志级别过低，默认不输出
+
+**现象**：`handleConnect coreState`、`applyEventToState`、`applyBridgeState` 等关键连接日志用 `Logger.debug`，默认关闭（`debugEnabled=false`），诊断时需手动开启 verbose-connection-log。
+
+**根因**：`Index.ets:4288`、`OfficialRustDeskBridge.ets:560`、`RemoteControl.ets:3842` 用 `Logger.debug`，需手动开启 `verbose-connection-log` 才输出。
+
+**解决**：这三处关键连接日志从 `Logger.debug` 提升为 `Logger.info`，默认输出，无需手动开启 debug 开关。
+
+**教训**：连接状态转换、事件处理等关键路径日志应默认输出，不应依赖 debug 开关。debug 开关只用于高频/详细日志。
+
 ## 2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器
 
 ### 23. HarmonyOS Select 组件 menuBackgroundColor 暗色主题不生效

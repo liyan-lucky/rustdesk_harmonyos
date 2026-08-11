@@ -3,6 +3,13 @@
 > 更新时间：2026-08-11
 > 本文件记录项目积累的技术经验，按类别组织。修改前必查对应类别。
 
+## 2026-08-11 连接调试输出优化经验
+
+- **四种连接方式**：ID（纯数字>=9位，通过 rendezvous 或 LAN online 直连）、IPv4（如 192.168.8.241[:port]）、IPv6（如 [::1][:port]）、DDNS 域名（如 host.example.com[:port]，不带端口默认 21118）。
+- **域名连接需补默认端口**：Core `is_domain_port_str` 要求域名必须带端口，App 侧 `resolveConnectionTransportTarget` 对不带端口的域名补 `:21118`。
+- **ID 连接被转为 offline 设备直连 IP 是连接失败主因**：`resolveConnectionTransportTarget` 在 `enableDirectIp=true` 时将 ID 转为 LAN 发现的直连 IP，但 `getDirectAddress` 不检查 online 状态。offline 设备的 IP 不可达，直连 21118 端口 18 秒超时失败。修复：改用 `getDiscoveredPeerById` 检查 online，offline 回退到 ID 连接。
+- **直连 IP 失败根因**：LAN 发现中 `192.168.8.241` 对应设备 `online: false`，说明目标 RustDesk 被控端未运行，21118 端口无监听。应用 18 秒超时后返回连接失败。
+
 ## 2026-08-11 UI/UX 修复经验
 
 - **HarmonyOS Select 组件 `menuBackgroundColor` 暗色主题不生效**：必须配合 `menuBackgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)`，但最终方案是**完全弃用 Select 组件**，用自定义 `Column+ForEach+Row` 弹出列表替代（独立浮层 Stack+zIndex(120)+居中 Blank 关闭）。
