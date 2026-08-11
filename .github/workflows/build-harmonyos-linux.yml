@@ -74,6 +74,10 @@ jobs:
         with:
           version: 2.0.0.2
 
+      - name: 初始化 ohpm
+        run: |
+          ohpm init -y
+
       - name: 校验 SDK Token 输入
         shell: bash
         env:
