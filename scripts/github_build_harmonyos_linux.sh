@@ -98,7 +98,13 @@ fi
 
 export DEVECO_SDK_HOME="$SDK_ROOT"
 export OHOS_HVIGOR_SDK_ROOT="$SDK_ROOT"
-export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
+if [[ -z "${DEVECO_TOOLS_HOME:-}" ]]; then
+  if [[ -d "$SDK_ROOT/command-line-tools" ]]; then
+    export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
+  else
+    export DEVECO_TOOLS_HOME="$SDK_ROOT"
+  fi
+fi
 export PATH="$DEVECO_TOOLS_HOME/bin:$DEVECO_TOOLS_HOME/ohpm/bin:$DEVECO_TOOLS_HOME/hvigor/bin:$PATH"
 SDK_LIBRARY_PATHS=(
   "$SDK_ROOT/hms/toolchains/lib"
@@ -122,7 +128,7 @@ echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}"
 if [[ ! -d "$SDK_ROOT/openharmony/native" ]]; then
   echo "Warning: $SDK_ROOT/openharmony/native not found."
   echo "Current SDK content:"
-  find "$SDK_ROOT" -maxdepth 5 -type d | sort || true
+  find "$SDK_ROOT" -maxdepth 3 -type d | sort || true
 fi
 
 SIGNING_ROOT="$TEMP_ROOT/rustdesk_harmonyos_signing"
@@ -327,10 +333,10 @@ echo "Running Hvigor tasks: ${TASKS[*]}"
 
 cd "$PROJECT_ROOT"
 
-if [[ ! -d "$SDK_ROOT/command-line-tools/hvigor/bin" ]]; then
+if [[ ! -d "$DEVECO_TOOLS_HOME/hvigor/bin" ]]; then
   echo "Installing hvigor via ohpm..."
-  OHPM_BIN="$SDK_ROOT/command-line-tools/ohpm/bin/ohpm"
-  HVIGOR_DIR="$SDK_ROOT/command-line-tools/hvigor"
+  OHPM_BIN="$DEVECO_TOOLS_HOME/ohpm/bin/ohpm"
+  HVIGOR_DIR="$DEVECO_TOOLS_HOME/hvigor"
   mkdir -p "$HVIGOR_DIR"
   cd "$HVIGOR_DIR"
   if [[ -f "$OHPM_BIN" ]]; then
@@ -345,7 +351,6 @@ EOF
     "$OHPM_BIN" install @ohos/hvigor-ohos-plugin@5.0.6 2>&1 || true
   fi
   cd "$PROJECT_ROOT"
-  export DEVECO_TOOLS_HOME="$SDK_ROOT/command-line-tools"
 fi
 
 "$NODE_EXE" "$PROJECT_ROOT/scripts/run_hvigor_with_sdk_patch.js" "${TASKS[@]}"

@@ -69,16 +69,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y unzip zip p7zip-full curl jq python3 rsync
 
-      - name: 设置基础 HarmonyOS SDK
-        uses: harmonyos-dev/setup-harmonyos-sdk@0.2.1
-        with:
-          version: 2.0.0.2
-
-      - name: 初始化 ohpm
-        run: |
-          /home/runner/harmonyos-sdk/command-line-tools/ohpm/bin/init
-          rm -rf /home/runner/harmonyos-sdk/command-line-tools/hvigor
-
       - name: 校验 SDK Token 输入
         shell: bash
         env:
@@ -101,10 +91,9 @@ jobs:
           SDK_BASE="/home/runner/harmonyos-sdk"
           SDK_ARCHIVE="$RUNNER_TEMP/$SDK_ASSET"
           SDK_EXTRACT="$RUNNER_TEMP/authorized-sdk"
-          TOOLS_DIR="$SDK_BASE/command-line-tools"
 
-          rm -rf "$SDK_EXTRACT"
-          mkdir -p "$SDK_EXTRACT"
+          rm -rf "$SDK_EXTRACT" "$SDK_BASE"
+          mkdir -p "$SDK_EXTRACT" "$SDK_BASE"
 
           echo "从私有 SDK 仓库下载完整 HarmonyOS SDK：$SDK_REPO / $SDK_TAG / $SDK_ASSET"
           gh release download "$SDK_TAG" \
@@ -132,78 +121,50 @@ jobs:
               ;;
           esac
 
-          SDK_SOURCE=""
+          echo "解压后的顶层目录结构:"
+          ls -la "$SDK_EXTRACT"
+
+          SDK_ROOT=""
           for candidate in \
             "$SDK_EXTRACT" \
             "$SDK_EXTRACT"/* \
-            "$SDK_EXTRACT"/default \
-            "$SDK_EXTRACT"/sdk/default \
-            "$SDK_EXTRACT"/*/default \
-            "$SDK_EXTRACT"/*/sdk/default \
-            "$SDK_EXTRACT"/*/*/sdk/default
+            "$SDK_EXTRACT"/*/extract \
+            "$SDK_EXTRACT"/extract
           do
-            if [ -d "$candidate/openharmony" ] || [ -d "$candidate/hms" ] || [ -f "$candidate/sdk-pkg.json" ]; then
-              SDK_SOURCE="$candidate"
+            if [ -d "$candidate/sdk" ] && { [ -d "$candidate/bin" ] || [ -d "$candidate/hvigor" ] || [ -d "$candidate/ohpm" ]; }; then
+              SDK_ROOT="$candidate"
               break
             fi
           done
 
-          if [ -z "$SDK_SOURCE" ]; then
-            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 6 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
+          if [ -z "$SDK_ROOT" ]; then
+            SDK_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 4 -type f -name sdk-pkg.json -print -quit | xargs -r dirname || true)
+            if [ -n "$SDK_SOURCE" ]; then
+              for d in "$SDK_SOURCE" "$SDK_SOURCE/.." "$SDK_SOURCE/../.." "$SDK_SOURCE/../../.."; do
+                if [ -d "$d/sdk" ] && { [ -d "$d/bin" ] || [ -d "$d/hvigor" ] || [ -d "$d/ohpm" ]; }; then
+                  SDK_ROOT="$d"
+                  break
+                fi
+              done
+            fi
           fi
 
-          if [ -z "$SDK_SOURCE" ]; then
+          if [ -z "$SDK_ROOT" ]; then
             echo "未能在压缩包中定位 SDK 根目录。"
-            find "$SDK_EXTRACT" -maxdepth 5 -type f | sort | head -120
+            find "$SDK_EXTRACT" -maxdepth 3 -type d | sort | head -50
             exit 1
           fi
 
-          echo "找到 SDK_SOURCE: $SDK_SOURCE"
-          ls -la "$SDK_SOURCE"
+          echo "找到 SDK_ROOT: $SDK_ROOT"
+          ls -la "$SDK_ROOT"
 
-          TOOLS_SOURCE=""
-          for candidate in \
-            "$SDK_EXTRACT"/command-line-tools \
-            "$SDK_EXTRACT"/*/command-line-tools \
-            "$SDK_EXTRACT"/*/*/command-line-tools
-          do
-            if [ -d "$candidate" ]; then
-              TOOLS_SOURCE="$candidate"
-              break
-            fi
+          echo "将 SDK 内容移动到 SDK_BASE..."
+          shopt -s dotglob nullglob
+          for item in "$SDK_ROOT"/*; do
+            name=$(basename "$item")
+            rm -rf "$SDK_BASE/$name"
+            mv "$item" "$SDK_BASE/$name"
           done
-
-          if [ -z "$TOOLS_SOURCE" ]; then
-            TOOLS_SOURCE=$(find "$SDK_EXTRACT" -maxdepth 2 -type d -name command-line-tools -print -quit || true)
-          fi
-
-          echo "找到 TOOLS_SOURCE: $TOOLS_SOURCE"
-          if [ -n "$TOOLS_SOURCE" ] && [ -d "$TOOLS_SOURCE" ]; then
-            ls -la "$TOOLS_SOURCE" | head -20
-          fi
-
-          # 不删除整个 SDK_BASE，因为 setup-harmonyos-sdk 已经安装了 command-line-tools
-          # 只覆盖 sdk/default 目录
-
-          move_sdk_item() {
-            local source_path="$1"
-            local target_path="$2"
-            if [ -e "$source_path" ]; then
-              rm -rf "$target_path"
-              mv "$source_path" "$target_path"
-            fi
-          }
-
-          move_sdk_item "$SDK_SOURCE/openharmony" "$SDK_BASE/openharmony"
-          if [ -e "$SDK_SOURCE/hms" ]; then
-            move_sdk_item "$SDK_SOURCE/hms" "$SDK_BASE/hms"
-          elif [ -e "$SDK_SOURCE/HarmonyOS-6.1.1" ]; then
-            move_sdk_item "$SDK_SOURCE/HarmonyOS-6.1.1" "$SDK_BASE/hms"
-          fi
-          move_sdk_item "$SDK_SOURCE/sdk-pkg.json" "$SDK_BASE/sdk-pkg.json"
-
-          # SDK 包不包含 command-line-tools 目录，跳过工具目录移动
-          # 工具（hvigor、ohpm 等）由 setup-harmonyos-sdk@0.2.1 步骤安装
 
           if [ ! -e "$SDK_BASE/HarmonyOS-6.1.1" ] && [ -d "$SDK_BASE/hms" ]; then
             ln -s hms "$SDK_BASE/HarmonyOS-6.1.1"
@@ -218,23 +179,29 @@ jobs:
           chmod +x "$SDK_BASE/openharmony/previewer/common/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/build-tools/cmake/bin"/* 2>/dev/null || true
           chmod +x "$SDK_BASE/hms/native/llvm/bin"/* 2>/dev/null || true
+          chmod +x "$SDK_BASE/bin"/* 2>/dev/null || true
+          chmod +x "$SDK_BASE/ohpm/bin"/* 2>/dev/null || true
+          chmod +x "$SDK_BASE/hvigor/bin"/* 2>/dev/null || true
+          chmod +x "$SDK_BASE/tool/node/bin"/* 2>/dev/null || true
 
           echo "SDK_BASE 目录结构:"
           ls -la "$SDK_BASE"
 
-          test -f "$SDK_BASE/sdk-pkg.json"
-          test -x "$SDK_BASE/openharmony/toolchains/restool"
-          test -d "$SDK_BASE/openharmony/native"
+          test -f "$SDK_BASE/sdk/default/sdk-pkg.json"
+          test -d "$SDK_BASE/sdk/default/openharmony/native"
+          test -d "$SDK_BASE/bin"
 
       - name: 定位 HarmonyOS SDK
         shell: bash
         run: |
           SDK_BASE="/home/runner/harmonyos-sdk"
-          echo "DEVECO_SDK_HOME=$SDK_BASE" >> "$GITHUB_ENV"
-          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_BASE" >> "$GITHUB_ENV"
+          SDK_HOME="$SDK_BASE/sdk/default"
+          echo "DEVECO_SDK_HOME=$SDK_HOME" >> "$GITHUB_ENV"
+          echo "OHOS_HVIGOR_SDK_ROOT=$SDK_HOME" >> "$GITHUB_ENV"
+          echo "DEVECO_TOOLS_HOME=$SDK_BASE" >> "$GITHUB_ENV"
           echo "DEVECO_NODE_EXE=$(command -v node)" >> "$GITHUB_ENV"
-          echo "PATH=$SDK_BASE/openharmony/native/llvm/bin:$PATH" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$SDK_BASE/hms/toolchains/lib:$SDK_BASE/openharmony/previewer/common/bin:$SDK_BASE/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_BASE/openharmony/toolchains:$SDK_BASE/openharmony/toolchains/lib:$SDK_BASE/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+          echo "PATH=$SDK_BASE/bin:$SDK_BASE/ohpm/bin:$SDK_BASE/hvigor/bin:$SDK_BASE/tool/node/bin:$SDK_HOME/openharmony/native/llvm/bin:$PATH" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$SDK_HOME/hms/toolchains/lib:$SDK_HOME/openharmony/previewer/common/bin:$SDK_HOME/openharmony/ets/build-tools/ets-loader/bin/ark/build/bin:$SDK_HOME/openharmony/toolchains:$SDK_HOME/openharmony/toolchains/lib:$SDK_HOME/hms/native/sysroot/usr/lib/x86_64-linux-ohos:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
           node -v
 
       - name: 输出调试环境
@@ -242,6 +209,7 @@ jobs:
         run: |
           echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
           echo "OHOS_HVIGOR_SDK_ROOT=$OHOS_HVIGOR_SDK_ROOT"
+          echo "DEVECO_TOOLS_HOME=$DEVECO_TOOLS_HOME"
           echo "DEVECO_NODE_EXE=$DEVECO_NODE_EXE"
           echo "RUSTDESK_SIGNING_ZIP_B64 是否为空？ $([ -z "$RUSTDESK_SIGNING_ZIP_B64" ] && echo 是 || echo 否)"
 
