@@ -374,6 +374,8 @@ export class NativeRustDeskBridge {
     NativeRustDeskBridge.moduleCache = undefined;
     NativeRustDeskBridge.runtimeInitialized = false;
     NativeRustDeskBridge.runtimeInitializationUnavailable = false;
+    NativeRustDeskBridge.cachedGetMetadataFn = undefined;
+    NativeRustDeskBridge.cachedCopyFrameFn = undefined;
   }
 
   static hasNativeModule(): boolean {
@@ -790,7 +792,7 @@ export class NativeRustDeskBridge {
       try {
         const raw = getPeerOptionFn(peerId, key);
         return typeof raw === 'string' ? raw : '';
-      } catch (_error) {}
+      } catch (e) { console.warn('getPeerOption failed: ' + JSON.stringify(e)); }
     }
     return NativeRustDeskBridge.readPeerOptionFromFile(peerId, key);
   }
@@ -850,7 +852,7 @@ export class NativeRustDeskBridge {
             alias: parsed['alias'] ?? '',
           };
         }
-      } catch (_error) {}
+      } catch (e) { console.warn('parseDiscoveredPeer failed: ' + JSON.stringify(e)); }
     }
     return NativeRustDeskBridge.readPeerInfoFromFile(peerId);
   }

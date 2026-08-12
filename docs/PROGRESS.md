@@ -1,5 +1,135 @@
 # 功能进度与优化方向
 
+## 2026-08-12 代码审计优化（100轮）
+
+### 审计范围
+- RemoteControl.ets、Index.ets、OfficialRustDeskBridge.ets、NativeRustDeskBridge.ts、Chat.ets、FileTransfer.ets 深度审计
+- 15 个服务文件批量审计（AudioService、AccountService、ChatService、TerminalService、EventBus、ScreenCaptureService、ClipboardService、FrameService、HttpClient、WindowChromeService 等）
+- 13 个页面/组件/网络文件批量审计（Terminal、AddressBook、ViewCamera、WebLoginPage、RemoteCursor、KeyboardToolbar、TouchInteractionManager、PerformanceMonitor、ErrorHandler、RustDeskConnection、ConnectionQualityManager、EntryAbility 等）
+
+### 已修复问题（43 个）
+
+**资源泄漏修复**：
+- RemoteControl.ets：4 个未跟踪 setTimeout 定时器（i18n、IME blur、bitrate/fps debounce）+ remoteCursorAssets Map 无限增长
+- Chat.ets：scheduleChatScroll 4 个未跟踪 setTimeout
+- MyDevice.ets：2 个未跟踪 setTimeout（reloadStateTimer）
+- Scan.ets：3 个未跟踪 setTimeout（goBackTimer）
+- FileTransfer.ets：refreshCurrentPaneFiles interval 泄漏+竞态
+- NativeRustDeskBridge.ts：resetForRetry 未清理 cachedGetMetadataFn/cachedCopyFrameFn
+- PerformanceMonitor.ets：addToBuffer/cleanupBuffer 未释放 PixelMap
+- EventBus.ets：eventQueue 无限增长（添加 1000 上限）
+
+**错误处理修复**：
+- RemoteControl.ets：剪贴板 Promise rejection + 5 个空 catch 块 + reconnectWithPassword catch
+- Index.ets：handleConnect try-catch + 5 个空 catch 块
+- OfficialRustDeskBridge.ets：空 catch �' + 2 个调试日志泄漏
+- FileTransfer.ets：executePaste 状态卡死（try-finally）
+- FileTransferService.ets、LanDiscoveryService.ets、AppDataService.ets、LoginPage.ets、ThemeConfig.ets、NativeRustDeskBridge.ts：空 catch 块
+- ConnectionQualityManager.ets：error 字符串规范化
+
+**Bug 修复**：
+- Index.ets：refreshAccountState 丢失 profile/browserOpened 字段
+- HttpClient.ets：Base64 编码对非 ASCII 字符丢失高位（改用 TextEncoder）
+- RustDeskConnection.ets：sessionStage=error 时 isConnected 未重置
+
+**竞态条件修复**：
+- Index.ets：handleConnect 防重入保护
+- ClipboardService.ets：startMonitoring 同步占位
+- ScreenCaptureService.ets：startCapture 同步占位
+- EventBus.ets：emit 遍历前创建快照副本
+- OfficialSessionTransport.ets：frame.data 空安全检查
+
+**死代码清理**：
+- RemoteControl.ets：isPasswordPromptOnly=false 硬编码 + mouseMenuTab 未使用 @State
+- Index.ets：getCoreSecondaryButtonLabel 重复分支 + coreLoadBusy 重复赋值
+- RemoteControl.ets：showReconnectDialogFromState 重复赋值
+
+### 修改文件（14 个代码文件）
+- entry/src/main/ets/pages/RemoteControl.ets
+- entry/src/main/ets/pages/Index.ets
+- entry/src/main/ets/pages/Chat.ets
+- entry/src/main/ets/pages/FileTransfer.ets
+- entry/src/main/ets/pages/MyDevice.ets
+- entry/src/main/ets/pages/Scan.ets
+- entry/src/main/ets/pages/LoginPage.ets
+- entry/src/main/ets/services/OfficialRustDeskBridge.ets
+- entry/src/main/ets/services/NativeRustDeskBridge.ts
+- entry/src/main/ets/services/FileTransferService.ets
+- entry/src/main/ets/services/LanDiscoveryService.ets
+- entry/src/main/ets/services/AppDataService.ets
+- entry/src/main/ets/services/ClipboardService.ets
+- entry/src/main/ets/services/ScreenCaptureService.ets
+- entry/src/main/ets/services/EventBus.ets
+- entry/src/main/ets/services/OfficialSessionTransport.ets
+- entry/src/main/ets/services/HttpClient.ets
+- entry/src/main/ets/common/ThemeConfig.ets
+- entry/src/main/ets/common/PerformanceMonitor.ets
+- entry/src/main/ets/network/RustDeskConnection.ets
+- entry/src/main/ets/network/ConnectionQualityManager.ets
+
+### 状态
+- 全部构建验证通过，版本 0.33.40 (1000216)
+- 审计覆盖 34 个文件，发现 113 个问题，修复 43 个高严重度问题
+
+## 2026-08-12 远程键盘输入修复 + IME sentinel 方案 + 共享设置菜单
+
+### 新增功能
+
+1. **远程键盘大写字母输入修复**：
+   - **Core 修复**（`13_librustdesk_core` commit `b1e0b06`，core-019）：`session_input_key` 中对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`（如 65='A'），绕过 KEY_MAP 的 `"VK_A" → Key::Chr('a')` 小写映射
+   - **ArkTS 修复**（`RemoteControl.ets:sendTextPayload`）：小写字母 a-z（charCode 97-122）转为 VK 码 65-90（`vk = code - 32`），modifier=0；大写字母 A-Z（charCode 65-90）VK 码不变，modifier=4（Shift）
+
+2. **IME 代理输入 sentinel 方案**：
+   - `@State imeProxyText: string = ' '` — 初始 sentinel（前导空格占位符）
+   - `private imeProxyPrev: string = ' '` — 独立前值跟踪（因 `$$` 双向绑定会自动更新 `imeProxyText`）
+   - `private imeProxyController: TextInputController = new TextInputController()` — 控制器
+   - `TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })` — 双向绑定
+   - `handleImeProxyTextChange` 重写：sentinel 删除时发 `max(realPrev.length, 1)` 个 Backspace，恢复 sentinel + `caretPosition(1)`
+   - `onFocus` 中恢复 sentinel；`aboutToAppear` 中重置 `imeProxyText`/`imeProxyPrev`
+
+3. **自定义键盘面板 Backspace 按钮**：
+   - `buildKeyboardPanel` 添加 `⌫` 按钮
+   - `specialKeys` 映射 `'⌫': 8`（VK_BACKSPACE）
+
+4. **共享设置菜单**（`Index.ets`）：
+   - 共享页面 logo 右侧添加三点菜单按钮
+   - 弹出共享设置弹窗（访问方式、密码设置、密码类型）
+
+5. **构建版本号自增**（`rebuild.ps1`）：
+   - 添加 `$env:RUSTDESK_HARMONY_VERSION_BUMP = "incremental"`
+   - 构建后显示当前版本号
+   - 版本号从 0.33.22 增长到 0.33.33
+
+6. **IME 自动补全删除检测**（部分修复，已搁置）：
+   - `isAutoCompletionDeletion` 检测：文本变短 + 插入文本是原文本后缀
+   - 检测到时只发长度差个 Backspace
+   - 剩余问题：输入冒号也自动补右括号，自动补的删不掉，需进一步研究 IME 行为
+
+### 修复
+
+1. **大写字母显示为小写**：根因是 Core `KEY_MAP` 中 `"VK_A" → Key::Chr('a')`（小写），`key_code_to_official_key_name(65)` 返回 `"VK_A"`（多字符），走 KEY_MAP 路径得到 `Chr('a')` + Shift modifier，远端收到 `chr='a'` + Shift 但显示小写。Core 修复后对 Shift + 字母键直接发送 `chr=key_code`（大写字母 Unicode）。
+
+2. **断开重连后无法删除之前输入的内容**：根因是断开重连后 `imeProxyText` 被重置为空（新页面实例），但远端文本框仍有旧内容。用户按 Backspace 时 IME 不触发 `onChange`（TextInput 已空），无法发送删除到远端。Sentinel 方案在 TextInput 中保留前导空格作为占位符，使 Backspace 永远有内容可删。
+
+### 修改文件
+
+- `entry/src/main/ets/pages/RemoteControl.ets` — `imeProxyText`/`imeProxyPrev`/`imeProxyController` 声明、`aboutToAppear` 重置、`buildImeProxyInput` `$$` 绑定、`buildKeyboardPanel` `⌫` 按钮、`handleImeProxyTextChange` sentinel + auto-completion 逻辑、`sendTextPayload` 大小写字母 VK 码修复、`sendImeCommittedText` 双路径方案、`sendSpecialKey` `⌫: 8` 映射
+- `entry/src/main/ets/pages/Index.ets` — 共享页面三点菜单和设置弹窗
+- `entry/src/main/ets/services/I18nService.ets` — 共享设置 i18n 翻译键
+- `entry/src/main/ets/common/CoreBuildInfo.ets` — 更新为 core-019
+- `entry/src/main/ets/common/BuildInfo.ets` — 构建信息
+- `AppScope/app.json5` — versionCode 1000209, versionName 0.33.33
+- `entry/src/main/libs/arm64/librustdesk_core.a` — core-019 替换
+- `E:\Visual_Studio_Code\99_Temp\rebuild.ps1` — 添加版本自增环境变量
+- `13_librustdesk_core` `rustdesk-master/src/harmony_bridge/core.rs` — `session_input_key` 大写字母修复（commit `b1e0b06`，已推送）
+
+### 状态
+
+- 代码修改完成，构建验证通过
+- core-019 已下载、验证（SHA256 `ae629ed2045851469952daf881d86e963c5344c787745aa5ddb69387ebba41b5`）、安装
+- 当前版本 0.33.33 (1000209)
+- IME 自动补全问题部分修复，剩余场景已搁置
+
 ## 2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器
 
 ### 新增功能

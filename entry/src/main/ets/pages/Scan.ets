@@ -18,6 +18,7 @@ struct Scan {
   private clipboardService: ClipboardService = ClipboardService.getInstance();
   private xComponentController: XComponentController = new XComponentController();
   private surfaceId: string = '';
+  private goBackTimer: number = -1;
 
   @State scanResult: string = '';
   @State status: string = '';
@@ -37,6 +38,7 @@ struct Scan {
 
   aboutToDisappear(): void {
     void this.stopScan(true);
+    if (this.goBackTimer !== -1) { clearTimeout(this.goBackTimer); this.goBackTimer = -1; }
   }
 
   build() {
@@ -355,13 +357,13 @@ struct Scan {
   private applyScanResult(value: string): void {
     void this.clipboardService.copyText(value);
     if (this.applyServerConfig(value)) {
-      setTimeout(() => { this.goBack(); }, 1200);
+      this.goBackTimer = setTimeout(() => { this.goBack(); }, 1200);
       return;
     }
 
     const deviceId = this.extractDeviceId(value);
     if (!this.isPlausibleDeviceId(deviceId)) {
-      setTimeout(() => { this.goBack(); }, 1200);
+      this.goBackTimer = setTimeout(() => { this.goBack(); }, 1200);
       return;
     }
 
@@ -375,7 +377,7 @@ struct Scan {
       favorite: false,
       platform: ''
     });
-    setTimeout(() => { this.goBack(); }, 1200);
+    this.goBackTimer = setTimeout(() => { this.goBack(); }, 1200);
   }
 
   private applyServerConfig(value: string): boolean {

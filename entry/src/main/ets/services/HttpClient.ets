@@ -314,7 +314,8 @@ export class HttpClient {
     }
     try {
       const base64 = new util.Base64Helper();
-      const bytes = new Uint8Array(Array.from(raw).map(c => c.charCodeAt(0)));
+      const encoder = new util.TextEncoder();
+      const bytes = encoder.encodeInto(raw);
       const encoded = base64.encodeSync(bytes);
       let result = '';
       for (let i = 0; i < encoded.length; i++) {

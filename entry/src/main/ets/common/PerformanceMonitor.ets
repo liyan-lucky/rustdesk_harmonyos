@@ -196,6 +196,10 @@ export class PerformanceMonitor {
     // 如果缓冲区已满，移除最旧的帧
     if (this.frameBuffer.size >= this.maxBufferSize) {
       const oldestKey = Array.from(this.frameBuffer.keys())[0];
+      const oldestEntry = this.frameBuffer.get(oldestKey);
+      if (oldestEntry && oldestEntry.data) {
+        try { oldestEntry.data.release(); } catch (e) { console.warn('PixelMap release failed: ' + JSON.stringify(e)); }
+      }
       this.frameBuffer.delete(oldestKey);
     }
     
@@ -234,6 +238,10 @@ export class PerformanceMonitor {
     }
     
     for (const key of expiredKeys) {
+      const entry = this.frameBuffer.get(key);
+      if (entry && entry.data) {
+        try { entry.data.release(); } catch (e) { console.warn('PixelMap release failed: ' + JSON.stringify(e)); }
+      }
       this.frameBuffer.delete(key);
     }
     

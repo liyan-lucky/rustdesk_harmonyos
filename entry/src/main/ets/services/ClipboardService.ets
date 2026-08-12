@@ -43,9 +43,9 @@ export class ClipboardService {
     if (this.isMonitoring) {
       return;
     }
+    this.isMonitoring = true;
 
     this.lastContent = await this.getClipboardContent();
-    this.isMonitoring = true;
     this.monitorInterval = setInterval(() => {
       void this.checkClipboardChange();
     }, intervalMs);

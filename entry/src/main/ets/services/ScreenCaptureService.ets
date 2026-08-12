@@ -62,6 +62,7 @@ export class ScreenCaptureService {
       if (this.isCapturing) {
         return;
       }
+      this.isCapturing = true;
 
       this.applyConfig(config);
       await this.initDisplayInfo();
@@ -73,7 +74,6 @@ export class ScreenCaptureService {
 
       await this.startScreenCaptureSession();
 
-      this.isCapturing = true;
       const intervalMs = Math.max(2000, 5000);
       this.captureInterval = setInterval(() => {
         this.pollCaptureHealth();

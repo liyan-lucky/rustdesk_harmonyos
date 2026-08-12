@@ -135,6 +135,7 @@ export class FileTransferService {
         return context.filesDir.trim();
       }
     } catch (_error) {
+      console.warn('FileTransferService getDownloadDir failed: ' + JSON.stringify(_error));
     }
     return '/data/storage/el2/base/files';
   }

@@ -81,7 +81,8 @@ export class EventBus {
     }
 
     const toRemove: number[] = [];
-    entries.forEach((entry, index) => {
+    const snapshot = entries.slice();
+    snapshot.forEach((entry, index) => {
       try {
         entry.listener(data);
         if (entry.once) {
@@ -105,6 +106,10 @@ export class EventBus {
     const item: EventQueueItem = new EventQueueItem();
     item.type = String(event);
     item.data = data;
+    if (this.eventQueue.length >= 1000) {
+      this.eventQueue.shift();
+      console.warn('[EventBus] Queue overflow, dropping oldest event');
+    }
     this.eventQueue.push(item);
     if (!this.isProcessing) {
       this.processQueue();

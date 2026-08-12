@@ -191,6 +191,7 @@ export class RustDeskConnection {
     this.setState(ConnectionState.CONNECTED);
 
     if (bridgeState.sessionStage === 'error') {
+      this.isConnected = false;
       this.setState(ConnectionState.ERROR);
       this.dispatchEvent({
         type: ConnectionEventType.LOGIN_FAILED,

@@ -1,6 +1,6 @@
 # 新对话交接入口
 
-> 更新时间：2026-08-11
+> 更新时间：2026-08-12
 > 本文件是新对话的第一入口。读取本文件后，按"必读顺序"读取其他文档。
 
 ## 当前项目状态
@@ -14,6 +14,18 @@
 - **包名**：`com.open.rundesk`，AGPL-3.0-only
 
 ## 最近完成的工作
+
+### 2026-08-12 远程键盘输入修复 + IME sentinel 方案 + 共享设置菜单
+
+1. **远程键盘大写字母输入修复**：
+   - Core（`13_librustdesk_core` commit `b1e0b06`，core-019）：`session_input_key` 对 Shift+字母键(65-90)直接发送 `chr=key_code`，绕过 KEY_MAP 小写映射
+   - ArkTS（`RemoteControl.ets:sendTextPayload`）：小写字母转 VK 码 65-90（modifier=0），大写字母 VK 码不变（modifier=4 Shift）
+2. **IME 代理输入 sentinel 方案**：`$$` 双向绑定 + `imeProxyPrev` 独立前值跟踪 + `TextInputController` 恢复 sentinel，保证断开重连后 Backspace 可删除远端旧内容
+3. **自定义键盘面板 Backspace 按钮**：`⌫` 按钮，`specialKeys` 映射 `'⌫': 8`
+4. **共享设置菜单**（`Index.ets`）：共享页面三点菜单 + 设置弹窗（访问方式、密码设置、密码类型）
+5. **构建版本号自增**（`rebuild.ps1`）：`RUSTDESK_HARMONY_VERSION_BUMP=incremental`，版本从 0.33.22 增长到 0.33.33
+6. **core-019 下载、验证、安装**：SHA256 `ae629ed2045851469952daf881d86e963c5344c787745aa5ddb69387ebba41b5`
+7. **IME 自动补全删除检测**（部分修复，已搁置）：`isAutoCompletionDeletion` 检测，剩余问题需进一步研究
 
 ### 2026-08-11 CI 构建修复（HAP Linux）
 
@@ -42,11 +54,14 @@
 
 ## 待完成任务
 
+- **IME 自动补全符号删除问题**（已搁置）：当前部分修复，用户反馈"输入冒号也自动补右括号，自动补的删不掉"，需进一步研究 IME 行为
+- **100 轮代码审计优化**：审计 RemoteControl.ets、Index.ets、CoreBuildInfo.ets 等文件的代码质量、性能、类型安全
 - 远程光标显示健壮性优化（事件队列容量、载荷编码、cursor clip）
 - 全部会话菜单端到端回归验证（Core cursor 回调仍为空实现）
 - 文件传输完整链路实现
 - 五编码设备切换和质量面板验证
 - 华为手机被控端操控已搁置（平台不支持，不作为阻塞项）
+- **Git 提交**：当前有 6 个未提交的修改文件（AppScope/app.json5、BuildInfo.ets、CoreBuildInfo.ets、Index.ets、RemoteControl.ets、I18nService.ets），需要提交并推送
 
 ## 工作规则
 

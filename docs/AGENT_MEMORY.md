@@ -1,7 +1,19 @@
 # 技术经验参考
 
-> 更新时间：2026-08-11
+> 更新时间：2026-08-12
 > 本文件记录项目积累的技术经验，按类别组织。修改前必查对应类别。
+
+## 2026-08-12 远程键盘输入 + IME sentinel 方案经验
+
+- **Core KEY_MAP 字母键映射为小写**：`"VK_A" → Key::Chr('a')`（小写），`key_code_to_official_key_name(65)` 返回 `"VK_A"`（多字符）走 KEY_MAP 路径得到 `Chr('a')` + Shift modifier，远端显示小写。修复：`session_input_key` 中对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`，绕过 KEY_MAP。
+- **Core modifier 定义**：bit0=Ctrl(1), bit1=Alt(2), bit2=Shift(4), bit3=Command(8)。
+- **ArkTS sendTextPayload 大小写字母处理**：小写字母 a-z（charCode 97-122）→ VK 码 65-90（`vk = code - 32`），modifier=0；大写字母 A-Z（charCode 65-90）→ VK 码不变，modifier=4（Shift）。
+- **HarmonyOS 软键盘不触发 `onKeyEvent`**：只触发 `onChange` 文本变化回调，`onKeyEvent` 仅捕获物理键盘事件。IME 代理输入通过 `onChange` 的文本 diff 计算用户输入，物理键盘走 `onKeyEvent`。
+- **`$$` 双向绑定**：`TextInput({ text: $$this.imeProxyText })` 才能在设置 `imeProxyText` 时真正更新 TextInput 内部文本。单向绑定无法在编辑状态下更新 TextInput。但 `$$` 会自动更新 `imeProxyText`，不能用 `imeProxyText` 做前值比较，需用独立的 `imeProxyPrev` 变量。
+- **TextInputController 用法**：在构造函数中传入 `TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })`，不能用 `.controller()` 属性方法（编译错误）。`caretPosition(1)` 用于 sentinel 恢复后把光标移到末尾。
+- **Sentinel 方案**：在 TextInput 中保留前导空格 `' '` 作为占位符，使 Backspace 永远有内容可删。适用于"远端有内容但本地 TextInput 为空时需发送 Backspace"的场景。
+- **Sentinel 恢复竞态条件**：设置 `this.imeProxyText = SENTINEL` 可能同步触发 `onChange`，必须先设置 `imeProxyPrev = SENTINEL` 再设置 `imeProxyText`，否则 `onChange` 会用旧的 `imeProxyPrev` 处理。
+- **IME 自动补全行为复杂**：HarmonyOS IME 输入左括号 `（` 时自动补全 `）`，Backspace 删除的是左括号而非右括号。diff 算法难以正确推断用户意图，可能需要更精细的 IME 状态跟踪。
 
 ## 2026-08-11 连接调试输出优化经验
 

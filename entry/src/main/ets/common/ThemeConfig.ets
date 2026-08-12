@@ -260,7 +260,7 @@ export class ThemeManager {
       const colorMode = AppStorage.get<string>('colorMode') ?? '';
       if (colorMode === 'dark') return true;
       if (colorMode === 'light') return false;
-    } catch (_e) {}
+    } catch (e) { console.warn('isDarkTheme failed: ' + JSON.stringify(e)); }
     return false;
   }
 

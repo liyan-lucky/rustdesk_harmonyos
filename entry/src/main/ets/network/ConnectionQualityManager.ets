@@ -211,10 +211,11 @@ export class ConnectionQualityManager {
         networkStatus: this.networkStatus
       });
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       console.error('Measure network status failed:', error);
       this.dispatchEvent({
         type: 'error',
-        error: '测量网络状态失败: ' + error
+        error: '测量网络状态失败: ' + errMsg
       });
     }
   }

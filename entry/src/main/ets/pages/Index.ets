@@ -92,7 +92,7 @@ function loadVisibleTabs(): Set<ConnectPeerTab> {
       if (tabs.length > 0) {
         return new Set<ConnectPeerTab>(tabs);
       }
-    } catch (_e) {}
+    } catch (e) { console.warn('loadConnectPeerTabs failed: ' + JSON.stringify(e)); }
   }
   return new Set<ConnectPeerTab>(ALL_TABS);
 }
@@ -461,7 +461,7 @@ struct Index {
     setTimeout(() => {
       try {
         focusControl.requestFocus('connect-search-input');
-      } catch (_e) {}
+      } catch (e) { console.warn('requestFocus failed: ' + JSON.stringify(e)); }
     }, 30);
   }
 
@@ -469,7 +469,7 @@ struct Index {
     setTimeout(() => {
       try {
         focusControl.requestFocus(targetId);
-      } catch (_e) {}
+      } catch (e) { console.warn('requestFocus failed: ' + JSON.stringify(e)); }
     }, delayMs);
   }
 
@@ -548,6 +548,16 @@ struct Index {
   @State showShareStartWarning: boolean = false;
   @State shareWarningDontShowAgain: boolean = false;
   @State shareWarningCountdown: number = 12;
+  @State showShareSettingsDialog: boolean = false;
+  @State shareAccessMode: string = 'both';
+  @State sharePasswordType: string = 'both';
+  @State shareFixedPassword: string = '';
+  @State shareFixedPasswordDraft: string = '';
+  @State shareOtpLength: number = 6;
+  @State shareOtpLengthDraft: string = '6';
+  @State shareOtpNumeric: boolean = false;
+  @State showShareFixedPasswordInput: boolean = false;
+  @State showShareOtpLengthInput: boolean = false;
   @State nativeBridgeSummary: string = NativeRustDeskBridge.getRuntimeLogSummary();
   @State showPasswordDialog: boolean = false;
   @State showServerDialog: boolean = false;
@@ -636,7 +646,7 @@ struct Index {
           }
         }
       }
-    } catch (_e) {}
+    } catch (e) { console.warn('parseFieldFromDetail failed: ' + JSON.stringify(e)); }
     return '';
   }
 
@@ -920,9 +930,43 @@ struct Index {
       .padding({ top: 80, bottom: 120 })
 
       Column() {
-        Column() { PageHeader(this.lt('RustDesk')) }
+        Column() {
+          Row() {
+            Text(this.lt('RustDesk'))
+              .fontSize(ThemeConfig.FONT_SIZE_TITLE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .layoutWeight(1)
+
+            Row() {
+              Column({ space: 4 }) {
+                Circle({ width: 4, height: 4 })
+                  .fill(this.theme_TEXT_PRIMARY)
+                Circle({ width: 4, height: 4 })
+                  .fill(this.theme_TEXT_PRIMARY)
+                Circle({ width: 4, height: 4 })
+                  .fill(this.theme_TEXT_PRIMARY)
+              }
+              .width(36)
+              .height(36)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+            }
+            .width(36)
+            .height(36)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor(this.theme_INPUT_BG)
+            .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
+            .onClick(() => {
+              this.loadShareSettings();
+              this.showShareSettingsDialog = true;
+            })
+          }
           .width('100%')
-          .padding({ top: this.avoidStatusBarHeight })
+          .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD, top: ThemeConfig.SPACING_SM, bottom: ThemeConfig.SPACING_MD })
+        }
+        .width('100%')
+        .padding({ top: this.avoidStatusBarHeight })
       }
       .width('100%')
       .linearGradient({
@@ -1989,9 +2033,6 @@ struct Index {
     if (this.coreLoadBusy) {
       return this.lt('Loading...');
     }
-    if (this.officialCoreState.coreReady) {
-      return this.lt('Stop');
-    }
     return this.lt('Stop');
   }
 
@@ -1999,7 +2040,6 @@ struct Index {
     this.coreLoadBusy = true;
     if (this.officialCoreState.coreReady) {
       this.stopCoreRuntime(false);
-      this.coreLoadBusy = true;
     }
     this.ensureCoreLoadedThenStart();
   }
@@ -4280,6 +4320,11 @@ struct Index {
   }
 
   private async handleConnect(overrideTargetId?: string): Promise<void> {
+    if (this.isConnecting) {
+      Logger.warn('CONN', 'handleConnect: already connecting, ignoring duplicate call');
+      return;
+    }
+    try {
     this.cachedHostname = '';
     const targetId = this.sanitizeConnectionTargetInput(overrideTargetId ?? this.deviceId);
     console.error(`[CONN] handleConnect start targetId=${targetId} override=${overrideTargetId !== undefined} deviceId=${this.deviceId}`);
@@ -4347,6 +4392,11 @@ struct Index {
     hilog.info(0xA03D00, 'CONN', `[handleConnect] parallel: no saved password for ${targetId}, showing password dialog + empty-password connect`);
     this.showConnectPasswordDialog(targetId, true);
     void this.initiateBackgroundConnection(this.pendingTransportTarget, targetId);
+    } catch (error) {
+      Logger.error('CONN', `handleConnect failed: ${JSON.stringify(error)}`);
+      this.isConnecting = false;
+      this.setStatusMessage("connection_failed");
+    }
   }
 
   private resolveConnectionTransportTarget(peerId: string): string {
@@ -4685,7 +4735,7 @@ struct Index {
         await this.getUIContext().getPromptAction().openToast({
           message: this.lt('Address book synced')
         });
-      } catch (_e) {}
+      } catch (e) { console.warn('openToast failed: ' + JSON.stringify(e)); }
     }
   }
 
@@ -4894,7 +4944,9 @@ struct Index {
       detail: fresh.detail,
       loginUrl: fresh.loginUrl,
       lastError: fresh.lastError,
-      status: fresh.status
+      status: fresh.status,
+      profile: fresh.profile,
+      browserOpened: fresh.browserOpened
     };
     this.accountRefreshTick++;
   }
@@ -6361,6 +6413,364 @@ struct Index {
   }
 
   @Builder
+  private buildShareSettingsDialog() {
+    Column() {
+      Column({ space: 0 }) {
+        Text(this.lt('Share Settings'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .width('100%')
+          .padding({ bottom: 16 })
+
+        Text(this.lt('Access Mode'))
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .width('100%')
+          .padding({ bottom: 8 })
+
+        this.buildShareRadioItem(this.lt('Password only access'), this.shareAccessMode === 'password', () => {
+          this.shareAccessMode = 'password';
+        })
+        this.buildShareRadioItem(this.lt('Click only access'), this.shareAccessMode === 'click', () => {
+          this.shareAccessMode = 'click';
+        })
+        this.buildShareRadioItem(this.lt('Password or click access'), this.shareAccessMode === 'both', () => {
+          this.shareAccessMode = 'both';
+        })
+
+        Divider()
+          .color(this.theme_BORDER_SUBTLE)
+          .margin({ top: 12, bottom: 12 })
+
+        Text(this.lt('Password Settings'))
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .width('100%')
+          .padding({ bottom: 8 })
+
+        this.buildShareListItem(this.lt('Set fixed password'), this.shareFixedPassword.length > 0 ? '••••••' : this.lt('Not set'), () => {
+          this.shareFixedPasswordDraft = this.shareFixedPassword;
+          this.showShareFixedPasswordInput = true;
+        })
+        this.buildShareListItem(this.lt('One-time password length'), `${this.shareOtpLength}`, () => {
+          this.shareOtpLengthDraft = `${this.shareOtpLength}`;
+          this.showShareOtpLengthInput = true;
+        })
+
+        Row() {
+          Text(this.lt('One-time password numeric'))
+            .fontSize(16)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .layoutWeight(1)
+          Toggle({ type: ToggleType.Switch, isOn: this.shareOtpNumeric })
+            .selectedColor(this.theme_ACCENT)
+            .onChange((isOn: boolean) => {
+              this.shareOtpNumeric = isOn;
+            })
+        }
+        .width('100%')
+        .height(48)
+        .padding({ left: 16, right: 16 })
+
+        Divider()
+          .color(this.theme_BORDER_SUBTLE)
+          .margin({ top: 12, bottom: 12 })
+
+        Text(this.lt('Password Type'))
+          .fontSize(14)
+          .fontColor(this.theme_TEXT_SECONDARY)
+          .width('100%')
+          .padding({ bottom: 8 })
+
+        this.buildShareRadioItem(this.lt('Use one-time password'), this.sharePasswordType === 'temporary', () => {
+          this.sharePasswordType = 'temporary';
+        })
+        this.buildShareRadioItem(this.lt('Use fixed password'), this.sharePasswordType === 'fixed', () => {
+          this.sharePasswordType = 'fixed';
+        })
+        this.buildShareRadioItem(this.lt('Use both passwords'), this.sharePasswordType === 'both', () => {
+          this.sharePasswordType = 'both';
+        })
+
+        Row({ space: 12 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .backgroundColor(this.theme_INPUT_BG)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showShareSettingsDialog = false;
+            })
+
+          Button(this.lt('OK'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(this.theme_ACCENT)
+            .borderRadius(8)
+            .onClick(() => {
+              this.saveShareSettings();
+              this.showShareSettingsDialog = false;
+            })
+        }
+        .width('100%')
+        .margin({ top: 20 })
+      }
+      .width('88%')
+      .padding(24)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(16)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showShareSettingsDialog = false;
+    })
+  }
+
+  @Builder
+  private buildShareRadioItem(label: string, selected: boolean, onTap: () => void) {
+    Row() {
+      Text(label)
+        .fontSize(16)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+      if (selected) {
+        Text('✓')
+          .fontSize(18)
+          .fontColor(this.theme_ACCENT)
+          .fontWeight(FontWeight.Bold)
+      }
+    }
+    .width('100%')
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .onClick(() => { onTap(); })
+  }
+
+  @Builder
+  private buildShareListItem(label: string, value: string, onTap: () => void) {
+    Row() {
+      Text(label)
+        .fontSize(16)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+      Text(value)
+        .fontSize(14)
+        .fontColor(this.theme_TEXT_SECONDARY)
+        .margin({ right: 8 })
+      Text('›')
+        .fontSize(20)
+        .fontColor(this.theme_TEXT_SECONDARY)
+    }
+    .width('100%')
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .onClick(() => { onTap(); })
+  }
+
+  @Builder
+  private buildShareFixedPasswordInputDialog() {
+    Column() {
+      Column({ space: 20 }) {
+        Text(this.lt('Set fixed password'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        TextInput({ text: this.shareFixedPasswordDraft, placeholder: this.lt('Enter fixed password') })
+          .width('100%')
+          .height(48)
+          .fontSize(16)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .backgroundColor(this.theme_INPUT_BG)
+          .borderRadius(8)
+          .onChange((value: string) => {
+            this.shareFixedPasswordDraft = value;
+          })
+
+        Row({ space: 12 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .backgroundColor(this.theme_INPUT_BG)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showShareFixedPasswordInput = false;
+            })
+
+          Button(this.lt('OK'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(this.theme_ACCENT)
+            .borderRadius(8)
+            .onClick(() => {
+              this.shareFixedPassword = this.shareFixedPasswordDraft.trim();
+              this.showShareFixedPasswordInput = false;
+            })
+        }
+        .width('100%')
+      }
+      .width('85%')
+      .padding(24)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(16)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showShareFixedPasswordInput = false;
+    })
+  }
+
+  @Builder
+  private buildShareOtpLengthInputDialog() {
+    Column() {
+      Column({ space: 20 }) {
+        Text(this.lt('One-time password length'))
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        TextInput({ text: this.shareOtpLengthDraft, placeholder: '6' })
+          .width('100%')
+          .height(48)
+          .fontSize(16)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .backgroundColor(this.theme_INPUT_BG)
+          .borderRadius(8)
+          .type(InputType.Number)
+          .onChange((value: string) => {
+            this.shareOtpLengthDraft = value;
+          })
+
+        Row({ space: 12 }) {
+          Button(this.lt('Cancel'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .backgroundColor(this.theme_INPUT_BG)
+            .borderRadius(8)
+            .onClick(() => {
+              this.showShareOtpLengthInput = false;
+            })
+
+          Button(this.lt('OK'))
+            .layoutWeight(1)
+            .height(44)
+            .fontSize(16)
+            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(this.theme_ACCENT)
+            .borderRadius(8)
+            .onClick(() => {
+              const len = parseInt(this.shareOtpLengthDraft.trim(), 10);
+              if (len >= 4 && len <= 16) {
+                this.shareOtpLength = len;
+              }
+              this.showShareOtpLengthInput = false;
+            })
+        }
+        .width('100%')
+      }
+      .width('85%')
+      .padding(24)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(16)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showShareOtpLengthInput = false;
+    })
+  }
+
+  private loadShareSettings(): void {
+    const approveMode = NativeRustDeskBridge.getLocalOption('approve-mode').trim();
+    const verificationMethod = NativeRustDeskBridge.getLocalOption('verification-method').trim();
+    const fixedPassword = NativeRustDeskBridge.getLocalOption('fixed-password').trim();
+    const otpLengthStr = NativeRustDeskBridge.getLocalOption('otp-length').trim();
+    const otpNumericStr = NativeRustDeskBridge.getLocalOption('otp-numeric').trim().toUpperCase();
+
+    if (approveMode === 'click') {
+      this.shareAccessMode = 'click';
+    } else if (approveMode === 'password') {
+      if (verificationMethod === 'use-temporary-password') {
+        this.shareAccessMode = 'password';
+      } else {
+        this.shareAccessMode = 'both';
+      }
+    } else {
+      this.shareAccessMode = 'both';
+    }
+
+    this.shareFixedPassword = fixedPassword;
+    this.shareFixedPasswordDraft = fixedPassword;
+
+    const len = parseInt(otpLengthStr, 10);
+    this.shareOtpLength = isNaN(len) || len < 4 || len > 16 ? 6 : len;
+    this.shareOtpLengthDraft = `${this.shareOtpLength}`;
+
+    this.shareOtpNumeric = otpNumericStr === 'Y' || otpNumericStr === 'YES' || otpNumericStr === 'TRUE' || otpNumericStr === '1';
+
+    if (verificationMethod === 'use-temporary-password') {
+      this.sharePasswordType = 'temporary';
+    } else if (verificationMethod === 'use-fixed-password') {
+      this.sharePasswordType = 'fixed';
+    } else if (verificationMethod === 'use-both-passwords') {
+      this.sharePasswordType = 'both';
+    } else {
+      this.sharePasswordType = 'temporary';
+    }
+  }
+
+  private saveShareSettings(): void {
+    if (this.shareAccessMode === 'click') {
+      NativeRustDeskBridge.setLocalOption('approve-mode', 'click');
+    } else if (this.shareAccessMode === 'password') {
+      NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
+      NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
+    } else {
+      NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
+      NativeRustDeskBridge.setLocalOption('verification-method', 'use-both-passwords');
+    }
+
+    if (this.sharePasswordType === 'temporary') {
+      NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
+    } else if (this.sharePasswordType === 'fixed') {
+      NativeRustDeskBridge.setLocalOption('verification-method', 'use-fixed-password');
+    } else {
+      NativeRustDeskBridge.setLocalOption('verification-method', 'use-both-passwords');
+    }
+
+    NativeRustDeskBridge.setLocalOption('fixed-password', this.shareFixedPassword);
+    NativeRustDeskBridge.setLocalOption('otp-length', `${this.shareOtpLength}`);
+    NativeRustDeskBridge.setLocalOption('otp-numeric', this.shareOtpNumeric ? 'Y' : 'N');
+
+    this.setStatusMessageRaw(this.lt('Share settings saved'));
+  }
+
+  @Builder
   private buildRenameDialog() {
     Column() {
       Column({ space: 20 }) {
@@ -7049,6 +7459,15 @@ struct Index {
       }
       if (this.showShareStartWarning) {
         this.buildShareStartWarning()
+      }
+      if (this.showShareSettingsDialog) {
+        this.buildShareSettingsDialog()
+      }
+      if (this.showShareFixedPasswordInput) {
+        this.buildShareFixedPasswordInputDialog()
+      }
+      if (this.showShareOtpLengthInput) {
+        this.buildShareOtpLengthInputDialog()
       }
     }
     .width('100%')

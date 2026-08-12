@@ -23,6 +23,7 @@ struct Chat {
     this.scheduleChatScroll(50);
   };
   private chatScroller: Scroller = new Scroller();
+  private scrollTimers: number[] = [];
 
   @State deviceId: string = '';
   @State deviceName: string = '';
@@ -45,6 +46,8 @@ struct Chat {
 
   aboutToDisappear() {
     this.chatService.removeEventListener(this.chatListener);
+    this.scrollTimers.forEach((id: number) => clearTimeout(id));
+    this.scrollTimers = [];
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
@@ -382,7 +385,9 @@ struct Chat {
     void this.chatService.sendTextMessage(this.deviceId, text).then(() => {
       this.refreshMessages();
     }).catch(() => {
-      this.draft = text;
+      if (this.draft.length === 0) {
+        this.draft = text;
+      }
       console.error('send chat message failed');
     });
   }
@@ -409,8 +414,9 @@ struct Chat {
   }
 
   private scheduleChatScroll(delayMs: number): void {
-    [0, delayMs, delayMs + 80, delayMs + 180].forEach((delay: number) => {
-      setTimeout(() => {
+    this.scrollTimers.forEach((id: number) => clearTimeout(id));
+    this.scrollTimers = [0, delayMs, delayMs + 80, delayMs + 180].map((delay: number) => {
+      return setTimeout(() => {
         this.chatScroller.scrollEdge(Edge.Bottom);
       }, Math.max(0, delay));
     });

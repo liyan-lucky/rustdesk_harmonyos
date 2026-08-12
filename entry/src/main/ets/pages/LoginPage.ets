@@ -129,7 +129,7 @@ struct LoginPage {
     setTimeout(() => {
       try {
         focusControl.requestFocus('login-search-input');
-      } catch (_e) {}
+      } catch (e) { console.warn('requestFocus failed: ' + JSON.stringify(e)); }
     }, 30);
   }
 

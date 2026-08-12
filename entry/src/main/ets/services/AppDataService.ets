@@ -575,7 +575,7 @@ export class AppDataService {
       try {
         const arr = JSON.parse(value) as string[];
         arr.forEach((id: string) => this.localFavorites.add(DeviceIdFormatter.parse(id)));
-      } catch (_e) {}
+      } catch (e) { console.warn('loadFavorites failed: ' + JSON.stringify(e)); }
     }
   }
 

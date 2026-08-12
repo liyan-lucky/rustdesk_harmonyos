@@ -2,6 +2,57 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## Unreleased (2026-08-12 代码审计优化)
+
+### 修复
+
+- **资源泄漏**：修复 11 个文件的未跟踪 setTimeout/setInterval 定时器泄漏（RemoteControl、Chat、MyDevice、Scan、FileTransfer、NativeRustDeskBridge、PerformanceMonitor、EventBus 等）
+- **错误处理**：修复 15 个空 catch 块（添加 console.warn 日志）、剪贴板 Promise rejection、executePaste 状态卡死（try-finally）、handleConnect try-catch
+- **Bug 修复**：refreshAccountState 丢失 profile/browserOpened 字段、HttpClient Base64 编码对非 ASCII 字符丢失高位（改用 TextEncoder）、RustDeskConnection sessionStage=error 时 isConnected 未重置
+- **竞态条件**：handleConnect 防重入、ClipboardService/ScreenCaptureService 同步占位、EventBus emit 快照副本、FileTransfer interval 竞态
+- **死代码**：isPasswordPromptOnly=false、mouseMenuTab、getCoreSecondaryButtonLabel 重复分支、coreLoadBusy 重复赋值、showReconnectDialogFromState 重复赋值
+- **调试日志**：移除 OfficialRustDeskBridge 中 2 个泄漏服务器配置的 console.error
+
+### 审计统计
+- 审计覆盖 34 个文件，发现 113 个问题，修复 43 个高严重度问题
+- 全部构建验证通过，版本 0.33.40 (1000216)
+
+## Unreleased (2026-08-12 远程键盘输入修复 + IME sentinel 方案 + 共享设置菜单)
+
+### 新增功能
+
+- **远程键盘大写字母输入修复**：
+  - Core（`13_librustdesk_core` commit `b1e0b06`，core-019）：`session_input_key` 对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`，绕过 KEY_MAP 的 `"VK_A" → Key::Chr('a')` 小写映射
+  - ArkTS（`RemoteControl.ets:sendTextPayload`）：小写字母 a-z（charCode 97-122）转 VK 码 65-90（`vk = code - 32`），modifier=0；大写字母 A-Z（charCode 65-90）VK 码不变，modifier=4（Shift）
+- **IME 代理输入 sentinel 方案**：`@State imeProxyText: string = ' '`（sentinel）+ `private imeProxyPrev`（独立前值跟踪）+ `TextInputController` + `TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })` 双向绑定。断开重连后 Backspace 可删除远端旧内容（sentinel 保证 TextInput 永远有内容可删）。
+- **自定义键盘面板 Backspace 按钮**：`buildKeyboardPanel` 添加 `⌫` 按钮，`specialKeys` 映射 `'⌫': 8`。
+- **共享设置菜单**（`Index.ets`）：共享页面 logo 右侧三点菜单按钮，弹出共享设置弹窗（访问方式、密码设置、密码类型）。
+- **构建版本号自增**（`rebuild.ps1`）：`$env:RUSTDESK_HARMONY_VERSION_BUMP = "incremental"`，每次构建 versionCode 自增。
+
+### 修复
+
+- **大写字母显示为小写**：Core `KEY_MAP` 中 `"VK_A" → Key::Chr('a')`（小写），`key_code_to_official_key_name(65)` 返回 `"VK_A"`（多字符）走 KEY_MAP 路径得到 `Chr('a')` + Shift modifier，远端收到 `chr='a'` + Shift 但显示小写。Core 修复后对 Shift + 字母键直接发送 `chr=key_code`。
+- **断开重连后无法删除之前输入的内容**：断开重连后 `imeProxyText` 被重置为空（新页面实例），远端文本框仍有旧内容。Backspace 时 IME 不触发 `onChange`（TextInput 已空），无法发送删除到远端。Sentinel 方案保留前导空格占位符使 Backspace 永远有内容可删。
+- **IME 自动补全符号删除**（部分修复，已搁置）：`isAutoCompletionDeletion` 检测（文本变短 + 插入文本是原文本后缀）时只发长度差个 Backspace。剩余问题：输入冒号也自动补右括号，自动补的删不掉。
+
+### 修改文件
+
+- `entry/src/main/ets/pages/RemoteControl.ets` — IME sentinel 方案、`sendTextPayload` 大小写修复、`⌫` 按钮、`handleImeProxyTextChange` sentinel + auto-completion 逻辑
+- `entry/src/main/ets/pages/Index.ets` — 共享页面三点菜单和设置弹窗
+- `entry/src/main/ets/services/I18nService.ets` — 共享设置 i18n 翻译键
+- `entry/src/main/ets/common/CoreBuildInfo.ets` — 更新为 core-019
+- `entry/src/main/ets/common/BuildInfo.ets` — 构建信息
+- `AppScope/app.json5` — versionCode 1000209, versionName 0.33.33
+- `entry/src/main/libs/arm64/librustdesk_core.a` — core-019 替换
+- `E:\Visual_Studio_Code\99_Temp\rebuild.ps1` — 添加版本自增环境变量
+- `13_librustdesk_core` `rustdesk-master/src/harmony_bridge/core.rs` — `session_input_key` 大写字母修复（commit `b1e0b06`）
+
+### 验证
+
+- core-019 SHA256 `ae629ed2045851469952daf881d86e963c5344c787745aa5ddb69387ebba41b5`
+- 当前版本 0.33.33 (1000209)
+- 构建验证通过，core-019 已安装到设备
+
 ## Unreleased (2026-08-11 UI/UX 修复 + 光标图标 + 自定义选择器)
 
 ### 新增功能

@@ -32,7 +32,7 @@ export class OfficialSessionTransport {
       frame.height,
       frame.timestamp,
       frame.key_frame,
-      frame.data.byteLength
+      frame.data ? frame.data.byteLength : 0
     );
   }
 
@@ -43,7 +43,7 @@ export class OfficialSessionTransport {
       sampleRate,
       frame.channels,
       frame.timestamp,
-      frame.data.byteLength
+      frame.data ? frame.data.byteLength : 0
     );
   }
 

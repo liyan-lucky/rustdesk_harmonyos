@@ -152,6 +152,10 @@ struct RemoteControl {
   private sessionExitTimer: number = -1;
   private reconnectWithPasswordTimer: number = -1;
   private chatScrollTimers: number[] = [];
+  private i18nOpacityTimer: number = -1;
+  private imeBlurTimer: number = -1;
+  private bitrateDebounceTimer: number = -1;
+  private fpsDebounceTimer: number = -1;
   private longPressTriggered: boolean = false;
   private touchDownAt: number = 0;
   private touchDownPreviewX: number = 0;
@@ -258,7 +262,9 @@ struct RemoteControl {
   private toolbarTouchStartX: number = 0;
   private toolbarTouchStartY: number = 0;
   @State @Watch('onShowKeyboardChange') showKeyboard: boolean = false;
-  @State imeProxyText: string = '';
+  @State imeProxyText: string = ' ';
+  private imeProxyPrev: string = ' ';
+  private imeProxyController: TextInputController = new TextInputController();
   @State imeProxyFocused: boolean = false;
   private imeProxyDismissRequested: boolean = false;
   @State hasReceivedFrame: boolean = false;
@@ -367,7 +373,6 @@ struct RemoteControl {
   @State cursorScreenY: number = 0;
   private hasCursorScreenPosition: boolean = false;
   @State joystickSpeed: number = 5;
-  @State mouseMenuTab: number = 0;
   @State mouseSensitivity: number = 8;
   @State mouseScrollSpeed: number = 3;
   @State cursorIconSize: number = 28;
@@ -691,6 +696,7 @@ struct RemoteControl {
     this.lastSilentSessionWarningAt = 0;
     this.frameVersion = 0;
     this.hasReceivedFrame = false;
+    this.imeProxyText = ' ';
     this.frameWidth = 0;
     this.frameHeight = 0;
     this.remoteDisplayWidth = 0;
@@ -768,6 +774,10 @@ struct RemoteControl {
     }
     this.chatScrollTimers.forEach((id: number) => clearTimeout(id));
     this.chatScrollTimers = [];
+    if (this.i18nOpacityTimer !== -1) { clearTimeout(this.i18nOpacityTimer); this.i18nOpacityTimer = -1; }
+    if (this.imeBlurTimer !== -1) { clearTimeout(this.imeBlurTimer); this.imeBlurTimer = -1; }
+    if (this.bitrateDebounceTimer !== -1) { clearTimeout(this.bitrateDebounceTimer); this.bitrateDebounceTimer = -1; }
+    if (this.fpsDebounceTimer !== -1) { clearTimeout(this.fpsDebounceTimer); this.fpsDebounceTimer = -1; }
     ClipboardService.getInstance().stopMonitoring();
     WindowChromeService.getInstance().exitImmersiveMode();
     void WindowChromeService.getInstance().setKeepScreenOn(false);
@@ -819,7 +829,7 @@ struct RemoteControl {
     this.i18nVersion = this.i18nRefresh;
     this.statusText = this.lt('Connecting...');
     this.videoStatus = this.lt('Waiting for video...');
-    setTimeout(() => { this.i18nOpacity = 1; }, 30);
+    this.i18nOpacityTimer = setTimeout(() => { this.i18nOpacity = 1; }, 30);
   }
 
   build() {
@@ -1176,7 +1186,7 @@ struct RemoteControl {
         this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), () => {
           if (this.showKeyboard || this.imeProxyFocused) {
             this.showKeyboard = false; this.imeProxyFocused = false; this.imeProxyDismissRequested = true;
-            try { this.getUIContext().getFocusController().clearFocus(); } catch (_e) {}
+            try { this.getUIContext().getFocusController().clearFocus(); } catch (e) { console.warn('clearFocus failed: ' + JSON.stringify(e)); }
           } else {
             this.preKeyboardPanOffsetY = this.panOffsetY; this.showKeyboard = true; this.openSystemKeyboardFromCustomPanel();
           }
@@ -1295,7 +1305,7 @@ struct RemoteControl {
           try {
             const focusController = this.getUIContext().getFocusController();
             focusController.clearFocus();
-          } catch (_e) {}
+          } catch (e) { console.warn('clearFocus failed: ' + JSON.stringify(e)); }
         } else {
           this.preKeyboardPanOffsetY = this.panOffsetY;
           this.showKeyboard = true;
@@ -1642,7 +1652,7 @@ struct RemoteControl {
 
   @Builder
   private buildImeProxyInput() {
-    TextInput({ text: this.imeProxyText })
+    TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })
       .id('remote-ime-proxy-input')
       .width(2)
       .height(2)
@@ -1655,17 +1665,20 @@ struct RemoteControl {
         this.handleImeProxyTextChange(value);
       })
       .onSubmit((_enterKey: EnterKeyType) => {
-        this.handleImeProxyTextChange(this.imeProxyText);
         this.sendEnterKey();
       })
       .onFocus(() => {
         this.imeProxyFocused = true;
         this.remoteInputActive = true;
+        if (this.imeProxyText.length === 0) {
+          this.imeProxyText = ' ';
+          this.imeProxyPrev = ' ';
+        }
       })
       .onBlur(() => {
         this.imeProxyFocused = false;
         this.remoteInputActive = false;
-        setTimeout(() => {
+        this.imeBlurTimer = setTimeout(() => {
           if (!this.imeProxyFocused) {
             this.showKeyboard = false;
           }
@@ -1685,6 +1698,7 @@ struct RemoteControl {
           this.buildStickyKeyBtn('Fn', 48, this.stickyFn);
           this.buildKeyBtn('Esc', 52);
           this.buildKeyBtn('Tab', 52);
+          this.buildKeyBtn('⌫', 52);
           this.buildKeyBtn('Home', 60);
           this.buildKeyBtn('End', 52);
           this.buildKeyBtn('Ins', 52);
@@ -1954,7 +1968,8 @@ struct RemoteControl {
                 .padding({ left: 16, right: 16 })
                 .onChange((value: number) => {
                   this.customBitrate = value;
-                  setTimeout(() => { this.applySessionOption('custom-image-quality', String(this.customBitrate)); }, 100);
+                  if (this.bitrateDebounceTimer !== -1) { clearTimeout(this.bitrateDebounceTimer); }
+                  this.bitrateDebounceTimer = setTimeout(() => { this.applySessionOption('custom-image-quality', String(this.customBitrate)); }, 100);
                 })
               Row() {
                 Checkbox()
@@ -1993,7 +2008,8 @@ struct RemoteControl {
                 .padding({ left: 16, right: 16 })
                 .onChange((value: number) => {
                   this.customFps = value;
-                  setTimeout(() => { this.applySessionOption('custom-fps', String(this.customFps)); }, 100);
+                  if (this.fpsDebounceTimer !== -1) { clearTimeout(this.fpsDebounceTimer); }
+                  this.fpsDebounceTimer = setTimeout(() => { this.applySessionOption('custom-fps', String(this.customFps)); }, 100);
                 })
             }
             .width('100%')
@@ -3275,20 +3291,49 @@ struct RemoteControl {
   }
 
   private handleImeProxyTextChange(value: string): void {
-    const previous = this.imeProxyText;
+    const previous = this.imeProxyPrev;
+    const SENTINEL = ' ';
+    console.error(`[IME] onChange: prev="${previous}" value="${value}" cur="${this.imeProxyText}"`);
     if (value === previous) {
       return;
     }
-    const commonPrefixLength = this.resolveCommonPrefixLength(previous, value);
-    const removedCount = previous.length - commonPrefixLength;
-    const insertedText = value.slice(commonPrefixLength);
-    if (removedCount > 0) {
-      this.sendBackspacePayload(removedCount);
+    if (value.length === 0) {
+      const realPrev = previous.startsWith(SENTINEL) ? previous.slice(1) : previous;
+      const backspaceCount = Math.max(realPrev.length, 1);
+      console.error(`[IME] sentinel deleted, sending ${backspaceCount} Backspace (realPrev="${realPrev}")`);
+      this.sendBackspacePayload(backspaceCount);
+      this.imeProxyPrev = SENTINEL;
+      this.imeProxyText = SENTINEL;
+      try { this.imeProxyController.caretPosition(1); } catch (e) { console.warn('caretPosition failed: ' + JSON.stringify(e)); }
+      this.maybeRequestVideoRefresh(true);
+      return;
     }
-    if (insertedText.length > 0) {
-      this.sendImeCommittedText(insertedText);
+    const realPrev = previous.startsWith(SENTINEL) ? previous.slice(1) : previous;
+    const realVal = value.startsWith(SENTINEL) ? value.slice(1) : value;
+    console.error(`[IME] realPrev="${realPrev}" realVal="${realVal}"`);
+    if (realVal === realPrev) {
+      this.imeProxyPrev = value;
+      return;
     }
-    this.imeProxyText = value;
+    const commonPrefixLength = this.resolveCommonPrefixLength(realPrev, realVal);
+    const removedCount = realPrev.length - commonPrefixLength;
+    const insertedText = realVal.slice(commonPrefixLength);
+    const isAutoCompletionDeletion = realVal.length < realPrev.length
+      && insertedText.length > 0
+      && realPrev.endsWith(insertedText);
+    console.error(`[IME] diff: removed=${removedCount} inserted="${insertedText}" autoComp=${isAutoCompletionDeletion}`);
+    if (isAutoCompletionDeletion) {
+      const actualRemoved = realPrev.length - realVal.length;
+      this.sendBackspacePayload(actualRemoved);
+    } else {
+      if (removedCount > 0) {
+        this.sendBackspacePayload(removedCount);
+      }
+      if (insertedText.length > 0) {
+        this.sendImeCommittedText(insertedText);
+      }
+    }
+    this.imeProxyPrev = value;
     this.maybeRequestVideoRefresh(true);
   }
 
@@ -3305,8 +3350,15 @@ struct RemoteControl {
   private sendTextPayload(text: string): void {
     for (let i = 0; i < text.length; i += 1) {
       const code = text.charCodeAt(i);
-      NativeRustDeskBridge.sendKeyboardInput(code, true, 0);
-      NativeRustDeskBridge.sendKeyboardInput(code, false, 0);
+      let vk = code;
+      let modifiers = 0;
+      if (code >= 97 && code <= 122) {
+        vk = code - 32;
+      } else if (code >= 65 && code <= 90) {
+        modifiers = 4;
+      }
+      NativeRustDeskBridge.sendKeyboardInput(vk, true, modifiers);
+      NativeRustDeskBridge.sendKeyboardInput(vk, false, modifiers);
     }
   }
 
@@ -3399,6 +3451,7 @@ struct RemoteControl {
     const specialKeys: Record<string, number> = {
       'Enter': 13,
       'Backspace': 8,
+      '⌫': 8,
       'Tab': 9,
       'Esc': 27,
       'Del': 46,
@@ -3608,6 +3661,9 @@ struct RemoteControl {
           return;
         }
         void this.showToast(this.lt('Local clipboard is empty'));
+      }).catch((error: Object) => {
+        console.warn('RemoteControl sendClipboardToRemote promise rejected: ' + JSON.stringify(error));
+        void this.showToast(this.lt('Failed to read clipboard'));
       });
     } catch (error) {
       console.warn('RemoteControl sendClipboardToRemote failed: ' + JSON.stringify(error));
@@ -3714,7 +3770,8 @@ struct RemoteControl {
           const pcmBuffer = base64ToArrayBuffer(frame.dataBase64);
           void this.playRemoteAudioFrame(pcmBuffer);
         }
-      } catch (_e) {
+      } catch (e) {
+        console.warn('audio frame processing failed: ' + JSON.stringify(e));
       }
     }, 20);
   }
@@ -3763,11 +3820,13 @@ struct RemoteControl {
           if (state === audio.AudioState.STATE_RUNNING || state === audio.AudioState.STATE_PAUSED) {
             await this.audioRenderer.stop();
           }
-        } catch (_e) {
+        } catch (e) {
+          console.warn('audioRenderer.stop failed: ' + JSON.stringify(e));
         }
         try {
           await this.audioRenderer.release();
-        } catch (_e) {
+        } catch (e) {
+          console.warn('audioRenderer.release failed: ' + JSON.stringify(e));
         }
         this.audioRenderer = null;
       }
@@ -3903,7 +3962,7 @@ struct RemoteControl {
     if (coreState.sessionStage === 'error') {
       const detail = coreState.lastError.length > 0 ? coreState.lastError : coreState.detailMessage;
       const isPasswordPrompt = this.shouldPromptForPasswordText(detail);
-    if (isPasswordPrompt && !this.hasReceivedFrame && !this.isConnected && !this.showReconnectDialog && !this.isRetryingConnection) {
+      if (isPasswordPrompt && !this.hasReceivedFrame && !this.isConnected && !this.showReconnectDialog && !this.isRetryingConnection) {
         this.isConnected = false;
         this.isSubmittingPassword = false;
         if (detail.length > 0) {
@@ -3911,8 +3970,7 @@ struct RemoteControl {
         }
         return;
       }
-      const isPasswordPromptOnly = false;
-      if (!this.sessionCloseRequestedLocally && !isPasswordPromptOnly && this.shouldShowReconnectPromptNow(detail)) {
+      if (!this.sessionCloseRequestedLocally && this.shouldShowReconnectPromptNow(detail)) {
         console.warn(`[RemoteControl] applyBridgeState terminal error -> reconnect prompt: ${detail.substring(0, 100)}`);
         this.showReconnectDialogFromState(
           coreState.statusSummary.length > 0 ? coreState.statusSummary : this.lt('Connection Error'),
@@ -4085,11 +4143,10 @@ struct RemoteControl {
     if (staleMs < 300) {
       return null;
     }
-    const latestFrameCandidate = NativeRustDeskBridge.pullLatestVideoFrame(0);
-    if (latestFrameCandidate === null || latestFrameCandidate === undefined) {
+    const latestFrame = NativeRustDeskBridge.pullLatestVideoFrame(0);
+    if (latestFrame === null) {
       return null;
     }
-    const latestFrame: NativeVideoFrame = latestFrameCandidate;
     if (latestFrame.frameId > this.lastFrameId) {
       console.warn(
         `[RemoteControl] pullLatestVideoFrame fallback frameId=0 recovered frameId=${latestFrame.frameId} prev=${this.lastFrameId} staleMs=${staleMs}`
@@ -4410,16 +4467,12 @@ struct RemoteControl {
 
   private showReconnectDialogFromState(title: string, detail: string): void {
     this.prepareReconnectPromptSurface();
-    this.isConnected = false;
-    this.isSubmittingPassword = false;
     this.showReconnectDialog = true;
     this.reconnectDialogTitle = title.trim().length > 0 ? title : this.lt('Connection Error');
     this.reconnectDialogText = detail.trim().length > 0 ? detail : this.lt('Session ended');
     this.reconnectDialogCanRelay = true;
     this.statusText = this.reconnectDialogTitle;
     this.videoStatus = this.reconnectDialogText;
-    this.remoteCursorVisible = false;
-    this.stopFrameRefresh();
     this.startBridgeRefresh();
   }
 
@@ -4650,6 +4703,16 @@ struct RemoteControl {
       width: payload.width,
       height: payload.height
     });
+    if (this.remoteCursorAssets.size > 20) {
+      const oldestKey = this.remoteCursorAssets.keys().next().value;
+      if (oldestKey !== undefined) {
+        const oldAsset = this.remoteCursorAssets.get(oldestKey);
+        if (oldAsset !== undefined) {
+          try { oldAsset.pixelMap.release(); } catch (e) { console.warn('release old cursor pixelMap failed: ' + JSON.stringify(e)); }
+        }
+        this.remoteCursorAssets.delete(oldestKey);
+      }
+    }
     if (payload.id === this.remoteCursorId) {
       this.applyActiveCursorAsset();
     }
@@ -5481,7 +5544,8 @@ struct RemoteControl {
         const state = this.officialBridge.getCoreState();
         this.applyBridgeState(state);
         this.startFrameRefresh();
-      }).catch(() => {
+      }).catch((error: Object) => {
+        console.warn('reconnectWithPassword connectToPeer failed: ' + JSON.stringify(error));
         this.isSubmittingPassword = false;
         const state = this.officialBridge.getCoreState();
         this.applyBridgeState(state);

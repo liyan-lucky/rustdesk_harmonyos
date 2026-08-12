@@ -167,7 +167,6 @@ export class OfficialRustDeskBridge {
     displayPeerId?: string
   ): Promise<void> {
     Logger.info('Bridge', `connectToPeer peerId=${peerId} displayPeerId=${displayPeerId ?? ''} coreReady=${this.state.coreReady}`);
-    console.error(`[Bridge] connectToPeer CALLED: peerId=${peerId} displayPeerId=${displayPeerId ?? ''} coreReady=${this.state.coreReady}`);
     this.closeRequestedByUser = false;
     this.lastTerminalEventSignature = '';
     const requestedPeerId = peerId.trim();
@@ -179,7 +178,6 @@ export class OfficialRustDeskBridge {
     this.sessionTransportPeerId = transportPeerId;
     this.sessionDisplayPeerId = explicitDisplayPeerId.length > 0 ? explicitDisplayPeerId : requestedPeerId;
     const serverConfig = AppDataService.resolveServerConfig(settings);
-    console.error(`[Bridge] serverConfig: idServer=${serverConfig.idServer} relay=${serverConfig.relayServer} api=${serverConfig.apiServer} keyLen=${serverConfig.key.length} keyEmpty=${serverConfig.key.length === 0}`);
     const coreState = await this.refresh(settings);
     if (!coreState.coreReady && !NativeRustDeskBridge.hasNativeModule()) {
       const missingCoreState = OfficialRustDeskBridge.copyCoreState(coreState);
@@ -199,8 +197,8 @@ export class OfficialRustDeskBridge {
     connectingState.sessionStage = 'connecting';
     connectingState.activePeerId = this.sessionDisplayPeerId;
     connectingState.lastError = '';
-      connectingState.statusSummary = `Connecting ${peerId}`;
-      connectingState.detailMessage = '';
+    connectingState.statusSummary = `Connecting ${peerId}`;
+    connectingState.detailMessage = '';
     this.state = connectingState;
     this.persistState();
     let invoked = NativeRustDeskBridge.connectToPeer(
@@ -711,7 +709,7 @@ export class OfficialRustDeskBridge {
           };
           console.info('[Bridge] query-online result onlines:', result.onlines.length, 'offlines:', result.offlines.length);
           this.onlineStatusListeners.forEach((listener: OnlineStatusListener) => {
-            try { listener(result); } catch (_e) {}
+            try { listener(result); } catch (e) { console.error('[Bridge] onlineStatus listener failed: ' + JSON.stringify(e)); }
           });
         } else {
           console.info('[Bridge] query-online parsed but no onlines/offlines:', JSON.stringify(parsed));

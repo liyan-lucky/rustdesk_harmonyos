@@ -326,7 +326,7 @@ export class LanDiscoveryService {
           this.ignoredPeerIds.add(normalizedId);
         }
       });
-    } catch (_error) {}
+    } catch (e) { console.warn('LanDiscoveryService failed: ' + JSON.stringify(e)); }
   }
 
   private persistIgnoredPeerIds(): void {

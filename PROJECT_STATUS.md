@@ -171,6 +171,49 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - 关于页面「详细连接日志」开关，持久化到 `verbose-connection-log`
 - 连接流程、状态转换、会话生命周期详细日志
 
+## 6.5 远程键盘输入
+
+### 6.5.1 大写字母修复
+
+- **Core 修复**（`13_librustdesk_core` commit `b1e0b06`，core-019）：`session_input_key` 中对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`（如 65='A'），绕过 KEY_MAP 的 `"VK_A" → Key::Chr('a')` 小写映射
+- **ArkTS 修复**（`RemoteControl.ets:sendTextPayload`）：
+  - 小写字母 a-z（charCode 97-122）→ VK 码 65-90（`vk = code - 32`），modifier=0
+  - 大写字母 A-Z（charCode 65-90）→ VK 码不变，modifier=4（Shift）
+- **Core modifier 定义**：bit0=Ctrl(1), bit1=Alt(2), bit2=Shift(4), bit3=Command(8)
+
+### 6.5.2 自定义键盘面板
+
+- `buildKeyboardPanel`：包含字母、数字、符号、功能键
+- Backspace 按钮：`⌫` 图标，`specialKeys` 映射 `'⌫': 8`（VK_BACKSPACE）
+
+### 6.5.3 IME 代理输入（sentinel 方案）
+
+- **问题**：断开重连后 `imeProxyText` 被重置为空（新页面实例），远端文本框仍有旧内容。Backspace 时 IME 不触发 `onChange`（TextInput 已空），无法发送删除到远端
+- **Sentinel 方案**：
+  - `@State imeProxyText: string = ' '` — 初始 sentinel（前导空格占位符）
+  - `private imeProxyPrev: string = ' '` — 独立前值跟踪（因 `$$` 双向绑定会自动更新 `imeProxyText`）
+  - `private imeProxyController: TextInputController = new TextInputController()` — 控制器
+  - `TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })` — 双向绑定
+  - `handleImeProxyTextChange`：sentinel 删除时发 `max(realPrev.length, 1)` 个 Backspace，恢复 sentinel + `caretPosition(1)`
+  - `onFocus` 中恢复 sentinel；`aboutToAppear` 中重置 `imeProxyText`/`imeProxyPrev`
+- **IME 自动补全问题**（部分修复，已搁置）：`isAutoCompletionDeletion` 检测（文本变短 + 插入文本是原文本后缀）时只发长度差个 Backspace。剩余：输入冒号也自动补右括号，自动补的删不掉
+
+## 6.6 共享设置菜单
+
+- 共享页面 logo 右侧三点菜单按钮
+- 弹出共享设置弹窗：
+  - 访问方式（永久/一次性）
+  - 密码设置
+  - 密码类型（固定/随机）
+- i18n 翻译键已添加到 `I18nService.ets`
+
+## 6.7 构建版本号自增
+
+- `rebuild.ps1` 设置 `$env:RUSTDESK_HARMONY_VERSION_BUMP = "incremental"`
+- `scripts/run_hvigor_with_sdk_patch.js` 实现版本自增逻辑
+- 每次构建 versionCode 自增，构建后显示当前版本号
+- 当前版本：0.33.33 (1000209)
+
 ## 7. I18n 翻译
 
 所有新增字符串的中英文翻译：
@@ -200,6 +243,11 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - **ArkTS @Builder 内 Image 对 SVG 的 width/height 动态更新不可靠**：改用 `scale` 变换（固定基础尺寸24 + scale）
 - **TextInput 格式化导致光标错位**：三层保障修复（更新前设置 caretPosition + 多次重试 + onTextSelectionChange 检测）
 - **聊天工具栏浅色主题配色错误**：`theme_ERROR_TEXT` 误用为背景 → 改用 `theme_ERROR_BG`+`theme_ERROR_TEXT`
+- **Core KEY_MAP 字母键映射为小写**：`"VK_A" → Key::Chr('a')` 导致大写字母加 Shift 仍显示小写，需在 `session_input_key` 中对 Shift+字母键直接发送 `chr=key_code`
+- **HarmonyOS 软键盘不触发 `onKeyEvent`**：只触发 `onChange` 文本变化回调，`onKeyEvent` 仅捕获物理键盘事件
+- **`$$` 双向绑定下不能用 `imeProxyText` 做前值比较**：`$$` 会自动更新 `imeProxyText`，需用独立的 `imeProxyPrev` 变量跟踪前值
+- **TextInputController 必须在构造函数中传入**：不能用 `.controller()` 属性方法（编译错误）
+- **Sentinel 恢复竞态条件**：设置 `imeProxyText = SENTINEL` 可能同步触发 `onChange`，必须先设置 `imeProxyPrev = SENTINEL` 再设置 `imeProxyText`
 
 ## 9. 构建和测试
 
@@ -278,3 +326,9 @@ C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe
 26. 缩放/编码菜单弃用 Select 组件，自定义浮层弹出列表
 27. 聊天工具栏浅色主题配色修复
 28. ID 输入框光标错位修复（三层保障）
+29. 远程键盘大写字母输入修复（Core session_input_key + ArkTS sendTextPayload）
+30. IME 代理输入 sentinel 方案（断开重连后 Backspace 可删除远端旧内容）
+31. 自定义键盘面板 Backspace 按钮（⌫ → VK_BACKSPACE 8）
+32. 共享设置菜单（三点菜单 + 设置弹窗）
+33. 构建版本号自增（RUSTDESK_HARMONY_VERSION_BUMP=incremental）
+34. IME 自动补全符号删除检测（部分修复，已搁置）

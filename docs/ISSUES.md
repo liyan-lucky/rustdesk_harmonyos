@@ -2,6 +2,57 @@
 
 > 避免问题反复出现，修改前必查此文档
 
+## 2026-08-12 远程键盘输入修复 + IME sentinel 方案
+
+### 39. IME 自动补全符号删除问题（部分修复，已搁置）
+
+**现象**：IME 输入左括号 `（` 时自动补全 `）`，光标在中间。按 Backspace 时 IME 删除 `（`（左括号）而非 `）`，导致 diff 计算把 `（）→）` 算成"删2个+插入）"，远端也变成 `）`。用户期望删除 `）`（远端末尾字符）。后续用户反馈"输入冒号也自动补右括号，自动补的删不掉"。
+
+**根因**：HarmonyOS IME 的自动补全行为与预期不一致。Backspace 删除的是 IME 认为的"配对左括号"，而非光标右侧的右括号。diff 算法无法区分"用户想删左括号"和"IME 自动补全后用户想删右括号"。
+
+**解决（部分）**：检测 `isAutoCompletionDeletion`（文本变短 + 插入文本是原文本后缀）时只发长度差个 Backspace。但无法覆盖所有 IME 自动补全场景（如冒号触发右括号补全）。
+
+**状态**：已搁置。需进一步研究 HarmonyOS IME 自动补全的行为模型，可能需要跟踪光标位置和 IME 补全状态。
+
+**教训**：IME 自动补全行为复杂，diff 算法难以正确推断用户意图。可能需要更精细的 IME 状态跟踪而非纯文本 diff。
+
+### 38. HarmonyOS 软键盘不触发 onKeyEvent
+
+**现象**：HarmonyOS 软键盘输入时只触发 `onChange` 文本变化回调，不触发 `onKeyEvent`。
+
+**根因**：`onKeyEvent` 仅捕获物理键盘事件，软键盘（IME）输入走文本输入路径，不产生按键事件。
+
+**解决**：IME 代理输入通过 `onChange` 的文本 diff 计算用户输入内容，不依赖 `onKeyEvent`。物理键盘走 `onKeyEvent` 路径。
+
+**教训**：HarmonyOS 软键盘和物理键盘是两条独立路径。软键盘用 `onChange` + diff，物理键盘用 `onKeyEvent`。
+
+### 37. 断开重连后无法删除之前输入的内容
+
+**现象**：断开重连后，远端文本框仍有之前输入的旧内容，但用户按 Backspace 无法删除。
+
+**根因**：断开重连后 `imeProxyText` 被重置为空（新页面实例），但远端文本框仍有旧内容。用户按 Backspace 时 IME 不触发 `onChange`（TextInput 已空），无法发送删除到远端。
+
+**解决**：Sentinel 方案 — 在 TextInput 中保留前导空格 `' '` 作为占位符，使 Backspace 永远有内容可删：
+1. `@State imeProxyText: string = ' '` — 初始 sentinel
+2. `private imeProxyPrev: string = ' '` — 独立前值跟踪（因 `$$` 双向绑定会自动更新 `imeProxyText`）
+3. `TextInput({ text: $$this.imeProxyText, controller: this.imeProxyController })` — 双向绑定
+4. `handleImeProxyTextChange`：sentinel 删除时发 `max(realPrev.length, 1)` 个 Backspace，恢复 sentinel + `caretPosition(1)`
+5. `onFocus` 中恢复 sentinel；`aboutToAppear` 中重置 `imeProxyText`/`imeProxyPrev`
+
+**教训**：IME 代理输入必须保证 TextInput 永远有内容可删，否则 Backspace 无法触发 `onChange`。Sentinel（前导空格）是简单有效的方案。`$$` 双向绑定下需用独立变量 `imeProxyPrev` 跟踪前值。
+
+### 36. Core KEY_MAP 字母键映射为小写导致大写字母显示为小写
+
+**现象**：输入大写字母 `A`（Shift+a），远端显示小写 `a`。
+
+**根因**：Core `KEY_MAP` 中 `"VK_A" → Key::Chr('a')`（小写）。`key_code_to_official_key_name(65)` 返回 `"VK_A"`（多字符），走 KEY_MAP 路径得到 `Chr('a')` + Shift modifier。远端收到 `chr='a'` + Shift 但显示小写（Shift modifier 不影响 chr 字符）。
+
+**解决**：
+1. **Core 修复**（`13_librustdesk_core` commit `b1e0b06`，core-019）：`session_input_key` 中对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`（如 65='A'），绕过 KEY_MAP
+2. **ArkTS 修复**（`RemoteControl.ets:sendTextPayload`）：小写字母 a-z（charCode 97-122）转为 VK 码 65-90（`vk = code - 32`），modifier=0；大写字母 A-Z（charCode 65-90）VK 码不变，modifier=4（Shift）
+
+**教训**：Core KEY_MAP 对字母键的映射用小写 `Chr('a')`，对 Shift+字母键会产生错误的 chr 值。需要在 `session_input_key` 中对 Shift+字母键特殊处理，直接发送大写字母的 Unicode 码点。ArkTS 端也需正确区分大小写字母的 VK 码和 modifier。
+
 ## 2026-08-11 secure_tcp 超时回退 + Logger 标签修复 + 构建路径修复
 
 ### 35. secure_tcp 超时导致自建服务器连接失败

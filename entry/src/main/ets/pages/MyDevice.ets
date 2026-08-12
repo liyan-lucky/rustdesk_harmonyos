@@ -15,6 +15,7 @@ struct MyDevice {
   private clipboardService: ClipboardService = ClipboardService.getInstance();
   private officialBridge: OfficialRustDeskBridge = OfficialRustDeskBridge.getInstance();
   private refreshTimer: number = -1;
+  private reloadStateTimer: number = -1;
 
   @State deviceProfile: LocalDeviceProfile = {
     id: '',
@@ -36,6 +37,7 @@ struct MyDevice {
 
   aboutToDisappear() {
     this.stopRefreshLoop();
+    if (this.reloadStateTimer !== -1) { clearTimeout(this.reloadStateTimer); this.reloadStateTimer = -1; }
   }
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
@@ -343,14 +345,14 @@ struct MyDevice {
     const baseProfile = this.appData.setServiceEnabled(enabled);
     this.deviceProfile = this.officialBridge.buildLocalDeviceProfile(baseProfile, this.officialCoreState);
     this.password = this.appData.getPassword();
-    setTimeout(() => {
+    this.reloadStateTimer = setTimeout(() => {
       void this.reloadState();
     }, 300);
   }
 
   private generatePassword(): void {
     this.password = this.appData.generatePassword();
-    setTimeout(() => {
+    this.reloadStateTimer = setTimeout(() => {
       void this.reloadState();
     }, 250);
   }

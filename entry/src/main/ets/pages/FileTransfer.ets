@@ -881,21 +881,28 @@ struct FileTransfer {
       return;
     }
     const direction = this.clipboardSource === 'local' ? 'upload' : 'download';
-    for (const entry of this.clipboardEntries) {
-      const fileInfo: FileInfo = {
-        path: entry.path,
-        name: entry.name,
-        size: this.parseFileSize(entry.size),
-        isDirectory: entry.type === 'folder',
-        modifiedTime: entry.modifiedTime
-      };
-      const task = this.fileTransferService.createTransferTask(fileInfo, direction);
-      this.refreshTransferTasks();
-      await this.fileTransferService.startTransfer(task.id, this.getTransferTargetPath(direction));
+    try {
+      for (const entry of this.clipboardEntries) {
+        try {
+          const fileInfo: FileInfo = {
+            path: entry.path,
+            name: entry.name,
+            size: this.parseFileSize(entry.size),
+            isDirectory: entry.type === 'folder',
+            modifiedTime: entry.modifiedTime
+          };
+          const task = this.fileTransferService.createTransferTask(fileInfo, direction);
+          this.refreshTransferTasks();
+          await this.fileTransferService.startTransfer(task.id, this.getTransferTargetPath(direction));
+        } catch (error) {
+          console.error('transfer failed: ' + JSON.stringify(error));
+        }
+      }
+    } finally {
+      this.pasteMode = false;
+      this.clipboardEntries = [];
+      this.exitMultiSelect();
     }
-    this.pasteMode = false;
-    this.clipboardEntries = [];
-    this.exitMultiSelect();
   }
 
   private async deleteSelected(): Promise<void> {
@@ -932,16 +939,20 @@ struct FileTransfer {
   }
 
   private async refreshCurrentPaneFiles(): Promise<void> {
+    if (this.fileListRefreshTimer !== -1) {
+      clearInterval(this.fileListRefreshTimer);
+    }
     this.isFileListRefreshing = true;
     this.fileListRefreshAngle = 0;
-    this.fileListRefreshTimer = setInterval(() => {
+    const currentTimer = setInterval(() => {
       this.fileListRefreshAngle = (this.fileListRefreshAngle + 18) % 360;
     }, 40);
+    this.fileListRefreshTimer = currentTimer;
     try {
       await this.loadCurrentPaneFiles();
     } finally {
-      if (this.fileListRefreshTimer !== -1) {
-        clearInterval(this.fileListRefreshTimer);
+      if (this.fileListRefreshTimer === currentTimer) {
+        clearInterval(currentTimer);
         this.fileListRefreshTimer = -1;
       }
       this.fileListRefreshAngle = 0;

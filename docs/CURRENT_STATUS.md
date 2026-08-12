@@ -1,6 +1,6 @@
 # 当前仓库状态
 
-更新时间：2026-08-11
+更新时间：2026-08-12
 
 ## 定位
 
@@ -14,8 +14,8 @@
 - App 包名：`com.open.rundesk`。
 - UI：ArkTS / ArkUI Stage 模型。
 - Native：C++ NAPI → Rust C ABI。
-- Core：从 `liyan-lucky/librustdesk_core` Release 下载并链接 `librustdesk_core.a`。
-- 当前文档记录的最新维护构建：`0.33.16` / `versionCode 1000192`，BuildInfo `2026-06-25 07:22`。
+- Core：从 `liyan-lucky/librustdesk_core` Release 下载并链接 `librustdesk_core.a`。当前 core-019（commit `b1e0b06`，包含大写字母键码修复）。
+- 当前文档记录的最新维护构建：`0.33.33` / `versionCode 1000209`，BuildInfo `2026-08-12`，core-019 SHA256 `ae629ed2045851469952daf881d86e963c5344c787745aa5ddb69387ebba41b5`。
 
 ## 当前能力边界
 
@@ -31,6 +31,10 @@
 - 连接日志系统：统一 Logger 工具类，关于页面详细日志开关。
 - ID 输入框：格式化光标位置修正（deviceIdExpectedCaret + onTextSelectionChange 检测），快速连续输入不再错位。
 - 聊天工具栏：浅色/暗色主题配色均正确（清空按钮 theme_ERROR_BG+theme_ERROR_TEXT，图标 theme_TEXT_SECONDARY）。
+- 远程键盘输入：大写字母正确发送（Core `session_input_key` 对 Shift+字母键直接发送 chr=key_code，绕过 KEY_MAP 小写映射；ArkTS `sendTextPayload` 小写字母转 VK 码 65-90、大写字母加 Shift modifier=4）；自定义键盘面板含 Backspace `⌫` 按钮。
+- IME 代理输入：sentinel 方案保证断开重连后 Backspace 可删除远端旧内容（`$$` 双向绑定 + `imeProxyPrev` 独立前值跟踪 + `TextInputController` 恢复 sentinel + `caretPosition(1)` 定位光标）；IME 自动补全符号删除问题部分修复（`isAutoCompletionDeletion` 检测），剩余场景已搁置。
+- 共享设置菜单：共享页面 logo 右侧三点菜单按钮，弹出共享设置弹窗（访问方式、密码设置、密码类型）。
+- 构建版本自增：`rebuild.ps1` 设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`，每次构建 versionCode 自增。
 - 被控端限制：华为手机作为被控端的远程操控/输入注入按平台不支持处理，当前搁置，不作为发布阻塞项。
 - 文件传输、五编码和全部访问端会话菜单仍需端到端回归。远程光标显示功能已基本完整实现（App UI + Core 回调 + Bridge 事件消费 + PixelMap 渲染），剩余仅为健壮性优化（事件队列容量、载荷编码、cursor clip）。
 - 线上构建当前为 HAP-only；Release 和 workflow artifact 只上传 `.hap`，不再生成 APP、`.app.zip`、`manifest.json` 或 `SHA256SUMS.txt`。
