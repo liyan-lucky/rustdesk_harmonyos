@@ -1,5 +1,16 @@
 # 功能进度与优化方向
 
+## 2026-08-14 IME 成对符号与动态登录提供商修复
+
+- `RemoteControl.ets` 识别中英文括号、方括号、书名号等 IME 成对补全，只发送左符号并恢复 sentinel，消除本地/远端光标位置分叉，后续 Backspace 可正常删除。
+- `HttpClient.ets` 的 `/api/login-options` 解析对齐官方客户端，支持 `oidc/...` 和 `common-oidc/<JSON>`。
+- `LoginPage.ets` 移除静态“其他方式”列表；自建 API 登录项完全跟随服务器返回，空配置不显示且不回退官方；未指定 API 时保留官方默认集合兜底。
+- `Index.ets` 首页内嵌登录弹窗也已改用同一动态列表，移除 GitHub、Google、Microsoft 硬编码；实测自建 API 返回 `oidc/gitee`、`oidc/github`、`oidc/webauth`。
+- 修正版 `0.33.58 (1000234)` 已通过 IP 安装到 `192.168.8.152:36169` 并启动。
+- GitHub 登录已在手机端复现到自建 API 回调页 `ERR-2212`；授权初始化和 GitHub 登录页均正常，定位为 API 服务端回调处理问题，HarmonyOS 客户端无需改动 OAuth 请求格式。
+- HAP 构建与签名通过：`BUILD SUCCESSFUL in 1 min 52 s 210 ms`，signed HAP `35,447,322` bytes，生成时间 `2026-08-14 18:58:48`。
+- 设备验证未执行：`hdc list targets` 返回 `[Empty]`。
+
 ## 2026-08-12 代码审计优化（100轮）
 
 ### 审计范围
@@ -1098,3 +1109,10 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - ID 候选列表移出覆盖整个面板的 `.overlay`，改为 `Stack + position` 完全悬浮，覆盖下方内容但不参与排版；宽度严格限制到输入文本区，候选命中矩形不进入清除/连接命令区，按钮保持更高 zIndex。此前虚拟机输入 `128` 后清除/连接行为已验证，最新几何约束仍需最终设备回归。
 - IPv4 `10.0.2.2` 可原样输入并连接，取消/清除后连接提示和 pending 状态全部复位。
 - 本地双架构 core、HAP、签名、依赖检查均通过；连接链审计 `71/71`，100 轮全功能审计总计 `10,600 PASS / 0 FAIL / 100 SKIP`，SKIP 仅为未生成可选 APP 包。
+# 2026-08-14 OAuth API transaction isolation
+
+- Aligned HarmonyOS `/api/oidc/auth` with the official RustDesk client contract: raw core UUID and `deviceInfo`, without the non-standard `remember_me` field.
+- Bound every OAuth authorization and polling cycle to the API server that created it. Stale async responses are rejected with a transaction generation check.
+- Changing the configured API server now cancels any unfinished OAuth transaction before saving the new server.
+- Build passed: `0.33.60 (1000236)`, signed HAP generated successfully.
+- Device install is pending because `192.168.8.152:36169` was offline (`E001005`). GitHub `ERR-2212` needs one final on-device callback test after reconnecting.

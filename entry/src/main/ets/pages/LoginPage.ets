@@ -1,5 +1,4 @@
 import { AccountService, OAuthProvider, accountService, AccountState } from '../services/AccountService';
-import { LoginOption } from '../services/HttpClient';
 import { AppState } from '../services/AppState';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
@@ -93,16 +92,7 @@ struct LoginPage {
   }
 
   private async loadProviders(): Promise<void> {
-    const options: LoginOption[] = await this.accountService.getLoginOptions();
-    const providers: OAuthProvider[] = [];
-    for (const opt of options) {
-      const providerId = opt.op.startsWith('oidc/') ? opt.op.substring(5) : opt.op;
-      const info = this.accountService.getProviderInfo(providerId);
-      if (info) {
-        providers.push(info);
-      }
-    }
-    this.availableProviders = providers.length > 0 ? providers : this.accountService.getAllProviders().slice(0, 5);
+    this.availableProviders = await this.accountService.getAvailableProviders();
   }
 
   private filterProviders(providers: OAuthProvider[]): OAuthProvider[] {
@@ -305,15 +295,6 @@ struct LoginPage {
         }
       }
 
-      Column() {
-        Text(this.lt('Other Methods')).fontSize(12).fontColor(this.theme_TEXT_TERTIARY).margin({ bottom: 8 })
-        Row({ space: 12 }) {
-          ForEach(this.filterProviders(this.accountService.getAllProviders().slice(5)), (provider: OAuthProvider) => {
-            Image($rawfile(provider.icon)).width(28).height(28)
-              .onClick(() => void this.handleOAuthLogin(provider.id))
-          }, (provider: OAuthProvider) => provider.id)
-        }
-      }.width('100%').justifyContent(FlexAlign.Center).margin({ top: 16 })
     }
     .width('100%')
     .padding({ left: 12, right: 12 })

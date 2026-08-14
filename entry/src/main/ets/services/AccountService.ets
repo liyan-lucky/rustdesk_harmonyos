@@ -36,11 +36,15 @@ function initOAuthProviders(): Map<string, OAuthProvider> {
   map.set('google', createOAuthProvider('google', 'Google', 'auth-google.svg', '#4285F4'));
   map.set('apple', createOAuthProvider('apple', 'Apple', 'auth-apple.svg', '#000000'));
   map.set('gitlab', createOAuthProvider('gitlab', 'GitLab', 'auth-gitlab.svg', '#FC6D26'));
+  map.set('gitee', createOAuthProvider('gitee', 'Gitee', 'auth-gitee.svg', '#C71D23'));
   map.set('facebook', createOAuthProvider('facebook', 'Facebook', 'auth-facebook.svg', '#1877F2'));
   map.set('microsoft', createOAuthProvider('microsoft', 'Microsoft', 'auth-microsoft.svg', '#00A4EF'));
   map.set('azure', createOAuthProvider('azure', 'Azure', 'auth-azure.svg', '#0078D4'));
+  map.set('qq', createOAuthProvider('qq', 'QQ', 'auth-qq.svg', '#12B7F5'));
+  map.set('wechat', createOAuthProvider('wechat', 'WeChat', 'auth-wechat.svg', '#07C160'));
   map.set('auth0', createOAuthProvider('auth0', 'Auth0', 'auth-auth0.svg', '#EB5424'));
   map.set('okta', createOAuthProvider('okta', 'Okta', 'auth-okta.svg', '#007DC1'));
+  map.set('webauth', createOAuthProvider('webauth', 'WebAuth', 'auth-webauth.svg', '#4A90D9'));
   return map;
 }
 
@@ -71,8 +75,13 @@ export class AccountService {
   private oauthUrl: string = '';
   private pollTimer: number = -1;
   private pollCount: number = 0;
+  private oauthApiServer: string = '';
+  private oauthGeneration: number = 0;
   private readonly MAX_POLL: number = 180;
   private readonly POLL_INTERVAL: number = 500;
+  private serviceSyncTimer: number = -1;
+  private serviceSyncBusy: boolean = false;
+  private readonly SERVICE_SYNC_INTERVAL: number = 30000;
 
   private constructor() {
     this.loadSavedToken();
@@ -90,7 +99,9 @@ export class AccountService {
   }
 
   syncApiServerFromSettings(): void {
-    this.httpClient.setApiServer(this.appData.getEffectiveServerConfig().apiServer);
+    const effectiveApi = this.appData.getEffectiveServerConfig().apiServer;
+    console.info(`[AccountService] syncApiServerFromSettings: effective apiServer = "${effectiveApi}"`);
+    this.httpClient.setApiServer(effectiveApi);
   }
 
   getHttpClient(): HttpClient {
@@ -139,6 +150,7 @@ export class AccountService {
         accessToken: token,
         provider: provider
       });
+      void this.startServiceSync();
     }
   }
 
@@ -148,10 +160,33 @@ export class AccountService {
     if (result.success && result.data?.oauth) {
       return result.data.oauth;
     }
-    const defaultOption = new LoginOption();
-    defaultOption.op = 'github';
-    defaultOption.name = 'GitHub';
-    return [defaultOption];
+    return [];
+  }
+
+  async getAvailableProviders(): Promise<OAuthProvider[]> {
+    const options = await this.getLoginOptions();
+    const providers: OAuthProvider[] = [];
+    for (const option of options) {
+      const providerId = option.op.startsWith('oidc/') ? option.op.substring(5) : option.op;
+      if (providerId.length === 0) {
+        continue;
+      }
+      const knownProvider = this.getProviderInfo(providerId);
+      if (knownProvider) {
+        providers.push(knownProvider);
+      } else {
+        providers.push(createOAuthProvider(
+          providerId,
+          option.name && option.name.length > 0 ? option.name : providerId,
+          'auth-default.svg',
+          '#666666'
+        ));
+      }
+    }
+    if (providers.length > 0) {
+      return providers;
+    }
+    return AppDataService.isUsingOfficialServer(this.appData.getSettings()) ? this.getOfficialProviders() : [];
   }
 
   getProviderInfo(op: string): OAuthProvider | undefined {
@@ -162,16 +197,35 @@ export class AccountService {
     return Array.from(OAUTH_PROVIDERS.values());
   }
 
+  getOfficialProviders(): OAuthProvider[] {
+    const ids: string[] = ['github', 'google', 'apple', 'gitlab', 'facebook'];
+    const providers: OAuthProvider[] = [];
+    for (const id of ids) {
+      const provider = OAUTH_PROVIDERS.get(id);
+      if (provider) {
+        providers.push(provider);
+      }
+    }
+    return providers;
+  }
+
   async loginWithOAuth(provider: string): Promise<boolean> {
+    this.resetOAuthTransaction();
     this.syncApiServerFromSettings();
+    const generation = this.oauthGeneration;
+    const apiServer = this.httpClient.getApiServer();
+    this.oauthApiServer = apiServer;
     console.info('[AccountService] loginWithOAuth called with provider:', provider);
     this.pollCount = 0;
     this.appState.setAccount({ status: 'requesting' });
 
     try {
-      const result = await this.httpClient.oidcAuth(provider, true);
+      const result = await this.httpClient.oidcAuth(provider, apiServer);
+      if (generation !== this.oauthGeneration) {
+        return false;
+      }
       if (!result.success || !result.data) {
-        this.appState.setAccount({ status: 'error', lastError: result.error ?? I18nService.getInstance().translate('Auth request failed') });
+        this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Auth request failed') });
         return false;
       }
 
@@ -185,14 +239,12 @@ export class AccountService {
       this.oauthCode = code;
       this.oauthUrl = url;
       this.appState.setAccount({ status: 'waiting', loginUrl: url });
-
       const opened = await this.openBrowser(url);
       if (!opened) {
         this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Cannot open browser') });
         return false;
       }
-
-      this.startOidcPolling();
+      this.startOidcPolling(apiServer, generation);
       return true;
     } catch (e) {
       console.error('[AccountService] loginWithOAuth error:', e);
@@ -201,12 +253,15 @@ export class AccountService {
     }
   }
 
-  private startOidcPolling(): void {
+  private startOidcPolling(apiServer: string, generation: number): void {
     if (this.pollTimer !== -1) {
       clearInterval(this.pollTimer);
     }
 
     this.pollTimer = setInterval(async () => {
+      if (generation !== this.oauthGeneration || apiServer !== this.oauthApiServer) {
+        return;
+      }
       this.pollCount++;
       if (this.pollCount >= this.MAX_POLL) {
         this.stopPolling();
@@ -215,7 +270,10 @@ export class AccountService {
       }
 
       try {
-        const result = await this.httpClient.oidcAuthQuery(this.oauthCode);
+        const result = await this.httpClient.oidcAuthQuery(this.oauthCode, apiServer);
+        if (generation !== this.oauthGeneration) {
+          return;
+        }
         if (!result.success || !result.data) {
           return;
         }
@@ -256,6 +314,7 @@ export class AccountService {
             lastError: ''
           });
           void this.fetchAddressBook();
+          void this.startServiceSync();
         }
       } catch (e) {
         console.error('[AccountService] OIDC poll error:', e);
@@ -344,6 +403,7 @@ export class AccountService {
     });
 
     void this.fetchAddressBook();
+    void this.startServiceSync();
   }
 
   async fetchAddressBook(): Promise<void> {
@@ -351,14 +411,19 @@ export class AccountService {
     const result = await this.httpClient.getAddressBook();
     if (result.success && result.data) {
       const entries: AddressBookEntry[] = [];
+      const seenIds: Set<string> = new Set<string>();
       
       if (result.data.peers) {
         for (const peer of result.data.peers) {
+          if (!peer.id || seenIds.has(peer.id)) {
+            continue;
+          }
+          seenIds.add(peer.id);
           const alias = (peer.alias ?? '').trim().length > 0 ? peer.alias!.trim() : (peer.hostname ?? '').trim();
           entries.push({
             id: peer.id,
             alias: alias,
-            note: peer.hostname ?? '',
+            note: peer.note ?? peer.hostname ?? '',
             group: (peer.tags ?? []).join(', '),
             online: peer.online ?? false,
             favorite: false,
@@ -370,11 +435,15 @@ export class AccountService {
       if (result.data.groups) {
         for (const group of result.data.groups) {
           for (const peer of group.peers) {
+            if (!peer.id || seenIds.has(peer.id)) {
+              continue;
+            }
+            seenIds.add(peer.id);
             const alias = (peer.alias ?? '').trim().length > 0 ? peer.alias!.trim() : (peer.hostname ?? '').trim();
             entries.push({
               id: peer.id,
               alias: alias,
-              note: peer.hostname ?? '',
+              note: peer.note ?? peer.hostname ?? '',
               group: group.name,
               online: peer.online ?? false,
               favorite: false,
@@ -386,6 +455,41 @@ export class AccountService {
 
       AppDataService.getInstance().setAddressBook(entries);
       this.eventBus.emit(EventType.ADDRESS_BOOK_UPDATED, { entries });
+    }
+  }
+
+  private async startServiceSync(): Promise<void> {
+    if (!this.appState.getAccount().isLoggedIn) {
+      return;
+    }
+    this.stopServiceSync();
+    await this.syncServiceState(true);
+    this.serviceSyncTimer = setInterval(() => {
+      void this.syncServiceState(false);
+    }, this.SERVICE_SYNC_INTERVAL);
+  }
+
+  private stopServiceSync(): void {
+    if (this.serviceSyncTimer !== -1) {
+      clearInterval(this.serviceSyncTimer);
+      this.serviceSyncTimer = -1;
+    }
+  }
+
+  private async syncServiceState(includeSysinfo: boolean): Promise<void> {
+    if (this.serviceSyncBusy || !this.appState.getAccount().isLoggedIn) {
+      return;
+    }
+    this.serviceSyncBusy = true;
+    try {
+      this.syncApiServerFromSettings();
+      await this.httpClient.sendHeartbeat();
+      if (includeSysinfo) {
+        const account = this.appState.getAccount();
+        await this.httpClient.syncDeviceSysinfo(account.username);
+      }
+    } finally {
+      this.serviceSyncBusy = false;
     }
   }
 
@@ -478,10 +582,17 @@ export class AccountService {
     this.pollCount = 0;
   }
 
-  cancelLogin(): void {
+  private resetOAuthTransaction(): void {
     this.stopPolling();
-    NativeRustDeskBridge.accountAuthCancel();
+    this.oauthGeneration++;
+    this.oauthApiServer = '';
+    this.oauthCode = '';
     this.oauthUrl = '';
+  }
+
+  cancelLogin(): void {
+    this.resetOAuthTransaction();
+    NativeRustDeskBridge.accountAuthCancel();
     this.appState.setAccount({ status: 'idle', lastError: '', loginUrl: '' });
   }
 
@@ -495,6 +606,7 @@ export class AccountService {
   }
 
   async logout(): Promise<void> {
+    this.stopServiceSync();
     this.syncApiServerFromSettings();
     await this.httpClient.logout();
     NativeRustDeskBridge.setLocalOption('access_token', '');

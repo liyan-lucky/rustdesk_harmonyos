@@ -1,6 +1,6 @@
 # 新对话交接入口
 
-> 更新时间：2026-08-12
+> 更新时间：2026-08-14
 > 本文件是新对话的第一入口。读取本文件后，按"必读顺序"读取其他文档。
 
 ## 当前项目状态
@@ -8,12 +8,19 @@
 - **项目**：RustDesk HarmonyOS 客户端（`com.open.rundesk`），第三方兼容客户端，非官方发布
 - **工作区**：`E:\Visual_Studio_Code\11_Rustdesk_harmonyos`
 - **核心库**：`E:\Visual_Studio_Code\13_librustdesk_core`（独立仓库，staticlib + CMake 链接）
-- **目标设备**：`192.168.8.152:36169`（x86_64 模拟器）
+- **目标设备**：`192.168.8.153:36169`（x86_64 模拟器）
 - **用户主题**：暗色主题
 - **核心架构**：ArkTS Stage UI → C++ NAPI → Rust C ABI staticlib
 - **包名**：`com.open.rundesk`，AGPL-3.0-only
 
 ## 最近完成的工作
+
+### 2026-08-14 IME 成对符号删除 + 自建 API 登录项跟随
+
+1. **IME 自动配对修复**：`RemoteControl.ets` 对常见中英文成对符号只发送左符号，并立即恢复 sentinel，避免手机输入法光标在括号中间而远端光标在末尾造成删除错位。
+2. **动态第三方登录**：`HttpClient.ets` 支持 `oidc/...` 与 `common-oidc/<JSON>`；`LoginPage.ets` 只展示当前 API 返回项，自建 API 空配置不显示且不回退官方，未指定 API 时保留官方默认兜底。
+   - 后续补齐 `Index.ets` 首页内嵌登录弹窗，两个登录入口统一调用 `AccountService.getAvailableProviders()`；修正版 `0.33.58 (1000234)` 已安装到手机。
+3. **验证**：HAP 构建签名通过（`BUILD SUCCESSFUL in 1 min 52 s 210 ms`）；设备列表为 `[Empty]`，未执行真机复测。
 
 ### 2026-08-12 远程键盘输入修复 + IME sentinel 方案 + 共享设置菜单
 
@@ -180,3 +187,11 @@ E:\Visual_Studio_Code\11_Rustdesk_harmonyos\docs\AGENT_HANDOFF.md，
 使用中文交互，每次修改后构建验证。设备 192.168.8.152:36169，暗色主题。
 构建前先恢复签名配置，构建脚本在 99_Temp\rebuild.ps1。
 ```
+# Latest OAuth investigation (2026-08-14)
+
+- Official RustDesk sends `{ op, id, uuid, deviceInfo }` to `/api/oidc/auth` and uses the same raw UUID for `/api/oidc/auth-query`.
+- HarmonyOS previously Base64-encoded UUID, omitted `deviceInfo`, and added `remember_me`; this mismatch is fixed in `HttpClient.ets`.
+- `AccountService.ets` now snapshots the API server and transaction generation for each OAuth flow, so switching official/self-hosted API cannot poll a new API with an old code.
+- `Index.ets` cancels pending OAuth when the API server setting changes.
+- Version `0.33.60 (1000236)` builds successfully. Signed HAP: `E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\entry-default-signed.hap`.
+- Phone `192.168.8.152:36169` was disconnected at install time. Reconnect, install, then retest GitHub. If the API callback still shows `ERR-2212` while Gitee/WebAuth work, inspect the API server GitHub provider audit log/account email binding; the client transaction contract is then no longer the differentiator.

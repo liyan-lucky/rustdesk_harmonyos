@@ -3,6 +3,12 @@
 > 更新时间：2026-08-12
 > 本文件记录项目积累的技术经验，按类别组织。修改前必查对应类别。
 
+## 2026-08-14 IME 自动配对与登录配置经验
+
+- **IME 配对问题本质是光标分叉**：输入法提交 `（）` 后，本地光标在中间，远端字符串输入后的光标在末尾。继续做纯文本 diff 无法可靠恢复语义；对确定的自动配对提交应只发送左符号，并立即把隐藏代理输入恢复为 sentinel。
+- **第三方登录列表只能有一个数据源**：自建 API 场景下，所有 OAuth 入口都必须来自 `/api/login-options`，不能在次级区域继续展示静态提供商。
+- **RustDesk 登录选项有两种格式**：普通项是 `oidc/<name>`；通用 OIDC 是 `common-oidc/<JSON>`，JSON 项至少包含 `name`，可带 `icon`。
+
 ## 2026-08-12 远程键盘输入 + IME sentinel 方案经验
 
 - **Core KEY_MAP 字母键映射为小写**：`"VK_A" → Key::Chr('a')`（小写），`key_code_to_official_key_name(65)` 返回 `"VK_A"`（多字符）走 KEY_MAP 路径得到 `Chr('a')` + Shift modifier，远端显示小写。修复：`session_input_key` 中对 `shift && (65..=90).contains(&key_code)` 直接 `key_event.set_chr(key_code as u32)`，绕过 KEY_MAP。

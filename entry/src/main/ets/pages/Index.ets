@@ -16,7 +16,7 @@ import {
 } from '../common/CommonComponents';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent, OnlineStatusResult } from '../services/OfficialRustDeskBridge';
 import { CoreLoaderService } from '../services/CoreLoaderService';
-import { AccountService } from '../services/AccountService';
+import { AccountService, OAuthProvider } from '../services/AccountService';
 import { AppState, AccountState } from '../services/AppState';
 import { ChatMessage, ChatMessageType, ChatService, ChatSession, ChatEvent } from '../services/ChatService';
 import { ClipboardService } from '../services/ClipboardService';
@@ -563,12 +563,14 @@ struct Index {
   @State showServerDialog: boolean = false;
   @State showLanguageDialog: boolean = false;
   @State languageDialogOpacity: number = 1;
-  @State showAccountDialog: boolean = false;
+  @State @Watch('onShowAccountDialogChange') showAccountDialog: boolean = false;
   @State showThemeDialog: boolean = false;
   @State showDisplaySettingsDialog: boolean = false;
   @State loginUsername: string = '';
   @State loginPassword: string = '';
   @State loginErrorMsg: string = '';
+  @State loginProviders: OAuthProvider[] = [];
+  @State loginProvidersLoading: boolean = false;
   @State buildTime: string = '';
   @State buildVersion: string = '';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
@@ -4152,12 +4154,17 @@ struct Index {
   }
 
   private async applyDraftServers(): Promise<void> {
+    console.info(`[Index] applyDraftServers: draftApiServer="${this.draftApiServer}", draftIdServer="${this.draftIdServer}"`);
+    if (this.draftApiServer.trim() !== this.settings.apiServer.trim()) {
+      this.accountService.cancelLogin();
+    }
     this.settings = this.appData.updateSettings({
       idServer: this.draftIdServer.trim(),
       relayServer: this.draftRelayServer.trim(),
       apiServer: this.draftApiServer.trim(),
       key: this.draftKey.trim()
     });
+    console.info(`[Index] applyDraftServers: after save, settings.apiServer="${this.settings.apiServer}"`);
     NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
     this.syncDraftServers();
     this.setStatusMessage("server_updated");
@@ -4870,6 +4877,18 @@ struct Index {
     } else {
       this.loginErrorMsg = this.lt('Login failed, please check username and password');
     }
+  }
+
+  private onShowAccountDialogChange(): void {
+    if (this.showAccountDialog && !this.accountState.isLoggedIn) {
+      void this.loadLoginProviders();
+    }
+  }
+
+  private async loadLoginProviders(): Promise<void> {
+    this.loginProvidersLoading = true;
+    this.loginProviders = await this.accountService.getAvailableProviders();
+    this.loginProvidersLoading = false;
   }
 
   private async handleOAuthLoginInDialog(provider: string): Promise<void> {
@@ -6230,17 +6249,21 @@ struct Index {
             }
             .width('100%')
 
-            Text(this.lt('or'))
-              .fontSize(14)
-              .fontColor(this.theme_TEXT_TERTIARY)
-              .margin({ top: 8, bottom: 8 })
+            if (this.loginProvidersLoading) {
+              LoadingProgress().width(20).height(20).color(this.theme_ACCENT)
+            } else if (this.loginProviders.length > 0) {
+              Text(this.lt('or'))
+                .fontSize(14)
+                .fontColor(this.theme_TEXT_TERTIARY)
+                .margin({ top: 8, bottom: 8 })
 
-            Column({ space: 8 }) {
-              this.buildOAuthButton('github', '#333333')
-              this.buildOAuthButton('google', '#4285F4')
-              this.buildOAuthButton('microsoft', '#00A4EF')
+              Column({ space: 8 }) {
+                ForEach(this.loginProviders, (provider: OAuthProvider) => {
+                  this.buildOAuthButton(provider)
+                }, (provider: OAuthProvider) => provider.id)
+              }
+              .width('100%')
             }
-            .width('100%')
 
             Row() {
               Text(this.lt('Login agreement'))
@@ -6281,14 +6304,14 @@ struct Index {
   }
 
   @Builder
-  private buildOAuthButton(provider: string, color: string) {
+  private buildOAuthButton(provider: OAuthProvider) {
     Button() {
       Row() {
-        Image($rawfile(`auth-${provider}.svg`))
+        Image($rawfile(provider.icon))
           .width(18)
           .height(18)
           .colorFilter(this.createStrokeIconColorFilter(this.theme_CONTRAST_TEXT))
-        Text(`${this.lt('Continue with')} ${provider.charAt(0).toUpperCase() + provider.slice(1)}`)
+        Text(`${this.lt('Continue with')} ${provider.name}`)
           .fontSize(14)
           .fontColor(this.theme_CONTRAST_TEXT)
           .margin({ left: 8 })
@@ -6299,11 +6322,11 @@ struct Index {
     }
     .width('100%')
     .height(40)
-    .backgroundColor(color)
+    .backgroundColor(provider.color)
     .borderRadius(8)
     .onClick(() => {
       this.showAccountDialog = false;
-      void this.handleOAuthLoginInDialog(provider);
+      void this.handleOAuthLoginInDialog(provider.id);
     })
   }
 
@@ -6417,17 +6440,17 @@ struct Index {
     Column() {
       Column({ space: 0 }) {
         Text(this.lt('Share Settings'))
-          .fontSize(20)
+          .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor(this.theme_TEXT_PRIMARY)
           .width('100%')
-          .padding({ bottom: 16 })
+          .padding({ bottom: 6 })
 
         Text(this.lt('Access Mode'))
-          .fontSize(14)
+          .fontSize(11)
           .fontColor(this.theme_TEXT_SECONDARY)
           .width('100%')
-          .padding({ bottom: 8 })
+          .padding({ bottom: 2 })
 
         this.buildShareRadioItem(this.lt('Password only access'), this.shareAccessMode === 'password', () => {
           this.shareAccessMode = 'password';
@@ -6441,13 +6464,13 @@ struct Index {
 
         Divider()
           .color(this.theme_BORDER_SUBTLE)
-          .margin({ top: 12, bottom: 12 })
+          .margin({ top: 3, bottom: 3 })
 
         Text(this.lt('Password Settings'))
-          .fontSize(14)
+          .fontSize(11)
           .fontColor(this.theme_TEXT_SECONDARY)
           .width('100%')
-          .padding({ bottom: 8 })
+          .padding({ bottom: 2 })
 
         this.buildShareListItem(this.lt('Set fixed password'), this.shareFixedPassword.length > 0 ? '••••••' : this.lt('Not set'), () => {
           this.shareFixedPasswordDraft = this.shareFixedPassword;
@@ -6460,7 +6483,7 @@ struct Index {
 
         Row() {
           Text(this.lt('One-time password numeric'))
-            .fontSize(16)
+            .fontSize(12)
             .fontColor(this.theme_TEXT_PRIMARY)
             .layoutWeight(1)
           Toggle({ type: ToggleType.Switch, isOn: this.shareOtpNumeric })
@@ -6470,18 +6493,18 @@ struct Index {
             })
         }
         .width('100%')
-        .height(48)
-        .padding({ left: 16, right: 16 })
+        .height(28)
+        .padding({ left: 8, right: 8 })
 
         Divider()
           .color(this.theme_BORDER_SUBTLE)
-          .margin({ top: 12, bottom: 12 })
+          .margin({ top: 3, bottom: 3 })
 
         Text(this.lt('Password Type'))
-          .fontSize(14)
+          .fontSize(11)
           .fontColor(this.theme_TEXT_SECONDARY)
           .width('100%')
-          .padding({ bottom: 8 })
+          .padding({ bottom: 2 })
 
         this.buildShareRadioItem(this.lt('Use one-time password'), this.sharePasswordType === 'temporary', () => {
           this.sharePasswordType = 'temporary';
@@ -6493,44 +6516,46 @@ struct Index {
           this.sharePasswordType = 'both';
         })
 
-        Row({ space: 12 }) {
+        Row({ space: 8 }) {
           Button(this.lt('Cancel'))
             .layoutWeight(1)
-            .height(44)
-            .fontSize(16)
+            .height(28)
+            .fontSize(12)
             .fontColor(this.theme_TEXT_PRIMARY)
             .backgroundColor(this.theme_INPUT_BG)
-            .borderRadius(8)
+            .borderRadius(6)
             .onClick(() => {
               this.showShareSettingsDialog = false;
             })
 
           Button(this.lt('OK'))
             .layoutWeight(1)
-            .height(44)
-            .fontSize(16)
+            .height(28)
+            .fontSize(12)
             .fontColor(this.theme_ACCENT_TEXT)
             .backgroundColor(this.theme_ACCENT)
-            .borderRadius(8)
+            .borderRadius(6)
             .onClick(() => {
               this.saveShareSettings();
               this.showShareSettingsDialog = false;
             })
         }
         .width('100%')
-        .margin({ top: 20 })
+        .margin({ top: 8 })
       }
-      .width('88%')
-      .padding(24)
+      .width('58%')
+      .constraintSize({ maxHeight: '80%' })
+      .padding(10)
+      .margin({ top: 110, right: 10 })
       .backgroundColor(this.theme_CARD_BG)
-      .borderRadius(16)
-      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .borderRadius(12)
+      .shadow({ radius: 12, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .hitTestBehavior(HitTestMode.Block)
       .onClick(() => {})
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.End)
     .onClick(() => {
       this.showShareSettingsDialog = false;
     })
@@ -6540,19 +6565,24 @@ struct Index {
   private buildShareRadioItem(label: string, selected: boolean, onTap: () => void) {
     Row() {
       Text(label)
-        .fontSize(16)
-        .fontColor(this.theme_TEXT_PRIMARY)
+        .fontSize(12)
+        .fontColor(selected ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
       if (selected) {
-        Text('✓')
-          .fontSize(18)
-          .fontColor(this.theme_ACCENT)
-          .fontWeight(FontWeight.Bold)
+        Image($rawfile('checkbox-checked.svg'))
+          .width(16)
+          .height(16)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+      } else {
+        Image($rawfile('checkbox-unchecked.svg'))
+          .width(16)
+          .height(16)
+          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
       }
     }
     .width('100%')
-    .height(48)
-    .padding({ left: 16, right: 16 })
+    .height(28)
+    .padding({ left: 8, right: 8 })
     .onClick(() => { onTap(); })
   }
 
@@ -6560,20 +6590,20 @@ struct Index {
   private buildShareListItem(label: string, value: string, onTap: () => void) {
     Row() {
       Text(label)
-        .fontSize(16)
+        .fontSize(12)
         .fontColor(this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
       Text(value)
-        .fontSize(14)
+        .fontSize(11)
         .fontColor(this.theme_TEXT_SECONDARY)
-        .margin({ right: 8 })
+        .margin({ right: 4 })
       Text('›')
-        .fontSize(20)
+        .fontSize(14)
         .fontColor(this.theme_TEXT_SECONDARY)
     }
     .width('100%')
-    .height(48)
-    .padding({ left: 16, right: 16 })
+    .height(28)
+    .padding({ left: 8, right: 8 })
     .onClick(() => { onTap(); })
   }
 

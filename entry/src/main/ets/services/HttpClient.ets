@@ -1,5 +1,4 @@
 import http from '@ohos.net.http';
-import util from '@ohos.util';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { AppDataService } from './AppDataService';
 
@@ -27,14 +26,20 @@ export interface OidcAuthRequest {
   op: string;
   id: string;
   uuid: string;
-  remember_me: boolean;
+  deviceInfo: LoginDeviceInfo;
+}
+
+class LoginDeviceInfo {
+  os: string = 'ohos';
+  type: string = 'client';
+  name: string = '';
 }
 
 class OidcAuthRequestImpl implements OidcAuthRequest {
   op: string = '';
   id: string = '';
   uuid: string = '';
-  remember_me: boolean = false;
+  deviceInfo: LoginDeviceInfo = new LoginDeviceInfo();
 }
 
 export interface OidcAuthResponse {
@@ -103,6 +108,7 @@ export interface AbPeer {
   id: string;
   alias?: string;
   hostname?: string;
+  note?: string;
   platform?: string;
   tags?: string[];
   hash?: string;
@@ -117,6 +123,25 @@ export interface AbGroup {
 export interface AbResponse {
   peers?: AbPeer[];
   groups?: AbGroup[];
+}
+
+class DeviceSysinfoRequest {
+  cpu: string = '';
+  hostname: string = '';
+  id: string = '';
+  memory: string = '';
+  os: string = 'HarmonyOS';
+  username: string = '';
+  uuid: string = '';
+  version: string = '';
+}
+
+class HeartbeatRequest {
+  id: string = '';
+  uuid: string = '';
+  modified_at: number = 0;
+  ver: number = 0;
+  conns: number[] = [];
 }
 
 export interface AbTagRequest {
@@ -144,6 +169,11 @@ export class HttpClient {
   setApiServer(apiServer: string): void {
     const normalized = apiServer.trim();
     this.baseUrl = normalized.length > 0 ? normalized : AppDataService.OFFICIAL_API_SERVER;
+    console.info(`[HttpClient] setApiServer: input="${apiServer}" → baseUrl="${this.baseUrl}"`);
+  }
+
+  getApiServer(): string {
+    return this.baseUrl;
   }
 
   private getAccessToken(): string {
@@ -153,10 +183,11 @@ export class HttpClient {
   private async request<T>(
     method: http.RequestMethod,
     path: string,
-    body?: Object
+    body?: Object,
+    apiServer?: string
   ): Promise<HttpResult<T>> {
     const httpRequest = http.createHttp();
-    const url = `${this.baseUrl}${path}`;
+    const url = `${apiServer ?? this.baseUrl}${path}`;
     const logUrl = this.redactUrlForLog(url);
     const accessToken = this.getAccessToken();
 
@@ -273,7 +304,22 @@ export class HttpClient {
 
     if (Array.isArray(raw)) {
       for (const item of raw as string[]) {
-        if (typeof item === 'string' && item.startsWith('oidc/')) {
+        if (typeof item === 'string' && item.startsWith('common-oidc/')) {
+          try {
+            const commonOptions = JSON.parse(item.substring('common-oidc/'.length)) as LoginOption[];
+            for (const commonOption of commonOptions) {
+              if (commonOption.name && commonOption.name.length > 0) {
+                const opt = new LoginOption();
+                opt.op = commonOption.name;
+                opt.name = commonOption.name;
+                oauth.push(opt);
+              }
+            }
+          } catch (error) {
+            console.warn('[HttpClient] Invalid common OIDC login options: ' + JSON.stringify(error));
+          }
+          break;
+        } else if (typeof item === 'string' && item.startsWith('oidc/')) {
           const opt = new LoginOption();
           opt.op = item;
           opt.name = item.substring(5);
@@ -282,7 +328,9 @@ export class HttpClient {
       }
     } else if (raw['oauth'] && Array.isArray(raw['oauth'])) {
       for (const item of raw['oauth'] as LoginOption[]) {
-        oauth.push(item);
+        if (item.op && item.op.length > 0) {
+          oauth.push(item);
+        }
       }
     }
 
@@ -300,49 +348,51 @@ export class HttpClient {
   }
 
   private getDeviceUuid(): string {
-    let uuid = NativeRustDeskBridge.getLocalOption('uuid').trim();
+    let uuid = NativeRustDeskBridge.mainGetUuid().trim();
+    if (uuid.length === 0) {
+      uuid = NativeRustDeskBridge.getLocalOption('uuid').trim();
+    }
     if (uuid.length === 0) {
       uuid = AppStorage.get<string>('myDeviceUuid') ?? '';
     }
     return uuid;
   }
 
-  private getDeviceUuidBase64(): string {
-    const raw = this.getDeviceUuid();
-    if (raw.length === 0) {
-      return '';
-    }
+  private getLoginDeviceInfo(): LoginDeviceInfo {
+    const info = new LoginDeviceInfo();
+    const raw = NativeRustDeskBridge.mainGetLoginDeviceInfo().trim();
     try {
-      const base64 = new util.Base64Helper();
-      const encoder = new util.TextEncoder();
-      const bytes = encoder.encodeInto(raw);
-      const encoded = base64.encodeSync(bytes);
-      let result = '';
-      for (let i = 0; i < encoded.length; i++) {
-        result += String.fromCharCode(encoded[i]);
+      if (raw.length > 0) {
+        const parsed = JSON.parse(raw) as Record<string, string>;
+        info.os = parsed['os'] ?? info.os;
+        info.type = parsed['type'] ?? info.type;
+        info.name = parsed['name'] ?? '';
       }
-      return result;
-    } catch (e) {
-      console.warn('[HttpClient] Base64 encode uuid failed, using raw:', e);
-      return raw;
+    } catch (error) {
+      console.warn('[HttpClient] Invalid login device info:', JSON.stringify(error));
     }
+    if (info.name.length === 0) {
+      info.name = this.getDeviceId();
+    }
+    return info;
   }
 
-  async oidcAuth(op: string, rememberMe: boolean = true): Promise<HttpResult<OidcAuthResponse>> {
+  async oidcAuth(op: string, apiServer?: string): Promise<HttpResult<OidcAuthResponse>> {
     const body = new OidcAuthRequestImpl();
     body.op = op;
     body.id = this.getDeviceId();
-    body.uuid = this.getDeviceUuidBase64();
-    body.remember_me = rememberMe;
+    body.uuid = this.getDeviceUuid();
+    body.deviceInfo = this.getLoginDeviceInfo();
     console.info(`[HttpClient] oidcAuth: op=${body.op}, id=${body.id}, uuid_len=${body.uuid.length}`);
-    return this.post<OidcAuthResponse>('/api/oidc/auth', body);
+    return this.request<OidcAuthResponse>(http.RequestMethod.POST, '/api/oidc/auth', body, apiServer);
   }
 
-  async oidcAuthQuery(code: string): Promise<HttpResult<AuthQueryResponse>> {
+  async oidcAuthQuery(code: string, apiServer?: string): Promise<HttpResult<AuthQueryResponse>> {
     const id = this.getDeviceId();
-    const uuid = this.getDeviceUuidBase64();
+    const uuid = this.getDeviceUuid();
     console.info(`[HttpClient] oidcAuthQuery: code_len=${code.length}, id=${id}, uuid_len=${uuid.length}`);
-    const rawResult = await this.get<Record<string, Object>>(`/api/oidc/auth-query?code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}&uuid=${encodeURIComponent(uuid)}`);
+    const path = `/api/oidc/auth-query?code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}&uuid=${encodeURIComponent(uuid)}`;
+    const rawResult = await this.request<Record<string, Object>>(http.RequestMethod.GET, path, undefined, apiServer);
 
     if (!rawResult.success || !rawResult.data) {
       return rawResult as HttpResult<AuthQueryResponse>;
@@ -412,7 +462,49 @@ export class HttpClient {
   }
 
   async getAddressBook(): Promise<HttpResult<AbResponse>> {
-    return this.get<AbResponse>('/api/ab');
+    const rawResult = await this.get<Record<string, Object>>('/api/ab');
+    if (!rawResult.success || !rawResult.data) {
+      return rawResult as HttpResult<AbResponse>;
+    }
+
+    let raw = rawResult.data;
+    if (typeof raw['data'] === 'string') {
+      try {
+        raw = JSON.parse(raw['data'] as string) as Record<string, Object>;
+      } catch (error) {
+        console.error('[HttpClient] Failed to parse legacy address book data:', JSON.stringify(error));
+        return { success: false, error: 'Invalid address book response', statusCode: rawResult.statusCode };
+      }
+    }
+
+    const adapted: AbResponse = {};
+    if (Array.isArray(raw['peers'])) {
+      adapted.peers = raw['peers'] as unknown as AbPeer[];
+    }
+    if (Array.isArray(raw['groups'])) {
+      adapted.groups = raw['groups'] as unknown as AbGroup[];
+    }
+    return { success: true, data: adapted, statusCode: rawResult.statusCode };
+  }
+
+  async syncDeviceSysinfo(username: string): Promise<HttpResult<string>> {
+    const deviceInfo = this.getLoginDeviceInfo();
+    const body = new DeviceSysinfoRequest();
+    body.id = this.getDeviceId();
+    body.uuid = this.getDeviceUuid();
+    body.hostname = deviceInfo.name.length > 0 ? deviceInfo.name : body.id;
+    body.os = deviceInfo.os.length > 0 ? deviceInfo.os : 'HarmonyOS';
+    body.username = username;
+    body.version = NativeRustDeskBridge.mainGetVersion().trim();
+    return this.post<string>('/api/sysinfo', body);
+  }
+
+  async sendHeartbeat(): Promise<HttpResult<Record<string, Object>>> {
+    const body = new HeartbeatRequest();
+    body.id = this.getDeviceId();
+    body.uuid = this.getDeviceUuid();
+    body.modified_at = Math.floor(Date.now() / 1000);
+    return this.post<Record<string, Object>>('/api/heartbeat', body);
   }
 
   async addAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {

@@ -380,6 +380,7 @@ struct RemoteControl {
   @State stickyShift: boolean = false;
   @State stickyWin: boolean = false;
   @State stickyFn: boolean = false;
+  @State activeKey: string = '';
   private fpsCalcLastTime: number = 0;
   private fpsCalcFrameCount: number = 0;
   private lastNonZeroFps: number = 0;
@@ -997,6 +998,7 @@ struct RemoteControl {
         .width('100%')
         .position({ x: 0, y: 0 })
         .zIndex(100)
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
       }
 
       if (this.showDisplayMenu) {
@@ -1691,25 +1693,25 @@ struct RemoteControl {
     Column() {
       Scroll() {
         Row({ space: 6 }) {
-          this.buildStickyKeyBtn('Ctrl', 56, this.stickyCtrl);
-          this.buildStickyKeyBtn('Alt', 52, this.stickyAlt);
-          this.buildStickyKeyBtn('Shift', 62, this.stickyShift);
-          this.buildStickyKeyBtn('Win', 52, this.stickyWin);
-          this.buildStickyKeyBtn('Fn', 48, this.stickyFn);
-          this.buildKeyBtn('Esc', 52);
-          this.buildKeyBtn('Tab', 52);
-          this.buildKeyBtn('⌫', 52);
-          this.buildKeyBtn('Home', 60);
-          this.buildKeyBtn('End', 52);
-          this.buildKeyBtn('Ins', 52);
-          this.buildKeyBtn('Del', 52);
-          this.buildKeyBtn('PgUp', 60);
-          this.buildKeyBtn('PgDn', 60);
-          this.buildKeyBtn('PrtScr', 72);
-          this.buildKeyBtn('Menu', 56);
-          this.buildKeyBtn('Enter', 68);
+          this.buildStickyKeyBtn('Ctrl', 50);
+          this.buildStickyKeyBtn('Alt', 46);
+          this.buildStickyKeyBtn('Shift', 56);
+          this.buildKeyBtn('win', 46);
+          this.buildStickyKeyBtn('Fn', 42);
+          this.buildKeyBtn('Esc', 46);
+          this.buildKeyBtn('Tab', 46);
+          this.buildKeyBtn('⌫', 46);
+          this.buildKeyBtn('Home', 54);
+          this.buildKeyBtn('End', 46);
+          this.buildKeyBtn('Ins', 46);
+          this.buildKeyBtn('Del', 46);
+          this.buildKeyBtn('PgUp', 54);
+          this.buildKeyBtn('PgDn', 54);
+          this.buildKeyBtn('PrtScr', 66);
+          this.buildKeyBtn('Menu', 50);
+          this.buildKeyBtn('Enter', 62);
         }
-        .padding({ left: 8, right: 8, top: 6, bottom: 6 });
+        .padding({ left: 8, right: 8, top: 6, bottom: 4 });
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
@@ -1717,60 +1719,86 @@ struct RemoteControl {
 
       Scroll() {
         Row({ space: 6 }) {
-          this.buildKeyBtn('←', 44);
-          this.buildKeyBtn('↑', 44);
-          this.buildKeyBtn('↓', 44);
-          this.buildKeyBtn('→', 44);
-          this.buildComboKeyBtn('Ctrl+C', 76, 17, 67);
-          this.buildComboKeyBtn('Ctrl+V', 76, 17, 86);
-          this.buildComboKeyBtn('Ctrl+S', 76, 17, 83);
-          this.buildKeyBtn('F1', 44);
-          this.buildKeyBtn('F2', 44);
-          this.buildKeyBtn('F3', 44);
-          this.buildKeyBtn('F4', 44);
-          this.buildKeyBtn('F5', 44);
-          this.buildKeyBtn('F6', 44);
-          this.buildKeyBtn('F7', 44);
-          this.buildKeyBtn('F8', 44);
-          this.buildKeyBtn('F9', 44);
-          this.buildKeyBtn('F10', 52);
-          this.buildKeyBtn('F11', 52);
-          this.buildKeyBtn('F12', 52);
+          this.buildKeyBtn('←', 40);
+          this.buildKeyBtn('↑', 40);
+          this.buildKeyBtn('↓', 40);
+          this.buildKeyBtn('→', 40);
+          this.buildComboKeyBtn('Ctrl+C', 70, 17, 67);
+          this.buildComboKeyBtn('Ctrl+V', 70, 17, 86);
+          this.buildComboKeyBtn('Ctrl+S', 70, 17, 83);
+          this.buildKeyBtn('F1', 40);
+          this.buildKeyBtn('F2', 40);
+          this.buildKeyBtn('F3', 40);
+          this.buildKeyBtn('F4', 40);
+          this.buildKeyBtn('F5', 40);
+          this.buildKeyBtn('F6', 40);
+          this.buildKeyBtn('F7', 40);
+          this.buildKeyBtn('F8', 40);
+          this.buildKeyBtn('F9', 40);
+          this.buildKeyBtn('F10', 46);
+          this.buildKeyBtn('F11', 46);
+          this.buildKeyBtn('F12', 46);
         }
-        .padding({ left: 8, right: 8, top: 4, bottom: 6 });
+        .padding({ left: 8, right: 8, top: 2, bottom: 6 });
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
       .width('100%');
     }
     .width('100%')
-    .backgroundColor(Color.Transparent);
+    .backgroundColor(Color.Transparent)
+    .border({ width: 0, color: Color.Transparent })
   }
 
   @Builder
   private buildKeyBtn(key: string, width: number = 60) {
     Button(key)
       .width(width)
-      .height(40)
+      .height(38)
       .fontSize(12)
       .fontColor(this.theme_CONTRAST_TEXT)
-      .backgroundColor('#55444444')
+      .backgroundColor(this.activeKey === key ? '#99AAAAAA' : '#55444444')
+      .scale(this.activeKey === key ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
       .borderRadius(6)
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeKey = key;
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.activeKey = '';
+        }
+      })
       .onClick(() => {
         this.sendSpecialKey(key);
       });
   }
 
+  private isStickyActive(key: string): boolean {
+    if (key === 'Ctrl') return this.stickyCtrl;
+    if (key === 'Alt') return this.stickyAlt;
+    if (key === 'Shift') return this.stickyShift;
+    if (key === 'Fn') return this.stickyFn;
+    return false;
+  }
+
   @Builder
-  private buildStickyKeyBtn(key: string, width: number = 60, active: boolean = false) {
+  private buildStickyKeyBtn(key: string, width: number = 60) {
     Button(key)
       .width(width)
-      .height(40)
+      .height(38)
       .fontSize(12)
-      .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      .backgroundColor(active ? this.theme_ACCENT : '#55444444')
+      .fontWeight(this.isStickyActive(key) ? FontWeight.Bold : FontWeight.Normal)
+      .fontColor(this.isStickyActive(key) ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(this.isStickyActive(key) ? this.theme_ACCENT : (this.activeKey === key ? '#99AAAAAA' : '#55444444'))
+      .scale(this.activeKey === key ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
       .borderRadius(6)
-      .border({ width: active ? 2 : 0, color: this.theme_ACCENT })
+      .shadow(this.isStickyActive(key) ? { radius: 6, color: this.theme_ACCENT, offsetX: 0, offsetY: 0 } : { radius: 0, color: Color.Transparent })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeKey = key;
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.activeKey = '';
+        }
+      })
       .onClick(() => {
         this.sendSpecialKey(key);
       });
@@ -1780,11 +1808,19 @@ struct RemoteControl {
   private buildComboKeyBtn(label: string, width: number, modifierCode: number, keyCode: number) {
     Button(label)
       .width(width)
-      .height(40)
+      .height(38)
       .fontSize(12)
       .fontColor(this.theme_CONTRAST_TEXT)
-      .backgroundColor(this.theme_TOOLBAR_BG)
+      .backgroundColor(this.activeKey === label ? '#99AAAAAA' : this.theme_TOOLBAR_BG)
+      .scale(this.activeKey === label ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
       .borderRadius(6)
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeKey = label;
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.activeKey = '';
+        }
+      })
       .onClick(() => {
         NativeRustDeskBridge.sendKeyboardInput(keyCode, true, 1);
         NativeRustDeskBridge.sendKeyboardInput(keyCode, false, 1);
@@ -1802,7 +1838,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 0) {
-            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+          } else {
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1813,7 +1851,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 1) {
-            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+          } else {
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1824,7 +1864,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 2) {
-            Text('✓').fontSize(13).fontColor(this.theme_ACCENT);
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+          } else {
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1832,37 +1874,37 @@ struct RemoteControl {
       } else if (this.displayMenuPopupId === 'codec') {
         Row() {
           Text('Auto').fontSize(13).fontColor(this.videoCodecMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 0) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 0) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(0); this.displayMenuPopupId = ''; });
         Row() {
           Text('VP8').fontSize(13).fontColor(this.videoCodecMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 1) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 1) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(1); this.displayMenuPopupId = ''; });
         Row() {
           Text('VP9').fontSize(13).fontColor(this.videoCodecMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 2) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 2) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(2); this.displayMenuPopupId = ''; });
         Row() {
           Text('AV1').fontSize(13).fontColor(this.videoCodecMode === 3 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 3) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 3) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(3); this.displayMenuPopupId = ''; });
         Row() {
           Text('H264').fontSize(13).fontColor(this.videoCodecMode === 4 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 4) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 4) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(4); this.displayMenuPopupId = ''; });
         Row() {
           Text('H265').fontSize(13).fontColor(this.videoCodecMode === 5 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 5) { Text('✓').fontSize(13).fontColor(this.theme_ACCENT); }
+          if (this.videoCodecMode === 5) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(5); this.displayMenuPopupId = ''; });
@@ -2702,9 +2744,15 @@ struct RemoteControl {
             .fontColor(action === currentAction ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (action === currentAction) {
-            Text('✓')
-              .fontSize(12)
-              .fontColor(this.theme_ACCENT);
+            Image($rawfile('checkbox-checked.svg'))
+              .width(14)
+              .height(14)
+              .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+          } else {
+            Image($rawfile('checkbox-unchecked.svg'))
+              .width(14)
+              .height(14)
+              .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
           }
         }
         .width('100%')
@@ -3318,6 +3366,13 @@ struct RemoteControl {
     const commonPrefixLength = this.resolveCommonPrefixLength(realPrev, realVal);
     const removedCount = realPrev.length - commonPrefixLength;
     const insertedText = realVal.slice(commonPrefixLength);
+    const autoPairOpening = removedCount === 0 ? this.resolveAutoPairOpening(insertedText) : '';
+    if (autoPairOpening.length > 0) {
+      this.sendImeCommittedText(autoPairOpening);
+      this.restoreImeProxySentinel();
+      this.maybeRequestVideoRefresh(true);
+      return;
+    }
     const isAutoCompletionDeletion = realVal.length < realPrev.length
       && insertedText.length > 0
       && realPrev.endsWith(insertedText);
@@ -3335,6 +3390,29 @@ struct RemoteControl {
     }
     this.imeProxyPrev = value;
     this.maybeRequestVideoRefresh(true);
+  }
+
+  private resolveAutoPairOpening(insertedText: string): string {
+    const autoPairs: string[] = ['()', '[]', '{}', '<>', '（）', '［］', '【】', '《》', '〈〉', '「」', '『』'];
+    for (const pair of autoPairs) {
+      if (insertedText === pair) {
+        return pair.slice(0, 1);
+      }
+    }
+    return '';
+  }
+
+  private restoreImeProxySentinel(): void {
+    const sentinel = ' ';
+    this.imeProxyPrev = sentinel;
+    this.imeProxyText = sentinel;
+    setTimeout(() => {
+      try {
+        this.imeProxyController.caretPosition(1);
+      } catch (error) {
+        console.warn('caretPosition failed: ' + JSON.stringify(error));
+      }
+    }, 0);
   }
 
   private resolveCommonPrefixLength(left: string, right: string): number {
@@ -3432,17 +3510,6 @@ struct RemoteControl {
       this.maybeRequestVideoRefresh(true);
       return;
     }
-    if (key === 'Win') {
-      if (this.stickyWin) {
-        this.stickyWin = false;
-        NativeRustDeskBridge.sendKeyboardInput(91, false, 0);
-      } else {
-        this.stickyWin = true;
-        NativeRustDeskBridge.sendKeyboardInput(91, true, 0);
-      }
-      this.maybeRequestVideoRefresh(true);
-      return;
-    }
     if (key === 'Fn') {
       this.stickyFn = !this.stickyFn;
       this.maybeRequestVideoRefresh(true);
@@ -3470,6 +3537,7 @@ struct RemoteControl {
       'PgDn': 34,
       'PrtScr': 44,
       'Menu': 93,
+      'win': 91,
       'F1': 112,
       'F2': 113,
       'F3': 114,
@@ -3505,7 +3573,6 @@ struct RemoteControl {
     if (this.stickyCtrl) { this.stickyCtrl = false; NativeRustDeskBridge.sendKeyboardInput(17, false, 0); }
     if (this.stickyAlt) { this.stickyAlt = false; NativeRustDeskBridge.sendKeyboardInput(18, false, 0); }
     if (this.stickyShift) { this.stickyShift = false; NativeRustDeskBridge.sendKeyboardInput(16, false, 0); }
-    if (this.stickyWin) { this.stickyWin = false; NativeRustDeskBridge.sendKeyboardInput(91, false, 0); }
     this.stickyFn = false;
   }
 
@@ -4704,7 +4771,7 @@ struct RemoteControl {
       height: payload.height
     });
     if (this.remoteCursorAssets.size > 20) {
-      const oldestKey = this.remoteCursorAssets.keys().next().value;
+      const oldestKey: string | undefined = this.remoteCursorAssets.keys().next().value;
       if (oldestKey !== undefined) {
         const oldAsset = this.remoteCursorAssets.get(oldestKey);
         if (oldAsset !== undefined) {
