@@ -8,6 +8,7 @@ import { I18nService } from '../services/I18nService';
 import { AppState, AccountState } from '../services/AppState';
 import { EventBus, EventType } from '../services/EventBus';
 import { AccountService } from '../services/AccountService';
+import { Logger } from '../common/Logger';
 
 type AddressFilter = 'all' | 'favorites' | 'online';
 
@@ -22,10 +23,12 @@ struct AddressBook {
   private appState: AppState = AppState.getInstance();
   private eventBus: EventBus = EventBus.getInstance();
   private accountService: AccountService = AccountService.getInstance();
+  private static hasFetchedAddressBook: boolean = false;
 
   @State query: string = '';
   @State currentFilter: AddressFilter = 'all';
   @State entries: AddressBookEntry[] = [];
+  @State entriesTick: number = 0;
   @State showAddPanel: boolean = false;
   @State draftId: string = '';
   @State draftAlias: string = '';
@@ -36,7 +39,10 @@ struct AddressBook {
   aboutToAppear() {
     this.reloadEntries();
     this.eventBus.on(EventType.ADDRESS_BOOK_UPDATED, this.onAddressBookUpdated);
-    if (this.accountState.isLoggedIn) {
+    if (!this.accountState.isLoggedIn) {
+      AddressBook.hasFetchedAddressBook = false;
+    } else if (!AddressBook.hasFetchedAddressBook) {
+      AddressBook.hasFetchedAddressBook = true;
       void this.accountService.fetchAddressBook();
     }
   }
@@ -327,13 +333,6 @@ struct AddressBook {
           this.appData.addRecentSession(this.appData.createRecentSession(entry.id));
           this.openPage('pages/RemoteControl', entry.id);
         })
-        this.buildSecondaryAction($rawfile('trash.svg'), this.lt('Delete Action'), () => {
-          this.appData.removeAddressBookEntry(entry.id);
-          if (this.accountState.isLoggedIn) {
-            void this.accountService.deletePeerFromAddressBook(entry.id);
-          }
-          this.reloadEntries();
-        })
       }
     }
     .padding(16)
@@ -451,7 +450,16 @@ struct AddressBook {
         alias: alias,
         tags: [group]
       };
-      void this.accountService.addPeerToAddressBook(peer);
+      void this.accountService.addPeerToAddressBook(peer).then((success: boolean) => {
+        Logger.info('SYNC', `saveDraftEntry: server add result=${success}`);
+        if (!success) {
+          try {
+            this.getUIContext().getPromptAction().openToast({
+              message: this.lt('Add failed on server, entry kept locally')
+            });
+          } catch (e) {}
+        }
+      });
     }
     this.resetDraft();
     this.showAddPanel = false;
@@ -467,6 +475,27 @@ struct AddressBook {
 
   private reloadEntries(): void {
     this.entries = this.appData.getAddressBook();
+    this.entriesTick++;
+  }
+
+  private async deleteEntry(peerId: string): Promise<void> {
+    Logger.info('SYNC', `deleteEntry: id="${peerId}", isLoggedIn=${this.accountState.isLoggedIn}`);
+    const existing = this.appData.getAddressBookEntry(peerId);
+    this.appData.removeAddressBookEntry(peerId);
+    this.reloadEntries();
+    if (this.accountState.isLoggedIn) {
+      const success = await this.accountService.deletePeerFromAddressBook(peerId);
+      Logger.info('SYNC', `deleteEntry: server delete result=${success}`);
+      if (!success && existing) {
+        this.appData.addAddressBookEntry(existing);
+        this.reloadEntries();
+        try {
+          this.getUIContext().getPromptAction().openToast({
+            message: this.lt('Delete failed on server, entry kept')
+          });
+        } catch (e) {}
+      }
+    }
   }
 
   private openPage(url: string, deviceId: string): void {

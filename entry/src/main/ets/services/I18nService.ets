@@ -579,6 +579,8 @@ export class I18nService {
     this.translations.set('Chat Action', '聊天');
     this.translations.set('Connect Action', '连接');
     this.translations.set('Delete Action', '删除');
+    this.translations.set('Delete failed on server, entry kept', '服务器删除失败，条目已保留');
+    this.translations.set('Add failed on server, entry kept locally', '服务器添加失败，条目仅保存在本地');
     this.translations.set('Ungrouped', '未分组');
     this.translations.set('Local', '本地');
     this.translations.set('Remote', '远程');
@@ -837,6 +839,7 @@ export class I18nService {
     this.translations.set('Core Stopped', '停止');
     this.translations.set('Core Unknown', '未识');
     this.translations.set('Runtime Summary', '运行摘要');
+    this.translations.set('Debug Log', '调试日志');
     this.translations.set('No data', '暂无数据');
     this.translations.set('Runtime', '运行');
     this.translations.set('Not Loaded', '未加载');
@@ -1516,6 +1519,7 @@ export class I18nService {
     this.translations.set('Core Stopped', 'Stop');
     this.translations.set('Core Unknown', 'Unk');
     this.translations.set('Runtime Summary', 'Runtime');
+    this.translations.set('Debug Log', 'Debug Log');
     this.translations.set('No data', 'No data');
     this.translations.set('Runtime', 'Runtime');
     this.translations.set('Not Loaded', 'Not Loaded');
@@ -1817,6 +1821,8 @@ this.translations.set('About', 'About');
     this.translations.set('Custom / self-hosted', 'Custom / self-hosted');
     this.translations.set('Default quality', 'Default quality');
     this.translations.set('Delete Action', 'Delete Action');
+    this.translations.set('Delete failed on server, entry kept', 'Delete failed on server, entry kept');
+    this.translations.set('Add failed on server, entry kept locally', 'Add failed on server, entry kept locally');
     this.translations.set('Refresh files', 'Refresh files');
     this.translations.set('Multi-select', 'Multi-select');
     this.translations.set('Create folder', 'Create folder');

@@ -6,6 +6,7 @@ import { AppContextService } from './AppContextService';
 import { AppDataService, AddressBookEntry } from './AppDataService';
 import { PreferenceStore } from './PreferenceStore';
 import { I18nService } from './I18nService';
+import { Logger } from '../common/Logger';
 
 export interface OAuthProvider {
   id: string;
@@ -100,7 +101,7 @@ export class AccountService {
 
   syncApiServerFromSettings(): void {
     const effectiveApi = this.appData.getEffectiveServerConfig().apiServer;
-    console.info(`[AccountService] syncApiServerFromSettings: effective apiServer = "${effectiveApi}"`);
+    Logger.debug('SYNC', `syncApiServerFromSettings: apiServer="${effectiveApi}"`);
     this.httpClient.setApiServer(effectiveApi);
   }
 
@@ -109,10 +110,13 @@ export class AccountService {
   }
 
   private async loadSavedToken(): Promise<void> {
+    Logger.info('AUTH', 'loadSavedToken: START');
     let token = NativeRustDeskBridge.getLocalOption('access_token').trim();
     let userInfoRaw = NativeRustDeskBridge.getLocalOption('user_info').trim();
+    Logger.info('AUTH', `loadSavedToken: native token_len=${token.length}, user_info_len=${userInfoRaw.length}`);
     if (token.length === 0) {
       token = (PreferenceStore.getAccountToken() ?? '').trim();
+      Logger.info('AUTH', `loadSavedToken: prefStore token_len=${token.length}`);
       if (token.length > 0) {
         NativeRustDeskBridge.setLocalOption('access_token', token);
       }
@@ -138,7 +142,7 @@ export class AccountService {
           avatar = user.avatar ?? '';
           provider = user.third_auth_type ?? '';
         } catch (e) {
-          console.error('[AccountService] Parse user_info failed:', e);
+          Logger.error('AUTH', `Parse user_info failed: ${JSON.stringify(e)}`);
         }
       }
 
@@ -150,7 +154,11 @@ export class AccountService {
         accessToken: token,
         provider: provider
       });
+      Logger.info('AUTH', `loadSavedToken: restored login for user="${username}", provider="${provider}"`);
+      void this.fetchAddressBook();
       void this.startServiceSync();
+    } else {
+      Logger.info('AUTH', 'loadSavedToken: no saved token found, skipping login restore');
     }
   }
 
@@ -215,7 +223,7 @@ export class AccountService {
     const generation = this.oauthGeneration;
     const apiServer = this.httpClient.getApiServer();
     this.oauthApiServer = apiServer;
-    console.info('[AccountService] loginWithOAuth called with provider:', provider);
+    Logger.debug('AUTH', `loginWithOAuth called with provider: ${provider}`);
     this.pollCount = 0;
     this.appState.setAccount({ status: 'requesting' });
 
@@ -247,7 +255,7 @@ export class AccountService {
       this.startOidcPolling(apiServer, generation);
       return true;
     } catch (e) {
-      console.error('[AccountService] loginWithOAuth error:', e);
+      Logger.error('AUTH', `loginWithOAuth error: ${JSON.stringify(e)}`);
       this.appState.setAccount({ status: 'error', lastError: I18nService.getInstance().translate('Auth request error') });
       return false;
     }
@@ -317,7 +325,7 @@ export class AccountService {
           void this.startServiceSync();
         }
       } catch (e) {
-        console.error('[AccountService] OIDC poll error:', e);
+        Logger.error('AUTH', `OIDC poll error: ${JSON.stringify(e)}`);
       }
     }, this.POLL_INTERVAL);
   }
@@ -381,6 +389,7 @@ export class AccountService {
     if (!access_token) {
       return;
     }
+    Logger.debug('AUTH', `handleLoginSuccess: user="${user?.name ?? ''}", provider="${user?.third_auth_type ?? ''}"`);
 
     NativeRustDeskBridge.setLocalOption('access_token', access_token);
     PreferenceStore.setAccountToken(access_token);
@@ -407,11 +416,16 @@ export class AccountService {
   }
 
   async fetchAddressBook(): Promise<void> {
+    Logger.info('SYNC', 'fetchAddressBook start');
+    Logger.debug('SYNC', 'fetchAddressBook start');
     this.syncApiServerFromSettings();
     const result = await this.httpClient.getAddressBook();
+    Logger.info('SYNC', `getAddressBook: success=${result.success}, peers=${result.data?.peers?.length ?? 0}, groups=${result.data?.groups?.length ?? 0}`);
+    Logger.debug('SYNC', `getAddressBook success=${result.success}, peers=${result.data?.peers?.length ?? 0}, groups=${result.data?.groups?.length ?? 0}`);
     if (result.success && result.data) {
       const entries: AddressBookEntry[] = [];
       const seenIds: Set<string> = new Set<string>();
+      const appData = AppDataService.getInstance();
       
       if (result.data.peers) {
         for (const peer of result.data.peers) {
@@ -426,7 +440,7 @@ export class AccountService {
             note: peer.note ?? peer.hostname ?? '',
             group: (peer.tags ?? []).join(', '),
             online: peer.online ?? false,
-            favorite: false,
+            favorite: appData.isFavorite(peer.id),
             platform: peer.platform ?? ''
           });
         }
@@ -446,15 +460,21 @@ export class AccountService {
               note: peer.note ?? peer.hostname ?? '',
               group: group.name,
               online: peer.online ?? false,
-              favorite: false,
+              favorite: appData.isFavorite(peer.id),
               platform: peer.platform ?? ''
             });
           }
         }
       }
 
-      AppDataService.getInstance().setAddressBook(entries);
+      const beforeCount = appData.getAddressBook().length;
+      appData.mergeAddressBook(entries);
+      const afterCount = appData.getAddressBook().length;
+      Logger.debug('SYNC', `mergeAddressBook: server=${entries.length}, localBefore=${beforeCount}, localAfter=${afterCount}`);
+      Logger.info('SYNC', `fetchAddressBook done: server=${entries.length}, merged=${afterCount}`);
       this.eventBus.emit(EventType.ADDRESS_BOOK_UPDATED, { entries });
+    } else {
+      Logger.info('SYNC', `fetchAddressBook failed: success=${result.success}, error=${result.error ?? 'none'}`);
     }
   }
 
@@ -482,6 +502,7 @@ export class AccountService {
     }
     this.serviceSyncBusy = true;
     try {
+      Logger.debug('SYNC', `syncServiceState: includeSysinfo=${includeSysinfo}`);
       this.syncApiServerFromSettings();
       await this.httpClient.sendHeartbeat();
       if (includeSysinfo) {
@@ -494,41 +515,35 @@ export class AccountService {
   }
 
   async addPeerToAddressBook(peer: AbPeer): Promise<boolean> {
+    Logger.debug('SYNC', `addPeerToAddressBook: id="${peer.id}", alias="${peer.alias ?? ''}"`);
     this.syncApiServerFromSettings();
     const result = await this.httpClient.addAbPeer(peer);
-    if (result.success) {
-      void this.fetchAddressBook();
-      return true;
-    }
-    return false;
+    Logger.debug('SYNC', `addPeerToAddressBook result: success=${result.success}`);
+    return result.success;
   }
 
   async updatePeerInAddressBook(peer: AbPeer): Promise<boolean> {
+    Logger.debug('SYNC', `updatePeerInAddressBook: id="${peer.id}", alias="${peer.alias ?? ''}"`);
     this.syncApiServerFromSettings();
     const result = await this.httpClient.updateAbPeer(peer);
-    if (result.success) {
-      void this.fetchAddressBook();
-      return true;
-    }
-    return false;
+    Logger.debug('SYNC', `updatePeerInAddressBook result: success=${result.success}`);
+    return result.success;
   }
 
   async deletePeerFromAddressBook(peerId: string): Promise<boolean> {
+    Logger.debug('SYNC', `deletePeerFromAddressBook: id="${peerId}"`);
     this.syncApiServerFromSettings();
     const result = await this.httpClient.deleteAbPeer(peerId);
-    if (result.success) {
-      void this.fetchAddressBook();
-      return true;
-    }
-    return false;
+    Logger.debug('SYNC', `deletePeerFromAddressBook result: success=${result.success}`);
+    return result.success;
   }
 
   private async openBrowser(url: string): Promise<boolean> {
-    console.info('[AccountService] openBrowser called with URL:', url);
+    Logger.debug('AUTH', `openBrowser called with URL: ${url}`);
     try {
       const context = AppContextService.getContext();
       if (!context) {
-        console.error('[AccountService] No context available');
+        Logger.error('AUTH', 'No context available');
         return false;
       }
 
@@ -539,18 +554,18 @@ export class AccountService {
           uri: url,
           flags: 0x10000000
         });
-        console.info('[AccountService] Browser opened via implicit Intent');
+        Logger.debug('AUTH', 'Browser opened via implicit Intent');
         return true;
       } catch (e) {
-        console.info('[AccountService] Implicit Intent failed:', JSON.stringify(e));
+        Logger.debug('AUTH', `Implicit Intent failed: ${JSON.stringify(e)}`);
       }
 
       try {
         await context.openLink(url);
-        console.info('[AccountService] Browser opened via openLink');
+        Logger.debug('AUTH', 'Browser opened via openLink');
         return true;
       } catch (e) {
-        console.info('[AccountService] openLink failed:', JSON.stringify(e));
+        Logger.debug('AUTH', `openLink failed: ${JSON.stringify(e)}`);
       }
 
       try {
@@ -560,16 +575,16 @@ export class AccountService {
           uri: url,
           flags: 0x10000000
         });
-        console.info('[AccountService] Huawei Browser launched');
+        Logger.debug('AUTH', 'Huawei Browser launched');
         return true;
       } catch (e) {
-        console.info('[AccountService] Huawei Browser failed:', JSON.stringify(e));
+        Logger.debug('AUTH', `Huawei Browser failed: ${JSON.stringify(e)}`);
       }
 
-      console.error('[AccountService] All browser launch methods failed');
+      Logger.error('AUTH', 'All browser launch methods failed');
       return false;
     } catch (error) {
-      console.error('[AccountService] openBrowser error:', JSON.stringify(error));
+      Logger.error('AUTH', `openBrowser error: ${JSON.stringify(error)}`);
       return false;
     }
   }

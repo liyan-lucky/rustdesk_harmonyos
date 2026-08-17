@@ -2,6 +2,7 @@ import { PreferenceStore } from './PreferenceStore';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { I18nService } from './I18nService';
+import { Logger } from '../common/Logger';
 import deviceInfo from '@ohos.deviceInfo';
 
 export interface RecentSession {
@@ -180,10 +181,7 @@ export class AppDataService {
     if (settings.allowClipboard !== undefined) next.allowClipboard = settings.allowClipboard;
     if (settings.idServer !== undefined) next.idServer = AppDataService.normalizeStoredServerValue(settings.idServer, AppDataService.OFFICIAL_ID_SERVER);
     if (settings.relayServer !== undefined) next.relayServer = AppDataService.normalizeStoredServerValue(settings.relayServer, AppDataService.OFFICIAL_RELAY_SERVER);
-    if (settings.apiServer !== undefined) {
-      next.apiServer = AppDataService.normalizeStoredServerValue(settings.apiServer, AppDataService.OFFICIAL_API_SERVER);
-      console.info(`[AppDataService] updateSettings: apiServer input="${settings.apiServer}" → normalized="${next.apiServer}"`);
-    }
+    if (settings.apiServer !== undefined) next.apiServer = AppDataService.normalizeStoredServerValue(settings.apiServer, AppDataService.OFFICIAL_API_SERVER);
     if (settings.key !== undefined) next.key = settings.key;
     if (settings.enableAudio !== undefined) next.enableAudio = settings.enableAudio;
     if (settings.enableClipboard !== undefined) next.enableClipboard = settings.enableClipboard;
@@ -664,6 +662,48 @@ export class AppDataService {
     this.persistAddressBook();
   }
 
+  mergeAddressBook(serverEntries: AddressBookEntry[]): void {
+    const serverMap: Map<string, AddressBookEntry> = new Map();
+    for (const entry of serverEntries) {
+      const normalized = this.normalizeAddressBookEntry(entry);
+      serverMap.set(normalized.id, normalized);
+    }
+    const merged: AddressBookEntry[] = [];
+    const seenIds: Set<string> = new Set<string>();
+    let updatedCount = 0;
+    let keptCount = 0;
+    let newCount = 0;
+    for (const local of this.addressBook) {
+      const server = serverMap.get(local.id);
+      if (server) {
+        merged.push({
+          id: server.id,
+          alias: server.alias,
+          note: server.note,
+          group: server.group,
+          online: server.online,
+          favorite: local.favorite,
+          platform: server.platform
+        });
+        seenIds.add(server.id);
+        updatedCount++;
+      } else {
+        merged.push(this.cloneAddressBookEntry(local));
+        seenIds.add(local.id);
+        keptCount++;
+      }
+    }
+    serverMap.forEach((server: AddressBookEntry, id: string) => {
+      if (!seenIds.has(id)) {
+        merged.push(server);
+        newCount++;
+      }
+    });
+    Logger.debug('SYNC', `mergeAddressBook: server=${serverEntries.length}, local=${this.addressBook.length}, updated=${updatedCount}, kept=${keptCount}, new=${newCount}, merged=${merged.length}`);
+    this.addressBook = merged;
+    this.persistAddressBook();
+  }
+
   getDisplayName(id: string): string {
     const normalizedId = DeviceIdFormatter.parse(id);
     const normalizedEntry = this.getAddressBookEntry(normalizedId);
@@ -798,17 +838,17 @@ export class AppDataService {
 
   private loadSettings(): void {
     const value = PreferenceStore.getSettings();
-    console.info(`[AppDataService] loadSettings: raw value = ${value ? value.substring(0, 200) : 'null'}`);
+    Logger.debug('SETTINGS', `loadSettings: raw = ${value ? value.substring(0, 200) : 'null'}`);
     if (!value) {
       this.persistSettings();
       return;
     }
     try {
       const parsed = JSON.parse(value) as Partial<SettingsState>;
-      console.info(`[AppDataService] loadSettings: parsed.apiServer = "${parsed.apiServer ?? 'undefined'}", parsed.idServer = "${parsed.idServer ?? 'undefined'}"`);
+      Logger.debug('SETTINGS', `loadSettings: parsed.apiServer="${parsed.apiServer ?? 'undefined'}", parsed.idServer="${parsed.idServer ?? 'undefined'}"`);
       this.settings = AppDataService.createDefaultSettings();
       this.updateSettings(parsed);
-      console.info(`[AppDataService] loadSettings: after updateSettings, settings.apiServer = "${this.settings.apiServer}", settings.idServer = "${this.settings.idServer}"`);
+      Logger.debug('SETTINGS', `loadSettings: after update, settings.apiServer="${this.settings.apiServer}", settings.idServer="${this.settings.idServer}"`);
     } catch (_error) {
       this.settings = AppDataService.createDefaultSettings();
       this.persistSettings();

@@ -3,6 +3,7 @@ import { AppState } from '../services/AppState';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
 import { createStrokeIconColorFilter } from '../common/CommonComponents';
+import { Logger } from '../common/Logger';
 
 type LoginMode = 'oauth' | 'password';
 
@@ -51,7 +52,7 @@ struct LoginPage {
 
   aboutToAppear(): void {
     this.accountService.syncApiServerFromSettings();
-    console.info('[LoginPage] Using configured API server');
+    Logger.debug('LOGIN', 'LoginPage aboutToAppear, using configured API server');
     void this.loadProviders();
 
     if (this.accountState.isLoggedIn) {

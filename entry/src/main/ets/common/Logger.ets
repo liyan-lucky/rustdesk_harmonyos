@@ -17,23 +17,23 @@ export class Logger {
   }
 
   static info(tag: string, msg: string): void {
-    hilog.error(LOG_DOMAIN, 'JSAPP', `[${tag}] ${msg}`);
+    console.error(`[${tag}] ${msg}`);
     Logger.appendSessionLog(`[INFO][${tag}] ${msg}`);
   }
 
   static warn(tag: string, msg: string): void {
-    hilog.error(LOG_DOMAIN, 'JSAPP', `[${tag}] ${msg}`);
+    console.error(`[${tag}] ${msg}`);
     Logger.appendSessionLog(`[WARN][${tag}] ${msg}`);
   }
 
   static error(tag: string, msg: string): void {
-    hilog.error(LOG_DOMAIN, 'JSAPP', `[${tag}] ${msg}`);
+    console.error(`[${tag}] ${msg}`);
     Logger.appendSessionLog(`[ERROR][${tag}] ${msg}`);
   }
 
   static debug(tag: string, msg: string): void {
     if (Logger.debugEnabled) {
-      hilog.error(LOG_DOMAIN, 'JSAPP', `[${tag}] [DEBUG] ${msg}`);
+      console.error(`[${tag}] [DEBUG] ${msg}`);
       Logger.appendSessionLog(`[DEBUG][${tag}] ${msg}`);
     }
   }

@@ -1,6 +1,7 @@
 import http from '@ohos.net.http';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { AppDataService } from './AppDataService';
+import { Logger } from '../common/Logger';
 
 export interface HttpResult<T> {
   success: boolean;
@@ -169,7 +170,7 @@ export class HttpClient {
   setApiServer(apiServer: string): void {
     const normalized = apiServer.trim();
     this.baseUrl = normalized.length > 0 ? normalized : AppDataService.OFFICIAL_API_SERVER;
-    console.info(`[HttpClient] setApiServer: input="${apiServer}" → baseUrl="${this.baseUrl}"`);
+    Logger.debug('HTTP', `setApiServer: input="${apiServer}" → baseUrl="${this.baseUrl}"`);
   }
 
   getApiServer(): string {
@@ -191,9 +192,9 @@ export class HttpClient {
     const logUrl = this.redactUrlForLog(url);
     const accessToken = this.getAccessToken();
 
-    console.info(`[HttpClient] ${method === http.RequestMethod.GET ? 'GET' : 'POST'} ${logUrl}`);
+    Logger.debug('HTTP', `${method === http.RequestMethod.GET ? 'GET' : 'POST'} ${logUrl}`);
     if (body) {
-      console.info(`[HttpClient] body: ${this.redactForLog(body)}`);
+      Logger.debug('HTTP', `body: ${this.redactForLog(body)}`);
     }
 
     const headers: Record<string, string> = {
@@ -221,25 +222,25 @@ export class HttpClient {
       const response = await httpRequest.request(url, options);
       const statusCode = response.responseCode;
 
-      console.info(`[HttpClient] Response status: ${statusCode}`);
+      Logger.debug('HTTP', `Response status: ${statusCode}`);
 
       if (statusCode >= 200 && statusCode < 300) {
         const data = response.result as T;
-        console.info(`[HttpClient] Response data: ${this.redactForLog(response.result)}`);
+        Logger.debug('HTTP', `Response data: ${this.redactForLog(response.result)}`);
         return { success: true, data, statusCode };
       }
 
       if (statusCode === 401 || statusCode === 400) {
-        console.error(`[HttpClient] Auth failed: ${statusCode}`);
+        Logger.error('HTTP', `Auth failed: ${statusCode}`);
         return { success: false, error: '认证失败，请重新登录', statusCode };
       }
 
       const errorMsg = this.parseError(response.result);
-      console.error(`[HttpClient] Error: ${errorMsg}, status: ${statusCode}`);
+      Logger.error('HTTP', `Error: ${errorMsg}, status: ${statusCode}`);
       return { success: false, error: errorMsg, statusCode };
     } catch (error) {
       const errorMsg = `网络请求失败: ${JSON.stringify(error)}`;
-      console.error(`[HttpClient] Exception: ${errorMsg}`);
+      Logger.error('HTTP', `Exception: ${errorMsg}`);
       return { success: false, error: errorMsg };
     } finally {
       httpRequest.destroy();
@@ -316,7 +317,7 @@ export class HttpClient {
               }
             }
           } catch (error) {
-            console.warn('[HttpClient] Invalid common OIDC login options: ' + JSON.stringify(error));
+            Logger.warn('HTTP', 'Invalid common OIDC login options: ' + JSON.stringify(error));
           }
           break;
         } else if (typeof item === 'string' && item.startsWith('oidc/')) {
@@ -369,7 +370,7 @@ export class HttpClient {
         info.name = parsed['name'] ?? '';
       }
     } catch (error) {
-      console.warn('[HttpClient] Invalid login device info:', JSON.stringify(error));
+      Logger.warn('HTTP', `Invalid login device info: ${JSON.stringify(error)}`);
     }
     if (info.name.length === 0) {
       info.name = this.getDeviceId();
@@ -383,14 +384,14 @@ export class HttpClient {
     body.id = this.getDeviceId();
     body.uuid = this.getDeviceUuid();
     body.deviceInfo = this.getLoginDeviceInfo();
-    console.info(`[HttpClient] oidcAuth: op=${body.op}, id=${body.id}, uuid_len=${body.uuid.length}`);
+    Logger.debug('AUTH', `oidcAuth: op=${body.op}, id=${body.id}, uuid_len=${body.uuid.length}`);
     return this.request<OidcAuthResponse>(http.RequestMethod.POST, '/api/oidc/auth', body, apiServer);
   }
 
   async oidcAuthQuery(code: string, apiServer?: string): Promise<HttpResult<AuthQueryResponse>> {
     const id = this.getDeviceId();
     const uuid = this.getDeviceUuid();
-    console.info(`[HttpClient] oidcAuthQuery: code_len=${code.length}, id=${id}, uuid_len=${uuid.length}`);
+    Logger.debug('AUTH', `oidcAuthQuery: code_len=${code.length}, id=${id}, uuid_len=${uuid.length}`);
     const path = `/api/oidc/auth-query?code=${encodeURIComponent(code)}&id=${encodeURIComponent(id)}&uuid=${encodeURIComponent(uuid)}`;
     const rawResult = await this.request<Record<string, Object>>(http.RequestMethod.GET, path, undefined, apiServer);
 
@@ -404,7 +405,7 @@ export class HttpClient {
       try {
         raw = JSON.parse(raw['body'] as string) as Record<string, Object>;
       } catch (e) {
-        console.warn('[HttpClient] Failed to parse nested body string:', e);
+        Logger.warn('HTTP', `Failed to parse nested body string: ${JSON.stringify(e)}`);
       }
     }
     const adapted: AuthQueryResponse = {};
@@ -429,7 +430,7 @@ export class HttpClient {
       adapted.state_msg = String(raw['state_msg']);
     }
 
-    console.info(`[HttpClient] oidcAuthQuery adapted: auth_body=${adapted.auth_body ? 'yes' : 'no'}, failed_msg=${adapted.failed_msg ?? 'none'}`);
+    Logger.debug('AUTH', `oidcAuthQuery adapted: auth_body=${adapted.auth_body ? 'yes' : 'no'}, failed_msg=${adapted.failed_msg ?? 'none'}`);
     return { success: true, data: adapted, statusCode: rawResult.statusCode };
   }
 
@@ -472,17 +473,17 @@ export class HttpClient {
       try {
         raw = JSON.parse(raw['data'] as string) as Record<string, Object>;
       } catch (error) {
-        console.error('[HttpClient] Failed to parse legacy address book data:', JSON.stringify(error));
+        Logger.error('HTTP', `Failed to parse legacy address book data: ${JSON.stringify(error)}`);
         return { success: false, error: 'Invalid address book response', statusCode: rawResult.statusCode };
       }
     }
 
     const adapted: AbResponse = {};
     if (Array.isArray(raw['peers'])) {
-      adapted.peers = raw['peers'] as unknown as AbPeer[];
+      adapted.peers = raw['peers'] as Object as AbPeer[];
     }
     if (Array.isArray(raw['groups'])) {
-      adapted.groups = raw['groups'] as unknown as AbGroup[];
+      adapted.groups = raw['groups'] as Object as AbGroup[];
     }
     return { success: true, data: adapted, statusCode: rawResult.statusCode };
   }
@@ -508,15 +509,24 @@ export class HttpClient {
   }
 
   async addAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {
-    return this.post<AbPeer>('/api/ab/peer', peer);
+    Logger.info('HTTP', `addAbPeer: POST /api/ab/peer, id="${peer.id}", alias="${peer.alias ?? ''}"`);
+    const result = await this.post<AbPeer>('/api/ab/peer', peer);
+    Logger.info('HTTP', `addAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}, error=${result.error ?? 'none'}`);
+    return result;
   }
 
   async updateAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {
-    return this.post<AbPeer>(`/api/ab/peer/${peer.id}`, peer);
+    Logger.info('HTTP', `updateAbPeer: POST /api/ab/peer/${peer.id}`);
+    const result = await this.post<AbPeer>(`/api/ab/peer/${peer.id}`, peer);
+    Logger.info('HTTP', `updateAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}`);
+    return result;
   }
 
   async deleteAbPeer(peerId: string): Promise<HttpResult<void>> {
-    return this.post<void>(`/api/ab/peer/${peerId}/delete`);
+    Logger.info('HTTP', `deleteAbPeer: POST /api/ab/peer/${peerId}/delete`);
+    const result = await this.post<void>(`/api/ab/peer/${peerId}/delete`);
+    Logger.info('HTTP', `deleteAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}, error=${result.error ?? 'none'}`);
+    return result;
   }
 
   async updateAbTag(peerId: string, tags: string[]): Promise<HttpResult<void>> {

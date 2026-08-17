@@ -1884,8 +1884,14 @@ struct Index {
             Logger.setDebugEnabled(value);
             if (value) {
               Logger.info('CONN', 'Verbose connection logging enabled by user');
+              Logger.debug('CONN', `Debug logging enabled at ${new Date().toISOString()}`);
+              Logger.debug('CONN', `App version: ${this.buildVersion}, build: ${this.buildTime}`);
+              Logger.debug('SETTINGS', `apiServer="${this.settings.apiServer}", idServer="${this.settings.idServer}", relayServer="${this.settings.relayServer}"`);
+              void this.showToast(this.lt('Debug Log') + ': ON');
+            } else {
+              void this.showToast(this.lt('Debug Log') + ': OFF');
             }
-          }, '', true, 'settings_debug.svg', false)
+          }, '', true, 'settings_tune.svg', false)
           this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`, 'settings_info_circle.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Build Time'), this.buildTime, 'settings_timer.svg', '', true)
           Row({ space: ThemeConfig.SPACING_MD }) {
@@ -2492,6 +2498,19 @@ struct Index {
               .fontColor(this.theme_TEXT_SECONDARY)
               .width('100%')
           }, (item: RuntimeSummaryLine, index: number) => `${index}_${item.label}`)
+          if (Logger.isDebugEnabled()) {
+            Divider().margin({ top: 8, bottom: 4 })
+            Text(this.lt('Debug Log'))
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_TERTIARY)
+              .width('100%')
+            ForEach(this.parseDebugLogLines(), (item: RuntimeSummaryLine, index: number) => {
+              Text(item.label)
+                .fontSize(ThemeConfig.FONT_SIZE_SM - 1)
+                .fontColor(this.theme_TEXT_SECONDARY)
+                .width('100%')
+            }, (item: RuntimeSummaryLine, index: number) => `dbg_${index}`)
+          }
         }
         .width('100%')
         .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
@@ -2599,6 +2618,22 @@ struct Index {
     return this.nativeBridgeSummary.trim().length > 0
       ? this.nativeBridgeSummary
       : NativeRustDeskBridge.getRuntimeLogSummary();
+  }
+
+  private parseDebugLogLines(): RuntimeSummaryLine[] {
+    const raw = Logger.getRecentLog(80);
+    if (raw.trim().length === 0) {
+      return [{ label: this.lt('No data'), value: '' }];
+    }
+    const lines = raw.split('\n');
+    const result: RuntimeSummaryLine[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.length > 0) {
+        result.push({ label: trimmed, value: '' });
+      }
+    }
+    return result.length > 0 ? result : [{ label: this.lt('No data'), value: '' }];
   }
 
   @Builder
@@ -3088,13 +3123,12 @@ struct Index {
           this.buildPeerMenuActionRow(this.lt('Remove from Address Book'), () => {
             const id = this.recentMenuSessionId;
             this.recentMenuSessionId = '';
-            this.appData.removeAddressBookEntry(id);
-            this.refreshAccountState();
+            void this.deleteAddressBookEntry(id);
           })
         }
 
         if (this.currentConnectTab === 'recent' || this.currentConnectTab === 'favorites' ||
-          this.currentConnectTab === 'addressBook' || this.currentConnectTab === 'discovered') {
+          this.currentConnectTab === 'discovered') {
           Divider()
             .color(this.theme_BORDER_SUBTLE)
 
@@ -4074,9 +4108,9 @@ struct Index {
     if (ids.length === 0) {
       return;
     }
-    console.info('[Index] pollOnlineStatusOnce: querying', ids.length, 'ids, coreReady=', this.officialCoreState.coreReady);
+    Logger.debug('NET', `pollOnlineStatusOnce: querying ${ids.length} ids, coreReady=${this.officialCoreState.coreReady}`);
     const result = this.officialBridge.queryOnlines(ids);
-    console.info('[Index] queryOnlines returned:', result);
+    Logger.debug('NET', `queryOnlines returned: ${JSON.stringify(result)}`);
   }
 
   private updateSettings(patch: Partial<SettingsState>): void {
@@ -4154,7 +4188,7 @@ struct Index {
   }
 
   private async applyDraftServers(): Promise<void> {
-    console.info(`[Index] applyDraftServers: draftApiServer="${this.draftApiServer}", draftIdServer="${this.draftIdServer}"`);
+    Logger.debug('SETTINGS', `applyDraftServers: draftApiServer="${this.draftApiServer}", draftIdServer="${this.draftIdServer}"`);
     if (this.draftApiServer.trim() !== this.settings.apiServer.trim()) {
       this.accountService.cancelLogin();
     }
@@ -4164,7 +4198,7 @@ struct Index {
       apiServer: this.draftApiServer.trim(),
       key: this.draftKey.trim()
     });
-    console.info(`[Index] applyDraftServers: after save, settings.apiServer="${this.settings.apiServer}"`);
+    Logger.debug('SETTINGS', `applyDraftServers: after save, settings.apiServer="${this.settings.apiServer}"`);
     NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
     this.syncDraftServers();
     this.setStatusMessage("server_updated");
@@ -4968,6 +5002,28 @@ struct Index {
       browserOpened: fresh.browserOpened
     };
     this.accountRefreshTick++;
+  }
+
+  private async deleteAddressBookEntry(peerId: string): Promise<void> {
+    Logger.info('SYNC', `deleteAddressBookEntry: id="${peerId}", isLoggedIn=${this.accountState.isLoggedIn}`);
+    const existing = this.appData.getAddressBookEntry(peerId);
+    this.appData.removeAddressBookEntry(peerId);
+    this.addressBookVersion++;
+    this.refreshAccountState();
+    if (this.accountState.isLoggedIn) {
+      const success = await this.accountService.deletePeerFromAddressBook(peerId);
+      Logger.info('SYNC', `deleteAddressBookEntry: server delete result=${success}`);
+      if (!success && existing) {
+        this.appData.addAddressBookEntry(existing);
+        this.addressBookVersion++;
+        this.refreshAccountState();
+        try {
+          this.getUIContext().getPromptAction().openToast({
+            message: this.lt('Delete failed on server, entry kept')
+          });
+        } catch (e) {}
+      }
+    }
   }
 
   private isFavorite(id: string): boolean {
