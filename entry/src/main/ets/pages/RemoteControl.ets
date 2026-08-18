@@ -996,7 +996,10 @@ struct RemoteControl {
           this.buildKeyboardPanel();
         }
         .width('100%')
-        .translate({ y: 4 })
+        .height('100%')
+        .padding({ top: 4 })
+        .justifyContent(FlexAlign.Start)
+        .hitTestBehavior(HitTestMode.Transparent)
         .zIndex(100)
       }
 
@@ -1689,15 +1692,7 @@ struct RemoteControl {
       .onBlur(() => {
         this.imeProxyFocused = false;
         this.remoteInputActive = false;
-        if (this.imeProxyDismissRequested || !this.showKeyboard) {
-          return;
-        }
-        this.imeBlurTimer = setTimeout(() => {
-          this.imeBlurTimer = -1;
-          if (!this.imeProxyFocused && this.showKeyboard && !this.imeProxyDismissRequested) {
-            this.requestSystemKeyboard();
-          }
-        }, 120);
+        this.imeProxyDismissRequested = true;
       });
   }
 
@@ -3447,26 +3442,55 @@ struct RemoteControl {
   }
 
   private sendTextPayload(text: string): void {
+    const stickyModifiers = this.buildModifierMask();
     for (let i = 0; i < text.length; i += 1) {
       const code = text.charCodeAt(i);
-      let vk = code;
-      let modifiers = 0;
-      if (code >= 97 && code <= 122) {
-        vk = code - 32;
-      } else if (code >= 65 && code <= 90) {
-        modifiers = 4;
+      const keyStroke = this.resolveAsciiKeyStroke(code);
+      if (keyStroke[0] <= 0) {
+        continue;
       }
+      const vk = keyStroke[0];
+      const modifiers = stickyModifiers | keyStroke[1];
       NativeRustDeskBridge.sendKeyboardInput(vk, true, modifiers);
       NativeRustDeskBridge.sendKeyboardInput(vk, false, modifiers);
+    }
+    if (stickyModifiers !== 0) {
+      this.releaseAllStickyKeys();
     }
   }
 
   private sendImeCommittedText(text: string): void {
-    if (this.isAlphanumericText(text)) {
+    if (this.isAlphanumericText(text) || (this.buildModifierMask() !== 0 && this.isAsciiKeyboardText(text))) {
       this.sendTextPayload(text);
       return;
     }
     NativeRustDeskBridge.sessionInputString(text);
+  }
+
+  private isAsciiKeyboardText(text: string): boolean {
+    for (let index = 0; index < text.length; index += 1) {
+      const code = text.charCodeAt(index);
+      if (code < 32 || code > 126) {
+        return false;
+      }
+    }
+    return text.length > 0;
+  }
+
+  private resolveAsciiKeyStroke(code: number): number[] {
+    if (code >= 97 && code <= 122) return [code - 32, 0];
+    if (code >= 65 && code <= 90) return [code, 4];
+    if (code >= 48 && code <= 57) return [code, 0];
+    if (code === 32) return [32, 0];
+    const plainCodes: number[] = [186, 187, 188, 189, 190, 191, 192, 219, 220, 221, 222];
+    const plainChars: string = ';=,-./`[\\]\'';
+    const plainIndex = plainChars.indexOf(String.fromCharCode(code));
+    if (plainIndex >= 0) return [plainCodes[plainIndex], 0];
+    const shiftedCodes: number[] = [49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 186, 187, 188, 189, 190, 191, 192, 219, 220, 221, 222];
+    const shiftedChars: string = '!@#$%^&*():+<_>?~{|}"';
+    const shiftedIndex = shiftedChars.indexOf(String.fromCharCode(code));
+    if (shiftedIndex >= 0) return [shiftedCodes[shiftedIndex], 4];
+    return [0, 0];
   }
 
   private isAlphanumericText(text: string): boolean {
