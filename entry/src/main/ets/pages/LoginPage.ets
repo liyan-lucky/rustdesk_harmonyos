@@ -40,6 +40,9 @@ struct LoginPage {
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
+  @StorageLink('apiNetworkStatus') apiNetworkStatus: string = 'idle';
+  @StorageLink('apiNetworkServer') apiNetworkServer: string = '';
+  @StorageLink('apiNetworkError') apiNetworkError: string = '';
   @StorageLink('app:account') accountState: AccountState = {
     isLoggedIn: false, username: '', displayName: '', avatar: '',
     accessToken: '', provider: '', loginUrl: '', status: 'idle', lastError: ''
@@ -162,6 +165,8 @@ struct LoginPage {
       .padding({ left: 12, right: 12 })
       .margin({ bottom: 16 })
 
+      this.buildApiNetworkStatus()
+
       if (this.loginMode === 'oauth') {
         this.buildOAuthLogin()
       } else {
@@ -202,6 +207,47 @@ struct LoginPage {
     .height('100%')
     .backgroundColor(this.theme_GRAY_BG)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+
+  @Builder
+  private buildApiNetworkStatus() {
+    Column({ space: 4 }) {
+      Row({ space: 8 }) {
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(this.apiNetworkStatus === 'online' ? '#22C55E' :
+            (this.apiNetworkStatus === 'offline' ? '#EF4444' : '#F59E0B'))
+        Text(`${this.lt('API Server')}: ${this.describeApiNetworkStatus()}`)
+          .fontSize(13)
+          .fontColor(this.apiNetworkStatus === 'offline' ? this.theme_ERROR_TEXT : this.theme_TEXT_SECONDARY)
+          .layoutWeight(1)
+      }
+      .width('100%')
+
+      Text(this.apiNetworkServer)
+        .fontSize(11)
+        .fontColor(this.theme_TEXT_TERTIARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+      if (this.apiNetworkStatus === 'offline' && this.apiNetworkError.length > 0) {
+        Text(this.apiNetworkError)
+          .fontSize(11)
+          .fontColor(this.theme_ERROR_TEXT)
+          .maxLines(3)
+          .width('100%')
+      }
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, bottom: 12 })
+  }
+
+  private describeApiNetworkStatus(): string {
+    if (this.apiNetworkStatus === 'online') return this.lt('Available');
+    if (this.apiNetworkStatus === 'offline') return this.lt('Unreachable');
+    if (this.apiNetworkStatus === 'checking') return this.lt('Connecting...');
+    return this.lt('Not checked');
   }
 
   @Builder

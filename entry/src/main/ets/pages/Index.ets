@@ -536,6 +536,9 @@ struct Index {
   @State showCoreDetailDialog: boolean = false;
   @State selectedCoreModuleIndex: number = 0;
   @State accountState: AccountState = this.appState.getAccount();
+  @StorageLink('apiNetworkStatus') apiNetworkStatus: string = 'idle';
+  @StorageLink('apiNetworkServer') apiNetworkServer: string = '';
+  @StorageLink('apiNetworkError') apiNetworkError: string = '';
   @State accountRefreshTick: number = 0;
   @State recentSessions: RecentSession[] = this.appData.getRecentSessions();
   @State chatSessions: ChatSession[] = [];
@@ -3095,16 +3098,7 @@ struct Index {
               const id = this.recentMenuSessionId;
               const session = this.recentSessions.find((s: RecentSession) => s.id === id);
               this.recentMenuSessionId = '';
-              this.appData.addAddressBookEntry({
-                id: id,
-                alias: session ? session.name : '',
-                note: '',
-                group: '',
-                online: false,
-                favorite: false,
-                platform: session ? session.platform : ''
-              });
-              this.refreshAccountState();
+              void this.addRecentPeerToAddressBook(id, session);
             })
           }
         }
@@ -5369,6 +5363,41 @@ struct Index {
     return this.lt('Idle');
   }
 
+  private async addRecentPeerToAddressBook(peerId: string, session: RecentSession | undefined): Promise<void> {
+    const entry: AddressBookEntry = {
+      id: peerId,
+      alias: session ? session.name : '',
+      note: '',
+      group: '',
+      online: false,
+      favorite: false,
+      platform: session ? session.platform : '',
+      tags: []
+    };
+    this.appData.addAddressBookEntry(entry);
+    this.addressBookVersion++;
+    this.refreshAccountState();
+    if (!this.accountState.isLoggedIn) {
+      return;
+    }
+    const success = await this.accountService.addPeerToAddressBook({
+      id: peerId,
+      alias: entry.alias,
+      platform: entry.platform,
+      tags: []
+    });
+    if (!success) {
+      await this.showToast(this.lt('Add failed on server, entry kept locally'));
+    }
+  }
+
+  private describeApiNetworkStatus(): string {
+    if (this.apiNetworkStatus === 'online') return this.lt('Available');
+    if (this.apiNetworkStatus === 'offline') return this.lt('Unreachable');
+    if (this.apiNetworkStatus === 'checking') return this.lt('Connecting...');
+    return this.lt('Not checked');
+  }
+
   private resolveGithubLoginButtonLabel(): string {
     if (this.accountState.status === 'requesting') {
       return this.lt('Preparing login');
@@ -6217,6 +6246,22 @@ struct Index {
             })
         }
         .width('100%')
+
+        this.buildSettingsInfoSettingRow(this.lt('API Server'),
+          this.describeApiNetworkStatus(), 'settings_server.svg', '', true)
+        Text(this.apiNetworkServer)
+          .fontSize(11)
+          .fontColor(this.theme_TEXT_TERTIARY)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+        if (this.apiNetworkStatus === 'offline' && this.apiNetworkError.length > 0) {
+          Text(this.apiNetworkError)
+            .fontSize(11)
+            .fontColor(this.theme_ERROR_TEXT)
+            .maxLines(3)
+            .width('100%')
+        }
 
         if (this.accountState.isLoggedIn) {
           Row({ space: 8 }) {

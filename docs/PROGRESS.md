@@ -1120,3 +1120,10 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 
 - Implemented self-hosted API-compatible upload, add, update, delete, and tag synchronization through the legacy `/api/ab` replacement contract.
 - Added usable edit and delete controls to the HarmonyOS address book page.
+# 2026-08-18 API network status
+
+- Added shared API connectivity state driven by all account, provider, heartbeat, and address book HTTP requests.
+- Added API endpoint, reachability status, and last network error to the standalone login page and the home account dialog.
+- Timeout code `2300028` now produces an IPv4/IPv6 connectivity hint instead of leaving an unexplained empty provider list.
+- Fixed the home recent-device action so adding an address book peer also writes to the configured API server.
+- Preserved server address book tags as a real multi-value field and added tag filters plus comma-separated tag editing.

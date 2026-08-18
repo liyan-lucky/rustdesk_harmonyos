@@ -158,6 +158,9 @@ export class I18nService {
   }
 
   private loadChineseTranslations(): void {
+    this.translations.set('Available', '可访问');
+    this.translations.set('Unreachable', '不可达');
+    this.translations.set('Not checked', '尚未检查');
     this.translations.clear();
     this.translations.set('Connection', '连接');
     this.translations.set('Connect', '连接');
@@ -1261,6 +1264,9 @@ export class I18nService {
   }
 
   private loadEnglishTranslations(): void {
+    this.translations.set('Available', 'Available');
+    this.translations.set('Unreachable', 'Unreachable');
+    this.translations.set('Not checked', 'Not checked');
     this.translations.clear();
     this.translations.set('Connection', 'Connection');
     this.translations.set('Connect', 'Connect');

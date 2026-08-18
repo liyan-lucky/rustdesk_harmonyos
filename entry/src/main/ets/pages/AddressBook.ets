@@ -35,6 +35,8 @@ struct AddressBook {
   @State draftGroup: string = '';
   @State draftNote: string = '';
   @State editingId: string = '';
+  @State selectedTag: string = '';
+  @StorageLink('addressBookServerTags') serverTagsJson: string = '[]';
   @State accountState: AccountState = this.appState.getAccount();
 
   aboutToAppear() {
@@ -83,6 +85,7 @@ struct AddressBook {
               this.buildAddCard()
             }
             this.buildFilterBar()
+            this.buildTagFilterBar()
             this.buildList()
           }
         }
@@ -200,7 +203,7 @@ struct AddressBook {
       this.buildInput(this.lt('Device Name'), this.draftAlias, (value: string) => {
         this.draftAlias = value;
       })
-      this.buildInput(this.lt('Group'), this.draftGroup, (value: string) => {
+      this.buildInput(this.lt('Tags'), this.draftGroup, (value: string) => {
         this.draftGroup = value;
       })
       this.buildInput(this.lt('Note'), this.draftNote, (value: string) => {
@@ -263,6 +266,23 @@ struct AddressBook {
   }
 
   @Builder
+  private buildTagFilterBar() {
+    if (this.getServerTags().length > 0) {
+      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+        this.buildFilterButton(this.lt('All Tags'), this.selectedTag.length === 0, () => {
+          this.selectedTag = '';
+        })
+        ForEach(this.getServerTags(), (tag: string) => {
+          this.buildFilterButton(tag, this.selectedTag === tag, () => {
+            this.selectedTag = tag;
+          })
+        }, (tag: string) => tag)
+      }
+      .width('100%')
+    }
+  }
+
+  @Builder
   private buildList() {
     if (this.filteredEntries().length === 0) {
       EmptyState($rawfile('search.svg'), this.lt('No matching devices found.'))
@@ -289,7 +309,7 @@ struct AddressBook {
             StatusBadge(entry.online ? this.lt('Online') : this.lt('Offline'), entry.online)
           }
 
-          Text(`${DeviceIdFormatter.format(entry.id)} · ${entry.group}`)
+          Text(`${DeviceIdFormatter.format(entry.id)} · ${this.entryTags(entry).join(', ')}`)
             .fontSize(13)
             .fontColor(this.theme_TEXT_SECONDARY)
 
@@ -426,12 +446,13 @@ struct AddressBook {
         return false;
       }
       if (keyword.length === 0) {
-        return true;
+        return this.selectedTag.length === 0 || this.entryTags(entry).includes(this.selectedTag);
       }
-      return entry.alias.toLowerCase().indexOf(keyword) >= 0 ||
+      const matchesTag = this.selectedTag.length === 0 || this.entryTags(entry).includes(this.selectedTag);
+      return matchesTag && (entry.alias.toLowerCase().indexOf(keyword) >= 0 ||
         DeviceIdFormatter.parse(entry.id).toLowerCase().indexOf(normalizedKeyword) >= 0 ||
         entry.group.toLowerCase().indexOf(keyword) >= 0 ||
-        entry.note.toLowerCase().indexOf(keyword) >= 0;
+        entry.note.toLowerCase().indexOf(keyword) >= 0);
     });
   }
 
@@ -442,6 +463,7 @@ struct AddressBook {
     }
     const alias = this.draftAlias.trim().length > 0 ? this.draftAlias.trim() : `${this.lt('Remote Device')} ${DeviceIdFormatter.format(id)}`;
     const group = this.draftGroup.trim().length > 0 ? this.draftGroup.trim() : this.lt('Ungrouped');
+    const tags = this.parseTags(group);
     const previous = this.appData.getAddressBookEntry(id);
     const isEditing = this.editingId === id;
     this.appData.addAddressBookEntry({
@@ -451,14 +473,15 @@ struct AddressBook {
       group: group,
       online: true,
       favorite: false,
-      platform: ''
+      platform: '',
+      tags: tags
     });
     if (this.accountState.isLoggedIn) {
       const peer: AbPeer = {
         id: id,
         alias: alias,
         note: this.draftNote.trim(),
-        tags: [group]
+        tags: tags
       };
       const request = isEditing
         ? this.accountService.updatePeerInAddressBook(peer)
@@ -497,7 +520,7 @@ struct AddressBook {
     this.editingId = entry.id;
     this.draftId = entry.id;
     this.draftAlias = entry.alias;
-    this.draftGroup = entry.group;
+    this.draftGroup = this.entryTags(entry).join(', ');
     this.draftNote = entry.note;
     this.showAddPanel = true;
   }
@@ -524,6 +547,24 @@ struct AddressBook {
           });
         } catch (e) {}
       }
+    }
+  }
+
+  private parseTags(value: string): string[] {
+    return value.split(/[,，]/).map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+  }
+
+  private entryTags(entry: AddressBookEntry): string[] {
+    const tags = entry.tags ?? [];
+    return tags.length > 0 ? tags : this.parseTags(entry.group);
+  }
+
+  private getServerTags(): string[] {
+    try {
+      const tags = JSON.parse(this.serverTagsJson) as string[];
+      return tags.filter((tag: string) => tag.trim().length > 0);
+    } catch (error) {
+      return [];
     }
   }
 

@@ -10,6 +10,8 @@ export interface HttpResult<T> {
   statusCode?: number;
 }
 
+export type ApiNetworkStatus = 'idle' | 'checking' | 'online' | 'offline';
+
 export class LoginOption {
   op: string = '';
   name: string = '';
@@ -171,7 +173,9 @@ export class HttpClient {
   private baseUrl: string = AppDataService.OFFICIAL_API_SERVER;
   private timeout: number = 30000;
 
-  private constructor() {}
+  private constructor() {
+    this.publishNetworkState('idle', '', this.baseUrl);
+  }
 
   static getInstance(): HttpClient {
     if (!HttpClient.instance) {
@@ -183,6 +187,7 @@ export class HttpClient {
   setApiServer(apiServer: string): void {
     const normalized = apiServer.trim();
     this.baseUrl = normalized.length > 0 ? normalized : AppDataService.OFFICIAL_API_SERVER;
+    this.publishNetworkState('idle', '', this.baseUrl);
     Logger.debug('HTTP', `setApiServer: input="${apiServer}" → baseUrl="${this.baseUrl}"`);
   }
 
@@ -204,6 +209,7 @@ export class HttpClient {
     const url = `${apiServer ?? this.baseUrl}${path}`;
     const logUrl = this.redactUrlForLog(url);
     const accessToken = this.getAccessToken();
+    this.publishNetworkState('checking', '', apiServer ?? this.baseUrl);
 
     Logger.debug('HTTP', `${method === http.RequestMethod.GET ? 'GET' : 'POST'} ${logUrl}`);
     if (body) {
@@ -234,6 +240,8 @@ export class HttpClient {
 
       const response = await httpRequest.request(url, options);
       const statusCode = response.responseCode;
+      // Any HTTP response proves that the configured API endpoint is reachable.
+      this.publishNetworkState('online', '', apiServer ?? this.baseUrl);
 
       Logger.debug('HTTP', `Response status: ${statusCode}`);
 
@@ -254,10 +262,26 @@ export class HttpClient {
     } catch (error) {
       const errorMsg = `网络请求失败: ${JSON.stringify(error)}`;
       Logger.error('HTTP', `Exception: ${errorMsg}`);
+      this.publishNetworkState('offline', this.describeNetworkError(error), apiServer ?? this.baseUrl);
       return { success: false, error: errorMsg };
     } finally {
       httpRequest.destroy();
     }
+  }
+
+  private publishNetworkState(status: ApiNetworkStatus, error: string, server: string): void {
+    AppStorage.setOrCreate<string>('apiNetworkStatus', status);
+    AppStorage.setOrCreate<string>('apiNetworkServer', server);
+    AppStorage.setOrCreate<string>('apiNetworkError', error);
+    AppStorage.setOrCreate<number>('apiNetworkUpdatedAt', Date.now());
+  }
+
+  private describeNetworkError(error: Object): string {
+    const detail = JSON.stringify(error);
+    if (detail.includes('2300028') || detail.toLowerCase().includes('timeout')) {
+      return 'Connection timed out. Check the server address and IPv4/IPv6 connectivity.';
+    }
+    return detail.length > 0 ? detail : 'Unable to reach the API server.';
   }
 
   private parseError(result: Object | string | undefined): string {

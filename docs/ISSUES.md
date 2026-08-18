@@ -2039,3 +2039,12 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 - Root cause: the client used non-existent per-peer endpoints such as `/api/ab/peer`, while the compatible API accepts address book writes only through `POST /api/ab` with a stringified `data` payload.
 - Fix: add, edit, delete, and tag changes now fetch the latest legacy address book, mutate the target peer, and replace the book through the supported endpoint while preserving tags and tag colors.
 - UI: address book cards now expose edit and delete actions; edit reuses the device form and synchronizes alias, group, and note.
+# 2026-08-18 API network state visibility
+
+**Problem**: Login providers and address book synchronization could fail silently when the configured API server was unreachable, making an empty provider list look like a server configuration issue.
+**Fix**: Every API request now publishes checking, available, or unreachable state. Any HTTP response counts as reachable; DNS, route, and timeout failures expose the active API address and a diagnostic error in both login surfaces.
+
+## 2026-08-18 Local-only address book additions and flattened tags
+
+**Root cause**: The home recent-device menu wrote only to `AppDataService`, bypassing `AccountService.addPeerToAddressBook`. Server peer tags were also flattened into the legacy single `group` field and the server's top-level tag list was discarded.
+**Fix**: Home additions now use the same server mutation path as the address book page. Entries preserve `tags[]`, server tags drive a filter row, and add/edit accepts comma-separated tags while retaining `group` for stored-data compatibility.

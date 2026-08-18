@@ -423,6 +423,7 @@ export class AccountService {
     Logger.info('SYNC', `getAddressBook: success=${result.success}, peers=${result.data?.peers?.length ?? 0}, groups=${result.data?.groups?.length ?? 0}`);
     Logger.debug('SYNC', `getAddressBook success=${result.success}, peers=${result.data?.peers?.length ?? 0}, groups=${result.data?.groups?.length ?? 0}`);
     if (result.success && result.data) {
+      AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(result.data.tags ?? []));
       const entries: AddressBookEntry[] = [];
       const seenIds: Set<string> = new Set<string>();
       const appData = AppDataService.getInstance();
@@ -441,7 +442,8 @@ export class AccountService {
             group: (peer.tags ?? []).join(', '),
             online: peer.online ?? false,
             favorite: appData.isFavorite(peer.id),
-            platform: peer.platform ?? ''
+            platform: peer.platform ?? '',
+            tags: peer.tags ?? []
           });
         }
       }
@@ -461,7 +463,8 @@ export class AccountService {
               group: group.name,
               online: peer.online ?? false,
               favorite: appData.isFavorite(peer.id),
-              platform: peer.platform ?? ''
+              platform: peer.platform ?? '',
+              tags: peer.tags ?? [group.name]
             });
           }
         }

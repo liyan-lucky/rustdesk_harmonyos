@@ -22,6 +22,7 @@ export interface AddressBookEntry {
   online: boolean;
   favorite: boolean;
   platform: string;
+  tags?: string[];
 }
 
 export interface SettingsState {
@@ -683,7 +684,8 @@ export class AppDataService {
           group: server.group,
           online: server.online,
           favorite: local.favorite,
-          platform: server.platform
+          platform: server.platform,
+          tags: server.tags ?? []
         });
         seenIds.add(server.id);
         updatedCount++;
@@ -941,7 +943,8 @@ export class AppDataService {
       group: normalizedGroup,
       online: entry.online,
       favorite: entry.favorite,
-      platform: entry.platform ?? ''
+      platform: entry.platform ?? '',
+      tags: (entry.tags ?? []).map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)
     };
   }
 
@@ -1019,7 +1022,8 @@ export class AppDataService {
       group: this.normalizeAddressBookGroup(entry.group),
       online: entry.online,
       favorite: entry.favorite,
-      platform: entry.platform ?? ''
+      platform: entry.platform ?? '',
+      tags: (entry.tags ?? []).map((tag: string) => tag)
     };
   }
 
