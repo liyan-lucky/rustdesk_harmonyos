@@ -141,6 +141,11 @@ class AbTagCreateRequest {
   color: number = 0;
 }
 
+class AbTagRenameRequest {
+  old: string = '';
+  new: string = '';
+}
+
 class PersonalAddressBookResponse {
   guid: string = '';
 }
@@ -761,6 +766,61 @@ export class HttpClient {
       }
     }
     return this.replaceAddressBook(book.data, peers);
+  }
+
+  async addAddressBookTag(tag: string): Promise<HttpResult<void>> {
+    const normalized = tag.trim();
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    if ((book.data.tags ?? []).includes(normalized)) {
+      return { success: true };
+    }
+    if (this.personalAddressBookGuid.length > 0) {
+      return this.ensureModernTags(book.data, [normalized]);
+    }
+    const tags = book.data.tags ?? [];
+    tags.push(normalized);
+    book.data.tags = tags;
+    return this.replaceAddressBook(book.data, book.data.peers ?? []);
+  }
+
+  async renameAddressBookTag(oldTag: string, newTag: string): Promise<HttpResult<void>> {
+    const oldName = oldTag.trim();
+    const newName = newTag.trim();
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    if (this.personalAddressBookGuid.length > 0) {
+      const body = new AbTagRenameRequest();
+      body.old = oldName;
+      body.new = newName;
+      return this.put<void>(`/api/ab/tag/rename/${encodeURIComponent(this.personalAddressBookGuid)}`, body);
+    }
+    book.data.tags = (book.data.tags ?? []).map((tag: string) => tag === oldName ? newName : tag);
+    for (const peer of book.data.peers ?? []) {
+      peer.tags = (peer.tags ?? []).map((tag: string) => tag === oldName ? newName : tag);
+    }
+    return this.replaceAddressBook(book.data, book.data.peers ?? []);
+  }
+
+  async deleteAddressBookTag(tag: string): Promise<HttpResult<void>> {
+    const normalized = tag.trim();
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    if (this.personalAddressBookGuid.length > 0) {
+      const tags: string[] = [normalized];
+      return this.delete<void>(`/api/ab/tag/${encodeURIComponent(this.personalAddressBookGuid)}`, tags);
+    }
+    book.data.tags = (book.data.tags ?? []).filter((value: string) => value !== normalized);
+    for (const peer of book.data.peers ?? []) {
+      peer.tags = (peer.tags ?? []).filter((value: string) => value !== normalized);
+    }
+    return this.replaceAddressBook(book.data, book.data.peers ?? []);
   }
 
   private mergeAbPeer(current: AbPeer, patch: AbPeer): AbPeer {

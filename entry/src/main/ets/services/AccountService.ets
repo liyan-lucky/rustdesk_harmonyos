@@ -506,6 +506,21 @@ export class AccountService {
     return true;
   }
 
+  async addAddressBookTag(tag: string): Promise<boolean> {
+    this.syncApiServerFromSettings();
+    return (await this.httpClient.addAddressBookTag(tag)).success;
+  }
+
+  async renameAddressBookTag(oldTag: string, newTag: string): Promise<boolean> {
+    this.syncApiServerFromSettings();
+    return (await this.httpClient.renameAddressBookTag(oldTag, newTag)).success;
+  }
+
+  async deleteAddressBookTag(tag: string): Promise<boolean> {
+    this.syncApiServerFromSettings();
+    return (await this.httpClient.deleteAddressBookTag(tag)).success;
+  }
+
   private async startServiceSync(): Promise<void> {
     if (!this.appState.getAccount().isLoggedIn) {
       return;

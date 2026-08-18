@@ -543,6 +543,10 @@ struct Index {
   @StorageLink('addressBookServerTags') addressBookServerTagsJson: string = '[]';
   @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
   @State selectedAddressBookTag: string = '';
+  @State showAddressBookTagManagement: boolean = false;
+  @State addressBookTagDraft: string = '';
+  @State editingAddressBookTag: string = '';
+  @State addressBookTagBusy: boolean = false;
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
@@ -1519,6 +1523,23 @@ struct Index {
           Text(`${this.getAddressBookTags().length}`)
             .fontSize(ThemeConfig.FONT_SIZE_SM)
             .fontColor(this.theme_TEXT_TERTIARY)
+          Button() {
+            Image($rawfile(this.showAddressBookTagManagement ? 'close.svg' : 'dots_vertical.svg'))
+              .width(20)
+              .height(20)
+              .fillColor(this.theme_TEXT_SECONDARY)
+          }
+          .id('address-book-tag-manage-btn')
+          .width(36)
+          .height(36)
+          .backgroundColor(Color.Transparent)
+          .onClick(() => {
+            this.showAddressBookTagManagement = !this.showAddressBookTagManagement;
+            if (!this.showAddressBookTagManagement) {
+              this.addressBookTagDraft = '';
+              this.editingAddressBookTag = '';
+            }
+          })
         }
         .width('100%')
 
@@ -1530,6 +1551,73 @@ struct Index {
           }, (tag: string) => tag)
         }
         .width('100%')
+
+        if (this.showAddressBookTagManagement) {
+          Column({ space: ThemeConfig.SPACING_SM }) {
+            Row({ space: ThemeConfig.SPACING_SM }) {
+              TextInput({
+                placeholder: this.lt(this.editingAddressBookTag.length > 0 ? 'Rename tag' : 'New tag name'),
+                text: this.addressBookTagDraft
+              })
+                .layoutWeight(1)
+                .height(40)
+                .fontSize(ThemeConfig.FONT_SIZE_SM)
+                .backgroundColor(this.theme_INPUT_BG)
+                .onChange((value: string) => {
+                  this.addressBookTagDraft = value;
+                })
+
+              Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag'))
+                .height(40)
+                .enabled(!this.addressBookTagBusy)
+                .backgroundColor(this.theme_ACCENT)
+                .fontColor(this.theme_ACCENT_TEXT)
+                .borderRadius(6)
+                .onClick(() => {
+                  void this.saveAddressBookTag();
+                })
+            }
+            .width('100%')
+
+            ForEach(this.getAddressBookTags(), (tag: string) => {
+              Row({ space: ThemeConfig.SPACING_SM }) {
+                Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
+                Text(tag)
+                  .layoutWeight(1)
+                  .fontSize(ThemeConfig.FONT_SIZE_SM)
+                  .fontColor(this.theme_TEXT_PRIMARY)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                Button() {
+                  Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY)
+                }
+                .width(36)
+                .height(36)
+                .backgroundColor(Color.Transparent)
+                .enabled(!this.addressBookTagBusy)
+                .onClick(() => {
+                  this.editingAddressBookTag = tag;
+                  this.addressBookTagDraft = tag;
+                })
+                Button() {
+                  Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT)
+                }
+                .width(36)
+                .height(36)
+                .backgroundColor(Color.Transparent)
+                .enabled(!this.addressBookTagBusy)
+                .onClick(() => {
+                  void this.removeAddressBookTag(tag);
+                })
+              }
+              .width('100%')
+              .height(42)
+            }, (tag: string) => `manage-${tag}`)
+          }
+          .width('100%')
+          .padding({ top: 4 })
+          .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+        }
       }
       .width('100%')
       .padding(ThemeConfig.SPACING_MD)
@@ -5034,6 +5122,55 @@ struct Index {
       return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).length === 0);
     }
     return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).includes(this.selectedAddressBookTag));
+  }
+
+  private async saveAddressBookTag(): Promise<void> {
+    const tag = this.addressBookTagDraft.trim();
+    if (tag.length === 0) {
+      return;
+    }
+    if (this.editingAddressBookTag !== tag && this.getAddressBookTags().includes(tag)) {
+      await this.showToast(this.lt('Tag already exists'));
+      return;
+    }
+    this.addressBookTagBusy = true;
+    const oldTag = this.editingAddressBookTag;
+    const success = oldTag.length > 0
+      ? await this.accountService.renameAddressBookTag(oldTag, tag)
+      : await this.accountService.addAddressBookTag(tag);
+    if (success) {
+      await this.accountService.fetchAddressBook();
+      if (this.selectedAddressBookTag === oldTag) {
+        this.selectedAddressBookTag = tag;
+      }
+      this.addressBookTagDraft = '';
+      this.editingAddressBookTag = '';
+      this.addressBookVersion++;
+      await this.showToast(this.lt(oldTag.length > 0 ? 'Tag renamed' : 'Tag created'));
+    } else {
+      await this.showToast(this.lt('Tag operation failed'));
+    }
+    this.addressBookTagBusy = false;
+  }
+
+  private async removeAddressBookTag(tag: string): Promise<void> {
+    this.addressBookTagBusy = true;
+    const success = await this.accountService.deleteAddressBookTag(tag);
+    if (success) {
+      await this.accountService.fetchAddressBook();
+      if (this.selectedAddressBookTag === tag) {
+        this.selectedAddressBookTag = '';
+      }
+      if (this.editingAddressBookTag === tag) {
+        this.editingAddressBookTag = '';
+        this.addressBookTagDraft = '';
+      }
+      this.addressBookVersion++;
+      await this.showToast(this.lt('Tag deleted'));
+    } else {
+      await this.showToast(this.lt('Tag operation failed'));
+    }
+    this.addressBookTagBusy = false;
   }
 
   private getEntryTags(entry: AddressBookEntry): string[] {
