@@ -1597,7 +1597,11 @@ struct Index {
     .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
     .borderRadius(8)
     .onClick(() => {
+      if (this.selectedAddressBookTag === value) {
+        return;
+      }
       this.selectedAddressBookTag = value;
+      this.addressBookVersion++;
     })
   }
 
