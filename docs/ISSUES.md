@@ -2034,3 +2034,8 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **证据**: 21:34:40 手机蜂窝网络输入 `192.168.11.101`，Core 按直连地址连接；21:34:59 返回 `Failed to connect to 192.168.11.101:21118`。
 **结论**: `192.168.11.101` 是 RFC1918 私网地址，蜂窝网络在没有 VPN、端口转发或隧道时不可路由。该日志证明 IPv4 地址被正确保留并送到 Core，不代表 ID 解析、服务器选择或密码鉴权失败。
 **测试约束**: 局域网链路使用 ID `1283267036`；跨网链路使用远程 ID `187720470`。不能用蜂窝网络访问私网 IPv4 的失败结论替代跨网 ID 测试。
+# 2026-08-18 HarmonyOS address book write synchronization
+
+- Root cause: the client used non-existent per-peer endpoints such as `/api/ab/peer`, while the compatible API accepts address book writes only through `POST /api/ab` with a stringified `data` payload.
+- Fix: add, edit, delete, and tag changes now fetch the latest legacy address book, mutate the target peer, and replace the book through the supported endpoint while preserving tags and tag colors.
+- UI: address book cards now expose edit and delete actions; edit reuses the device form and synchronizes alias, group, and note.

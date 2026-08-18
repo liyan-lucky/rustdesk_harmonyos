@@ -107,12 +107,13 @@ export interface CurrentUserResponse {
 
 export interface AbPeer {
   id: string;
+  hash?: string;
+  username?: string;
   alias?: string;
   hostname?: string;
   note?: string;
   platform?: string;
   tags?: string[];
-  hash?: string;
   online?: boolean;
 }
 
@@ -124,6 +125,18 @@ export interface AbGroup {
 export interface AbResponse {
   peers?: AbPeer[];
   groups?: AbGroup[];
+  tags?: string[];
+  tagColors?: string;
+}
+
+class LegacyAddressBookData {
+  tags: string[] = [];
+  peers: AbPeer[] = [];
+  tag_colors: string = '{}';
+}
+
+class LegacyAddressBookReplaceRequest {
+  data: string = '';
 }
 
 class DeviceSysinfoRequest {
@@ -485,6 +498,12 @@ export class HttpClient {
     if (Array.isArray(raw['groups'])) {
       adapted.groups = raw['groups'] as Object as AbGroup[];
     }
+    if (Array.isArray(raw['tags'])) {
+      adapted.tags = raw['tags'] as Object as string[];
+    }
+    if (typeof raw['tag_colors'] === 'string') {
+      adapted.tagColors = raw['tag_colors'] as string;
+    }
     return { success: true, data: adapted, statusCode: rawResult.statusCode };
   }
 
@@ -509,30 +528,105 @@ export class HttpClient {
   }
 
   async addAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {
-    Logger.info('HTTP', `addAbPeer: POST /api/ab/peer, id="${peer.id}", alias="${peer.alias ?? ''}"`);
-    const result = await this.post<AbPeer>('/api/ab/peer', peer);
+    Logger.info('HTTP', `addAbPeer: replace legacy address book, id="${peer.id}", alias="${peer.alias ?? ''}"`);
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return book as HttpResult<AbPeer>;
+    }
+    const peers = book.data.peers ?? [];
+    let replaced = false;
+    for (let index = 0; index < peers.length; index++) {
+      if (peers[index].id === peer.id) {
+        peers[index] = this.mergeAbPeer(peers[index], peer);
+        replaced = true;
+        break;
+      }
+    }
+    if (!replaced) {
+      peers.push(peer);
+    }
+    const writeResult = await this.replaceAddressBook(book.data, peers);
+    const result: HttpResult<AbPeer> = writeResult.success
+      ? { success: true, data: peer, statusCode: writeResult.statusCode }
+      : { success: false, error: writeResult.error, statusCode: writeResult.statusCode };
     Logger.info('HTTP', `addAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}, error=${result.error ?? 'none'}`);
     return result;
   }
 
   async updateAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {
-    Logger.info('HTTP', `updateAbPeer: POST /api/ab/peer/${peer.id}`);
-    const result = await this.post<AbPeer>(`/api/ab/peer/${peer.id}`, peer);
+    Logger.info('HTTP', `updateAbPeer: replace legacy address book, id="${peer.id}"`);
+    const result = await this.addAbPeer(peer);
     Logger.info('HTTP', `updateAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}`);
     return result;
   }
 
   async deleteAbPeer(peerId: string): Promise<HttpResult<void>> {
-    Logger.info('HTTP', `deleteAbPeer: POST /api/ab/peer/${peerId}/delete`);
-    const result = await this.post<void>(`/api/ab/peer/${peerId}/delete`);
+    Logger.info('HTTP', `deleteAbPeer: replace legacy address book, id="${peerId}"`);
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return book as HttpResult<void>;
+    }
+    const peers: AbPeer[] = [];
+    for (const peer of book.data.peers ?? []) {
+      if (peer.id !== peerId) {
+        peers.push(peer);
+      }
+    }
+    const result = await this.replaceAddressBook(book.data, peers);
     Logger.info('HTTP', `deleteAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}, error=${result.error ?? 'none'}`);
     return result;
   }
 
   async updateAbTag(peerId: string, tags: string[]): Promise<HttpResult<void>> {
-    const body = new AbTagRequestImpl();
-    body.tags = tags;
-    return this.post<void>(`/api/ab/peer/${peerId}/tag`, body);
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return book as HttpResult<void>;
+    }
+    const peers = book.data.peers ?? [];
+    for (let index = 0; index < peers.length; index++) {
+      if (peers[index].id === peerId) {
+        const patch: AbPeer = { id: peerId, tags: tags };
+        peers[index] = this.mergeAbPeer(peers[index], patch);
+        break;
+      }
+    }
+    return this.replaceAddressBook(book.data, peers);
+  }
+
+  private mergeAbPeer(current: AbPeer, patch: AbPeer): AbPeer {
+    return {
+      id: patch.id,
+      hash: patch.hash ?? current.hash,
+      username: patch.username ?? current.username,
+      alias: patch.alias ?? current.alias,
+      hostname: patch.hostname ?? current.hostname,
+      note: patch.note ?? current.note,
+      platform: patch.platform ?? current.platform,
+      tags: patch.tags ?? current.tags
+    };
+  }
+
+  private async replaceAddressBook(book: AbResponse, peers: AbPeer[]): Promise<HttpResult<void>> {
+    const tagSet: Set<string> = new Set<string>();
+    for (const tag of book.tags ?? []) {
+      if (tag.trim().length > 0) {
+        tagSet.add(tag);
+      }
+    }
+    for (const peer of peers) {
+      for (const tag of peer.tags ?? []) {
+        if (tag.trim().length > 0) {
+          tagSet.add(tag);
+        }
+      }
+    }
+    const data = new LegacyAddressBookData();
+    data.tags = Array.from(tagSet.values());
+    data.peers = peers;
+    data.tag_colors = book.tagColors ?? '{}';
+    const body = new LegacyAddressBookReplaceRequest();
+    body.data = JSON.stringify(data);
+    return this.post<void>('/api/ab', body);
   }
 }
 

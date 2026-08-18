@@ -1116,3 +1116,7 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - Changing the configured API server now cancels any unfinished OAuth transaction before saving the new server.
 - Build passed: `0.33.60 (1000236)`, signed HAP generated successfully.
 - Device install is pending because `192.168.8.152:36169` was offline (`E001005`). GitHub `ERR-2212` needs one final on-device callback test after reconnecting.
+# 2026-08-18 Address book CRUD synchronization
+
+- Implemented self-hosted API-compatible upload, add, update, delete, and tag synchronization through the legacy `/api/ab` replacement contract.
+- Added usable edit and delete controls to the HarmonyOS address book page.

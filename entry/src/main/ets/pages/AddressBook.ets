@@ -34,6 +34,7 @@ struct AddressBook {
   @State draftAlias: string = '';
   @State draftGroup: string = '';
   @State draftNote: string = '';
+  @State editingId: string = '';
   @State accountState: AccountState = this.appState.getAccount();
 
   aboutToAppear() {
@@ -191,7 +192,7 @@ struct AddressBook {
   @Builder
   private buildAddCard() {
     Column({ space: ThemeConfig.SPACING_MD }) {
-      SectionTitle(this.lt('Add Device'))
+      SectionTitle(this.editingId.length > 0 ? this.lt('Edit') : this.lt('Add Device'))
 
       this.buildInput(this.lt('Remote ID'), DeviceIdFormatter.format(this.draftId), (value: string) => {
         this.draftId = DeviceIdFormatter.parse(value);
@@ -333,6 +334,12 @@ struct AddressBook {
           this.appData.addRecentSession(this.appData.createRecentSession(entry.id));
           this.openPage('pages/RemoteControl', entry.id);
         })
+        this.buildSecondaryAction($rawfile('info_edit.svg'), this.lt('Edit'), () => {
+          this.editEntry(entry);
+        })
+        this.buildSecondaryAction($rawfile('trash.svg'), this.lt('Delete'), () => {
+          void this.deleteEntry(entry.id);
+        })
       }
     }
     .padding(16)
@@ -429,12 +436,14 @@ struct AddressBook {
   }
 
   private saveDraftEntry(): void {
-    const id = DeviceIdFormatter.parse(this.draftId);
+    const id = this.editingId.length > 0 ? this.editingId : DeviceIdFormatter.parse(this.draftId);
     if (id.length === 0) {
       return;
     }
     const alias = this.draftAlias.trim().length > 0 ? this.draftAlias.trim() : `${this.lt('Remote Device')} ${DeviceIdFormatter.format(id)}`;
     const group = this.draftGroup.trim().length > 0 ? this.draftGroup.trim() : this.lt('Ungrouped');
+    const previous = this.appData.getAddressBookEntry(id);
+    const isEditing = this.editingId === id;
     this.appData.addAddressBookEntry({
       id: id,
       alias: alias,
@@ -448,11 +457,21 @@ struct AddressBook {
       const peer: AbPeer = {
         id: id,
         alias: alias,
+        note: this.draftNote.trim(),
         tags: [group]
       };
-      void this.accountService.addPeerToAddressBook(peer).then((success: boolean) => {
+      const request = isEditing
+        ? this.accountService.updatePeerInAddressBook(peer)
+        : this.accountService.addPeerToAddressBook(peer);
+      void request.then((success: boolean) => {
         Logger.info('SYNC', `saveDraftEntry: server add result=${success}`);
         if (!success) {
+          if (previous) {
+            this.appData.addAddressBookEntry(previous);
+          } else {
+            this.appData.removeAddressBookEntry(id);
+          }
+          this.reloadEntries();
           try {
             this.getUIContext().getPromptAction().openToast({
               message: this.lt('Add failed on server, entry kept locally')
@@ -471,6 +490,16 @@ struct AddressBook {
     this.draftAlias = '';
     this.draftGroup = '';
     this.draftNote = '';
+    this.editingId = '';
+  }
+
+  private editEntry(entry: AddressBookEntry): void {
+    this.editingId = entry.id;
+    this.draftId = entry.id;
+    this.draftAlias = entry.alias;
+    this.draftGroup = entry.group;
+    this.draftNote = entry.note;
+    this.showAddPanel = true;
   }
 
   private reloadEntries(): void {
