@@ -520,7 +520,7 @@ struct Index {
     }
   }
   @State isConnecting: boolean = false;
-  @State verboseLogEnabled: boolean = false;
+  @State debugModeEnabled: boolean = false;
   @State settings: SettingsState = this.appData.getSettings();
   @State draftIdServer: string = '';
   @State draftRelayServer: string = '';
@@ -710,10 +710,16 @@ struct Index {
     this.buildVersion = BuildInfo.VERSION;
     this.requestConnectTabFocus(100, 'connect-bottom-tab-btn');
     hilog.info(0xA03D00, 'CONN', 'onPageShow denyLanDiscovery=' + this.settings.denyLanDiscovery);
-    const verboseRaw = NativeRustDeskBridge.getLocalOption('verbose-connection-log').trim().toUpperCase();
-    this.verboseLogEnabled = verboseRaw === 'Y' || verboseRaw === 'YES' || verboseRaw === 'TRUE' || verboseRaw === '1';
-    Logger.setDebugEnabled(this.verboseLogEnabled);
-    Logger.info('CONN', `Index aboutToAppear verboseLog=${this.verboseLogEnabled}`);
+    const debugRaw = NativeRustDeskBridge.getLocalOption('app-debug-mode').trim().toUpperCase();
+    const legacyDebugRaw = NativeRustDeskBridge.getLocalOption('verbose-connection-log').trim().toUpperCase();
+    const effectiveDebugRaw = debugRaw.length > 0 ? debugRaw : legacyDebugRaw;
+    this.debugModeEnabled = effectiveDebugRaw === 'Y' || effectiveDebugRaw === 'YES' || effectiveDebugRaw === 'TRUE' || effectiveDebugRaw === '1';
+    if (!this.debugModeEnabled && this.currentConnectTab === 'core') {
+      this.currentConnectTab = 'recent';
+    }
+    NativeRustDeskBridge.setLocalOption('app-debug-mode', this.debugModeEnabled ? 'Y' : 'N');
+    Logger.setDebugEnabled(this.debugModeEnabled);
+    Logger.info('APP', `Index aboutToAppear debugMode=${this.debugModeEnabled}`);
     this.syncRecentSessionsEnabled = NativeRustDeskBridge.getLocalOption('address-book-sync-recent-sessions').trim().toUpperCase() === 'Y';
     this.filterAddressBookByTags = NativeRustDeskBridge.getLocalOption('address-book-filter-by-tags').trim().toUpperCase() !== 'N';
     if (!this.settings.denyLanDiscovery) {
@@ -1200,7 +1206,7 @@ struct Index {
           if (this.visibleConnectTabs.has('account')) {
             this.buildConnectPeerTabButton('account')
           }
-          if (this.visibleConnectTabs.has('core')) {
+          if (this.debugModeEnabled) {
             this.buildConnectPeerTabButton('core')
           }
 
@@ -2277,18 +2283,21 @@ struct Index {
           this.buildSettingsToggleSettingRow(this.lt('Debug Keep Screen Awake'), this.settings.debugKeepScreenAwake, (value: boolean) => {
             this.updateSettings({ debugKeepScreenAwake: value });
           }, '', true, 'settings_keepscreen.svg', false)
-          this.buildSettingsToggleSettingRow(this.lt('Verbose Connection Log'), this.verboseLogEnabled, (value: boolean) => {
-            this.verboseLogEnabled = value;
+          this.buildSettingsToggleSettingRow(this.lt('Debug Mode'), this.debugModeEnabled, (value: boolean) => {
+            this.debugModeEnabled = value;
+            NativeRustDeskBridge.setLocalOption('app-debug-mode', value ? 'Y' : 'N');
             NativeRustDeskBridge.setLocalOption('verbose-connection-log', value ? 'Y' : 'N');
             Logger.setDebugEnabled(value);
             if (value) {
-              Logger.info('CONN', 'Verbose connection logging enabled by user');
-              Logger.debug('CONN', `Debug logging enabled at ${new Date().toISOString()}`);
-              Logger.debug('CONN', `App version: ${this.buildVersion}, build: ${this.buildTime}`);
+              Logger.info('APP', 'Debug mode enabled by user');
+              Logger.debug('APP', `App version: ${this.buildVersion}, build: ${this.buildTime}`);
               Logger.debug('SETTINGS', `apiServer="${this.settings.apiServer}", idServer="${this.settings.idServer}", relayServer="${this.settings.relayServer}"`);
-              void this.showToast(this.lt('Debug Log') + ': ON');
+              void this.showToast(this.lt('Debug Mode Enabled'));
             } else {
-              void this.showToast(this.lt('Debug Log') + ': OFF');
+              if (this.currentConnectTab === 'core') {
+                this.currentConnectTab = 'recent';
+              }
+              void this.showToast(this.lt('Debug Mode Disabled'));
             }
           }, '', true, 'settings_tune.svg', false)
           this.buildSettingsInfoSettingRow(this.lt('Version'), `v${this.buildVersion}`, 'settings_info_circle.svg', '', true)
@@ -2888,6 +2897,19 @@ struct Index {
   @Builder
   private buildCoreDebugCard() {
     Column({ space: ThemeConfig.SPACING_SM }) {
+      this.buildSettingsSectionLabel(this.lt('App Diagnostics'))
+      CardContainer() {
+        Column({ space: 2 }) {
+          ForEach(this.getAppDiagnosticsLines(), (item: RuntimeSummaryLine) => {
+            Text(`${item.label}: ${item.value}`)
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_SECONDARY)
+              .width('100%')
+          }, (item: RuntimeSummaryLine, index: number) => `app_${index}_${item.label}`)
+        }
+        .width('100%')
+        .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
+      }
       this.buildSettingsSectionLabel(this.lt('Runtime Summary'))
       CardContainer() {
         Column({ space: 2 }) {
@@ -2917,8 +2939,28 @@ struct Index {
     }
     .width('100%')
     .gesture(LongPressGesture().onAction(() => {
-      void this.copyText(this.getFullDebugSummary(), this.lt('Debug summary copied'));
+      void this.copyText(this.getDiagnosticsSummary(), this.lt('Debug summary copied'));
     }))
+  }
+
+  private getAppDiagnosticsLines(): RuntimeSummaryLine[] {
+    const addressCount = this.appData.getAddressBook().length;
+    return [
+      { label: this.lt('Version'), value: `v${this.buildVersion} (${this.buildTime})` },
+      { label: this.lt('Debug Started At'), value: Logger.getDebugStartedAt() || this.lt('None') },
+      { label: this.lt('Current Page'), value: `${this.currentTab}/${this.currentConnectTab}` },
+      { label: this.lt('Login Status'), value: this.accountState.isLoggedIn ? `${this.lt('Logged In')} (${this.accountState.provider || '-'})` : this.lt('Not Logged In') },
+      { label: this.lt('API Network'), value: `${this.describeApiNetworkStatus()} (${this.apiNetworkServer || this.settings.apiServer || '-'})` },
+      { label: this.lt('Address Book Entries'), value: `${addressCount}` },
+      { label: this.lt('Address Book Tags'), value: `${this.getAddressBookTags().length}` },
+      { label: this.lt('Recent Sessions'), value: `${this.recentSessions.length}` },
+      { label: this.lt('Log Entries'), value: `${Logger.getLogEntryCount()}` }
+    ];
+  }
+
+  private getDiagnosticsSummary(): string {
+    const appLines = this.getAppDiagnosticsLines().map((item: RuntimeSummaryLine) => `${item.label}: ${item.value}`);
+    return ['=== App Diagnostics ===', ...appLines, '=== Core Runtime ===', this.getFullDebugSummary(), Logger.dumpConnectionSummary()].join('\n');
   }
 
   private parseRuntimeSummaryLines(): RuntimeSummaryLine[] {
