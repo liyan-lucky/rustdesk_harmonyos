@@ -19,6 +19,7 @@
 
 - 当前主工作分支：`master`。
 - 当前备份分支：`backup`，由 `.github/workflows/force-backup-master.yml` 手动输入 `YES` 后强制覆盖。
+- 当前维护版本：`0.34.34 (1000279)`，BuildInfo `2026-08-18 22:29`；所有后续修改直接提交到 `master`，不长期保留其他分支。
 - `docs/CURRENT_STATUS.md` 是当前状态第一入口；旧的历史构建、历史 SHA、历史 run 和历史验证记录只作为追溯资料，不应替代当前状态判断。
 - 判断 App / Core 新旧必须看 hash、mtime、BuildInfo、双架构 CoreBuildInfo、updateTime 和 hilog，不能只看版本号或 Release 名称。
 

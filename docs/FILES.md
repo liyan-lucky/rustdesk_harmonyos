@@ -1,5 +1,15 @@
 # 项目文件说明
 
+> 2026-08-18 状态补充：表内历史行数只用于定位参考，实际结构以源码为准。`Index.ets` 已包含账户同步、通讯录标签、IP 在线状态、共享密码和调试入口；`RemoteControl.ets` 已包含沉浸式窗口与自定义键盘触摸隔离。
+
+| 新增/扩展文件 | 当前职责 |
+| --- | --- |
+| `services/DirectIpProbeService.ets` | 对 IP 类地址执行直连在线探测、缓存并配合页面轮询刷新状态 |
+| `services/AccountService.ets` | 登录/OAuth、API 隔离、登录提供商与用户列表缓存、通讯录设备及标签同步 |
+| `services/HttpClient.ets` | 自建 API、个人地址簿新旧协议、用户列表状态码与网络状态发布 |
+| `services/PreferenceStore.ts` | 登录提供商、账户用户列表、调试和页面偏好持久化 |
+| `services/WindowChromeService.ets` | 普通页面系统栏以及远程会话沉浸式全屏切换 |
+
 > 每个代码文件的作用，修改前必读
 
 > 2026-06-21 23:23 收口补充：`Index.ets` 负责 ID/IP 悬浮建议、格式化光标、官方对齐菜单、共享状态和未实现提示；`RemoteControl.ets` 负责会话菜单与紧凑重试对话框；`FileTransfer.ets` / `Terminal.ets` 已按设置页主题和滑动边界统一；`dvr.svg` 只用于设置页上方“显示设置”分组标题，下面同名条目继续使用原图标；输入控制继续使用原 `opt_mouse.svg`。最终产物和证据见 `AGENT_HANDOFF.md`。

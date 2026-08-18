@@ -7,7 +7,7 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - **主仓库**：`E:\Visual_Studio_Code\11_Rustdesk_harmonyos`
 - **核心库**：`E:\Visual_Studio_Code\13_librustdesk_core`
 - **临时构建**：`E:\Visual_Studio_Code\99_Temp\harmonyos_build`
-- **目标设备**：`192.168.8.152:36169`（x86_64 模拟器）
+- **当前真机**：`192.168.0.106:36169`（arm64，HarmonyOS 无线 HDC）
 
 ## 2. 触摸模式（mouseControlMode === 0）
 
@@ -213,7 +213,7 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - 增量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`：只将版本尾号加 `1`，例如 `0.34.21 -> 0.34.22`。
 - 全量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`：中间版本号加 `1`，尾号归零，例如 `0.34.22 -> 0.35.0`。
 - 两种构建的 `versionCode` 都必须单调加 `1`。同一次失败构建的重试使用 `none`，不得再次消耗版本号。
-- 当前版本：0.34.31 (1000276)
+- 当前版本：0.34.34 (1000279)
 
 ## 7. I18n 翻译
 
