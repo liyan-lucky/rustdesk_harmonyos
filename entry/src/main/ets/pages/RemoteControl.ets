@@ -831,6 +831,28 @@ struct RemoteControl {
     return this.themeIsDark ? this.theme_MENU_BG : '#FFFFFFFF';
   }
 
+  private resolveToolbarIconColor(selected: boolean = false): string {
+    return selected ? this.theme_ACCENT : (this.themeIsDark ? '#FFFFFFFF' : '#FF111827');
+  }
+
+  private resolveToolbarButtonBackground(selected: boolean = false): string {
+    if (selected) {
+      return this.themeIsDark ? '#332A7FFF' : '#1F0071FF';
+    }
+    return this.themeIsDark ? '#52000000' : '#E8FFFFFF';
+  }
+
+  private resolveToolbarButtonBorder(selected: boolean = false): string {
+    if (selected) {
+      return this.theme_ACCENT;
+    }
+    return this.themeIsDark ? '#66FFFFFF' : '#66111827';
+  }
+
+  private resolveToolbarFrameBorder(): string {
+    return this.themeIsDark ? '#80FFFFFF' : '#99111827';
+  }
+
   private onI18nVersionChanged(): void {
     this.i18nOpacity = 0;
     this.i18nVersion = this.i18nRefresh;
@@ -1189,7 +1211,7 @@ struct RemoteControl {
         Column() {
           Image($rawfile('nav-arrow-right.svg'))
             .width(20).height(20)
-            .colorFilter(createStrokeIconColorFilter(this.theme_ICON_FILL));
+            .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
         }
         .width(32).height(48)
         .justifyContent(FlexAlign.Center)
@@ -1213,7 +1235,7 @@ struct RemoteControl {
         Column() {
           Image($rawfile('nav-arrow-left.svg'))
             .width(20).height(20)
-            .colorFilter(createStrokeIconColorFilter(this.theme_ICON_FILL));
+            .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
         }
         .width(32).height(48)
         .justifyContent(FlexAlign.Center)
@@ -1221,23 +1243,25 @@ struct RemoteControl {
       }
       .height(56)
       .padding({ left: 4, right: 4 })
-      .backgroundColor('#CC222222')
-      .borderRadius(28)
+      .backgroundColor(Color.Transparent)
+      .border({ width: 1, color: this.resolveToolbarFrameBorder() })
+      .borderRadius(8)
       .position({ x: this.toolbarSide === 'right' && this.previewWidth > 0 ? Math.max(8, this.previewWidth - 8 - 348) : 8, y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100);
     } else {
       Row() {
         Image($rawfile('nav-arrow-left.svg'))
           .width(20).height(20)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ICON_FILL));
+          .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
         Image($rawfile('nav-arrow-right.svg'))
           .width(20).height(20)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ICON_FILL));
+          .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
       }
       .width(60).height(48)
       .justifyContent(FlexAlign.SpaceEvenly)
-      .backgroundColor('#CC222222')
-      .borderRadius(24)
+      .backgroundColor(Color.Transparent)
+      .border({ width: 1, color: this.resolveToolbarFrameBorder() })
+      .borderRadius(8)
       .position({ x: this.toolbarX < 0 ? 8 : Math.max(0, Math.min(this.previewWidth - 68, this.toolbarX)), y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100)
       .onTouch((event: TouchEvent) => { this.handleToolbarDrag(event); });
@@ -1360,7 +1384,7 @@ struct RemoteControl {
       Image($rawfile('arrow-back-ios.svg'))
         .width(20)
         .height(20)
-        .fillColor(this.theme_ICON_FILL)
+        .fillColor(this.resolveToolbarIconColor())
         .onClick(() => {
           this.showToolbar = false;
         });
@@ -1368,7 +1392,9 @@ struct RemoteControl {
     .width('100%')
     .height(56)
     .padding({ left: 8, right: 8 })
-    .backgroundColor('#B3222222')
+    .backgroundColor(Color.Transparent)
+    .border({ width: 1, color: this.resolveToolbarFrameBorder() })
+    .borderRadius(8)
     .margin({ bottom: this.avoidNavigationBarHeight })
   }
 
@@ -1378,14 +1404,15 @@ struct RemoteControl {
       Image(icon)
         .width(30)
         .height(30)
-        .fillColor(selected ? this.theme_ACCENT : this.theme_ICON_FILL)
+        .fillColor(this.resolveToolbarIconColor(selected))
         .objectFit(ImageFit.Contain);
     }
     .width(44)
     .height(44)
     .justifyContent(FlexAlign.Center)
-    .backgroundColor(selected ? '#33FFFFFF' : this.theme_ICON_BG)
-    .borderRadius(22)
+    .backgroundColor(this.resolveToolbarButtonBackground(selected))
+    .border({ width: 1, color: this.resolveToolbarButtonBorder(selected) })
+    .borderRadius(6)
     .onClick(action);
   }
 
@@ -1395,14 +1422,15 @@ struct RemoteControl {
       Image(icon)
         .width(30)
         .height(30)
-        .colorFilter(createStrokeIconColorFilter(selected ? this.theme_ACCENT : this.theme_ICON_FILL))
+        .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor(selected)))
         .objectFit(ImageFit.Contain);
     }
     .width(44)
     .height(44)
     .justifyContent(FlexAlign.Center)
-    .backgroundColor(selected ? '#33FFFFFF' : this.theme_ICON_BG)
-    .borderRadius(22)
+    .backgroundColor(this.resolveToolbarButtonBackground(selected))
+    .border({ width: 1, color: this.resolveToolbarButtonBorder(selected) })
+    .borderRadius(6)
     .onClick(action);
   }
 
@@ -1413,7 +1441,7 @@ struct RemoteControl {
         Image($rawfile('arrow-forward-ios.svg'))
           .width(18)
           .height(18)
-          .fillColor(this.theme_ICON_FILL)
+          .fillColor(this.resolveToolbarIconColor())
           .onClick(() => {
             this.showToolbar = true;
           });
@@ -1421,7 +1449,8 @@ struct RemoteControl {
       .width(28)
       .height(56)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.theme_OVERLAY_SEMI)
+      .backgroundColor(this.resolveToolbarButtonBackground())
+      .border({ width: 1, color: this.resolveToolbarButtonBorder() })
       .borderRadius({ topRight: 14, bottomRight: 14 });
 
       Blank().layoutWeight(1).hitTestBehavior(HitTestMode.Transparent);
