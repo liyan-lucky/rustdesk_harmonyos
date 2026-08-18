@@ -993,12 +993,18 @@ struct RemoteControl {
       }
 
       if (this.showKeyboard) {
-        Column() {
+        Stack({ alignContent: Alignment.TopStart }) {
+          Column() {}
+            .width('100%')
+            .height('100%')
+            .backgroundColor('#01000000')
+            .hitTestBehavior(HitTestMode.Block)
+
           this.buildKeyboardPanel();
         }
         .width('100%')
+        .height(104)
         .margin({ top: 4 })
-        .hitTestBehavior(HitTestMode.Block)
         .zIndex(100)
       }
 

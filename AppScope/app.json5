@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.open.rundesk",
     "vendor": "carriez",
-    "versionCode": 1000272,
-    "versionName": "0.34.27",
+    "versionCode": 1000273,
+    "versionName": "0.34.28",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
   }
