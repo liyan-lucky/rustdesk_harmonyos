@@ -1245,7 +1245,7 @@ struct RemoteControl {
       .padding({ left: 4, right: 4 })
       .backgroundColor(Color.Transparent)
       .border({ width: 1, color: this.resolveToolbarFrameBorder() })
-      .borderRadius(8)
+      .borderRadius(28)
       .position({ x: this.toolbarSide === 'right' && this.previewWidth > 0 ? Math.max(8, this.previewWidth - 8 - 348) : 8, y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100);
     } else {
@@ -1261,7 +1261,7 @@ struct RemoteControl {
       .justifyContent(FlexAlign.SpaceEvenly)
       .backgroundColor(Color.Transparent)
       .border({ width: 1, color: this.resolveToolbarFrameBorder() })
-      .borderRadius(8)
+      .borderRadius(24)
       .position({ x: this.toolbarX < 0 ? 8 : Math.max(0, Math.min(this.previewWidth - 68, this.toolbarX)), y: this.toolbarY < 0 ? this.previewHeight - 70 : Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY)) })
       .zIndex(100)
       .onTouch((event: TouchEvent) => { this.handleToolbarDrag(event); });
@@ -1394,7 +1394,7 @@ struct RemoteControl {
     .padding({ left: 8, right: 8 })
     .backgroundColor(Color.Transparent)
     .border({ width: 1, color: this.resolveToolbarFrameBorder() })
-    .borderRadius(8)
+    .borderRadius(28)
     .margin({ bottom: this.avoidNavigationBarHeight })
   }
 
@@ -1412,7 +1412,7 @@ struct RemoteControl {
     .justifyContent(FlexAlign.Center)
     .backgroundColor(this.resolveToolbarButtonBackground(selected))
     .border({ width: 1, color: this.resolveToolbarButtonBorder(selected) })
-    .borderRadius(6)
+    .borderRadius(22)
     .onClick(action);
   }
 
@@ -1430,7 +1430,7 @@ struct RemoteControl {
     .justifyContent(FlexAlign.Center)
     .backgroundColor(this.resolveToolbarButtonBackground(selected))
     .border({ width: 1, color: this.resolveToolbarButtonBorder(selected) })
-    .borderRadius(6)
+    .borderRadius(22)
     .onClick(action);
   }
 

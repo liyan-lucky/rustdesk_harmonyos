@@ -123,8 +123,7 @@ struct Index {
   private refreshStateBusy: boolean = false;
   private onlineStatusPollTimer: number = -1;
   private onlineStatusPollInterval: number = 5000;
-  private onlineStatusPollCount: number = 0;
-  private onlineStatusPollMaxCount: number = 3;
+  private directIpProbeBusy: boolean = false;
   private peerInfoCache: Map<string, PeerInfoCacheEntry> = new Map();
   private static readonly PEER_INFO_CACHE_TTL: number = 15000;
   private pendingConnectionMonitorId: number = 0;
@@ -4508,16 +4507,9 @@ struct Index {
 
   private startOnlineStatusPoll(): void {
     this.stopOnlineStatusPoll();
-    this.onlineStatusPollCount = 0;
     this.onlineStatusPollInterval = 5000;
-    this.onlineStatusPollMaxCount = 3;
     this.pollOnlineStatusOnce();
     this.onlineStatusPollTimer = setInterval(() => {
-      this.onlineStatusPollCount += 1;
-      if (this.onlineStatusPollMaxCount > 0 && this.onlineStatusPollCount >= this.onlineStatusPollMaxCount) {
-        this.stopOnlineStatusPoll();
-        return;
-      }
       this.pollOnlineStatusOnce();
     }, this.onlineStatusPollInterval);
   }
@@ -4541,16 +4533,31 @@ struct Index {
     if (ids.length === 0) {
       return;
     }
-    void this.probeDirectIpTargets(ids);
+    const officialIds: string[] = [];
+    const directIpIds: string[] = [];
+    ids.forEach((id: string) => {
+      if (DirectIpProbeService.parseTarget(id) !== null) {
+        directIpIds.push(id);
+      } else {
+        officialIds.push(id);
+      }
+    });
+    void this.probeDirectIpTargets(directIpIds);
     if (!this.officialCoreState.coreReady) {
       return;
     }
-    Logger.debug('NET', `pollOnlineStatusOnce: querying ${ids.length} ids, coreReady=${this.officialCoreState.coreReady}`);
-    const result = this.officialBridge.queryOnlines(ids);
+    if (officialIds.length === 0) {
+      return;
+    }
+    Logger.debug('NET', `pollOnlineStatusOnce: querying ${officialIds.length} ids, coreReady=${this.officialCoreState.coreReady}`);
+    const result = this.officialBridge.queryOnlines(officialIds);
     Logger.debug('NET', `queryOnlines returned: ${JSON.stringify(result)}`);
   }
 
   private async probeDirectIpTargets(ids: string[]): Promise<void> {
+    if (this.directIpProbeBusy) {
+      return;
+    }
     const targets: DirectIpTarget[] = [];
     ids.forEach((id: string) => {
       const target = DirectIpProbeService.parseTarget(id);
@@ -4561,14 +4568,19 @@ struct Index {
     if (targets.length === 0) {
       return;
     }
-    await Promise.all(targets.map(async (target: DirectIpTarget) => {
-      const online = await DirectIpProbeService.probe(target);
-      this.appData.updateOnlineStatusFromResult(online ? [target.source] : [], online ? [] : [target.source]);
-      Logger.debug('NET', `Direct IP probe ${target.source}: online=${online}`);
-    }));
-    this.peerOnlineVersion++;
-    this.addressBookVersion++;
-    this.refreshAllSessionOnlineStatus();
+    this.directIpProbeBusy = true;
+    try {
+      await Promise.all(targets.map(async (target: DirectIpTarget) => {
+        const online = await DirectIpProbeService.probe(target);
+        this.appData.updateOnlineStatusFromResult(online ? [target.source] : [], online ? [] : [target.source]);
+        Logger.debug('NET', `Direct IP probe ${target.source}: online=${online}`);
+      }));
+      this.peerOnlineVersion++;
+      this.addressBookVersion++;
+      this.refreshAllSessionOnlineStatus();
+    } finally {
+      this.directIpProbeBusy = false;
+    }
   }
 
   private updateSettings(patch: Partial<SettingsState>): void {
