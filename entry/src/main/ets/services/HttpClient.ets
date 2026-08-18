@@ -150,6 +150,21 @@ interface PagedPeersResponse {
   data: AbPeer[];
 }
 
+export interface AccessibleUser {
+  name: string;
+  display_name?: string;
+  avatar?: string;
+  email?: string;
+  note?: string;
+  status?: number;
+  is_admin?: boolean;
+}
+
+interface PagedUsersResponse {
+  total: number;
+  data: AccessibleUser[];
+}
+
 class LegacyAddressBookData {
   tags: string[] = [];
   peers: AbPeer[] = [];
@@ -628,6 +643,26 @@ export class HttpClient {
     body.uuid = this.getDeviceUuid();
     body.modified_at = Math.floor(Date.now() / 1000);
     return this.post<Record<string, Object>>('/api/heartbeat', body);
+  }
+
+  async getAccessibleUsers(): Promise<HttpResult<AccessibleUser[]>> {
+    const users: AccessibleUser[] = [];
+    const pageSize = 100;
+    let current = 1;
+    let total = 0;
+    do {
+      const path = `/api/users?current=${current}&pageSize=${pageSize}&accessible=&status=1`;
+      const page = await this.get<PagedUsersResponse>(path);
+      if (!page.success || !page.data) {
+        return { success: false, error: page.error, statusCode: page.statusCode };
+      }
+      total = page.data.total ?? 0;
+      for (const user of page.data.data ?? []) {
+        users.push(user);
+      }
+      current++;
+    } while ((current - 1) * pageSize < total);
+    return { success: true, data: users };
   }
 
   async addAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {

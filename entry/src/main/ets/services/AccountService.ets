@@ -1,6 +1,6 @@
 import { EventBus, EventType, eventBus } from './EventBus';
 import { AppState, AccountState } from './AppState';
-import { HttpClient, LoginOption, LoginResponse, CurrentUserResponse, AuthBody, UserInfo, AbResponse, AbPeer } from './HttpClient';
+import { HttpClient, LoginOption, LoginResponse, CurrentUserResponse, AuthBody, UserInfo, AbResponse, AbPeer, AccessibleUser } from './HttpClient';
 import { NativeRustDeskBridge } from './NativeRustDeskBridge';
 import { AppContextService } from './AppContextService';
 import { AppDataService, AddressBookEntry } from './AppDataService';
@@ -412,6 +412,7 @@ export class AccountService {
     });
 
     void this.fetchAddressBook();
+    void this.fetchAccessibleUsers();
     void this.startServiceSync();
   }
 
@@ -482,6 +483,27 @@ export class AccountService {
       Logger.info('SYNC', `fetchAddressBook failed: success=${result.success}, error=${result.error ?? 'none'}`);
       return false;
     }
+  }
+
+  async fetchAccessibleUsers(): Promise<boolean> {
+    this.syncApiServerFromSettings();
+    AppStorage.setOrCreate<boolean>('accessibleUsersLoading', true);
+    const result = await this.httpClient.getAccessibleUsers();
+    AppStorage.setOrCreate<boolean>('accessibleUsersLoading', false);
+    if (!result.success || !result.data) {
+      AppStorage.setOrCreate<string>('accessibleUsersError', result.error ?? 'Unable to load users');
+      return false;
+    }
+    const currentName = this.appState.getAccount().username;
+    const users = result.data;
+    users.sort((left: AccessibleUser, right: AccessibleUser) => {
+      if (left.name === currentName) return -1;
+      if (right.name === currentName) return 1;
+      return left.name.localeCompare(right.name);
+    });
+    AppStorage.setOrCreate<string>('accessibleUsers', JSON.stringify(users));
+    AppStorage.setOrCreate<string>('accessibleUsersError', '');
+    return true;
   }
 
   private async startServiceSync(): Promise<void> {

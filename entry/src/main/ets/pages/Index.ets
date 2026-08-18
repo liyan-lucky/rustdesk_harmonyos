@@ -38,6 +38,7 @@ import { PermissionStatus } from '../services/PermissionService';
 import { Permissions } from '@ohos.abilityAccessCtrl';
 import hilog from '@ohos.hilog';
 import { Logger } from '../common/Logger';
+import { AccessibleUser } from '../services/HttpClient';
 import connection from '@ohos.net.connection';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
@@ -542,6 +543,9 @@ struct Index {
   @StorageLink('addressBookServerTags') addressBookServerTagsJson: string = '[]';
   @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
   @State selectedAddressBookTag: string = '';
+  @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
+  @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
+  @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
   @State accountRefreshTick: number = 0;
   @State recentSessions: RecentSession[] = this.appData.getRecentSessions();
   @State chatSessions: ChatSession[] = [];
@@ -698,6 +702,9 @@ struct Index {
     Logger.info('CONN', `Index aboutToAppear verboseLog=${this.verboseLogEnabled}`);
     if (!this.settings.denyLanDiscovery) {
       LanDiscoveryService.getInstance().startDiscovery();
+    }
+    if (this.accountState.isLoggedIn) {
+      void this.accountService.fetchAccessibleUsers();
     }
   }
 
@@ -1468,32 +1475,31 @@ struct Index {
     } else {
       Column({ space: ThemeConfig.SPACING_SM }) {
         Row() {
-          SectionTitle(this.lt('Account'))
+          SectionTitle(this.lt('Users'))
           Blank().layoutWeight(1)
-          StatusBadge(this.lt('Logged in'), true)
+          Text(`${this.getAccessibleUsers().length}`)
+            .fontSize(ThemeConfig.FONT_SIZE_SM)
+            .fontColor(this.theme_TEXT_TERTIARY)
         }
         .width('100%')
 
-        InfoRow(this.lt('Account'), this.describeAccountName(), 'settings_person.svg')
-        InfoRow(this.lt('Provider'), this.describeAccountProvider(), 'settings_server.svg')
-        InfoRow(this.lt('Status'), this.describeAccountState(), 'settings_record.svg')
-
-        CaptionLabel((this.accountState.detail ?? '').trim().length > 0 ? (this.accountState.detail ?? '') : this.lt('Account synced, can continue outgoing.'))
-
-        Button(this.lt('Sign out'))
-          .width(156)
-          .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
-          .fontSize(ThemeConfig.FONT_SIZE_MD)
-          .backgroundColor(this.theme_INPUT_BG)
-          .fontColor(this.theme_TEXT_PRIMARY)
-          .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-          .onClick(() => {
-            this.signOutAccount();
-          })
+        if (this.accessibleUsersLoading) {
+          LoadingProgress().width(24).height(24).color(this.theme_ACCENT)
+        } else if (this.getAccessibleUsers().length > 0) {
+          ForEach(this.getAccessibleUsers(), (user: AccessibleUser) => {
+            this.buildAccessibleUserRow(user)
+          }, (user: AccessibleUser) => user.name)
+        } else {
+          Text(this.accessibleUsersError.length > 0 ? this.lt('User list sync failed') : this.lt('No accessible users'))
+            .fontSize(ThemeConfig.FONT_SIZE_SM)
+            .fontColor(this.accessibleUsersError.length > 0 ? this.theme_ERROR_TEXT : this.theme_TEXT_TERTIARY)
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .padding({ top: 24, bottom: 24 })
+        }
       }
       .width('100%')
-      .padding(ThemeConfig.SPACING_XL)
+      .padding(ThemeConfig.SPACING_MD)
       .backgroundColor(this.theme_CARD_BG)
       .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
       .border({ width: 1, color: this.theme_BORDER_SUBTLE })
@@ -1535,6 +1541,42 @@ struct Index {
         this.lt('No devices under this tag'))
     }
     .width('100%')
+  }
+
+  @Builder
+  private buildAccessibleUserRow(user: AccessibleUser) {
+    Row({ space: ThemeConfig.SPACING_MD }) {
+      Row() {
+        Text(this.getUserInitial(user))
+          .fontSize(16)
+          .fontColor(this.theme_ACCENT_TEXT)
+      }
+      .width(38)
+      .height(38)
+      .justifyContent(FlexAlign.Center)
+      .backgroundColor(this.getUserAvatarColor(user.name))
+      .borderRadius(19)
+
+      Text((user.display_name ?? '').trim().length > 0 ? (user.display_name ?? '') : user.name)
+        .fontSize(ThemeConfig.FONT_SIZE_LG)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      if (user.name === this.accountState.username) {
+        Text(this.lt('Me'))
+          .fontSize(12)
+          .fontColor(this.theme_SUCCESS_TEXT)
+          .padding({ left: 7, right: 7, top: 3, bottom: 3 })
+          .border({ width: 1, color: this.theme_SUCCESS_TEXT })
+          .borderRadius(4)
+      }
+    }
+    .width('100%')
+    .height(54)
+    .padding({ left: 8, right: 8 })
+    .border({ width: { bottom: 1 }, color: this.theme_BORDER_SUBTLE })
   }
 
   @Builder
@@ -3484,6 +3526,9 @@ struct Index {
     .onClick(() => {
       this.dismissConnectSearch();
       this.currentConnectTab = tab;
+      if (tab === 'account' && this.accountState.isLoggedIn) {
+        void this.accountService.fetchAccessibleUsers();
+      }
       this.requestConnectTabFocus(20, tab === 'recent' ? 'recent-tab-btn' : `${tab}-tab-btn`);
     })
     .gesture(
@@ -5013,6 +5058,28 @@ struct Index {
       }
     } catch (error) {}
     return this.theme_ACCENT;
+  }
+
+  private getAccessibleUsers(): AccessibleUser[] {
+    try {
+      return JSON.parse(this.accessibleUsersJson) as AccessibleUser[];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  private getUserInitial(user: AccessibleUser): string {
+    const display = (user.display_name ?? '').trim().length > 0 ? (user.display_name ?? '') : user.name;
+    return display.trim().length > 0 ? display.trim().charAt(0).toUpperCase() : '?';
+  }
+
+  private getUserAvatarColor(name: string): string {
+    const colors: string[] = ['#8B1E5A', '#6D35C5', '#167D8D', '#9A5B13', '#3658A7'];
+    let hash = 0;
+    for (let index = 0; index < name.length; index++) {
+      hash = ((hash * 31) + name.charCodeAt(index)) >>> 0;
+    }
+    return colors[hash % colors.length];
   }
 
   private onShowAccountDialogChange(): void {
