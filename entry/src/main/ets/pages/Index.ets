@@ -542,7 +542,7 @@ struct Index {
   @StorageLink('apiNetworkError') apiNetworkError: string = '';
   @StorageLink('addressBookServerTags') addressBookServerTagsJson: string = '[]';
   @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
-  @State selectedAddressBookTag: string = '';
+  @State selectedAddressBookTags: string[] = [];
   @State showAddressBookTagManagement: boolean = false;
   @State showAddressBookActionsMenu: boolean = false;
   @State addressBookTagDraft: string = '';
@@ -556,6 +556,7 @@ struct Index {
   @State addressBookDialogMode: string = 'tag';
   @State syncRecentSessionsEnabled: boolean = false;
   @State filterAddressBookByTags: boolean = true;
+  @State addressBookActionsMenuVersion: number = 0;
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
@@ -1554,10 +1555,10 @@ struct Index {
         .width('100%')
 
         Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-          this.buildConnectTagChip(this.lt('All'), '', this.selectedAddressBookTag.length === 0)
-          this.buildConnectTagChip(this.lt('No Tags'), '', this.selectedAddressBookTag === '__untagged__', '__untagged__')
+          this.buildConnectTagChip(this.lt('All'), '', this.selectedAddressBookTags.length === 0)
+          this.buildConnectTagChip(this.lt('No Tags'), '', this.selectedAddressBookTags.includes('__untagged__'), '__untagged__')
           ForEach(this.getAddressBookTags(), (tag: string) => {
-            this.buildConnectTagChip(tag, this.getAddressBookTagColor(tag), this.selectedAddressBookTag === tag, tag)
+            this.buildConnectTagChip(tag, this.getAddressBookTagColor(tag), this.selectedAddressBookTags.includes(tag), tag)
           }, (tag: string) => tag)
         }
         .width('100%')
@@ -1595,12 +1596,13 @@ struct Index {
           this.showAddressBookTagManagement = true;
         })
         this.buildAddressBookMenuAction(this.lt('Deselect all tags'), () => {
-          this.selectedAddressBookTag = '';
+          this.selectedAddressBookTags = [];
           this.addressBookVersion++;
           this.showAddressBookActionsMenu = false;
         })
         this.buildAddressBookMenuToggle(this.lt('Sync recent sessions'), this.syncRecentSessionsEnabled, () => {
           this.syncRecentSessionsEnabled = !this.syncRecentSessionsEnabled;
+          this.addressBookActionsMenuVersion++;
           NativeRustDeskBridge.setLocalOption('address-book-sync-recent-sessions', this.syncRecentSessionsEnabled ? 'Y' : 'N');
           if (this.syncRecentSessionsEnabled) {
             void this.syncRecentSessionsToAddressBook();
@@ -1608,6 +1610,7 @@ struct Index {
         })
         this.buildAddressBookMenuToggle(this.lt('Filter by tags'), this.filterAddressBookByTags, () => {
           this.filterAddressBookByTags = !this.filterAddressBookByTags;
+          this.addressBookActionsMenuVersion++;
           NativeRustDeskBridge.setLocalOption('address-book-filter-by-tags', this.filterAddressBookByTags ? 'Y' : 'N');
           this.addressBookVersion++;
         })
@@ -1863,10 +1866,22 @@ struct Index {
     .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
     .borderRadius(8)
     .onClick(() => {
-      if (this.selectedAddressBookTag === value) {
+      if (value.length === 0) {
+        this.selectedAddressBookTags = [];
+      } else if (this.selectedAddressBookTags.includes(value)) {
+        this.selectedAddressBookTags = this.selectedAddressBookTags.filter((tag: string) => tag !== value);
+      } else {
+        this.selectedAddressBookTags = [...this.selectedAddressBookTags, value];
+      }
+      if (value.length > 0 && !this.filterAddressBookByTags) {
+        this.filterAddressBookByTags = true;
+        NativeRustDeskBridge.setLocalOption('address-book-filter-by-tags', 'Y');
+        this.addressBookActionsMenuVersion++;
+      }
+      if (value.length === 0 && this.selectedAddressBookTags.length === 0) {
+        this.addressBookVersion++;
         return;
       }
-      this.selectedAddressBookTag = value;
       this.addressBookVersion++;
     })
   }
@@ -5302,13 +5317,14 @@ struct Index {
     if (!this.filterAddressBookByTags) {
       return entries;
     }
-    if (this.selectedAddressBookTag.length === 0) {
+    if (this.selectedAddressBookTags.length === 0) {
       return entries;
     }
-    if (this.selectedAddressBookTag === '__untagged__') {
-      return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).length === 0);
-    }
-    return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).includes(this.selectedAddressBookTag));
+    return entries.filter((entry: AddressBookEntry) => {
+      const tags = this.getEntryTags(entry);
+      return this.selectedAddressBookTags.some((selected: string) =>
+        selected === '__untagged__' ? tags.length === 0 : tags.includes(selected));
+    });
   }
 
   private async saveAddressBookTag(): Promise<void> {
@@ -5332,9 +5348,7 @@ struct Index {
       }
       AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(localTags));
       await this.accountService.fetchAddressBook();
-      if (this.selectedAddressBookTag === oldTag) {
-        this.selectedAddressBookTag = tag;
-      }
+      this.selectedAddressBookTags = this.selectedAddressBookTags.map((value: string) => value === oldTag ? tag : value);
       this.addressBookTagDraft = '';
       this.editingAddressBookTag = '';
       this.addressBookVersion++;
@@ -5352,9 +5366,7 @@ struct Index {
       AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(
         this.getAddressBookTags().filter((value: string) => value !== tag)));
       await this.accountService.fetchAddressBook();
-      if (this.selectedAddressBookTag === tag) {
-        this.selectedAddressBookTag = '';
-      }
+      this.selectedAddressBookTags = this.selectedAddressBookTags.filter((value: string) => value !== tag);
       if (this.editingAddressBookTag === tag) {
         this.editingAddressBookTag = '';
         this.addressBookTagDraft = '';
@@ -8141,7 +8153,9 @@ struct Index {
         this.buildConnectTabVisibilityMenu()
       }
       if (this.showAddressBookActionsMenu) {
-        this.buildAddressBookActionsMenu()
+        ForEach([this.addressBookActionsMenuVersion], (_version: number) => {
+          this.buildAddressBookActionsMenu()
+        }, (_version: number) => `${_version}`)
       }
       if (this.showAddressBookTagManagement) {
         if (this.addressBookDialogMode === 'id') {
