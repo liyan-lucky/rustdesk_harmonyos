@@ -275,6 +275,7 @@ struct RemoteControl {
   @State osAutoLogin: boolean = true;
   @State showReconnectDialog: boolean = false;
   @StorageLink('avoidKeyboardHeight') @Watch('onAvoidKeyboardHeightChange') avoidKeyboardHeight: number = 0;
+  private systemKeyboardWasVisible: boolean = false;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @State remoteInputActive: boolean = false;
   @State reconnectDialogTitle: string = '';
@@ -834,7 +835,7 @@ struct RemoteControl {
   }
 
   build() {
-    Stack() {
+    Stack({ alignContent: Alignment.TopStart }) {
       Column() {
         Stack({ alignContent: Alignment.Bottom }) {
           Column() {
@@ -996,10 +997,8 @@ struct RemoteControl {
           this.buildKeyboardPanel();
         }
         .width('100%')
-        .height('100%')
-        .padding({ top: 4 })
-        .justifyContent(FlexAlign.Start)
-        .hitTestBehavior(HitTestMode.Transparent)
+        .margin({ top: 4 })
+        .hitTestBehavior(HitTestMode.Block)
         .zIndex(100)
       }
 
@@ -1768,6 +1767,7 @@ struct RemoteControl {
       .fontWeight(FontWeight.Medium)
       .fontColor(this.theme_TEXT_PRIMARY)
       .backgroundColor(this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .opacity(0.5)
       .border({ width: 1, color: this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
@@ -1801,6 +1801,7 @@ struct RemoteControl {
       .fontWeight(this.isStickyActive(key) ? FontWeight.Bold : FontWeight.Normal)
       .fontColor(this.isStickyActive(key) ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
       .backgroundColor(this.isStickyActive(key) ? this.theme_ACCENT : (this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG))
+      .opacity(0.5)
       .border({ width: 1, color: this.isStickyActive(key) || this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
@@ -1827,6 +1828,7 @@ struct RemoteControl {
       .fontWeight(FontWeight.Medium)
       .fontColor(this.theme_TEXT_PRIMARY)
       .backgroundColor(this.activeKey === label ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .opacity(0.5)
       .border({ width: 1, color: this.activeKey === label ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === label ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
@@ -5406,13 +5408,21 @@ struct RemoteControl {
 
   private onAvoidKeyboardHeightChange(): void {
     if (!this.showKeyboard) {
+      this.systemKeyboardWasVisible = false;
       return;
     }
     const kbH = this.avoidKeyboardHeight;
     if (kbH <= 0) {
       this.panOffsetY = this.preKeyboardPanOffsetY;
+      if (this.systemKeyboardWasVisible) {
+        this.systemKeyboardWasVisible = false;
+        this.showKeyboard = false;
+        this.releaseAllStickyKeys();
+        this.releaseImeProxyFocus();
+      }
       return;
     }
+    this.systemKeyboardWasVisible = true;
     const renderedH = this.resolveRenderedImageHeight();
     const ph = this.previewHeight;
     if (ph <= 0 || renderedH <= 0) {
