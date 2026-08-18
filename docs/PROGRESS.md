@@ -1130,3 +1130,8 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - Aligned with the current official personal-address-book API: GUID discovery, paged peer loading, tag/color loading, tag creation before peer creation, and GUID-scoped add/update/delete endpoints, with legacy `/api/ab` fallback only on HTTP 404.
 - Added the server tag panel to the home address-book tab, including colored tag filters, an untagged filter, per-device tag labels, and result-aware Chinese sync toasts.
 - Replaced the post-login account-detail tab with the official accessible-user list backed by `/api/users`, placing the current user first and showing a localized `Me` badge.
+# 2026-08-18 共享密码设置链路修复
+
+- 共享页访问模式、密码类型、永久密码、一次性密码长度和纯数字选项已接入核心真实配置接口。
+- 一次性密码配置修改后会立即重新生成并刷新显示，固定密码未设置时禁止切换到依赖永久密码的模式。
+- 增量版本为 `0.34.32 (1000277)`；双架构签名 HAP 构建通过。

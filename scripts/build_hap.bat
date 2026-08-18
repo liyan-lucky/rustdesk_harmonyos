@@ -58,7 +58,7 @@ if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
   set "BUILD_PROJECT_ROOT=%STAGE_ROOT%"
 )
 
-set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
+if not defined RUSTDESK_HARMONY_VERSION_BUMP set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
 set "OUTPUT_DIR=%RUSTDESK_HARMONY_TEMP_ROOT%\harmonyos_build\%PROJECT_NAME%\entry\build\default\outputs\default"
 
 if defined ABI_FILTER (

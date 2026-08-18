@@ -577,6 +577,8 @@ struct Index {
   @State sharePasswordType: string = 'both';
   @State shareFixedPassword: string = '';
   @State shareFixedPasswordDraft: string = '';
+  @State shareFixedPasswordConfigured: boolean = false;
+  private shareFixedPasswordDirty: boolean = false;
   @State shareOtpLength: number = 6;
   @State shareOtpLengthDraft: string = '6';
   @State shareOtpNumeric: boolean = false;
@@ -7238,8 +7240,8 @@ struct Index {
           .width('100%')
           .padding({ bottom: 2 })
 
-        this.buildShareListItem(this.lt('Set fixed password'), this.shareFixedPassword.length > 0 ? '••••••' : this.lt('Not set'), () => {
-          this.shareFixedPasswordDraft = this.shareFixedPassword;
+        this.buildShareListItem(this.lt('Set fixed password'), this.shareFixedPasswordConfigured ? '******' : this.lt('Not set'), () => {
+          this.shareFixedPasswordDraft = '';
           this.showShareFixedPasswordInput = true;
         })
         this.buildShareListItem(this.lt('One-time password length'), `${this.shareOtpLength}`, () => {
@@ -7302,8 +7304,9 @@ struct Index {
             .backgroundColor(this.theme_ACCENT)
             .borderRadius(6)
             .onClick(() => {
-              this.saveShareSettings();
-              this.showShareSettingsDialog = false;
+              if (this.saveShareSettings()) {
+                this.showShareSettingsDialog = false;
+              }
             })
         }
         .width('100%')
@@ -7414,6 +7417,8 @@ struct Index {
             .borderRadius(8)
             .onClick(() => {
               this.shareFixedPassword = this.shareFixedPasswordDraft.trim();
+              this.shareFixedPasswordConfigured = this.shareFixedPassword.length > 0;
+              this.shareFixedPasswordDirty = true;
               this.showShareFixedPasswordInput = false;
             })
         }
@@ -7477,10 +7482,12 @@ struct Index {
             .borderRadius(8)
             .onClick(() => {
               const len = parseInt(this.shareOtpLengthDraft.trim(), 10);
-              if (len >= 4 && len <= 16) {
+              if (len === 6 || len === 8 || len === 10) {
                 this.shareOtpLength = len;
+                this.showShareOtpLengthInput = false;
+              } else {
+                this.setStatusMessageRaw(this.lt('One-time password length must be 6, 8 or 10'));
               }
-              this.showShareOtpLengthInput = false;
             })
         }
         .width('100%')
@@ -7502,36 +7509,33 @@ struct Index {
   }
 
   private loadShareSettings(): void {
-    const approveMode = NativeRustDeskBridge.getLocalOption('approve-mode').trim();
-    const verificationMethod = NativeRustDeskBridge.getLocalOption('verification-method').trim();
-    const fixedPassword = NativeRustDeskBridge.getLocalOption('fixed-password').trim();
-    const otpLengthStr = NativeRustDeskBridge.getLocalOption('otp-length').trim();
-    const otpNumericStr = NativeRustDeskBridge.getLocalOption('otp-numeric').trim().toUpperCase();
+    const approveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+    const verificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
+    const otpLengthStr = NativeRustDeskBridge.mainGetOption('temporary-password-length').trim();
+    const otpNumericStr = NativeRustDeskBridge.mainGetOption('allow-numeric-one-time-password').trim().toUpperCase();
 
     if (approveMode === 'click') {
       this.shareAccessMode = 'click';
     } else if (approveMode === 'password') {
-      if (verificationMethod === 'use-temporary-password') {
-        this.shareAccessMode = 'password';
-      } else {
-        this.shareAccessMode = 'both';
-      }
+      this.shareAccessMode = 'password';
     } else {
       this.shareAccessMode = 'both';
     }
 
-    this.shareFixedPassword = fixedPassword;
-    this.shareFixedPasswordDraft = fixedPassword;
+    this.shareFixedPassword = '';
+    this.shareFixedPasswordDraft = '';
+    this.shareFixedPasswordDirty = false;
+    this.shareFixedPasswordConfigured = NativeRustDeskBridge.mainGetCommon('permanent-password-set').trim() === 'true';
 
     const len = parseInt(otpLengthStr, 10);
-    this.shareOtpLength = isNaN(len) || len < 4 || len > 16 ? 6 : len;
+    this.shareOtpLength = len === 8 || len === 10 ? len : 6;
     this.shareOtpLengthDraft = `${this.shareOtpLength}`;
 
     this.shareOtpNumeric = otpNumericStr === 'Y' || otpNumericStr === 'YES' || otpNumericStr === 'TRUE' || otpNumericStr === '1';
 
     if (verificationMethod === 'use-temporary-password') {
       this.sharePasswordType = 'temporary';
-    } else if (verificationMethod === 'use-fixed-password') {
+    } else if (verificationMethod === 'use-permanent-password') {
       this.sharePasswordType = 'fixed';
     } else if (verificationMethod === 'use-both-passwords') {
       this.sharePasswordType = 'both';
@@ -7540,30 +7544,49 @@ struct Index {
     }
   }
 
-  private saveShareSettings(): void {
-    if (this.shareAccessMode === 'click') {
-      NativeRustDeskBridge.setLocalOption('approve-mode', 'click');
-    } else if (this.shareAccessMode === 'password') {
-      NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
-      NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
-    } else {
-      NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
-      NativeRustDeskBridge.setLocalOption('verification-method', 'use-both-passwords');
+  private saveShareSettings(): boolean {
+    if (this.sharePasswordType !== 'temporary' && !this.shareFixedPasswordConfigured) {
+      this.setStatusMessageRaw(this.lt('Please set a fixed password first'));
+      return false;
     }
 
-    if (this.sharePasswordType === 'temporary') {
-      NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
-    } else if (this.sharePasswordType === 'fixed') {
-      NativeRustDeskBridge.setLocalOption('verification-method', 'use-fixed-password');
-    } else {
-      NativeRustDeskBridge.setLocalOption('verification-method', 'use-both-passwords');
+    if (this.shareFixedPasswordDirty) {
+      if (!NativeRustDeskBridge.mainSetPermanentPasswordWithResult(this.shareFixedPassword)) {
+        this.setStatusMessageRaw(this.lt('Failed to set fixed password'));
+        return false;
+      }
+      this.shareFixedPasswordDirty = false;
     }
 
-    NativeRustDeskBridge.setLocalOption('fixed-password', this.shareFixedPassword);
-    NativeRustDeskBridge.setLocalOption('otp-length', `${this.shareOtpLength}`);
-    NativeRustDeskBridge.setLocalOption('otp-numeric', this.shareOtpNumeric ? 'Y' : 'N');
+    const approveMode = this.shareAccessMode === 'click' ? 'click' :
+      (this.shareAccessMode === 'password' ? 'password' : 'both');
+    const verificationMethod = this.sharePasswordType === 'temporary' ? 'use-temporary-password' :
+      (this.sharePasswordType === 'fixed' ? 'use-permanent-password' : 'use-both-passwords');
+    const oldOtpLength = NativeRustDeskBridge.mainGetOption('temporary-password-length').trim();
+    const oldOtpNumeric = NativeRustDeskBridge.mainGetOption('allow-numeric-one-time-password').trim().toUpperCase();
+
+    NativeRustDeskBridge.mainSetOption('approve-mode', approveMode);
+    NativeRustDeskBridge.mainSetOption('verification-method', verificationMethod);
+    NativeRustDeskBridge.mainSetOption('temporary-password-length', `${this.shareOtpLength}`);
+    NativeRustDeskBridge.mainSetOption('allow-numeric-one-time-password', this.shareOtpNumeric ? 'Y' : 'N');
+
+    const otpChanged = oldOtpLength !== `${this.shareOtpLength}` ||
+      (oldOtpNumeric === 'Y') !== this.shareOtpNumeric;
+    if (otpChanged) {
+      NativeRustDeskBridge.mainUpdateTemporaryPassword();
+      this.oneTimePassword = NativeRustDeskBridge.mainGetTemporaryPassword();
+      this.shareUiVersion++;
+    }
+
+    const savedApproveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+    const savedVerificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
+    if (savedApproveMode !== approveMode || savedVerificationMethod !== verificationMethod) {
+      this.setStatusMessageRaw(this.lt('Failed to save share settings'));
+      return false;
+    }
 
     this.setStatusMessageRaw(this.lt('Share settings saved'));
+    return true;
   }
 
   @Builder

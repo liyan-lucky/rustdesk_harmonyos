@@ -2050,3 +2050,9 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 **Fix**: Home additions now use the same server mutation path as the address book page. Entries preserve `tags[]`, server tags drive a filter row, and add/edit accepts comma-separated tags while retaining `group` for stored-data compatibility.
 
 **Official protocol alignment**: Current servers expose a personal address book GUID and separate peer/tag resources. The client now probes `/api/ab/personal`, reads paged peers and colored tags, creates missing tags before adding peers, and uses GUID-scoped mutation routes. A 404 response selects the legacy whole-book protocol.
+# 2026-08-18 共享页密码设置无效
+
+- 根因：共享菜单使用了核心不识别的 `fixed-password`、`otp-length`、`otp-numeric` 本地键，并把永久密码模式错误写成 `use-fixed-password`；“密码或点击”也被保存成仅密码模式。
+- 修复：对齐官方核心接口和配置：永久密码调用 `mainSetPermanentPasswordWithResult()`，使用 `temporary-password-length`、`allow-numeric-one-time-password`、`use-permanent-password`，访问模式按 `click/password/both` 三态保存。
+- 状态刷新：一次性密码长度或纯数字选项变化后调用 `mainUpdateTemporaryPassword()`，立即回读并刷新共享页；保存失败不关闭菜单，并提供完整中文提示。
+- 构建链：`build_hap.bat` 仅在外部未指定时默认 `incremental`，允许失败重试显式使用 `none`，避免同一修改重复增加版本号。
