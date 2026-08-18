@@ -177,6 +177,11 @@ export class I18nService {
     this.translations.set('Device ID', '设备 ID');
     this.translations.set('Add ID', '添加 ID');
     this.translations.set('ID added to tag', 'ID 已添加到指定标签');
+    this.translations.set('Deselect all tags', '取消选择所有标签');
+    this.translations.set('Sync recent sessions', '同步最近会话');
+    this.translations.set('Filter by tags', '按标签过滤');
+    this.translations.set('Open Web Console', '打开 Web 控制台以执行更多操作');
+    this.translations.set('API Server is not configured', '尚未配置 API 服务器');
     this.translations.set('Available', '可访问');
     this.translations.set('Unreachable', '不可达');
     this.translations.set('Not checked', '尚未检查');
@@ -1305,6 +1310,11 @@ export class I18nService {
     this.translations.set('Device ID', 'Device ID');
     this.translations.set('Add ID', 'Add ID');
     this.translations.set('ID added to tag', 'ID added to the selected tag');
+    this.translations.set('Deselect all tags', 'Deselect all tags');
+    this.translations.set('Sync recent sessions', 'Sync recent sessions');
+    this.translations.set('Filter by tags', 'Filter by tags');
+    this.translations.set('Open Web Console', 'Open Web Console for more actions');
+    this.translations.set('API Server is not configured', 'API Server is not configured');
     this.translations.set('Available', 'Available');
     this.translations.set('Unreachable', 'Unreachable');
     this.translations.set('Not checked', 'Not checked');

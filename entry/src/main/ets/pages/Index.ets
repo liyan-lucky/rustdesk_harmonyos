@@ -544,12 +544,15 @@ struct Index {
   @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
   @State selectedAddressBookTag: string = '';
   @State showAddressBookTagManagement: boolean = false;
+  @State showAddressBookActionsMenu: boolean = false;
   @State addressBookTagDraft: string = '';
   @State editingAddressBookTag: string = '';
   @State addressBookTagBusy: boolean = false;
   @State addressBookTagColor: number = 4280391411;
   @State addressBookPeerIdDraft: string = '';
   @State addressBookPeerTagDraft: string = '';
+  @State syncRecentSessionsEnabled: boolean = false;
+  @State filterAddressBookByTags: boolean = true;
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
@@ -707,11 +710,13 @@ struct Index {
     this.verboseLogEnabled = verboseRaw === 'Y' || verboseRaw === 'YES' || verboseRaw === 'TRUE' || verboseRaw === '1';
     Logger.setDebugEnabled(this.verboseLogEnabled);
     Logger.info('CONN', `Index aboutToAppear verboseLog=${this.verboseLogEnabled}`);
+    this.syncRecentSessionsEnabled = NativeRustDeskBridge.getLocalOption('address-book-sync-recent-sessions').trim().toUpperCase() === 'Y';
+    this.filterAddressBookByTags = NativeRustDeskBridge.getLocalOption('address-book-filter-by-tags').trim().toUpperCase() !== 'N';
     if (!this.settings.denyLanDiscovery) {
       LanDiscoveryService.getInstance().startDiscovery();
     }
     if (this.accountState.isLoggedIn) {
-      void this.accountService.fetchAccessibleUsers();
+      void this.refreshAccountUsers();
     }
   }
 
@@ -1537,7 +1542,7 @@ struct Index {
           .height(36)
           .backgroundColor(Color.Transparent)
           .onClick(() => {
-            this.showAddressBookTagManagement = true;
+            this.showAddressBookActionsMenu = true;
           })
         }
         .width('100%')
@@ -1562,6 +1567,103 @@ struct Index {
         this.lt('No devices under this tag'))
     }
     .width('100%')
+  }
+
+  @Builder
+  private buildAddressBookActionsMenu() {
+    Column() {
+      Column({ space: 0 }) {
+        this.buildAddressBookMenuAction(this.lt('Add ID'), () => {
+          this.showAddressBookActionsMenu = false;
+          this.addressBookPeerIdDraft = '';
+          this.showAddressBookTagManagement = true;
+        })
+        this.buildAddressBookMenuAction(this.lt('Add Tag'), () => {
+          this.showAddressBookActionsMenu = false;
+          this.addressBookTagDraft = '';
+          this.editingAddressBookTag = '';
+          this.showAddressBookTagManagement = true;
+        })
+        this.buildAddressBookMenuAction(this.lt('Deselect all tags'), () => {
+          this.selectedAddressBookTag = '';
+          this.addressBookVersion++;
+          this.showAddressBookActionsMenu = false;
+        })
+        this.buildAddressBookMenuToggle(this.lt('Sync recent sessions'), this.syncRecentSessionsEnabled, () => {
+          this.syncRecentSessionsEnabled = !this.syncRecentSessionsEnabled;
+          NativeRustDeskBridge.setLocalOption('address-book-sync-recent-sessions', this.syncRecentSessionsEnabled ? 'Y' : 'N');
+          if (this.syncRecentSessionsEnabled) {
+            void this.syncRecentSessionsToAddressBook();
+          }
+        })
+        this.buildAddressBookMenuToggle(this.lt('Filter by tags'), this.filterAddressBookByTags, () => {
+          this.filterAddressBookByTags = !this.filterAddressBookByTags;
+          NativeRustDeskBridge.setLocalOption('address-book-filter-by-tags', this.filterAddressBookByTags ? 'Y' : 'N');
+          this.addressBookVersion++;
+        })
+        Divider().color(this.theme_BORDER_SUBTLE)
+        this.buildAddressBookMenuAction(this.lt('Open Web Console'), () => {
+          this.showAddressBookActionsMenu = false;
+          void this.openAddressBookWebConsole();
+        })
+      }
+      .width(270)
+      .padding({ top: 6, bottom: 6 })
+      .backgroundColor(this.theme_CARD_BG)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .borderRadius(8)
+      .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%').height('100%')
+    .padding({ top: 250, right: 24 })
+    .alignItems(HorizontalAlign.End)
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .onClick(() => { this.showAddressBookActionsMenu = false; })
+  }
+
+  @Builder
+  private buildAddressBookMenuAction(label: string, action: () => void) {
+    Row() {
+      Text(label).fontSize(15).fontColor(this.theme_TEXT_PRIMARY).layoutWeight(1)
+    }.width('100%').height(42).padding({ left: 16, right: 16 }).onClick(action)
+  }
+
+  @Builder
+  private buildAddressBookMenuToggle(label: string, checked: boolean, action: () => void) {
+    Row({ space: 12 }) {
+      Text(label).fontSize(15).fontColor(this.theme_TEXT_PRIMARY).layoutWeight(1)
+      Checkbox().select(checked).width(20).height(20).hitTestBehavior(HitTestMode.None)
+    }.width('100%').height(42).padding({ left: 16, right: 16 }).onClick(action)
+  }
+
+  private async refreshAccountUsers(): Promise<void> {
+    await this.accountService.fetchAccessibleUsers();
+    this.accountRefreshTick++;
+  }
+
+  private async syncRecentSessionsToAddressBook(): Promise<void> {
+    if (!this.accountState.isLoggedIn) {
+      return;
+    }
+    for (const session of this.recentSessions) {
+      if (!this.isInAddressBook(session.id)) {
+        await this.accountService.addPeerToAddressBook({ id: session.id, alias: session.name, platform: session.platform, tags: [] });
+      }
+    }
+    await this.syncAddressBookFromServer(false);
+  }
+
+  private async openAddressBookWebConsole(): Promise<void> {
+    const apiServer = this.settings.apiServer.trim();
+    if (apiServer.length === 0) {
+      await this.showToast(this.lt('API Server is not configured'));
+      return;
+    }
+    const url = apiServer.replace(/\/+$/, '').replace(/\/api$/, '');
+    if (!(await this.accountService.openExternalUrl(url))) {
+      await this.showToast(this.lt('Cannot open browser'));
+    }
   }
 
   @Builder
@@ -1628,7 +1730,7 @@ struct Index {
                 (tag: string) => `assign-${tag}`)
             }.width('100%')
           }.width('100%')
-        }.width('100%').constraintSize({ maxHeight: '65%' })
+        }.width('100%').height('65%')
       }
       .width('88%').padding(24).backgroundColor(this.theme_CARD_BG).borderRadius(12)
       .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 }).onClick(() => {})
@@ -3630,8 +3732,14 @@ struct Index {
     .onClick(() => {
       this.dismissConnectSearch();
       this.currentConnectTab = tab;
-      if (tab === 'account' && this.accountState.isLoggedIn) {
-        void this.accountService.fetchAccessibleUsers();
+      if (tab === 'account') {
+        this.refreshAccountState();
+        if (this.accountState.isLoggedIn) {
+          void this.refreshAccountUsers();
+        }
+      }
+      if (tab === 'addressBook' && this.accountState.isLoggedIn) {
+        void this.syncAddressBookFromServer(false);
       }
       this.requestConnectTabFocus(20, tab === 'recent' ? 'recent-tab-btn' : `${tab}-tab-btn`);
     })
@@ -5127,6 +5235,9 @@ struct Index {
 
   private getFilteredAddressBookEntries(): AddressBookEntry[] {
     const entries = this.filterAddressEntries(this.appData.getAddressBook());
+    if (!this.filterAddressBookByTags) {
+      return entries;
+    }
     if (this.selectedAddressBookTag.length === 0) {
       return entries;
     }
@@ -7933,6 +8044,9 @@ struct Index {
       }
       if (this.showConnectTabVisibilityMenu) {
         this.buildConnectTabVisibilityMenu()
+      }
+      if (this.showAddressBookActionsMenu) {
+        this.buildAddressBookActionsMenu()
       }
       if (this.showAddressBookTagManagement) {
         this.buildAddressBookTagManagementDialog()

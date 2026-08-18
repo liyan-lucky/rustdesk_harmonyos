@@ -663,6 +663,10 @@ export class AccountService {
     return this.openBrowser(this.oauthUrl);
   }
 
+  async openExternalUrl(url: string): Promise<boolean> {
+    return this.openBrowser(url);
+  }
+
   async logout(): Promise<void> {
     this.stopServiceSync();
     this.syncApiServerFromSettings();
