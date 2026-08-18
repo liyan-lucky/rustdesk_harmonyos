@@ -37,6 +37,7 @@ struct AddressBook {
   @State editingId: string = '';
   @State selectedTag: string = '';
   @StorageLink('addressBookServerTags') serverTagsJson: string = '[]';
+  @StorageLink('addressBookTagColors') tagColorsJson: string = '{}';
   @State accountState: AccountState = this.appState.getAccount();
 
   aboutToAppear() {
@@ -269,11 +270,11 @@ struct AddressBook {
   private buildTagFilterBar() {
     if (this.getServerTags().length > 0) {
       Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-        this.buildFilterButton(this.lt('All Tags'), this.selectedTag.length === 0, () => {
+        this.buildTagFilterButton(this.lt('All Tags'), '', this.selectedTag.length === 0, () => {
           this.selectedTag = '';
         })
         ForEach(this.getServerTags(), (tag: string) => {
-          this.buildFilterButton(tag, this.selectedTag === tag, () => {
+          this.buildTagFilterButton(tag, this.getTagColor(tag), this.selectedTag === tag, () => {
             this.selectedTag = tag;
           })
         }, (tag: string) => tag)
@@ -393,6 +394,23 @@ struct AddressBook {
       .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
       .borderRadius(12)
       .onClick(action)
+  }
+
+  @Builder
+  private buildTagFilterButton(label: string, color: string, active: boolean, action: () => void) {
+    Button() {
+      Row({ space: 6 }) {
+        if (color.length > 0) {
+          Circle().width(8).height(8).fill(color)
+        }
+        Text(label).fontSize(12).fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      }
+    }
+    .height(36)
+    .margin({ right: 8, bottom: 8 })
+    .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
+    .borderRadius(8)
+    .onClick(action)
   }
 
   @Builder
@@ -566,6 +584,17 @@ struct AddressBook {
     } catch (error) {
       return [];
     }
+  }
+
+  private getTagColor(tag: string): string {
+    try {
+      const colors = JSON.parse(this.tagColorsJson) as Record<string, number>;
+      const value = colors[tag];
+      if (value !== undefined) {
+        return `#${(value & 0xFFFFFF).toString(16).padStart(6, '0')}`;
+      }
+    } catch (error) {}
+    return this.theme_ACCENT;
   }
 
   private openPage(url: string, deviceId: string): void {

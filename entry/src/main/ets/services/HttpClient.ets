@@ -131,6 +131,25 @@ export interface AbResponse {
   tagColors?: string;
 }
 
+export interface AbTag {
+  name: string;
+  color: number;
+}
+
+class AbTagCreateRequest {
+  name: string = '';
+  color: number = 0;
+}
+
+class PersonalAddressBookResponse {
+  guid: string = '';
+}
+
+interface PagedPeersResponse {
+  total: number;
+  data: AbPeer[];
+}
+
 class LegacyAddressBookData {
   tags: string[] = [];
   peers: AbPeer[] = [];
@@ -172,6 +191,7 @@ export class HttpClient {
   private static instance: HttpClient;
   private baseUrl: string = AppDataService.OFFICIAL_API_SERVER;
   private timeout: number = 30000;
+  private personalAddressBookGuid: string = '';
 
   private constructor() {
     this.publishNetworkState('idle', '', this.baseUrl);
@@ -187,6 +207,7 @@ export class HttpClient {
   setApiServer(apiServer: string): void {
     const normalized = apiServer.trim();
     this.baseUrl = normalized.length > 0 ? normalized : AppDataService.OFFICIAL_API_SERVER;
+    this.personalAddressBookGuid = '';
     this.publishNetworkState('idle', '', this.baseUrl);
     Logger.debug('HTTP', `setApiServer: input="${apiServer}" → baseUrl="${this.baseUrl}"`);
   }
@@ -327,6 +348,14 @@ export class HttpClient {
 
   async post<T>(path: string, body?: Object): Promise<HttpResult<T>> {
     return this.request<T>(http.RequestMethod.POST, path, body);
+  }
+
+  async put<T>(path: string, body?: Object): Promise<HttpResult<T>> {
+    return this.request<T>(http.RequestMethod.PUT, path, body);
+  }
+
+  async delete<T>(path: string, body?: Object): Promise<HttpResult<T>> {
+    return this.request<T>(http.RequestMethod.DELETE, path, body);
   }
 
   async getLoginOptions(): Promise<HttpResult<LoginOptionsResponse>> {
@@ -500,6 +529,19 @@ export class HttpClient {
   }
 
   async getAddressBook(): Promise<HttpResult<AbResponse>> {
+    const personal = await this.post<PersonalAddressBookResponse>('/api/ab/personal');
+    if (personal.success && personal.data && personal.data.guid.trim().length > 0) {
+      this.personalAddressBookGuid = personal.data.guid.trim();
+      return this.getModernAddressBook(this.personalAddressBookGuid);
+    }
+    if (personal.statusCode !== 404) {
+      return { success: false, error: personal.error, statusCode: personal.statusCode };
+    }
+    this.personalAddressBookGuid = '';
+    return this.getLegacyAddressBook();
+  }
+
+  private async getLegacyAddressBook(): Promise<HttpResult<AbResponse>> {
     const rawResult = await this.get<Record<string, Object>>('/api/ab');
     if (!rawResult.success || !rawResult.data) {
       return rawResult as HttpResult<AbResponse>;
@@ -531,6 +573,43 @@ export class HttpClient {
     return { success: true, data: adapted, statusCode: rawResult.statusCode };
   }
 
+  private async getModernAddressBook(guid: string): Promise<HttpResult<AbResponse>> {
+    const peers: AbPeer[] = [];
+    const pageSize = 100;
+    let current = 1;
+    let total = 0;
+    do {
+      const path = `/api/ab/peers?current=${current}&pageSize=${pageSize}&ab=${encodeURIComponent(guid)}`;
+      const page = await this.post<PagedPeersResponse>(path);
+      if (!page.success || !page.data) {
+        return { success: false, error: page.error, statusCode: page.statusCode };
+      }
+      total = page.data.total ?? 0;
+      for (const peer of page.data.data ?? []) {
+        peers.push(peer);
+      }
+      current++;
+    } while ((current - 1) * pageSize < total);
+
+    const tagsResult = await this.post<AbTag[]>(`/api/ab/tags/${encodeURIComponent(guid)}`);
+    if (!tagsResult.success || !tagsResult.data) {
+      return { success: false, error: tagsResult.error, statusCode: tagsResult.statusCode };
+    }
+    const tags: string[] = [];
+    const colors: Record<string, number> = {};
+    for (const tag of tagsResult.data) {
+      if (tag.name && tag.name.trim().length > 0) {
+        tags.push(tag.name);
+        colors[tag.name] = tag.color;
+      }
+    }
+    return {
+      success: true,
+      data: { peers: peers, tags: tags, tagColors: JSON.stringify(colors) },
+      statusCode: tagsResult.statusCode
+    };
+  }
+
   async syncDeviceSysinfo(username: string): Promise<HttpResult<string>> {
     const deviceInfo = this.getLoginDeviceInfo();
     const body = new DeviceSysinfoRequest();
@@ -557,6 +636,13 @@ export class HttpClient {
     if (!book.success || !book.data) {
       return book as HttpResult<AbPeer>;
     }
+    if (this.personalAddressBookGuid.length > 0) {
+      const tagResult = await this.ensureModernTags(book.data, peer.tags ?? []);
+      if (!tagResult.success) {
+        return { success: false, error: tagResult.error, statusCode: tagResult.statusCode };
+      }
+      return this.post<AbPeer>(`/api/ab/peer/add/${encodeURIComponent(this.personalAddressBookGuid)}`, peer);
+    }
     const peers = book.data.peers ?? [];
     let replaced = false;
     for (let index = 0; index < peers.length; index++) {
@@ -579,7 +665,20 @@ export class HttpClient {
 
   async updateAbPeer(peer: AbPeer): Promise<HttpResult<AbPeer>> {
     Logger.info('HTTP', `updateAbPeer: replace legacy address book, id="${peer.id}"`);
-    const result = await this.addAbPeer(peer);
+    const book = await this.getAddressBook();
+    if (!book.success || !book.data) {
+      return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    let result: HttpResult<AbPeer>;
+    if (this.personalAddressBookGuid.length > 0) {
+      const tagResult = await this.ensureModernTags(book.data, peer.tags ?? []);
+      if (!tagResult.success) {
+        return { success: false, error: tagResult.error, statusCode: tagResult.statusCode };
+      }
+      result = await this.put<AbPeer>(`/api/ab/peer/update/${encodeURIComponent(this.personalAddressBookGuid)}`, peer);
+    } else {
+      result = await this.addAbPeer(peer);
+    }
     Logger.info('HTTP', `updateAbPeer result: success=${result.success}, status=${result.statusCode ?? -1}`);
     return result;
   }
@@ -589,6 +688,10 @@ export class HttpClient {
     const book = await this.getAddressBook();
     if (!book.success || !book.data) {
       return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    if (this.personalAddressBookGuid.length > 0) {
+      const ids: string[] = [peerId];
+      return this.delete<void>(`/api/ab/peer/${encodeURIComponent(this.personalAddressBookGuid)}`, ids);
     }
     const peers: AbPeer[] = [];
     for (const peer of book.data.peers ?? []) {
@@ -605,6 +708,14 @@ export class HttpClient {
     const book = await this.getAddressBook();
     if (!book.success || !book.data) {
       return { success: false, error: book.error, statusCode: book.statusCode };
+    }
+    if (this.personalAddressBookGuid.length > 0) {
+      const tagResult = await this.ensureModernTags(book.data, tags);
+      if (!tagResult.success) {
+        return tagResult;
+      }
+      const patch: AbPeer = { id: peerId, tags: tags };
+      return this.put<void>(`/api/ab/peer/update/${encodeURIComponent(this.personalAddressBookGuid)}`, patch);
     }
     const peers = book.data.peers ?? [];
     for (let index = 0; index < peers.length; index++) {
@@ -628,6 +739,35 @@ export class HttpClient {
       platform: patch.platform ?? current.platform,
       tags: patch.tags ?? current.tags
     };
+  }
+
+  private async ensureModernTags(book: AbResponse, tags: string[]): Promise<HttpResult<void>> {
+    const existing: Set<string> = new Set<string>(book.tags ?? []);
+    for (const tag of tags) {
+      const normalized = tag.trim();
+      if (normalized.length === 0 || existing.has(normalized)) {
+        continue;
+      }
+      const body = new AbTagCreateRequest();
+      body.name = normalized;
+      body.color = this.colorForTag(normalized);
+      const result = await this.post<void>(
+        `/api/ab/tag/add/${encodeURIComponent(this.personalAddressBookGuid)}`, body);
+      if (!result.success) {
+        return result;
+      }
+      existing.add(normalized);
+    }
+    return { success: true };
+  }
+
+  private colorForTag(tag: string): number {
+    const colors: number[] = [4280391411, 4283215696, 4294936121, 4288423856, 4294198070, 4278238420];
+    let hash = 0;
+    for (let index = 0; index < tag.length; index++) {
+      hash = ((hash * 31) + tag.charCodeAt(index)) >>> 0;
+    }
+    return colors[hash % colors.length];
   }
 
   private async replaceAddressBook(book: AbResponse, peers: AbPeer[]): Promise<HttpResult<void>> {

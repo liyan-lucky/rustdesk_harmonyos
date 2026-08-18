@@ -2048,3 +2048,5 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 
 **Root cause**: The home recent-device menu wrote only to `AppDataService`, bypassing `AccountService.addPeerToAddressBook`. Server peer tags were also flattened into the legacy single `group` field and the server's top-level tag list was discarded.
 **Fix**: Home additions now use the same server mutation path as the address book page. Entries preserve `tags[]`, server tags drive a filter row, and add/edit accepts comma-separated tags while retaining `group` for stored-data compatibility.
+
+**Official protocol alignment**: Current servers expose a personal address book GUID and separate peer/tag resources. The client now probes `/api/ab/personal`, reads paged peers and colored tags, creates missing tags before adding peers, and uses GUID-scoped mutation routes. A 404 response selects the legacy whole-book protocol.

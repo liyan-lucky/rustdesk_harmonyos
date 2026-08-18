@@ -424,6 +424,7 @@ export class AccountService {
     Logger.debug('SYNC', `getAddressBook success=${result.success}, peers=${result.data?.peers?.length ?? 0}, groups=${result.data?.groups?.length ?? 0}`);
     if (result.success && result.data) {
       AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(result.data.tags ?? []));
+      AppStorage.setOrCreate<string>('addressBookTagColors', result.data.tagColors ?? '{}');
       const entries: AddressBookEntry[] = [];
       const seenIds: Set<string> = new Set<string>();
       const appData = AppDataService.getInstance();
