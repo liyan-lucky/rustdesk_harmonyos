@@ -173,6 +173,9 @@ export class I18nService {
     this.translations.set('Tag deleted', '标签删除成功');
     this.translations.set('Tag already exists', '标签已存在');
     this.translations.set('Tag operation failed', '标签操作失败，请检查 API 服务器网络状态');
+    this.translations.set('Device ID', '设备 ID');
+    this.translations.set('Add ID', '添加 ID');
+    this.translations.set('ID added to tag', 'ID 已添加到指定标签');
     this.translations.set('Available', '可访问');
     this.translations.set('Unreachable', '不可达');
     this.translations.set('Not checked', '尚未检查');
@@ -1297,6 +1300,9 @@ export class I18nService {
     this.translations.set('Tag deleted', 'Tag deleted');
     this.translations.set('Tag already exists', 'Tag already exists');
     this.translations.set('Tag operation failed', 'Tag operation failed. Check the API server network status.');
+    this.translations.set('Device ID', 'Device ID');
+    this.translations.set('Add ID', 'Add ID');
+    this.translations.set('ID added to tag', 'ID added to the selected tag');
     this.translations.set('Available', 'Available');
     this.translations.set('Unreachable', 'Unreachable');
     this.translations.set('Not checked', 'Not checked');

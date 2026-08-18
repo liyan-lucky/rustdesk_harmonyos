@@ -253,7 +253,7 @@ struct RemoteControl {
   @State videoStatus: string = I18nService.getInstance().translate('Waiting for video...');
   @State isConnected: boolean = false;
   @State frameVersion: number = 0;
-  @State showToolbar: boolean = true;
+  @State showToolbar: boolean = false;
   @State toolbarX: number = -1;
   @State toolbarY: number = -1;
   @State toolbarSide: string = 'left';

@@ -506,9 +506,9 @@ export class AccountService {
     return true;
   }
 
-  async addAddressBookTag(tag: string): Promise<boolean> {
+  async addAddressBookTag(tag: string, color?: number): Promise<boolean> {
     this.syncApiServerFromSettings();
-    return (await this.httpClient.addAddressBookTag(tag)).success;
+    return (await this.httpClient.addAddressBookTag(tag, color)).success;
   }
 
   async renameAddressBookTag(oldTag: string, newTag: string): Promise<boolean> {

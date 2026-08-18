@@ -768,7 +768,7 @@ export class HttpClient {
     return this.replaceAddressBook(book.data, peers);
   }
 
-  async addAddressBookTag(tag: string): Promise<HttpResult<void>> {
+  async addAddressBookTag(tag: string, color?: number): Promise<HttpResult<void>> {
     const normalized = tag.trim();
     const book = await this.getAddressBook();
     if (!book.success || !book.data) {
@@ -778,7 +778,7 @@ export class HttpClient {
       return { success: true };
     }
     if (this.personalAddressBookGuid.length > 0) {
-      return this.ensureModernTags(book.data, [normalized]);
+      return this.ensureModernTags(book.data, [normalized], color);
     }
     const tags = book.data.tags ?? [];
     tags.push(normalized);
@@ -836,7 +836,7 @@ export class HttpClient {
     };
   }
 
-  private async ensureModernTags(book: AbResponse, tags: string[]): Promise<HttpResult<void>> {
+  private async ensureModernTags(book: AbResponse, tags: string[], requestedColor?: number): Promise<HttpResult<void>> {
     const existing: Set<string> = new Set<string>(book.tags ?? []);
     for (const tag of tags) {
       const normalized = tag.trim();
@@ -845,7 +845,7 @@ export class HttpClient {
       }
       const body = new AbTagCreateRequest();
       body.name = normalized;
-      body.color = this.colorForTag(normalized);
+      body.color = requestedColor ?? this.colorForTag(normalized);
       const result = await this.post<void>(
         `/api/ab/tag/add/${encodeURIComponent(this.personalAddressBookGuid)}`, body);
       if (!result.success) {

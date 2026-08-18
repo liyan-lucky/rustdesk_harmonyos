@@ -547,6 +547,9 @@ struct Index {
   @State addressBookTagDraft: string = '';
   @State editingAddressBookTag: string = '';
   @State addressBookTagBusy: boolean = false;
+  @State addressBookTagColor: number = 4280391411;
+  @State addressBookPeerIdDraft: string = '';
+  @State addressBookPeerTagDraft: string = '';
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
@@ -1579,6 +1582,28 @@ struct Index {
             }
             .width('100%')
 
+            if (this.editingAddressBookTag.length === 0) {
+              Row({ space: 10 }) {
+                ForEach(this.getAddressBookTagPalette(), (color: number) => {
+                  Button() {
+                    Circle()
+                      .width(20)
+                      .height(20)
+                      .fill(this.formatAddressBookTagColor(color))
+                      .border({ width: this.addressBookTagColor === color ? 2 : 0, color: this.theme_TEXT_PRIMARY })
+                  }
+                  .width(34)
+                  .height(34)
+                  .padding(0)
+                  .backgroundColor(Color.Transparent)
+                  .onClick(() => {
+                    this.addressBookTagColor = color;
+                  })
+                }, (color: number) => `${color}`)
+              }
+              .width('100%')
+            }
+
             ForEach(this.getAddressBookTags(), (tag: string) => {
               Row({ space: ThemeConfig.SPACING_SM }) {
                 Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
@@ -1613,6 +1638,34 @@ struct Index {
               .width('100%')
               .height(42)
             }, (tag: string) => `manage-${tag}`)
+
+            Row({ space: ThemeConfig.SPACING_SM }) {
+              TextInput({ placeholder: this.lt('Device ID'), text: this.addressBookPeerIdDraft })
+                .layoutWeight(1)
+                .height(40)
+                .fontSize(ThemeConfig.FONT_SIZE_SM)
+                .backgroundColor(this.theme_INPUT_BG)
+                .onChange((value: string) => {
+                  this.addressBookPeerIdDraft = value;
+                })
+              Button(this.lt('Add ID'))
+                .height(40)
+                .enabled(!this.addressBookTagBusy && this.addressBookPeerTagDraft.length > 0)
+                .backgroundColor(this.theme_ACCENT)
+                .fontColor(this.theme_ACCENT_TEXT)
+                .borderRadius(6)
+                .onClick(() => {
+                  void this.addIdToAddressBookTag();
+                })
+            }
+            .width('100%')
+
+            Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+              ForEach(this.getAddressBookTags(), (tag: string) => {
+                this.buildAddressBookAssignmentTagChip(tag)
+              }, (tag: string) => `assign-${tag}`)
+            }
+            .width('100%')
           }
           .width('100%')
           .padding({ top: 4 })
@@ -5137,7 +5190,7 @@ struct Index {
     const oldTag = this.editingAddressBookTag;
     const success = oldTag.length > 0
       ? await this.accountService.renameAddressBookTag(oldTag, tag)
-      : await this.accountService.addAddressBookTag(tag);
+      : await this.accountService.addAddressBookTag(tag, this.addressBookTagColor);
     if (success) {
       await this.accountService.fetchAddressBook();
       if (this.selectedAddressBookTag === oldTag) {
@@ -5171,6 +5224,54 @@ struct Index {
       await this.showToast(this.lt('Tag operation failed'));
     }
     this.addressBookTagBusy = false;
+  }
+
+  @Builder
+  private buildAddressBookAssignmentTagChip(tag: string) {
+    Button(tag)
+      .height(32)
+      .margin({ right: 8, bottom: 6 })
+      .fontSize(ThemeConfig.FONT_SIZE_SM)
+      .fontColor(this.addressBookPeerTagDraft === tag ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(this.addressBookPeerTagDraft === tag ? this.theme_ACCENT : this.theme_INPUT_BG)
+      .borderRadius(6)
+      .onClick(() => {
+        this.addressBookPeerTagDraft = tag;
+      })
+  }
+
+  private async addIdToAddressBookTag(): Promise<void> {
+    const id = DeviceIdFormatter.parse(this.addressBookPeerIdDraft);
+    const tag = this.addressBookPeerTagDraft;
+    if (id.length === 0 || tag.length === 0) {
+      return;
+    }
+    this.addressBookTagBusy = true;
+    const existing = this.appData.getAddressBookEntry(id);
+    const tags = existing ? this.getEntryTags(existing) : [];
+    if (!tags.includes(tag)) {
+      tags.push(tag);
+    }
+    const success = existing
+      ? await this.accountService.updatePeerInAddressBook({ id: id, tags: tags })
+      : await this.accountService.addPeerToAddressBook({ id: id, tags: tags });
+    if (success) {
+      await this.accountService.fetchAddressBook();
+      this.addressBookPeerIdDraft = '';
+      this.addressBookVersion++;
+      await this.showToast(this.lt('ID added to tag'));
+    } else {
+      await this.showToast(this.lt('Tag operation failed'));
+    }
+    this.addressBookTagBusy = false;
+  }
+
+  private getAddressBookTagPalette(): number[] {
+    return [4280391411, 4283215696, 4294936121, 4288423856, 4294198070, 4278238420];
+  }
+
+  private formatAddressBookTagColor(color: number): string {
+    return `#${(color & 0xFFFFFF).toString(16).padStart(6, '0')}`;
   }
 
   private getEntryTags(entry: AddressBookEntry): string[] {
