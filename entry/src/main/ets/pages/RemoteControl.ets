@@ -997,9 +997,8 @@ struct RemoteControl {
           this.buildKeyboardPanel();
         }
         .width('100%')
-        .position({ x: 0, y: Math.max(0, this.avoidStatusBarHeight / 2) })
+        .translate({ y: Math.max(0, this.avoidStatusBarHeight / 2) })
         .zIndex(100)
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
       }
 
       if (this.showDisplayMenu) {

@@ -9,6 +9,8 @@ export class WindowChromeService {
   private avoidAreaCallbackRegistered: boolean = false;
   private lockedStatusBarHeight: number = -1;
   private lockedNavigationBarHeight: number = -1;
+  private immersiveModeActive: boolean = false;
+  private immersiveReapplyTimer: number = -1;
 
   static getInstance(): WindowChromeService {
     if (!WindowChromeService.instance) {
@@ -23,6 +25,7 @@ export class WindowChromeService {
   }
 
   clearWindowStage(): void {
+    this.clearImmersiveReapplyTimer();
     this.unregisterAvoidAreaCallback();
     this.windowStage = undefined;
   }
@@ -36,11 +39,28 @@ export class WindowChromeService {
   }
 
   enterImmersiveMode(): void {
+    this.immersiveModeActive = true;
     this.applyWindowMode(true);
+    this.clearImmersiveReapplyTimer();
+    this.immersiveReapplyTimer = setTimeout(() => {
+      this.immersiveReapplyTimer = -1;
+      if (this.immersiveModeActive) {
+        this.applyWindowMode(true);
+      }
+    }, 200);
   }
 
   exitImmersiveMode(): void {
+    this.immersiveModeActive = false;
+    this.clearImmersiveReapplyTimer();
     this.applyWindowMode(false);
+  }
+
+  private clearImmersiveReapplyTimer(): void {
+    if (this.immersiveReapplyTimer !== -1) {
+      clearTimeout(this.immersiveReapplyTimer);
+      this.immersiveReapplyTimer = -1;
+    }
   }
 
   setLandscape(landscape: boolean): void {
@@ -222,17 +242,9 @@ export class WindowChromeService {
       }
       this.lockAndApplyHeights(topVp, navBottomVp);
       console.info(`WindowChromeService locked: statusBar=${this.lockedStatusBarHeight}, navigationBar=${this.lockedNavigationBarHeight}`);
-      const textPrimary = AppStorage.get<string>('theme_TEXT_PRIMARY') ?? ThemeConfig.TEXT_PRIMARY;
-      const grayBg = AppStorage.get<string>('theme_GRAY_BG') ?? ThemeConfig.GRAY_BG;
-      void mainWindow.setWindowSystemBarProperties({
-        statusBarColor: '#00000000',
-        statusBarContentColor: textPrimary,
-        navigationBarColor: '#00000000',
-        navigationBarContentColor: textPrimary
-      });
-      mainWindow.setWindowBackgroundColor(grayBg);
       this.registerAvoidAreaCallback();
       ThemeManager.getInstance().refreshSystemTheme();
+      this.applyWindowMode(this.immersiveModeActive);
     } catch (error) {
       console.error('WindowChromeService initWindowMode failed: ' + JSON.stringify(error));
     }
@@ -261,18 +273,11 @@ export class WindowChromeService {
         this.lockAndApplyHeights(topVp, navBottomVp);
         console.info(`WindowChromeService refreshSystemBars locked: statusBar=${this.lockedStatusBarHeight}, navigationBar=${this.lockedNavigationBarHeight}`);
       }
-      void mainWindow.setWindowSystemBarProperties({
-        statusBarColor: '#00000000',
-        statusBarContentColor: AppStorage.get<string>('theme_TEXT_PRIMARY') ?? ThemeConfig.TEXT_PRIMARY,
-        navigationBarColor: '#00000000',
-        navigationBarContentColor: AppStorage.get<string>('theme_TEXT_PRIMARY') ?? ThemeConfig.TEXT_PRIMARY
-      });
-      const grayBg = AppStorage.get<string>('theme_GRAY_BG') ?? ThemeConfig.GRAY_BG;
-      mainWindow.setWindowBackgroundColor(grayBg);
       if (!this.avoidAreaCallbackRegistered) {
         this.registerAvoidAreaCallback();
       }
       ThemeManager.getInstance().refreshSystemTheme();
+      this.applyWindowMode(this.immersiveModeActive);
     } catch (error) {
       console.error('WindowChromeService refreshSystemBars failed: ' + JSON.stringify(error));
     }

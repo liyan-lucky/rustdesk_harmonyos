@@ -213,7 +213,7 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 - 增量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`：只将版本尾号加 `1`，例如 `0.34.21 -> 0.34.22`。
 - 全量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`：中间版本号加 `1`，尾号归零，例如 `0.34.22 -> 0.35.0`。
 - 两种构建的 `versionCode` 都必须单调加 `1`。同一次失败构建的重试使用 `none`，不得再次消耗版本号。
-- 当前版本：0.34.23 (1000268)
+- 当前版本：0.34.24 (1000269)
 
 ## 7. I18n 翻译
 
