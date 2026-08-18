@@ -1537,11 +1537,7 @@ struct Index {
           .height(36)
           .backgroundColor(Color.Transparent)
           .onClick(() => {
-            this.showAddressBookTagManagement = !this.showAddressBookTagManagement;
-            if (!this.showAddressBookTagManagement) {
-              this.addressBookTagDraft = '';
-              this.editingAddressBookTag = '';
-            }
+            this.showAddressBookTagManagement = true;
           })
         }
         .width('100%')
@@ -1555,122 +1551,6 @@ struct Index {
         }
         .width('100%')
 
-        if (this.showAddressBookTagManagement) {
-          Column({ space: ThemeConfig.SPACING_SM }) {
-            Row({ space: ThemeConfig.SPACING_SM }) {
-              TextInput({
-                placeholder: this.lt(this.editingAddressBookTag.length > 0 ? 'Rename tag' : 'New tag name'),
-                text: this.addressBookTagDraft
-              })
-                .layoutWeight(1)
-                .height(40)
-                .fontSize(ThemeConfig.FONT_SIZE_SM)
-                .backgroundColor(this.theme_INPUT_BG)
-                .onChange((value: string) => {
-                  this.addressBookTagDraft = value;
-                })
-
-              Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag'))
-                .height(40)
-                .enabled(!this.addressBookTagBusy)
-                .backgroundColor(this.theme_ACCENT)
-                .fontColor(this.theme_ACCENT_TEXT)
-                .borderRadius(6)
-                .onClick(() => {
-                  void this.saveAddressBookTag();
-                })
-            }
-            .width('100%')
-
-            if (this.editingAddressBookTag.length === 0) {
-              Row({ space: 10 }) {
-                ForEach(this.getAddressBookTagPalette(), (color: number) => {
-                  Button() {
-                    Circle()
-                      .width(20)
-                      .height(20)
-                      .fill(this.formatAddressBookTagColor(color))
-                      .border({ width: this.addressBookTagColor === color ? 2 : 0, color: this.theme_TEXT_PRIMARY })
-                  }
-                  .width(34)
-                  .height(34)
-                  .padding(0)
-                  .backgroundColor(Color.Transparent)
-                  .onClick(() => {
-                    this.addressBookTagColor = color;
-                  })
-                }, (color: number) => `${color}`)
-              }
-              .width('100%')
-            }
-
-            ForEach(this.getAddressBookTags(), (tag: string) => {
-              Row({ space: ThemeConfig.SPACING_SM }) {
-                Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
-                Text(tag)
-                  .layoutWeight(1)
-                  .fontSize(ThemeConfig.FONT_SIZE_SM)
-                  .fontColor(this.theme_TEXT_PRIMARY)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Button() {
-                  Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY)
-                }
-                .width(36)
-                .height(36)
-                .backgroundColor(Color.Transparent)
-                .enabled(!this.addressBookTagBusy)
-                .onClick(() => {
-                  this.editingAddressBookTag = tag;
-                  this.addressBookTagDraft = tag;
-                })
-                Button() {
-                  Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT)
-                }
-                .width(36)
-                .height(36)
-                .backgroundColor(Color.Transparent)
-                .enabled(!this.addressBookTagBusy)
-                .onClick(() => {
-                  void this.removeAddressBookTag(tag);
-                })
-              }
-              .width('100%')
-              .height(42)
-            }, (tag: string) => `manage-${tag}`)
-
-            Row({ space: ThemeConfig.SPACING_SM }) {
-              TextInput({ placeholder: this.lt('Device ID'), text: this.addressBookPeerIdDraft })
-                .layoutWeight(1)
-                .height(40)
-                .fontSize(ThemeConfig.FONT_SIZE_SM)
-                .backgroundColor(this.theme_INPUT_BG)
-                .onChange((value: string) => {
-                  this.addressBookPeerIdDraft = value;
-                })
-              Button(this.lt('Add ID'))
-                .height(40)
-                .enabled(!this.addressBookTagBusy && this.addressBookPeerTagDraft.length > 0)
-                .backgroundColor(this.theme_ACCENT)
-                .fontColor(this.theme_ACCENT_TEXT)
-                .borderRadius(6)
-                .onClick(() => {
-                  void this.addIdToAddressBookTag();
-                })
-            }
-            .width('100%')
-
-            Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-              ForEach(this.getAddressBookTags(), (tag: string) => {
-                this.buildAddressBookAssignmentTagChip(tag)
-              }, (tag: string) => `assign-${tag}`)
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .padding({ top: 4 })
-          .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
-        }
       }
       .width('100%')
       .padding(ThemeConfig.SPACING_MD)
@@ -1682,6 +1562,85 @@ struct Index {
         this.lt('No devices under this tag'))
     }
     .width('100%')
+  }
+
+  @Builder
+  private buildAddressBookTagManagementDialog() {
+    Column() {
+      Column({ space: ThemeConfig.SPACING_MD }) {
+        Row() {
+          Text(this.lt('Manage Tags')).fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme_TEXT_PRIMARY)
+          Blank()
+          Image($rawfile('close.svg')).width(20).height(20).fillColor(this.theme_TEXT_PRIMARY).onClick(() => {
+            this.closeAddressBookTagManagement();
+          })
+        }.width('100%')
+
+        Scroll() {
+          Column({ space: ThemeConfig.SPACING_SM }) {
+            Row({ space: ThemeConfig.SPACING_SM }) {
+              TextInput({ placeholder: this.lt(this.editingAddressBookTag.length > 0 ? 'Rename tag' : 'New tag name'), text: this.addressBookTagDraft })
+                .layoutWeight(1).height(40).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
+                .onChange((value: string) => { this.addressBookTagDraft = value; })
+              Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag'))
+                .height(40).enabled(!this.addressBookTagBusy).backgroundColor(this.theme_ACCENT)
+                .fontColor(this.theme_ACCENT_TEXT).borderRadius(6).onClick(() => { void this.saveAddressBookTag(); })
+            }.width('100%')
+
+            if (this.editingAddressBookTag.length === 0) {
+              Row({ space: 10 }) {
+                ForEach(this.getAddressBookTagPalette(), (color: number) => {
+                  Button() {
+                    Circle().width(20).height(20).fill(this.formatAddressBookTagColor(color))
+                      .border({ width: this.addressBookTagColor === color ? 2 : 0, color: this.theme_TEXT_PRIMARY })
+                  }.width(34).height(34).padding(0).backgroundColor(Color.Transparent)
+                    .onClick(() => { this.addressBookTagColor = color; })
+                }, (color: number) => `${color}`)
+              }.width('100%')
+            }
+
+            ForEach(this.getAddressBookTags(), (tag: string) => {
+              Row({ space: ThemeConfig.SPACING_SM }) {
+                Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
+                Text(tag).layoutWeight(1).fontSize(ThemeConfig.FONT_SIZE_SM).fontColor(this.theme_TEXT_PRIMARY)
+                  .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+                Button() { Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY) }
+                  .width(36).height(36).backgroundColor(Color.Transparent).enabled(!this.addressBookTagBusy)
+                  .onClick(() => { this.editingAddressBookTag = tag; this.addressBookTagDraft = tag; })
+                Button() { Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT) }
+                  .width(36).height(36).backgroundColor(Color.Transparent).enabled(!this.addressBookTagBusy)
+                  .onClick(() => { void this.removeAddressBookTag(tag); })
+              }.width('100%').height(42)
+            }, (tag: string) => `manage-${tag}`)
+
+            Divider().color(this.theme_BORDER_SUBTLE)
+            Row({ space: ThemeConfig.SPACING_SM }) {
+              TextInput({ placeholder: this.lt('Device ID'), text: this.addressBookPeerIdDraft })
+                .layoutWeight(1).height(40).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
+                .onChange((value: string) => { this.addressBookPeerIdDraft = value; })
+              Button(this.lt('Add ID')).height(40)
+                .enabled(!this.addressBookTagBusy && this.addressBookPeerTagDraft.length > 0)
+                .backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT).borderRadius(6)
+                .onClick(() => { void this.addIdToAddressBookTag(); })
+            }.width('100%')
+            Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+              ForEach(this.getAddressBookTags(), (tag: string) => { this.buildAddressBookAssignmentTagChip(tag) },
+                (tag: string) => `assign-${tag}`)
+            }.width('100%')
+          }.width('100%')
+        }.width('100%').constraintSize({ maxHeight: '65%' })
+      }
+      .width('88%').padding(24).backgroundColor(this.theme_CARD_BG).borderRadius(12)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 }).onClick(() => {})
+    }
+    .width('100%').height('100%').backgroundColor(this.theme_DIALOG_OVERLAY).justifyContent(FlexAlign.Center)
+    .onClick(() => { this.closeAddressBookTagManagement(); })
+  }
+
+  private closeAddressBookTagManagement(): void {
+    this.showAddressBookTagManagement = false;
+    this.addressBookTagDraft = '';
+    this.editingAddressBookTag = '';
   }
 
   @Builder
@@ -7974,6 +7933,9 @@ struct Index {
       }
       if (this.showConnectTabVisibilityMenu) {
         this.buildConnectTabVisibilityMenu()
+      }
+      if (this.showAddressBookTagManagement) {
+        this.buildAddressBookTagManagementDialog()
       }
       if (this.showPasswordDialog && this.pendingPeerId.trim().length > 0) {
         this.buildPasswordDialog()

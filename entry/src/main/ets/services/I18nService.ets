@@ -160,6 +160,7 @@ export class I18nService {
   private loadChineseTranslations(): void {
     this.translations.clear();
     this.translations.set('Tags', '标签');
+    this.translations.set('Manage Tags', '管理标签');
     this.translations.set('All Tags', '全部标签');
     this.translations.set('No Tags', '无标签');
     this.translations.set('No devices under this tag', '该标签下暂无设备');
@@ -1287,6 +1288,7 @@ export class I18nService {
   private loadEnglishTranslations(): void {
     this.translations.clear();
     this.translations.set('Tags', 'Tags');
+    this.translations.set('Manage Tags', 'Manage Tags');
     this.translations.set('All Tags', 'All Tags');
     this.translations.set('No Tags', 'No Tags');
     this.translations.set('No devices under this tag', 'No devices under this tag');
