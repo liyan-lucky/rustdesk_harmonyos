@@ -531,28 +531,41 @@ export class AccountService {
   async fetchAccessibleUsers(): Promise<boolean> {
     this.syncApiServerFromSettings();
     AppStorage.setOrCreate<boolean>('accessibleUsersLoading', true);
-    const result = await this.httpClient.getAccessibleUsers();
-    AppStorage.setOrCreate<boolean>('accessibleUsersLoading', false);
-    if (!result.success || !result.data) {
-      AppStorage.setOrCreate<string>('accessibleUsersError', result.error ?? 'Unable to load users');
+    try {
+      const result = await this.httpClient.getAccessibleUsers();
+      AppStorage.setOrCreate<number>('accessibleUsersStatusCode', result.statusCode ?? 0);
+      if (!result.success || !result.data) {
+        const error = result.error ?? 'Unable to load users';
+        Logger.info('SYNC', `fetchAccessibleUsers failed: status=${result.statusCode ?? 0}, error=${error}`);
+        AppStorage.setOrCreate<string>('accessibleUsersError', error);
+        return false;
+      }
+      const currentName = this.appState.getAccount().username;
+      const users = result.data;
+      users.sort((left: AccessibleUser, right: AccessibleUser) => {
+        if (left.name === currentName) return -1;
+        if (right.name === currentName) return 1;
+        return left.name.localeCompare(right.name);
+      });
+      AppStorage.setOrCreate<string>('accessibleUsers', JSON.stringify(users));
+      AppStorage.setOrCreate<string>('accessibleUsersError', '');
+      const cache: AccountUsersCache = {
+        apiServer: this.httpClient.getApiServer(),
+        username: currentName,
+        users: users
+      };
+      PreferenceStore.setAccountUsersCache(JSON.stringify(cache));
+      Logger.info('SYNC', `fetchAccessibleUsers done: users=${users.length}`);
+      return true;
+    } catch (error) {
+      const detail = `Invalid user list response: ${JSON.stringify(error)}`;
+      Logger.info('SYNC', `fetchAccessibleUsers failed: ${detail}`);
+      AppStorage.setOrCreate<number>('accessibleUsersStatusCode', 0);
+      AppStorage.setOrCreate<string>('accessibleUsersError', detail);
       return false;
+    } finally {
+      AppStorage.setOrCreate<boolean>('accessibleUsersLoading', false);
     }
-    const currentName = this.appState.getAccount().username;
-    const users = result.data;
-    users.sort((left: AccessibleUser, right: AccessibleUser) => {
-      if (left.name === currentName) return -1;
-      if (right.name === currentName) return 1;
-      return left.name.localeCompare(right.name);
-    });
-    AppStorage.setOrCreate<string>('accessibleUsers', JSON.stringify(users));
-    AppStorage.setOrCreate<string>('accessibleUsersError', '');
-    const cache: AccountUsersCache = {
-      apiServer: this.httpClient.getApiServer(),
-      username: currentName,
-      users: users
-    };
-    PreferenceStore.setAccountUsersCache(JSON.stringify(cache));
-    return true;
   }
 
   loadCachedAccessibleUsers(): boolean {

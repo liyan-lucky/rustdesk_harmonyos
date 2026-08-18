@@ -188,6 +188,11 @@ export class I18nService {
     this.translations.set('Users', '用户');
     this.translations.set('Me', '我');
     this.translations.set('No accessible users', '暂无可访问用户');
+    this.translations.set('User list network failed', '无法连接 API 服务器，请检查网络');
+    this.translations.set('User list authorization expired', '登录授权已失效，请重新登录');
+    this.translations.set('User list access denied', '当前账户无权访问用户列表');
+    this.translations.set('User list server error', 'API 服务器返回错误，请稍后重试');
+    this.translations.set('Invalid user list response', 'API 服务器返回的用户列表格式不正确');
     this.translations.set('User list sync failed', '用户列表同步失败，请检查 API 服务器网络');
     this.translations.set('Connection', '连接');
     this.translations.set('Connect', '连接');
@@ -1339,6 +1344,11 @@ export class I18nService {
     this.translations.set('Users', 'Users');
     this.translations.set('Me', 'Me');
     this.translations.set('No accessible users', 'No accessible users');
+    this.translations.set('User list network failed', 'Unable to reach the API server. Check the network.');
+    this.translations.set('User list authorization expired', 'Login authorization expired. Please sign in again.');
+    this.translations.set('User list access denied', 'This account cannot access the user list.');
+    this.translations.set('User list server error', 'The API server returned an error. Please try again later.');
+    this.translations.set('Invalid user list response', 'The API server returned an invalid user list.');
     this.translations.set('User list sync failed', 'User list sync failed. Check the API server network.');
     this.translations.set('Connection', 'Connection');
     this.translations.set('Connect', 'Connect');

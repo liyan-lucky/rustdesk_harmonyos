@@ -17,6 +17,7 @@ struct LoginPage {
   @State selectedProvider: string = 'github';
   @State availableProviders: OAuthProvider[] = [];
   @State providersSyncing: boolean = false;
+  @State providersSyncAngle: number = 0;
   @State username: string = '';
   @State password: string = '';
   @State verifyCode: string = '';
@@ -54,6 +55,7 @@ struct LoginPage {
   @State isPollingOAuth: boolean = false;
   private pollingCheckTimer: number = -1;
   private providersRefreshTimer: number = -1;
+  private providersSyncAnimationTimer: number = -1;
   private readonly PROVIDERS_REFRESH_INTERVAL: number = 60000;
 
   aboutToAppear(): void {
@@ -102,6 +104,10 @@ struct LoginPage {
       clearInterval(this.providersRefreshTimer);
       this.providersRefreshTimer = -1;
     }
+    if (this.providersSyncAnimationTimer !== -1) {
+      clearInterval(this.providersSyncAnimationTimer);
+      this.providersSyncAnimationTimer = -1;
+    }
     if (this.accountService.isPolling()) {
       this.accountService.cancelLogin();
     }
@@ -119,14 +125,26 @@ struct LoginPage {
   private async syncProviders(showFeedback: boolean = true): Promise<void> {
     if (this.providersSyncing) return;
     this.providersSyncing = true;
-    this.availableProviders = await this.accountService.refreshAvailableProviders();
-    this.providersSyncing = false;
-    if (showFeedback) {
-      try {
-        this.getUIContext().getPromptAction().openToast({
-          message: this.lt(this.accountService.didProvidersSyncSucceed() ? 'Login information synced' : 'Login information sync failed')
-        });
-      } catch (_error) {}
+    this.providersSyncAngle = 0;
+    this.providersSyncAnimationTimer = setInterval(() => {
+      this.providersSyncAngle = (this.providersSyncAngle + 18) % 360;
+    }, 40);
+    try {
+      this.availableProviders = await this.accountService.refreshAvailableProviders();
+      if (showFeedback) {
+        try {
+          this.getUIContext().getPromptAction().openToast({
+            message: this.lt(this.accountService.didProvidersSyncSucceed() ? 'Login information synced' : 'Login information sync failed')
+          });
+        } catch (_error) {}
+      }
+    } finally {
+      if (this.providersSyncAnimationTimer !== -1) {
+        clearInterval(this.providersSyncAnimationTimer);
+        this.providersSyncAnimationTimer = -1;
+      }
+      this.providersSyncAngle = 0;
+      this.providersSyncing = false;
     }
   }
 
@@ -191,23 +209,16 @@ struct LoginPage {
         .layoutWeight(1)
 
         Row({ space: 14 }) {
-          Stack({ alignContent: Alignment.Center }) {
-            if (this.providersSyncing) {
-              LoadingProgress().width(18).height(18).color(this.theme_ACCENT)
-            } else {
-              Image($rawfile('menu_refresh.svg'))
-                .width(18)
-                .height(18)
-                .fillColor(this.theme_TEXT_TERTIARY)
-            }
-          }
-          .width(28)
-          .height(32)
-          .enabled(!this.providersSyncing)
-          .accessibilityText(this.lt('Sync now'))
-          .onClick(() => void this.syncProviders())
-
           this.buildLoginSearchAnchor()
+
+          Image($rawfile('refresh.svg'))
+            .width(18)
+            .height(18)
+            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .rotate({ x: 0, y: 0, z: 1, angle: this.providersSyncAngle })
+            .enabled(!this.providersSyncing)
+            .accessibilityText(this.lt('Sync now'))
+            .onClick(() => void this.syncProviders())
         }
       }
       .width('100%')

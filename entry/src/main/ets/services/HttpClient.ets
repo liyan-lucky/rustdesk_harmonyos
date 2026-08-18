@@ -661,6 +661,10 @@ export class HttpClient {
       if (!page.success || !page.data) {
         return { success: false, error: page.error, statusCode: page.statusCode };
       }
+      if (typeof page.data.total !== 'number' || !Array.isArray(page.data.data)) {
+        Logger.info('SYNC', `getAccessibleUsers invalid response: status=${page.statusCode ?? 0}`);
+        return { success: false, error: 'Invalid user list response', statusCode: page.statusCode };
+      }
       total = page.data.total ?? 0;
       for (const user of page.data.data ?? []) {
         users.push(user);

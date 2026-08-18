@@ -560,6 +560,7 @@ struct Index {
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
+  @StorageLink('accessibleUsersStatusCode') accessibleUsersStatusCode: number = 0;
   @State accountRefreshTick: number = 0;
   private accountPageSyncTimer: number = -1;
   private readonly ACCOUNT_PAGE_SYNC_INTERVAL: number = 60000;
@@ -1240,7 +1241,7 @@ struct Index {
                 })
             }
 
-            if (this.currentConnectTab === 'discovered' || this.currentConnectTab === 'addressBook') {
+            if (this.currentConnectTab === 'discovered' || this.currentConnectTab === 'addressBook' || this.currentConnectTab === 'account') {
               Image($rawfile('refresh.svg'))
                 .width(18)
                 .height(18)
@@ -1509,22 +1510,6 @@ struct Index {
           Text(`${this.getAccessibleUsers().length}`)
             .fontSize(ThemeConfig.FONT_SIZE_SM)
             .fontColor(this.theme_TEXT_TERTIARY)
-          Stack({ alignContent: Alignment.Center }) {
-            if (this.accessibleUsersLoading) {
-              LoadingProgress().width(18).height(18).color(this.theme_ACCENT)
-            } else {
-              Image($rawfile('menu_refresh.svg'))
-                .width(18)
-                .height(18)
-                .fillColor(this.theme_TEXT_SECONDARY)
-            }
-          }
-          .width(34)
-          .height(34)
-          .margin({ left: 8 })
-          .enabled(!this.accessibleUsersLoading)
-          .accessibilityText(this.lt('Sync now'))
-          .onClick(() => void this.refreshAccountUsers(true))
         }
         .width('100%')
 
@@ -1535,7 +1520,7 @@ struct Index {
             this.buildAccessibleUserRow(user)
           }, (user: AccessibleUser) => user.name)
         } else {
-          Text(this.accessibleUsersError.length > 0 ? this.lt('User list sync failed') : this.lt('No accessible users'))
+          Text(this.accessibleUsersError.length > 0 ? this.describeAccessibleUsersError() : this.lt('No accessible users'))
             .fontSize(ThemeConfig.FONT_SIZE_SM)
             .fontColor(this.accessibleUsersError.length > 0 ? this.theme_ERROR_TEXT : this.theme_TEXT_TERTIARY)
             .width('100%')
@@ -1683,8 +1668,21 @@ struct Index {
     const success = await this.accountService.fetchAccessibleUsers();
     this.accountRefreshTick++;
     if (showFeedback) {
-      await this.showToast(this.lt(success ? 'Login information synced' : 'User list sync failed'));
+      await this.showToast(success ? this.lt('Login information synced') : this.describeAccessibleUsersError());
     }
+  }
+
+  private describeAccessibleUsersError(): string {
+    if (this.apiNetworkStatus === 'offline') return this.lt('User list network failed');
+    if (this.accessibleUsersStatusCode === 400 || this.accessibleUsersStatusCode === 401) {
+      return this.lt('User list authorization expired');
+    }
+    if (this.accessibleUsersStatusCode === 403) return this.lt('User list access denied');
+    if (this.accessibleUsersStatusCode >= 500) return this.lt('User list server error');
+    if (this.accessibleUsersError.startsWith('Invalid user list response')) {
+      return this.lt('Invalid user list response');
+    }
+    return this.lt('User list sync failed');
   }
 
   private startAccountPageSyncTimer(): void {
@@ -5319,6 +5317,14 @@ struct Index {
         await this.refreshState();
         return;
       }
+      if (this.currentConnectTab === 'account') {
+        if (this.accountState.isLoggedIn) {
+          await this.refreshAccountUsers(true);
+        } else {
+          await this.syncLoginProviders(true);
+        }
+        return;
+      }
       await this.refreshState();
       this.addressBookVersion++;
     } finally {
@@ -6516,22 +6522,6 @@ struct Index {
             .fontColor(this.theme_TEXT_PRIMARY)
 
           Blank()
-
-          Stack({ alignContent: Alignment.Center }) {
-            if (this.loginProvidersLoading) {
-              LoadingProgress().width(18).height(18).color(this.theme_ACCENT)
-            } else {
-              Image($rawfile('menu_refresh.svg'))
-                .width(18)
-                .height(18)
-                .fillColor(this.theme_TEXT_PRIMARY)
-            }
-          }
-          .width(36)
-          .height(36)
-          .enabled(!this.loginProvidersLoading)
-          .accessibilityText(this.lt('Sync now'))
-          .onClick(() => void this.syncLoginProviders())
 
           Image($rawfile('close.svg'))
             .width(20)
