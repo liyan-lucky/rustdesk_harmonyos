@@ -275,7 +275,6 @@ struct RemoteControl {
   @State osAutoLogin: boolean = true;
   @State showReconnectDialog: boolean = false;
   @StorageLink('avoidKeyboardHeight') @Watch('onAvoidKeyboardHeightChange') avoidKeyboardHeight: number = 0;
-  @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @State remoteInputActive: boolean = false;
   @State reconnectDialogTitle: string = '';
@@ -997,7 +996,7 @@ struct RemoteControl {
           this.buildKeyboardPanel();
         }
         .width('100%')
-        .translate({ y: Math.max(0, this.avoidStatusBarHeight / 2) })
+        .translate({ y: 4 })
         .zIndex(100)
       }
 
