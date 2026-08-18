@@ -415,7 +415,7 @@ export class AccountService {
     void this.startServiceSync();
   }
 
-  async fetchAddressBook(): Promise<void> {
+  async fetchAddressBook(): Promise<boolean> {
     Logger.info('SYNC', 'fetchAddressBook start');
     Logger.debug('SYNC', 'fetchAddressBook start');
     this.syncApiServerFromSettings();
@@ -477,8 +477,10 @@ export class AccountService {
       Logger.debug('SYNC', `mergeAddressBook: server=${entries.length}, localBefore=${beforeCount}, localAfter=${afterCount}`);
       Logger.info('SYNC', `fetchAddressBook done: server=${entries.length}, merged=${afterCount}`);
       this.eventBus.emit(EventType.ADDRESS_BOOK_UPDATED, { entries });
+      return true;
     } else {
       Logger.info('SYNC', `fetchAddressBook failed: success=${result.success}, error=${result.error ?? 'none'}`);
+      return false;
     }
   }
 

@@ -539,6 +539,9 @@ struct Index {
   @StorageLink('apiNetworkStatus') apiNetworkStatus: string = 'idle';
   @StorageLink('apiNetworkServer') apiNetworkServer: string = '';
   @StorageLink('apiNetworkError') apiNetworkError: string = '';
+  @StorageLink('addressBookServerTags') addressBookServerTagsJson: string = '[]';
+  @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
+  @State selectedAddressBookTag: string = '';
   @State accountRefreshTick: number = 0;
   @State recentSessions: RecentSession[] = this.appData.getRecentSessions();
   @State chatSessions: ChatSession[] = [];
@@ -1417,7 +1420,7 @@ struct Index {
         }, (_v: number, _i: number) => `${_v}`)
       } else if (this.currentConnectTab === 'addressBook') {
         ForEach([this.addressBookVersion], (_v: number) => {
-          this.buildConnectAddressCollectionCard(this.lt('Address book'), this.filterAddressEntries(this.appData.getAddressBook()), this.lt('Address book is empty. Added devices will be displayed here.'))
+          this.buildConnectAddressBookContent()
         }, (_v: number, _i: number) => `${_v}`)
       } else if (this.currentConnectTab === 'account') {
         this.buildConnectAccountCard()
@@ -1498,6 +1501,65 @@ struct Index {
   }
 
   @Builder
+  private buildConnectAddressBookContent() {
+    Column({ space: ThemeConfig.SPACING_MD }) {
+      Column({ space: ThemeConfig.SPACING_SM }) {
+        Row() {
+          Text(this.lt('Tags'))
+            .fontSize(ThemeConfig.FONT_SIZE_MD)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.theme_TEXT_PRIMARY)
+          Blank()
+          Text(`${this.getAddressBookTags().length}`)
+            .fontSize(ThemeConfig.FONT_SIZE_SM)
+            .fontColor(this.theme_TEXT_TERTIARY)
+        }
+        .width('100%')
+
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+          this.buildConnectTagChip(this.lt('All'), '', this.selectedAddressBookTag.length === 0)
+          this.buildConnectTagChip(this.lt('No Tags'), '', this.selectedAddressBookTag === '__untagged__', '__untagged__')
+          ForEach(this.getAddressBookTags(), (tag: string) => {
+            this.buildConnectTagChip(tag, this.getAddressBookTagColor(tag), this.selectedAddressBookTag === tag, tag)
+          }, (tag: string) => tag)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding(ThemeConfig.SPACING_MD)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+
+      this.buildConnectAddressCollectionCard(this.lt('Address book'), this.getFilteredAddressBookEntries(),
+        this.lt('No devices under this tag'))
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private buildConnectTagChip(label: string, color: string, active: boolean, value: string = '') {
+    Button() {
+      Row({ space: 6 }) {
+        if (color.length > 0) {
+          Circle().width(8).height(8).fill(color)
+        }
+        Text(label)
+          .fontSize(ThemeConfig.FONT_SIZE_SM)
+          .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      }
+    }
+    .height(34)
+    .margin({ right: 8, bottom: 8 })
+    .padding({ left: 12, right: 12 })
+    .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
+    .borderRadius(8)
+    .onClick(() => {
+      this.selectedAddressBookTag = value;
+    })
+  }
+
+  @Builder
   private buildConnectAddressCollectionCard(title: string, entries: AddressBookEntry[], emptyMessage: string) {
     if (entries.length === 0) {
       EmptyState($rawfile('display.svg'), emptyMessage)
@@ -1541,6 +1603,13 @@ struct Index {
           .fontColor(this.theme_TEXT_SECONDARY)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
+        if (this.currentConnectTab === 'addressBook' && this.getEntryTags(entry).length > 0) {
+          Text(this.getEntryTags(entry).join('  ·  '))
+            .fontSize(11)
+            .fontColor(this.theme_ACCENT)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
@@ -4761,14 +4830,14 @@ struct Index {
     if (!this.accountState.isLoggedIn) {
       return;
     }
-    await this.accountService.fetchAddressBook();
+    const success = await this.accountService.fetchAddressBook();
     this.recentSessions = this.appData.getRecentSessions();
     this.addressBookVersion++;
     this.peerOnlineVersion++;
     if (showToast) {
       try {
         await this.getUIContext().getPromptAction().openToast({
-          message: this.lt('Address book synced')
+          message: success ? this.lt('Address book sync succeeded') : this.lt('Address book sync failed')
         });
       } catch (e) { console.warn('openToast failed: ' + JSON.stringify(e)); }
     }
@@ -4905,6 +4974,45 @@ struct Index {
     } else {
       this.loginErrorMsg = this.lt('Login failed, please check username and password');
     }
+  }
+
+  private getFilteredAddressBookEntries(): AddressBookEntry[] {
+    const entries = this.filterAddressEntries(this.appData.getAddressBook());
+    if (this.selectedAddressBookTag.length === 0) {
+      return entries;
+    }
+    if (this.selectedAddressBookTag === '__untagged__') {
+      return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).length === 0);
+    }
+    return entries.filter((entry: AddressBookEntry) => this.getEntryTags(entry).includes(this.selectedAddressBookTag));
+  }
+
+  private getEntryTags(entry: AddressBookEntry): string[] {
+    const tags = entry.tags ?? [];
+    if (tags.length > 0) {
+      return tags;
+    }
+    return entry.group.split(/[,，]/).map((tag: string) => tag.trim()).filter((tag: string) =>
+      tag.length > 0 && tag !== this.lt('Ungrouped'));
+  }
+
+  private getAddressBookTags(): string[] {
+    try {
+      return (JSON.parse(this.addressBookServerTagsJson) as string[]).filter((tag: string) => tag.trim().length > 0);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  private getAddressBookTagColor(tag: string): string {
+    try {
+      const colors = JSON.parse(this.addressBookTagColorsJson) as Record<string, number>;
+      const value = colors[tag];
+      if (value !== undefined) {
+        return `#${(value & 0xFFFFFF).toString(16).padStart(6, '0')}`;
+      }
+    } catch (error) {}
+    return this.theme_ACCENT;
   }
 
   private onShowAccountDialogChange(): void {

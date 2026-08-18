@@ -1128,3 +1128,4 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - Fixed the home recent-device action so adding an address book peer also writes to the configured API server.
 - Preserved server address book tags as a real multi-value field and added tag filters plus comma-separated tag editing.
 - Aligned with the current official personal-address-book API: GUID discovery, paged peer loading, tag/color loading, tag creation before peer creation, and GUID-scoped add/update/delete endpoints, with legacy `/api/ab` fallback only on HTTP 404.
+- Added the server tag panel to the home address-book tab, including colored tag filters, an untagged filter, per-device tag labels, and result-aware Chinese sync toasts.

@@ -158,10 +158,16 @@ export class I18nService {
   }
 
   private loadChineseTranslations(): void {
+    this.translations.clear();
+    this.translations.set('Tags', '标签');
+    this.translations.set('All Tags', '全部标签');
+    this.translations.set('No Tags', '无标签');
+    this.translations.set('No devices under this tag', '该标签下暂无设备');
+    this.translations.set('Address book sync succeeded', '通讯录同步成功');
+    this.translations.set('Address book sync failed', '通讯录同步失败，请检查 API 服务器网络状态');
     this.translations.set('Available', '可访问');
     this.translations.set('Unreachable', '不可达');
     this.translations.set('Not checked', '尚未检查');
-    this.translations.clear();
     this.translations.set('Connection', '连接');
     this.translations.set('Connect', '连接');
     this.translations.set('Connecting...', '连接中...');
@@ -1264,10 +1270,16 @@ export class I18nService {
   }
 
   private loadEnglishTranslations(): void {
+    this.translations.clear();
+    this.translations.set('Tags', 'Tags');
+    this.translations.set('All Tags', 'All Tags');
+    this.translations.set('No Tags', 'No Tags');
+    this.translations.set('No devices under this tag', 'No devices under this tag');
+    this.translations.set('Address book sync succeeded', 'Address book sync succeeded');
+    this.translations.set('Address book sync failed', 'Address book sync failed. Check the API server network status.');
     this.translations.set('Available', 'Available');
     this.translations.set('Unreachable', 'Unreachable');
     this.translations.set('Not checked', 'Not checked');
-    this.translations.clear();
     this.translations.set('Connection', 'Connection');
     this.translations.set('Connect', 'Connect');
     this.translations.set('Connecting...', 'Connecting...');
