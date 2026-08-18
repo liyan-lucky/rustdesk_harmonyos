@@ -1696,20 +1696,20 @@ struct RemoteControl {
           this.buildStickyKeyBtn('Ctrl', 50);
           this.buildStickyKeyBtn('Alt', 46);
           this.buildStickyKeyBtn('Shift', 56);
-          this.buildKeyBtn('win', 46);
+          this.buildKeyBtn('Win', 48);
           this.buildStickyKeyBtn('Fn', 42);
-          this.buildKeyBtn('Esc', 46);
-          this.buildKeyBtn('Tab', 46);
-          this.buildKeyBtn('⌫', 46);
-          this.buildKeyBtn('Home', 54);
-          this.buildKeyBtn('End', 46);
-          this.buildKeyBtn('Ins', 46);
-          this.buildKeyBtn('Del', 46);
-          this.buildKeyBtn('PgUp', 54);
-          this.buildKeyBtn('PgDn', 54);
-          this.buildKeyBtn('PrtScr', 66);
-          this.buildKeyBtn('Menu', 50);
-          this.buildKeyBtn('Enter', 62);
+          this.buildKeyBtn('Esc', 48);
+          this.buildKeyBtn('Tab', 48);
+          this.buildKeyBtn('⌫', 48, 18);
+          this.buildKeyBtn('Home', 58);
+          this.buildKeyBtn('End', 48);
+          this.buildKeyBtn('Ins', 48);
+          this.buildKeyBtn('Del', 48);
+          this.buildKeyBtn('PgUp', 58);
+          this.buildKeyBtn('PgDn', 58);
+          this.buildKeyBtn('PrtScr', 72, 13);
+          this.buildKeyBtn('Menu', 54);
+          this.buildKeyBtn('Enter', 66);
         }
         .padding({ left: 8, right: 8, top: 6, bottom: 4 });
       }
@@ -1719,25 +1719,25 @@ struct RemoteControl {
 
       Scroll() {
         Row({ space: 6 }) {
-          this.buildKeyBtn('←', 40);
-          this.buildKeyBtn('↑', 40);
-          this.buildKeyBtn('↓', 40);
-          this.buildKeyBtn('→', 40);
-          this.buildComboKeyBtn('Ctrl+C', 70, 17, 67);
-          this.buildComboKeyBtn('Ctrl+V', 70, 17, 86);
-          this.buildComboKeyBtn('Ctrl+S', 70, 17, 83);
-          this.buildKeyBtn('F1', 40);
-          this.buildKeyBtn('F2', 40);
-          this.buildKeyBtn('F3', 40);
-          this.buildKeyBtn('F4', 40);
-          this.buildKeyBtn('F5', 40);
-          this.buildKeyBtn('F6', 40);
-          this.buildKeyBtn('F7', 40);
-          this.buildKeyBtn('F8', 40);
-          this.buildKeyBtn('F9', 40);
-          this.buildKeyBtn('F10', 46);
-          this.buildKeyBtn('F11', 46);
-          this.buildKeyBtn('F12', 46);
+          this.buildKeyBtn('←', 44, 18);
+          this.buildKeyBtn('↑', 44, 18);
+          this.buildKeyBtn('↓', 44, 18);
+          this.buildKeyBtn('→', 44, 18);
+          this.buildComboKeyBtn('Ctrl+C', 72, 17, 67);
+          this.buildComboKeyBtn('Ctrl+V', 72, 17, 86);
+          this.buildComboKeyBtn('Ctrl+S', 72, 17, 83);
+          this.buildKeyBtn('F1', 44);
+          this.buildKeyBtn('F2', 44);
+          this.buildKeyBtn('F3', 44);
+          this.buildKeyBtn('F4', 44);
+          this.buildKeyBtn('F5', 44);
+          this.buildKeyBtn('F6', 44);
+          this.buildKeyBtn('F7', 44);
+          this.buildKeyBtn('F8', 44);
+          this.buildKeyBtn('F9', 44);
+          this.buildKeyBtn('F10', 50);
+          this.buildKeyBtn('F11', 50);
+          this.buildKeyBtn('F12', 50);
         }
         .padding({ left: 8, right: 8, top: 2, bottom: 6 });
       }
@@ -1746,19 +1746,23 @@ struct RemoteControl {
       .width('100%');
     }
     .width('100%')
-    .backgroundColor(Color.Transparent)
-    .border({ width: 0, color: Color.Transparent })
+    .padding({ top: 2, bottom: 2 })
+    .backgroundColor('#D9161A22')
+    .border({ width: { top: 1, bottom: 1 }, color: this.theme_BORDER_SUBTLE })
   }
 
   @Builder
-  private buildKeyBtn(key: string, width: number = 60) {
+  private buildKeyBtn(key: string, width: number = 60, fontSize: number = 14) {
     Button(key)
       .width(width)
-      .height(38)
-      .fontSize(12)
-      .fontColor(this.theme_CONTRAST_TEXT)
-      .backgroundColor(this.activeKey === key ? '#99AAAAAA' : '#55444444')
-      .scale(this.activeKey === key ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
+      .height(42)
+      .padding(0)
+      .fontSize(fontSize)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.theme_TEXT_PRIMARY)
+      .backgroundColor(this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .border({ width: 1, color: this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
+      .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
       .onTouch((event: TouchEvent) => {
         if (event.type === TouchType.Down) {
@@ -1784,12 +1788,14 @@ struct RemoteControl {
   private buildStickyKeyBtn(key: string, width: number = 60) {
     Button(key)
       .width(width)
-      .height(38)
-      .fontSize(12)
+      .height(42)
+      .padding(0)
+      .fontSize(14)
       .fontWeight(this.isStickyActive(key) ? FontWeight.Bold : FontWeight.Normal)
       .fontColor(this.isStickyActive(key) ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      .backgroundColor(this.isStickyActive(key) ? this.theme_ACCENT : (this.activeKey === key ? '#99AAAAAA' : '#55444444'))
-      .scale(this.activeKey === key ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
+      .backgroundColor(this.isStickyActive(key) ? this.theme_ACCENT : (this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG))
+      .border({ width: 1, color: this.isStickyActive(key) || this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
+      .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
       .shadow(this.isStickyActive(key) ? { radius: 6, color: this.theme_ACCENT, offsetX: 0, offsetY: 0 } : { radius: 0, color: Color.Transparent })
       .onTouch((event: TouchEvent) => {
@@ -1808,11 +1814,14 @@ struct RemoteControl {
   private buildComboKeyBtn(label: string, width: number, modifierCode: number, keyCode: number) {
     Button(label)
       .width(width)
-      .height(38)
-      .fontSize(12)
-      .fontColor(this.theme_CONTRAST_TEXT)
-      .backgroundColor(this.activeKey === label ? '#99AAAAAA' : this.theme_TOOLBAR_BG)
-      .scale(this.activeKey === label ? { x: 0.92, y: 0.92 } : { x: 1, y: 1 })
+      .height(42)
+      .padding(0)
+      .fontSize(14)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.theme_TEXT_PRIMARY)
+      .backgroundColor(this.activeKey === label ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .border({ width: 1, color: this.activeKey === label ? this.theme_ACCENT : this.theme_BORDER_SOFT })
+      .scale(this.activeKey === label ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
       .onTouch((event: TouchEvent) => {
         if (event.type === TouchType.Down) {
@@ -3537,6 +3546,7 @@ struct RemoteControl {
       'PgDn': 34,
       'PrtScr': 44,
       'Menu': 93,
+      'Win': 91,
       'win': 91,
       'F1': 112,
       'F2': 113,
