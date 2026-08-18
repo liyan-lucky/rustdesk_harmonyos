@@ -564,7 +564,7 @@ export class HttpClient {
     Logger.info('HTTP', `deleteAbPeer: replace legacy address book, id="${peerId}"`);
     const book = await this.getAddressBook();
     if (!book.success || !book.data) {
-      return book as HttpResult<void>;
+      return { success: false, error: book.error, statusCode: book.statusCode };
     }
     const peers: AbPeer[] = [];
     for (const peer of book.data.peers ?? []) {
@@ -580,7 +580,7 @@ export class HttpClient {
   async updateAbTag(peerId: string, tags: string[]): Promise<HttpResult<void>> {
     const book = await this.getAddressBook();
     if (!book.success || !book.data) {
-      return book as HttpResult<void>;
+      return { success: false, error: book.error, statusCode: book.statusCode };
     }
     const peers = book.data.peers ?? [];
     for (let index = 0; index < peers.length; index++) {
