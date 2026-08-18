@@ -551,6 +551,9 @@ struct Index {
   @State addressBookTagColor: number = 4280391411;
   @State addressBookPeerIdDraft: string = '';
   @State addressBookPeerTagDraft: string = '';
+  @State addressBookPeerAliasDraft: string = '';
+  @State addressBookPeerNoteDraft: string = '';
+  @State addressBookDialogMode: string = 'tag';
   @State syncRecentSessionsEnabled: boolean = false;
   @State filterAddressBookByTags: boolean = true;
   @StorageLink('accessibleUsers') accessibleUsersJson: string = '[]';
@@ -1543,6 +1546,9 @@ struct Index {
           .backgroundColor(Color.Transparent)
           .onClick(() => {
             this.showAddressBookActionsMenu = true;
+            if (this.accountState.isLoggedIn) {
+              void this.syncAddressBookFromServer(false);
+            }
           })
         }
         .width('100%')
@@ -1576,12 +1582,16 @@ struct Index {
         this.buildAddressBookMenuAction(this.lt('Add ID'), () => {
           this.showAddressBookActionsMenu = false;
           this.addressBookPeerIdDraft = '';
+          this.addressBookPeerAliasDraft = '';
+          this.addressBookPeerNoteDraft = '';
+          this.addressBookDialogMode = 'id';
           this.showAddressBookTagManagement = true;
         })
         this.buildAddressBookMenuAction(this.lt('Add Tag'), () => {
           this.showAddressBookActionsMenu = false;
           this.addressBookTagDraft = '';
           this.editingAddressBookTag = '';
+          this.addressBookDialogMode = 'tag';
           this.showAddressBookTagManagement = true;
         })
         this.buildAddressBookMenuAction(this.lt('Deselect all tags'), () => {
@@ -1679,64 +1689,118 @@ struct Index {
         }.width('100%')
 
         Scroll() {
-          Column({ space: ThemeConfig.SPACING_SM }) {
-            Row({ space: ThemeConfig.SPACING_SM }) {
-              TextInput({ placeholder: this.lt(this.editingAddressBookTag.length > 0 ? 'Rename tag' : 'New tag name'), text: this.addressBookTagDraft })
-                .layoutWeight(1).height(40).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
-                .onChange((value: string) => { this.addressBookTagDraft = value; })
-              Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag'))
-                .height(40).enabled(!this.addressBookTagBusy).backgroundColor(this.theme_ACCENT)
-                .fontColor(this.theme_ACCENT_TEXT).borderRadius(6).onClick(() => { void this.saveAddressBookTag(); })
-            }.width('100%')
-
-            if (this.editingAddressBookTag.length === 0) {
-              Row({ space: 10 }) {
-                ForEach(this.getAddressBookTagPalette(), (color: number) => {
-                  Button() {
-                    Circle().width(20).height(20).fill(this.formatAddressBookTagColor(color))
-                      .border({ width: this.addressBookTagColor === color ? 2 : 0, color: this.theme_TEXT_PRIMARY })
-                  }.width(34).height(34).padding(0).backgroundColor(Color.Transparent)
-                    .onClick(() => { this.addressBookTagColor = color; })
-                }, (color: number) => `${color}`)
-              }.width('100%')
-            }
-
-            ForEach(this.getAddressBookTags(), (tag: string) => {
-              Row({ space: ThemeConfig.SPACING_SM }) {
-                Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
-                Text(tag).layoutWeight(1).fontSize(ThemeConfig.FONT_SIZE_SM).fontColor(this.theme_TEXT_PRIMARY)
-                  .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
-                Button() { Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY) }
-                  .width(36).height(36).backgroundColor(Color.Transparent).enabled(!this.addressBookTagBusy)
-                  .onClick(() => { this.editingAddressBookTag = tag; this.addressBookTagDraft = tag; })
-                Button() { Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT) }
-                  .width(36).height(36).backgroundColor(Color.Transparent).enabled(!this.addressBookTagBusy)
-                  .onClick(() => { void this.removeAddressBookTag(tag); })
-              }.width('100%').height(42)
-            }, (tag: string) => `manage-${tag}`)
-
-            Divider().color(this.theme_BORDER_SUBTLE)
-            Row({ space: ThemeConfig.SPACING_SM }) {
-              TextInput({ placeholder: this.lt('Device ID'), text: this.addressBookPeerIdDraft })
-                .layoutWeight(1).height(40).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
-                .onChange((value: string) => { this.addressBookPeerIdDraft = value; })
-              Button(this.lt('Add ID')).height(40)
-                .enabled(!this.addressBookTagBusy && this.addressBookPeerTagDraft.length > 0)
-                .backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT).borderRadius(6)
-                .onClick(() => { void this.addIdToAddressBookTag(); })
-            }.width('100%')
-            Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
-              ForEach(this.getAddressBookTags(), (tag: string) => { this.buildAddressBookAssignmentTagChip(tag) },
-                (tag: string) => `assign-${tag}`)
-            }.width('100%')
-          }.width('100%')
-        }.width('100%').height('65%')
+          this.buildManageAddressBookTagsForm()
+        }.width('100%').constraintSize({ maxHeight: 560 })
       }
-      .width('88%').padding(24).backgroundColor(this.theme_CARD_BG).borderRadius(12)
+      .width('88%').constraintSize({ maxWidth: 420 }).padding(24).backgroundColor(this.theme_CARD_BG).borderRadius(8)
       .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 }).onClick(() => {})
     }
     .width('100%').height('100%').backgroundColor(this.theme_DIALOG_OVERLAY).justifyContent(FlexAlign.Center)
     .onClick(() => { this.closeAddressBookTagManagement(); })
+  }
+
+  @Builder
+  private buildAddressBookAddIdDialog() {
+    Column() {
+      Column({ space: 18 }) {
+        Row() {
+          Text(this.lt('Add ID')).fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme_TEXT_PRIMARY)
+          Blank()
+          Image($rawfile('close.svg')).width(20).height(20).fillColor(this.theme_TEXT_PRIMARY)
+            .onClick(() => { this.closeAddressBookTagManagement(); })
+        }.width('100%')
+        this.buildAddAddressBookIdForm()
+      }
+      .width('88%').constraintSize({ maxWidth: 420 }).padding(24)
+      .backgroundColor(this.theme_CARD_BG).borderRadius(8)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 }).onClick(() => {})
+    }
+    .width('100%').height('100%').backgroundColor(this.theme_DIALOG_OVERLAY).justifyContent(FlexAlign.Center)
+    .onClick(() => { this.closeAddressBookTagManagement(); })
+  }
+
+  @Builder
+  private buildAddAddressBookIdForm() {
+    Column({ space: 14 }) {
+      this.buildAddressBookIdInputRow(this.lt('ID'), this.addressBookPeerIdDraft, true, (value: string) => {
+        this.addressBookPeerIdDraft = value;
+      })
+      this.buildAddressBookIdInputRow(this.lt('Alias'), this.addressBookPeerAliasDraft, false, (value: string) => {
+        this.addressBookPeerAliasDraft = value;
+      })
+      Row({ space: 12 }) {
+        Text(this.lt('Note')).width(72).fontSize(14).fontColor(this.theme_TEXT_PRIMARY)
+        Column({ space: 2 }) {
+          TextInput({ text: this.addressBookPeerNoteDraft })
+            .width('100%').height(52).fontSize(14).backgroundColor(this.theme_INPUT_BG)
+            .onChange((value: string) => { this.addressBookPeerNoteDraft = value.slice(0, 300); })
+          Text(`${this.addressBookPeerNoteDraft.length}/300`).width('100%').textAlign(TextAlign.End)
+            .fontSize(11).fontColor(this.theme_TEXT_TERTIARY)
+        }.layoutWeight(1)
+      }.width('100%').alignItems(VerticalAlign.Top)
+      Row({ space: 12 }) {
+        Text(this.lt('Tags')).width(72).fontSize(14).fontColor(this.theme_TEXT_PRIMARY)
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+          ForEach(this.getAddressBookTags(), (tag: string) => { this.buildAddressBookAssignmentTagChip(tag) },
+            (tag: string) => `id-tag-${tag}`)
+        }.layoutWeight(1)
+      }.width('100%').alignItems(VerticalAlign.Top)
+      Row({ space: 12 }) {
+        Blank()
+        Button(this.lt('Cancel')).height(40).backgroundColor(this.theme_INPUT_BG).fontColor(this.theme_TEXT_PRIMARY)
+          .borderRadius(6).onClick(() => { this.closeAddressBookTagManagement(); })
+        Button(this.lt('Confirm')).height(40)
+          .enabled(!this.addressBookTagBusy && DeviceIdFormatter.parse(this.addressBookPeerIdDraft).length > 0 && this.addressBookPeerTagDraft.length > 0)
+          .backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT).borderRadius(6)
+          .onClick(() => { void this.addIdToAddressBookTag(); })
+      }.width('100%')
+    }.width('100%')
+  }
+
+  @Builder
+  private buildAddressBookIdInputRow(label: string, value: string, required: boolean, onChange: (value: string) => void) {
+    Row({ space: 12 }) {
+      Row({ space: 2 }) {
+        if (required) { Text('*').fontSize(14).fontColor(this.theme_ERROR_TEXT) }
+        Text(label).fontSize(14).fontColor(this.theme_TEXT_PRIMARY)
+      }.width(72)
+      TextInput({ text: value }).layoutWeight(1).height(46).fontSize(14).backgroundColor(this.theme_INPUT_BG)
+        .onChange(onChange)
+    }.width('100%')
+  }
+
+  @Builder
+  private buildManageAddressBookTagsForm() {
+    Column({ space: ThemeConfig.SPACING_SM }) {
+      Row({ space: ThemeConfig.SPACING_SM }) {
+        TextInput({ placeholder: this.lt(this.editingAddressBookTag.length > 0 ? 'Rename tag' : 'New tag name'), text: this.addressBookTagDraft })
+          .layoutWeight(1).height(42).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
+          .onChange((value: string) => { this.addressBookTagDraft = value; })
+        Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag')).height(42)
+          .enabled(!this.addressBookTagBusy).backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT)
+          .borderRadius(6).onClick(() => { void this.saveAddressBookTag(); })
+      }.width('100%')
+      if (this.editingAddressBookTag.length === 0) {
+        Row({ space: 10 }) {
+          ForEach(this.getAddressBookTagPalette(), (color: number) => {
+            Button() { Circle().width(20).height(20).fill(this.formatAddressBookTagColor(color))
+              .border({ width: this.addressBookTagColor === color ? 2 : 0, color: this.theme_TEXT_PRIMARY }) }
+              .width(34).height(34).padding(0).backgroundColor(Color.Transparent)
+              .onClick(() => { this.addressBookTagColor = color; })
+          }, (color: number) => `${color}`)
+        }.width('100%')
+      }
+      ForEach(this.getAddressBookTags(), (tag: string) => {
+        Row({ space: ThemeConfig.SPACING_SM }) {
+          Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
+          Text(tag).layoutWeight(1).fontSize(ThemeConfig.FONT_SIZE_SM).fontColor(this.theme_TEXT_PRIMARY)
+          Button() { Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY) }
+            .width(36).height(36).backgroundColor(Color.Transparent).onClick(() => { this.editingAddressBookTag = tag; this.addressBookTagDraft = tag; })
+          Button() { Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT) }
+            .width(36).height(36).backgroundColor(Color.Transparent).onClick(() => { void this.removeAddressBookTag(tag); })
+        }.width('100%').height(44)
+      }, (tag: string) => `manage-${tag}`)
+    }.width('100%')
   }
 
   private closeAddressBookTagManagement(): void {
@@ -5262,6 +5326,11 @@ struct Index {
       ? await this.accountService.renameAddressBookTag(oldTag, tag)
       : await this.accountService.addAddressBookTag(tag, this.addressBookTagColor);
     if (success) {
+      const localTags = this.getAddressBookTags().filter((value: string) => value !== oldTag);
+      if (!localTags.includes(tag)) {
+        localTags.push(tag);
+      }
+      AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(localTags));
       await this.accountService.fetchAddressBook();
       if (this.selectedAddressBookTag === oldTag) {
         this.selectedAddressBookTag = tag;
@@ -5280,6 +5349,8 @@ struct Index {
     this.addressBookTagBusy = true;
     const success = await this.accountService.deleteAddressBookTag(tag);
     if (success) {
+      AppStorage.setOrCreate<string>('addressBookServerTags', JSON.stringify(
+        this.getAddressBookTags().filter((value: string) => value !== tag)));
       await this.accountService.fetchAddressBook();
       if (this.selectedAddressBookTag === tag) {
         this.selectedAddressBookTag = '';
@@ -5322,14 +5393,36 @@ struct Index {
     if (!tags.includes(tag)) {
       tags.push(tag);
     }
+    const alias = this.addressBookPeerAliasDraft.trim();
+    const note = this.addressBookPeerNoteDraft.trim();
     const success = existing
-      ? await this.accountService.updatePeerInAddressBook({ id: id, tags: tags })
-      : await this.accountService.addPeerToAddressBook({ id: id, tags: tags });
+      ? await this.accountService.updatePeerInAddressBook({
+        id: id,
+        alias: alias.length > 0 ? alias : existing.alias,
+        note: note.length > 0 ? note : existing.note,
+        platform: existing.platform,
+        tags: tags
+      })
+      : await this.accountService.addPeerToAddressBook({ id: id, alias: alias, note: note, tags: tags });
     if (success) {
+      this.appData.addAddressBookEntry({
+        id: id,
+        alias: alias.length > 0 ? alias : (existing ? existing.alias : ''),
+        note: note.length > 0 ? note : (existing ? existing.note : ''),
+        group: tags.join(','),
+        online: existing ? existing.online : false,
+        favorite: existing ? existing.favorite : false,
+        platform: existing ? existing.platform : '',
+        tags: tags
+      });
+      this.addressBookVersion++;
       await this.accountService.fetchAddressBook();
       this.addressBookPeerIdDraft = '';
+      this.addressBookPeerAliasDraft = '';
+      this.addressBookPeerNoteDraft = '';
       this.addressBookVersion++;
       await this.showToast(this.lt('ID added to tag'));
+      this.closeAddressBookTagManagement();
     } else {
       await this.showToast(this.lt('Tag operation failed'));
     }
@@ -5354,6 +5447,7 @@ struct Index {
   }
 
   private getAddressBookTags(): string[] {
+    this.addressBookVersion;
     try {
       return (JSON.parse(this.addressBookServerTagsJson) as string[]).filter((tag: string) => tag.trim().length > 0);
     } catch (error) {
@@ -5373,6 +5467,7 @@ struct Index {
   }
 
   private getAccessibleUsers(): AccessibleUser[] {
+    this.accountRefreshTick;
     try {
       return JSON.parse(this.accessibleUsersJson) as AccessibleUser[];
     } catch (error) {
@@ -8049,7 +8144,11 @@ struct Index {
         this.buildAddressBookActionsMenu()
       }
       if (this.showAddressBookTagManagement) {
-        this.buildAddressBookTagManagementDialog()
+        if (this.addressBookDialogMode === 'id') {
+          this.buildAddressBookAddIdDialog()
+        } else {
+          this.buildAddressBookTagManagementDialog()
+        }
       }
       if (this.showPasswordDialog && this.pendingPeerId.trim().length > 0) {
         this.buildPasswordDialog()
