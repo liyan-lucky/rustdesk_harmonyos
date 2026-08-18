@@ -176,6 +176,7 @@ export class WindowChromeService {
       const grayBg = AppStorage.get<string>('theme_GRAY_BG') ?? ThemeConfig.GRAY_BG;
       const statusBarBg = '#00000000';
       if (hideSystemBars) {
+        void mainWindow.setSpecificSystemBarEnabled('status', false, false);
         void mainWindow.setWindowSystemBarProperties({
           statusBarColor: '#00000000',
           statusBarContentColor: '#00000000',
@@ -184,6 +185,7 @@ export class WindowChromeService {
           isStatusBarLightIcon: false
         });
       } else {
+        void mainWindow.setSpecificSystemBarEnabled('status', true, false);
         const textPrimary = AppStorage.get<string>('theme_TEXT_PRIMARY') ?? ThemeConfig.TEXT_PRIMARY;
         void mainWindow.setWindowSystemBarProperties({
           statusBarColor: statusBarBg,

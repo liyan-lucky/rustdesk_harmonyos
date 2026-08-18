@@ -275,6 +275,7 @@ struct RemoteControl {
   @State osAutoLogin: boolean = true;
   @State showReconnectDialog: boolean = false;
   @StorageLink('avoidKeyboardHeight') @Watch('onAvoidKeyboardHeightChange') avoidKeyboardHeight: number = 0;
+  @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @State remoteInputActive: boolean = false;
   @State reconnectDialogTitle: string = '';
@@ -996,7 +997,7 @@ struct RemoteControl {
           this.buildKeyboardPanel();
         }
         .width('100%')
-        .position({ x: 0, y: 0 })
+        .position({ x: 0, y: Math.max(0, this.avoidStatusBarHeight / 2) })
         .zIndex(100)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
       }
@@ -1522,6 +1523,11 @@ struct RemoteControl {
 
   private requestSystemKeyboard(): void {
     this.showToolbar = true;
+    this.imeProxyDismissRequested = false;
+    if (this.imeBlurTimer !== -1) {
+      clearTimeout(this.imeBlurTimer);
+      this.imeBlurTimer = -1;
+    }
     try {
       const focusController = this.getUIContext().getFocusController();
       focusController.requestFocus('remote-ime-proxy-input');
@@ -1670,6 +1676,11 @@ struct RemoteControl {
         this.sendEnterKey();
       })
       .onFocus(() => {
+        if (this.imeBlurTimer !== -1) {
+          clearTimeout(this.imeBlurTimer);
+          this.imeBlurTimer = -1;
+        }
+        this.imeProxyDismissRequested = false;
         this.imeProxyFocused = true;
         this.remoteInputActive = true;
         if (this.imeProxyText.length === 0) {
@@ -1680,11 +1691,15 @@ struct RemoteControl {
       .onBlur(() => {
         this.imeProxyFocused = false;
         this.remoteInputActive = false;
+        if (this.imeProxyDismissRequested || !this.showKeyboard) {
+          return;
+        }
         this.imeBlurTimer = setTimeout(() => {
-          if (!this.imeProxyFocused) {
-            this.showKeyboard = false;
+          this.imeBlurTimer = -1;
+          if (!this.imeProxyFocused && this.showKeyboard && !this.imeProxyDismissRequested) {
+            this.requestSystemKeyboard();
           }
-        }, 300);
+        }, 120);
       });
   }
 
@@ -1746,9 +1761,8 @@ struct RemoteControl {
       .width('100%');
     }
     .width('100%')
-    .padding({ top: 2, bottom: 2 })
-    .backgroundColor('#D9161A22')
-    .border({ width: { top: 1, bottom: 1 }, color: this.theme_BORDER_SUBTLE })
+    .backgroundColor(Color.Transparent)
+    .border({ width: 0, color: Color.Transparent })
   }
 
   @Builder

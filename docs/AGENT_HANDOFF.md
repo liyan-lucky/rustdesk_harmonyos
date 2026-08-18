@@ -72,6 +72,15 @@
 
 ## 工作规则
 
+### 构建与版本号规范（强制）
+
+- 版本格式固定为 `主版本.中间版本.尾号`，`versionName`、`versionCode` 和 `BuildInfo.ets` 必须由构建脚本统一更新，禁止手工只改其中一处。
+- **增量构建**：设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`，只将尾号加 `1`。例如 `0.34.21 -> 0.34.22`。
+- **全量构建**：设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`，将中间版本号加 `1`，尾号重置为 `0`。例如 `0.34.22 -> 0.35.0`。
+- 增量和全量构建都必须让 `versionCode` 单调加 `1`；同一个待发布构建不得重复执行版本自增。
+- 日常 ArkTS/UI/业务逻辑修改使用增量构建；明确执行完整清理、重新获取或重建原生 Core、形成新一轮全量基线时使用全量构建。
+- 仅为重试同一次失败构建时使用 `RUSTDESK_HARMONY_VERSION_BUMP=none`，保留首次尝试已经生成的版本号，避免一次改动产生多个版本。
+
 ### 0. 文档规范与分支管理（最高优先级）
 
 - **所有操作必须按照项目规范要求文档进行**：`docs/DIRECTORY_CONVENTIONS.md`（目录/路径/构建环境）、`docs/AGENT_MEMORY.md`（技术经验）、`docs/ISSUES.md`（问题记录）是唯一权威规范。避免文档到处都是，新问题经验统一写入对应文档。

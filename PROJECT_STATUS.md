@@ -209,10 +209,11 @@ RustDesk HarmonyOS 客户端的触摸交互系统重构和虚拟鼠标控制功�
 
 ## 6.7 构建版本号自增
 
-- `rebuild.ps1` 设置 `$env:RUSTDESK_HARMONY_VERSION_BUMP = "incremental"`
-- `scripts/run_hvigor_with_sdk_patch.js` 实现版本自增逻辑
-- 每次构建 versionCode 自增，构建后显示当前版本号
-- 当前版本：0.33.33 (1000209)
+- `scripts/run_hvigor_with_sdk_patch.js` 是版本号更新的唯一实现，必须同步写入 `AppScope/app.json5` 与 `BuildInfo.ets`。
+- 增量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=incremental`：只将版本尾号加 `1`，例如 `0.34.21 -> 0.34.22`。
+- 全量构建设置 `RUSTDESK_HARMONY_VERSION_BUMP=full`：中间版本号加 `1`，尾号归零，例如 `0.34.22 -> 0.35.0`。
+- 两种构建的 `versionCode` 都必须单调加 `1`。同一次失败构建的重试使用 `none`，不得再次消耗版本号。
+- 当前版本：0.34.23 (1000268)
 
 ## 7. I18n 翻译
 
