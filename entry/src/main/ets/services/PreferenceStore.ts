@@ -11,6 +11,8 @@ export class PreferenceStore {
   private static readonly OFFICIAL_CORE_SNAPSHOT_KEY: string = 'official_core_snapshot';
   private static readonly ACCOUNT_TOKEN_KEY: string = 'account_access_token';
   private static readonly ACCOUNT_USER_INFO_KEY: string = 'account_user_info';
+  private static readonly ACCOUNT_USERS_CACHE_KEY: string = 'account_users_cache';
+  private static readonly LOGIN_PROVIDERS_CACHE_KEY: string = 'login_providers_cache';
   private static readonly PEER_PASSWORDS_KEY: string = 'peer_passwords';
   private static readonly CHAT_MESSAGES_KEY: string = 'chat_messages';
   private static readonly VISIBLE_TABS_KEY: string = 'visible_connect_tabs';
@@ -92,6 +94,22 @@ export class PreferenceStore {
 
   public static setAccountUserInfo(value: string): void {
     PreferenceStore.setString(PreferenceStore.ACCOUNT_USER_INFO_KEY, value);
+  }
+
+  public static getAccountUsersCache(): string | undefined {
+    return PreferenceStore.getString(PreferenceStore.ACCOUNT_USERS_CACHE_KEY);
+  }
+
+  public static setAccountUsersCache(value: string): void {
+    PreferenceStore.setString(PreferenceStore.ACCOUNT_USERS_CACHE_KEY, value);
+  }
+
+  public static getLoginProvidersCache(): string | undefined {
+    return PreferenceStore.getString(PreferenceStore.LOGIN_PROVIDERS_CACHE_KEY);
+  }
+
+  public static setLoginProvidersCache(value: string): void {
+    PreferenceStore.setString(PreferenceStore.LOGIN_PROVIDERS_CACHE_KEY, value);
   }
 
   public static getPeerPassword(peerId: string): string | undefined {

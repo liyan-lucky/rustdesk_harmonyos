@@ -67,6 +67,8 @@ if defined ABI_FILTER (
 ) else (
   call :build_single_abi "arm64-v8a"
   if errorlevel 1 exit /b 1
+  rem The app version belongs to this release, not to each ABI package.
+  set "RUSTDESK_HARMONY_VERSION_BUMP=none"
   call :build_single_abi "x86_64"
   if errorlevel 1 exit /b 1
 )

@@ -15,6 +15,17 @@ export interface OAuthProvider {
   color: string;
 }
 
+interface LoginProvidersCache {
+  apiServer: string;
+  providers: OAuthProvider[];
+}
+
+interface AccountUsersCache {
+  apiServer: string;
+  username: string;
+  users: AccessibleUser[];
+}
+
 class OAuthProviderImpl implements OAuthProvider {
   id: string = '';
   name: string = '';
@@ -82,6 +93,7 @@ export class AccountService {
   private readonly POLL_INTERVAL: number = 500;
   private serviceSyncTimer: number = -1;
   private serviceSyncBusy: boolean = false;
+  private providersSyncSucceeded: boolean = true;
   private readonly SERVICE_SYNC_INTERVAL: number = 30000;
 
   private constructor() {
@@ -155,6 +167,7 @@ export class AccountService {
         provider: provider
       });
       Logger.info('AUTH', `loadSavedToken: restored login for user="${username}", provider="${provider}"`);
+      this.loadCachedAccessibleUsers();
       void this.fetchAddressBook();
       void this.startServiceSync();
     } else {
@@ -171,8 +184,32 @@ export class AccountService {
     return [];
   }
 
+  getCachedAvailableProviders(): OAuthProvider[] | undefined {
+    this.syncApiServerFromSettings();
+    const raw = PreferenceStore.getLoginProvidersCache();
+    if (!raw) return undefined;
+    try {
+      const cache = JSON.parse(raw) as LoginProvidersCache;
+      return cache.apiServer === this.httpClient.getApiServer() ? cache.providers : undefined;
+    } catch (_error) {
+      return undefined;
+    }
+  }
+
   async getAvailableProviders(): Promise<OAuthProvider[]> {
-    const options = await this.getLoginOptions();
+    const cached = this.getCachedAvailableProviders();
+    return cached === undefined ? this.refreshAvailableProviders() : cached;
+  }
+
+  async refreshAvailableProviders(): Promise<OAuthProvider[]> {
+    this.syncApiServerFromSettings();
+    const result = await this.httpClient.getLoginOptions();
+    if (!result.success || !result.data) {
+      this.providersSyncSucceeded = false;
+      const cached = this.getCachedAvailableProviders();
+      return cached ?? (AppDataService.isUsingOfficialServer(this.appData.getSettings()) ? this.getOfficialProviders() : []);
+    }
+    const options = result.data.oauth ?? [];
     const providers: OAuthProvider[] = [];
     for (const option of options) {
       const providerId = option.op.startsWith('oidc/') ? option.op.substring(5) : option.op;
@@ -191,10 +228,16 @@ export class AccountService {
         ));
       }
     }
-    if (providers.length > 0) {
-      return providers;
-    }
-    return AppDataService.isUsingOfficialServer(this.appData.getSettings()) ? this.getOfficialProviders() : [];
+    const resolved = providers.length > 0 ? providers :
+      (AppDataService.isUsingOfficialServer(this.appData.getSettings()) ? this.getOfficialProviders() : []);
+    const cache: LoginProvidersCache = { apiServer: this.httpClient.getApiServer(), providers: resolved };
+    PreferenceStore.setLoginProvidersCache(JSON.stringify(cache));
+    this.providersSyncSucceeded = true;
+    return resolved;
+  }
+
+  didProvidersSyncSucceed(): boolean {
+    return this.providersSyncSucceeded;
   }
 
   getProviderInfo(op: string): OAuthProvider | undefined {
@@ -503,7 +546,30 @@ export class AccountService {
     });
     AppStorage.setOrCreate<string>('accessibleUsers', JSON.stringify(users));
     AppStorage.setOrCreate<string>('accessibleUsersError', '');
+    const cache: AccountUsersCache = {
+      apiServer: this.httpClient.getApiServer(),
+      username: currentName,
+      users: users
+    };
+    PreferenceStore.setAccountUsersCache(JSON.stringify(cache));
     return true;
+  }
+
+  loadCachedAccessibleUsers(): boolean {
+    this.syncApiServerFromSettings();
+    const raw = PreferenceStore.getAccountUsersCache();
+    if (!raw) return false;
+    try {
+      const cache = JSON.parse(raw) as AccountUsersCache;
+      if (cache.apiServer !== this.httpClient.getApiServer() || cache.username !== this.appState.getAccount().username) {
+        return false;
+      }
+      AppStorage.setOrCreate<string>('accessibleUsers', JSON.stringify(cache.users));
+      AppStorage.setOrCreate<string>('accessibleUsersError', '');
+      return true;
+    } catch (_error) {
+      return false;
+    }
   }
 
   async addAddressBookTag(tag: string, color?: number): Promise<boolean> {

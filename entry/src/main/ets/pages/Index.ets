@@ -561,6 +561,8 @@ struct Index {
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
   @State accountRefreshTick: number = 0;
+  private accountPageSyncTimer: number = -1;
+  private readonly ACCOUNT_PAGE_SYNC_INTERVAL: number = 60000;
   @State recentSessions: RecentSession[] = this.appData.getRecentSessions();
   @State chatSessions: ChatSession[] = [];
   @State chatMessages: ChatMessage[] = [];
@@ -725,8 +727,10 @@ struct Index {
       LanDiscoveryService.getInstance().startDiscovery();
     }
     if (this.accountState.isLoggedIn) {
-      void this.refreshAccountUsers();
+      this.accountService.loadCachedAccessibleUsers();
+      this.accountRefreshTick++;
     }
+    this.startAccountPageSyncTimer();
   }
 
   aboutToDisappear() {
@@ -741,6 +745,10 @@ struct Index {
     if (this.oauthCheckTimer !== -1) {
       clearInterval(this.oauthCheckTimer);
       this.oauthCheckTimer = -1;
+    }
+    if (this.accountPageSyncTimer !== -1) {
+      clearInterval(this.accountPageSyncTimer);
+      this.accountPageSyncTimer = -1;
     }
   }
 
@@ -1501,6 +1509,22 @@ struct Index {
           Text(`${this.getAccessibleUsers().length}`)
             .fontSize(ThemeConfig.FONT_SIZE_SM)
             .fontColor(this.theme_TEXT_TERTIARY)
+          Stack({ alignContent: Alignment.Center }) {
+            if (this.accessibleUsersLoading) {
+              LoadingProgress().width(18).height(18).color(this.theme_ACCENT)
+            } else {
+              Image($rawfile('menu_refresh.svg'))
+                .width(18)
+                .height(18)
+                .fillColor(this.theme_TEXT_SECONDARY)
+            }
+          }
+          .width(34)
+          .height(34)
+          .margin({ left: 8 })
+          .enabled(!this.accessibleUsersLoading)
+          .accessibilityText(this.lt('Sync now'))
+          .onClick(() => void this.refreshAccountUsers(true))
         }
         .width('100%')
 
@@ -1655,9 +1679,23 @@ struct Index {
     }.width('100%').height(42).padding({ left: 16, right: 16 }).onClick(action)
   }
 
-  private async refreshAccountUsers(): Promise<void> {
-    await this.accountService.fetchAccessibleUsers();
+  private async refreshAccountUsers(showFeedback: boolean = false): Promise<void> {
+    const success = await this.accountService.fetchAccessibleUsers();
     this.accountRefreshTick++;
+    if (showFeedback) {
+      await this.showToast(this.lt(success ? 'Login information synced' : 'User list sync failed'));
+    }
+  }
+
+  private startAccountPageSyncTimer(): void {
+    if (this.accountPageSyncTimer !== -1) return;
+    this.accountPageSyncTimer = setInterval(() => {
+      if (this.showAccountDialog && !this.accountState.isLoggedIn) {
+        void this.syncLoginProviders(false);
+      } else if (this.currentConnectTab === 'account' && this.accountState.isLoggedIn && !this.accessibleUsersLoading) {
+        void this.refreshAccountUsers(false);
+      }
+    }, this.ACCOUNT_PAGE_SYNC_INTERVAL);
   }
 
   private async syncRecentSessionsToAddressBook(): Promise<void> {
@@ -3852,7 +3890,8 @@ struct Index {
       if (tab === 'account') {
         this.refreshAccountState();
         if (this.accountState.isLoggedIn) {
-          void this.refreshAccountUsers();
+          this.accountService.loadCachedAccessibleUsers();
+          this.accountRefreshTick++;
         }
       }
       if (tab === 'addressBook' && this.accountState.isLoggedIn) {
@@ -5581,9 +5620,23 @@ struct Index {
   }
 
   private async loadLoginProviders(): Promise<void> {
+    const cached = this.accountService.getCachedAvailableProviders();
+    if (cached !== undefined) {
+      this.loginProviders = cached;
+      return;
+    }
+    await this.syncLoginProviders(false);
+  }
+
+  private async syncLoginProviders(showFeedback: boolean = true): Promise<void> {
+    if (this.loginProvidersLoading) return;
     this.loginProvidersLoading = true;
-    this.loginProviders = await this.accountService.getAvailableProviders();
+    this.loginProviders = await this.accountService.refreshAvailableProviders();
     this.loginProvidersLoading = false;
+    if (showFeedback) {
+      await this.showToast(this.lt(this.accountService.didProvidersSyncSucceed() ?
+        'Login information synced' : 'Login information sync failed'));
+    }
   }
 
   private async handleOAuthLoginInDialog(provider: string): Promise<void> {
@@ -6463,6 +6516,22 @@ struct Index {
             .fontColor(this.theme_TEXT_PRIMARY)
 
           Blank()
+
+          Stack({ alignContent: Alignment.Center }) {
+            if (this.loginProvidersLoading) {
+              LoadingProgress().width(18).height(18).color(this.theme_ACCENT)
+            } else {
+              Image($rawfile('menu_refresh.svg'))
+                .width(18)
+                .height(18)
+                .fillColor(this.theme_TEXT_PRIMARY)
+            }
+          }
+          .width(36)
+          .height(36)
+          .enabled(!this.loginProvidersLoading)
+          .accessibilityText(this.lt('Sync now'))
+          .onClick(() => void this.syncLoginProviders())
 
           Image($rawfile('close.svg'))
             .width(20)

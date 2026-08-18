@@ -2056,3 +2056,9 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 - 修复：对齐官方核心接口和配置：永久密码调用 `mainSetPermanentPasswordWithResult()`，使用 `temporary-password-length`、`allow-numeric-one-time-password`、`use-permanent-password`，访问模式按 `click/password/both` 三态保存。
 - 状态刷新：一次性密码长度或纯数字选项变化后调用 `mainUpdateTemporaryPassword()`，立即回读并刷新共享页；保存失败不关闭菜单，并提供完整中文提示。
 - 构建链：`build_hap.bat` 仅在外部未指定时默认 `incremental`，允许失败重试显式使用 `none`，避免同一修改重复增加版本号。
+# 2026-08-18 登录与账户页重复等待服务器
+
+- 根因：独立登录页和内嵌登录弹窗每次打开都重新请求第三方登录配置，账户标签每次切入都重新请求用户列表，没有持久缓存。
+- 修复：第三方登录配置按 API 服务器隔离缓存；用户列表按 API 服务器和账户名隔离缓存。页面进入时优先展示缓存，首次无缓存才后台请求。
+- 刷新：登录页、登录弹窗和账户页提供立即同步按钮；停留在相关页面时每 60 秒自动刷新，离开页面后停止定时器。
+- 构建修复：双架构增量构建只允许首个 ABI 更新版本，第二个 ABI 强制使用 `none`，避免一次修改让尾号增加两次。
