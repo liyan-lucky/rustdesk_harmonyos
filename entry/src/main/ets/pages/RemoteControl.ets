@@ -817,6 +817,7 @@ struct RemoteControl {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('theme_TOOLBAR_BG') theme_TOOLBAR_BG: string = '#2A2A2A';
   @StorageProp('theme_WHITE') theme_WHITE: string = '#FFFFFF';
+  @StorageProp('themeIsDark') themeIsDark: boolean = false;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @State i18nOpacity: number = 1;
@@ -824,6 +825,10 @@ struct RemoteControl {
   private lt(key: string): string {
     this.i18nVersion;
     return I18nService.getInstance().translate(key);
+  }
+
+  private resolveSessionMenuBackground(): string {
+    return this.themeIsDark ? this.theme_MENU_BG : '#FFFFFFFF';
   }
 
   private onI18nVersionChanged(): void {
@@ -1936,7 +1941,7 @@ struct RemoteControl {
     }
     .width(200)
     .borderRadius(12)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .border({ width: 1, color: this.theme_BORDER_SOFT })
     .shadow({ radius: 16, color: '#60000000', offsetY: -4 });
   }
@@ -2176,7 +2181,7 @@ struct RemoteControl {
     }
     .width(210)
     .borderRadius(16)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
@@ -2255,7 +2260,7 @@ struct RemoteControl {
     }
     .width(260)
     .borderRadius(16)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
@@ -2725,7 +2730,7 @@ struct RemoteControl {
     .width(260)
     .padding(12)
     .borderRadius(12)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .border({ width: 1, color: this.theme_BORDER_SOFT })
     .shadow({ radius: 12, color: '#60000000', offsetY: -2 });
   }
@@ -2753,7 +2758,7 @@ struct RemoteControl {
     .width(260)
     .padding(12)
     .borderRadius(12)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .border({ width: 1, color: this.theme_BORDER_SOFT })
     .shadow({ radius: 12, color: '#60000000', offsetY: -2 });
   }
@@ -2787,7 +2792,7 @@ struct RemoteControl {
     }
     .width(200)
     .borderRadius(12)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .border({ width: 1, color: this.theme_BORDER_SOFT })
     .shadow({ radius: 12, color: '#60000000', offsetY: -2 });
   }
@@ -2827,7 +2832,7 @@ struct RemoteControl {
     }
     .width(210)
     .borderRadius(16)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 
@@ -2860,7 +2865,7 @@ struct RemoteControl {
     }
     .width(210)
     .borderRadius(16)
-    .backgroundColor(this.theme_MENU_BG)
+    .backgroundColor(this.resolveSessionMenuBackground())
     .shadow({ radius: 16, color: '#40000000', offsetY: -4 });
   }
 

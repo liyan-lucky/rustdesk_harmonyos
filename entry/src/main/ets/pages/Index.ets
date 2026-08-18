@@ -40,6 +40,7 @@ import hilog from '@ohos.hilog';
 import { Logger } from '../common/Logger';
 import { AccessibleUser } from '../services/HttpClient';
 import connection from '@ohos.net.connection';
+import { DirectIpProbeService, DirectIpTarget } from '../services/DirectIpProbeService';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
 type ConnectPeerTab = 'recent' | 'favorites' | 'discovered' | 'addressBook' | 'account' | 'core';
@@ -95,7 +96,7 @@ function loadVisibleTabs(): Set<ConnectPeerTab> {
       }
     } catch (e) { console.warn('loadConnectPeerTabs failed: ' + JSON.stringify(e)); }
   }
-  return new Set<ConnectPeerTab>(ALL_TABS);
+  return new Set<ConnectPeerTab>(ALL_TABS.filter((tab: ConnectPeerTab) => tab !== 'core'));
 }
 
 function saveVisibleTabs(tabs: Set<ConnectPeerTab>): void {
@@ -714,9 +715,6 @@ struct Index {
     const legacyDebugRaw = NativeRustDeskBridge.getLocalOption('verbose-connection-log').trim().toUpperCase();
     const effectiveDebugRaw = debugRaw.length > 0 ? debugRaw : legacyDebugRaw;
     this.debugModeEnabled = effectiveDebugRaw === 'Y' || effectiveDebugRaw === 'YES' || effectiveDebugRaw === 'TRUE' || effectiveDebugRaw === '1';
-    if (!this.debugModeEnabled && this.currentConnectTab === 'core') {
-      this.currentConnectTab = 'recent';
-    }
     NativeRustDeskBridge.setLocalOption('app-debug-mode', this.debugModeEnabled ? 'Y' : 'N');
     Logger.setDebugEnabled(this.debugModeEnabled);
     Logger.info('APP', `Index aboutToAppear debugMode=${this.debugModeEnabled}`);
@@ -1206,7 +1204,7 @@ struct Index {
           if (this.visibleConnectTabs.has('account')) {
             this.buildConnectPeerTabButton('account')
           }
-          if (this.debugModeEnabled) {
+          if (this.visibleConnectTabs.has('core')) {
             this.buildConnectPeerTabButton('core')
           }
 
@@ -2294,9 +2292,6 @@ struct Index {
               Logger.debug('SETTINGS', `apiServer="${this.settings.apiServer}", idServer="${this.settings.idServer}", relayServer="${this.settings.relayServer}"`);
               void this.showToast(this.lt('Debug Mode Enabled'));
             } else {
-              if (this.currentConnectTab === 'core') {
-                this.currentConnectTab = 'recent';
-              }
               void this.showToast(this.lt('Debug Mode Disabled'));
             }
           }, '', true, 'settings_tune.svg', false)
@@ -4535,9 +4530,6 @@ struct Index {
   }
 
   private pollOnlineStatusOnce(): void {
-    if (!this.officialCoreState.coreReady) {
-      return;
-    }
     const idSet = new Set<string>();
     const sessions = this.appData.getRecentSessions();
     sessions.forEach((s: RecentSession) => idSet.add(s.id));
@@ -4549,9 +4541,34 @@ struct Index {
     if (ids.length === 0) {
       return;
     }
+    void this.probeDirectIpTargets(ids);
+    if (!this.officialCoreState.coreReady) {
+      return;
+    }
     Logger.debug('NET', `pollOnlineStatusOnce: querying ${ids.length} ids, coreReady=${this.officialCoreState.coreReady}`);
     const result = this.officialBridge.queryOnlines(ids);
     Logger.debug('NET', `queryOnlines returned: ${JSON.stringify(result)}`);
+  }
+
+  private async probeDirectIpTargets(ids: string[]): Promise<void> {
+    const targets: DirectIpTarget[] = [];
+    ids.forEach((id: string) => {
+      const target = DirectIpProbeService.parseTarget(id);
+      if (target !== null) {
+        targets.push(target);
+      }
+    });
+    if (targets.length === 0) {
+      return;
+    }
+    await Promise.all(targets.map(async (target: DirectIpTarget) => {
+      const online = await DirectIpProbeService.probe(target);
+      this.appData.updateOnlineStatusFromResult(online ? [target.source] : [], online ? [] : [target.source]);
+      Logger.debug('NET', `Direct IP probe ${target.source}: online=${online}`);
+    }));
+    this.peerOnlineVersion++;
+    this.addressBookVersion++;
+    this.refreshAllSessionOnlineStatus();
   }
 
   private updateSettings(patch: Partial<SettingsState>): void {
