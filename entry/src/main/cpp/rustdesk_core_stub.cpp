@@ -170,6 +170,7 @@ void rustdesk_bridge_main_set_user_default_option(const char *, const char *) {}
 const char *rustdesk_bridge_main_get_user_default_option(const char *) { return alloc_empty_string(); }
 const char *rustdesk_bridge_main_resolve_avatar_url(const char *) { return alloc_empty_string(); }
 const char *rustdesk_bridge_main_get_login_device_info(void) { return alloc_empty_string(); }
+const char *rustdesk_bridge_main_get_sysinfo(void) { return alloc_empty_string(); }
 const char *rustdesk_bridge_main_get_hard_option(const char *) { return alloc_empty_string(); }
 const char *rustdesk_bridge_main_get_buildin_option(const char *) { return alloc_empty_string(); }
 const char *rustdesk_bridge_main_get_common(const char *) { return alloc_empty_string(); }

@@ -1,6 +1,7 @@
 import { OfficialSessionTransport } from './OfficialSessionTransport';
 import { OfficialRustDeskBridge, OfficialSessionEvent } from './OfficialRustDeskBridge';
 import util from '@ohos.util';
+import hilog from '@ohos.hilog';
 
 export interface TerminalSession {
   id: number;
@@ -100,6 +101,9 @@ export class TerminalService {
       return false;
     }
     const success = OfficialSessionTransport.sendTerminalInput(terminalId, data);
+    const inputKind = data === '\r' ? 'enter' : (data.indexOf('\x7f') >= 0 ? 'backspace' : 'text');
+    hilog.error(0xA03D00, 'TerminalDiag',
+      `sendInput terminalId=${terminalId} kind=${inputKind} chars=${data.length} success=${success}`);
     if (success) {
       session.lastActivityAt = Date.now();
     }

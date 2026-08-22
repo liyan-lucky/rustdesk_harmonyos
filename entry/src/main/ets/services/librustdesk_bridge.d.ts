@@ -244,6 +244,7 @@ export interface NativeBridgeModule {
   mainGetUserDefaultOption(key: string): string;
   mainResolveAvatarUrl(avatar: string): string;
   mainGetLoginDeviceInfo(): string;
+  mainGetSysinfo(): string;
   mainGetHardOption(key: string): string;
   mainGetBuildinOption(key: string): string;
   mainGetCommon(key: string): string;

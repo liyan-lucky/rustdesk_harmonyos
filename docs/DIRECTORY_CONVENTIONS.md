@@ -243,6 +243,10 @@ $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
 **规则**：
 - 构建安装必须全部用脚本（bat/ps1），不要手动拼接 hdc 命令
+- 所有修改直接在 `master` 主分支进行，不创建或切换到 `feature/*`、`fix/*` 等临时开发分支；`backup` 仅用于快照备份。
+- 指定设备构建安装使用 `scripts\AUTO_BUILD_INSTALL.bat <ip:port>`；显式目标不可用时脚本必须失败，禁止静默回退并安装到其他设备。
+- `switch_deveco_paths.ps1 -Mode Portable/-Mode DevEco` 只负责切换已有签名条目的路径，不生成签名配置。若 `signingConfigs` 为空，必须先在 DevEco Studio 中创建并点击 Apply/OK，使 `build-profile.json5` 写入完整的 `default` 签名条目。
+- DevEco Studio 重新生成签名后，先执行 `scripts\switch_deveco_paths.ps1 -Mode ImportDevEco`。该模式从当前绝对路径导入 `.cer/.p7b/.p12` 及同目录 `material` 加密材料到标准签名目录，并切换为 Portable 路径；不要只复制三个签名文件，否则加密密码无法解密。
 - HDC 路径拼接有 bug，安装 HAP 需从 HAP 所在目录执行或用相对路径
 - `hdc list targets` 输出 `[Empty]` 不是设备，脚本必须过滤
 - HDC 服务钝化时需 `hdc kill` + `hdc start` 重启

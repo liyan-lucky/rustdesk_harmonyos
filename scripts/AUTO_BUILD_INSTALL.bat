@@ -14,6 +14,8 @@ if not defined RUSTDESK_HARMONY_TEMP_ROOT set "RUSTDESK_HARMONY_TEMP_ROOT=%TEMP_
 if not defined BUILD_CACHE_DIR set "BUILD_CACHE_DIR=%RUSTDESK_HARMONY_TEMP_ROOT%\harmonyos_cache"
 if not defined CI set "CI=true"
 if not exist "%BUILD_CACHE_DIR%" mkdir "%BUILD_CACHE_DIR%" >nul 2>nul
+if defined DEVECO_SDK_HOME if not exist "%DEVECO_SDK_HOME%" set "DEVECO_SDK_HOME="
+if not defined DEVECO_SDK_HOME if exist "C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony" set "DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk\default"
 
 set "TARGET=%~1"
 set "SKIP_BUILD="
@@ -99,14 +101,17 @@ if defined TARGET (
   echo Requested target: %TARGET%
   echo %TARGET% | findstr /c:":" >nul 2>nul
   if not errorlevel 1 "%HDC%" tconn "%TARGET%" >nul 2>nul
+  timeout /t 3 /nobreak >nul 2>nul
   "%HDC%" -t "%TARGET%" shell echo ok > "%HDC_LOG%" 2>&1
   set "TARGET_CHECK_EXIT=!ERRORLEVEL!"
   findstr /c:"[Fail]" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
   if not errorlevel 1 set "TARGET_CHECK_EXIT=1"
   if not "!TARGET_CHECK_EXIT!"=="0" (
-    echo Requested target is not available, falling back to auto target selection.
+    echo Requested target is not available. Refusing to fall back to another device.
     type "%HDC_LOG%"
-    set "TARGET="
+    del "%HDC_LOG%" >nul 2>nul
+    del "%TARGETS_LOG%" >nul 2>nul
+    exit /b 1
   )
 )
 
@@ -185,22 +190,29 @@ if not defined SKIP_BUILD (
   set "BUILD_PROJECT_ROOT=%PROJECT_ROOT%"
   if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\stage_project_for_build.ps1" -StageRoot "%STAGE_ROOT%"
-    if errorlevel 1 exit /b 1
+    set "STAGE_EXIT=!ERRORLEVEL!"
+    if not "!STAGE_EXIT!"=="0" exit /b !STAGE_EXIT!
     set "BUILD_PROJECT_ROOT=%STAGE_ROOT%"
   )
   if defined FULL_BUILD (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\clean_project.ps1" -IncludeExternalBuild
     if errorlevel 1 exit /b 1
     set "RUSTDESK_HARMONY_VERSION_BUMP=full"
+    if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
+      powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\stage_project_for_build.ps1" -StageRoot "%STAGE_ROOT%"
+      set "STAGE_EXIT=!ERRORLEVEL!"
+      if not "!STAGE_EXIT!"=="0" exit /b !STAGE_EXIT!
+      set "BUILD_PROJECT_ROOT=%STAGE_ROOT%"
+    )
   ) else (
-    set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
+    if not defined RUSTDESK_HARMONY_VERSION_BUMP set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
   )
   pushd "!BUILD_PROJECT_ROOT!" >nul || exit /b 1
   "%NODE_EXE%" scripts\run_hvigor_with_sdk_patch.js assembleHap > "%HVIGOR_LOG%" 2>&1
   set "BUILD_EXIT=!ERRORLEVEL!"
   popd >nul
   type "%HVIGOR_LOG%"
-  findstr /c:"ERROR: BUILD FAILED" /c:"ERROR: Failed" /c:"Configuration Error" "%HVIGOR_LOG%" >nul 2>nul
+  findstr /c:"BUILD FAILED" /c:"Configuration Error" /c:"spawn java ENOENT" "%HVIGOR_LOG%" >nul 2>nul
   if not errorlevel 1 set "BUILD_EXIT=1"
   del "%HVIGOR_LOG%" >nul 2>nul
   if not "!BUILD_EXIT!"=="0" exit /b !BUILD_EXIT!
@@ -261,21 +273,29 @@ if not defined HAP_FILE (
 "%HDC%" -t "%TARGET%" install -r "%HAP_FILE%" > "%HDC_LOG%" 2>&1
 set "HDC_EXIT=%ERRORLEVEL%"
 type "%HDC_LOG%"
-findstr /c:"[Fail]" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
+findstr /c:"[Fail]" /c:"error:" /c:"failed" /c:"Connect server failed" "%HDC_LOG%" >nul 2>nul
 if not errorlevel 1 set "HDC_EXIT=1"
+findstr /c:"install bundle successfully" "%HDC_LOG%" >nul 2>nul
+if errorlevel 1 set "HDC_EXIT=1"
 if not "%HDC_EXIT%"=="0" (
-  echo Install failed, restarting HDC service and retrying...
+  echo Install failed or verification failed, restarting HDC service and retrying...
   "%HDC%" kill >nul 2>nul
   timeout /t 2 /nobreak >nul 2>nul
   "%HDC%" start >nul 2>nul
   timeout /t 3 /nobreak >nul 2>nul
+  "%HDC%" tconn "%TARGET%" >nul 2>nul
+  timeout /t 2 /nobreak >nul 2>nul
   "%HDC%" -t "%TARGET%" install -r "%HAP_FILE%" > "%HDC_LOG%" 2>&1
   set "HDC_EXIT=!ERRORLEVEL!"
   type "%HDC_LOG%"
-  findstr /c:"[Fail]" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
+  findstr /c:"[Fail]" /c:"error:" /c:"failed" /c:"Connect server failed" "%HDC_LOG%" >nul 2>nul
   if not errorlevel 1 set "HDC_EXIT=1"
+  findstr /c:"install bundle successfully" "%HDC_LOG%" >nul 2>nul
+  if errorlevel 1 set "HDC_EXIT=1"
 )
 if not "%HDC_EXIT%"=="0" (
+  echo ERROR: HAP installation failed. hdc did not confirm 'install bundle successfully'.
+  echo This usually means hdc server is not running or device connection is unstable.
   del "%HDC_LOG%" >nul 2>nul
   del "%TARGETS_LOG%" >nul 2>nul
   exit /b %HDC_EXIT%
@@ -290,8 +310,10 @@ if not errorlevel 1 (
   set "HDC_EXIT=0"
   goto launch_checked
 )
-findstr /c:"[Fail]" /c:"Error Code:" /c:"error:" /c:"failed" "%HDC_LOG%" >nul 2>nul
+findstr /c:"[Fail]" /c:"Error Code:" /c:"error:" /c:"failed" /c:"Connect server failed" "%HDC_LOG%" >nul 2>nul
 if not errorlevel 1 set "HDC_EXIT=1"
+findstr /c:"start ability successfully" "%HDC_LOG%" >nul 2>nul
+if errorlevel 1 set "HDC_EXIT=1"
 :launch_checked
 del "%HDC_LOG%" >nul 2>nul
 del "%TARGETS_LOG%" >nul 2>nul

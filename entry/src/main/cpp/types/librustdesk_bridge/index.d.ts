@@ -198,6 +198,7 @@ export const mainSetUserDefaultOption: (key: string, value: string) => void;
 export const mainGetUserDefaultOption: (key: string) => string;
 export const mainResolveAvatarUrl: (avatar: string) => string;
 export const mainGetLoginDeviceInfo: () => string;
+export const mainGetSysinfo: () => string;
 export const mainGetHardOption: (key: string) => string;
 export const mainGetBuildinOption: (key: string) => string;
 export const mainGetCommon: (key: string) => string;

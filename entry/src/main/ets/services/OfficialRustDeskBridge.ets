@@ -391,7 +391,7 @@ export class OfficialRustDeskBridge {
     events.forEach((event: NativeSessionEvent) => {
       const normalizedEvent: OfficialSessionEvent = {
         kind: event.kind?.trim() ?? 'unknown',
-        detail: OfficialSessionTextFormatter.formatDetail(event.detail?.trim() ?? ''),
+        detail: event.detail?.trim() ?? '',
         peerId: this.mapTransportPeerId(event.peerId?.trim() ?? ''),
         timestamp: typeof event.timestamp === 'number' ? event.timestamp : 0
       };
@@ -557,7 +557,9 @@ export class OfficialRustDeskBridge {
   }
 
   private applyEventToState(event: OfficialSessionEvent): void {
-    Logger.info('Bridge', `applyEventToState kind=${event.kind} stage=${this.state.sessionStage} activePeer=${this.state.activePeerId}`);
+    if (event.kind !== 'video-frame') {
+      Logger.info('Bridge', `applyEventToState kind=${event.kind} stage=${this.state.sessionStage} activePeer=${this.state.activePeerId}`);
+    }
     if (event.kind === 'connect-requested' ||
       event.kind === 'login-requested' ||
       event.kind === 'login' ||

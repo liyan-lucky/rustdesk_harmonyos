@@ -109,6 +109,7 @@ export interface ChatMessage {
 }
 
 export class AppDataService {
+  private static readonly LAN_OFFLINE_HOLD_MS: number = 40000;
   private static instance: AppDataService;
   static readonly OFFICIAL_ID_SERVER: string = 'rs-ny.rustdesk.com';
   static readonly OFFICIAL_RELAY_SERVER: string = 'rs-ny.rustdesk.com';
@@ -124,6 +125,8 @@ export class AppDataService {
   private initialized: boolean = false;
   private peerOnlineMap: Map<string, boolean> = new Map();
   private lanOnlineUntilMap: Map<string, number> = new Map();
+  private lanOfflineUntilMap: Map<string, number> = new Map();
+  private serverOfflineIds: Set<string> = new Set();
 
   private constructor() {}
 
@@ -349,6 +352,10 @@ export class AppDataService {
 
   isPeerOnline(id: string): boolean {
     const normalizedId = DeviceIdFormatter.parse(id);
+    const lanOfflineUntil = this.lanOfflineUntilMap.get(normalizedId) ?? 0;
+    if (lanOfflineUntil > Date.now()) {
+      return false;
+    }
     const lanOnlineUntil = this.lanOnlineUntilMap.get(normalizedId) ?? 0;
     if (lanOnlineUntil > Date.now()) {
       return true;
@@ -356,19 +363,67 @@ export class AppDataService {
     return this.peerOnlineMap.get(normalizedId) ?? false;
   }
 
-  markLanPeerOnline(id: string, ttlMs: number = 15000): void {
+  markLanPeerOnline(id: string, ttlMs: number = 30000): void {
     const normalizedId = DeviceIdFormatter.parse(id);
     if (normalizedId.length === 0) {
       return;
     }
-    this.peerOnlineMap.set(normalizedId, true);
+    // The native LAN list can contain cached peers from an earlier scan.
+    // Once rendezvous has explicitly declared a peer offline, only a later
+    // rendezvous-online result may restore its global online state.
+    if (this.serverOfflineIds.has(normalizedId)) {
+      return;
+    }
+    this.lanOfflineUntilMap.delete(normalizedId);
     this.lanOnlineUntilMap.set(normalizedId, Date.now() + ttlMs);
     this.updateStoredPeerOnlineState(normalizedId, true);
+  }
+
+  markLanPeerOffline(id: string): void {
+    const normalizedId = DeviceIdFormatter.parse(id);
+    if (normalizedId.length === 0) {
+      return;
+    }
+    // An explicit LAN scan result is authoritative. Hold it briefly so a
+    // delayed rendezvous-server heartbeat cannot immediately flip the peer
+    // back online before the server expires its own presence record.
+    this.lanOnlineUntilMap.delete(normalizedId);
+    this.lanOfflineUntilMap.set(normalizedId, Date.now() + AppDataService.LAN_OFFLINE_HOLD_MS);
+    this.peerOnlineMap.set(normalizedId, false);
+    this.updateStoredPeerOnlineState(normalizedId, false);
+  }
+
+  expireLanPeerStatuses(): boolean {
+    const now = Date.now();
+    let changed = false;
+    this.lanOnlineUntilMap.forEach((onlineUntil: number, id: string) => {
+      if (onlineUntil > now) {
+        return;
+      }
+      this.lanOnlineUntilMap.delete(id);
+      const online = this.peerOnlineMap.get(id) ?? false;
+      this.updateStoredPeerOnlineState(id, online);
+      changed = true;
+    });
+    this.lanOfflineUntilMap.forEach((offlineUntil: number, id: string) => {
+      if (offlineUntil > now) {
+        return;
+      }
+      this.lanOfflineUntilMap.delete(id);
+      const online = this.peerOnlineMap.get(id) ?? false;
+      this.updateStoredPeerOnlineState(id, online);
+      changed = true;
+    });
+    return changed;
   }
 
   updateOnlineStatusFromResult(onlines: string[], offlines: string[]): void {
     onlines.forEach((id: string) => {
       const normalizedId = DeviceIdFormatter.parse(id);
+      const lanOfflineUntil = this.lanOfflineUntilMap.get(normalizedId) ?? 0;
+      if (lanOfflineUntil > Date.now()) {
+        return;
+      }
       this.peerOnlineMap.set(normalizedId, true);
       this.updateStoredPeerOnlineState(normalizedId, true);
     });
@@ -381,6 +436,19 @@ export class AppDataService {
       this.peerOnlineMap.set(normalizedId, false);
       this.updateStoredPeerOnlineState(normalizedId, false);
     });
+  }
+
+  updateServerOnlineStatusFromResult(onlines: string[], offlines: string[]): void {
+    onlines.forEach((id: string) => {
+      const normalizedId = DeviceIdFormatter.parse(id);
+      this.serverOfflineIds.delete(normalizedId);
+    });
+    offlines.forEach((id: string) => {
+      const normalizedId = DeviceIdFormatter.parse(id);
+      this.serverOfflineIds.add(normalizedId);
+      this.lanOnlineUntilMap.delete(normalizedId);
+    });
+    this.updateOnlineStatusFromResult(onlines, offlines);
   }
 
   private updateStoredPeerOnlineState(id: string, online: boolean): void {
@@ -886,8 +954,14 @@ export class AppDataService {
     }
     try {
       const parsed = JSON.parse(value) as RecentSession[];
-      const normalizedSessions = parsed.map((item: RecentSession) => this.cloneRecentSession(item));
+      const normalizedSessions = parsed.map((item: RecentSession) => {
+        const session = this.cloneRecentSession(item);
+        // Online is live state and must never be restored from disk.
+        session.online = false;
+        return session;
+      });
       this.recentSessions = AppDataService.isSeededRecentSessionList(normalizedSessions) ? [] : normalizedSessions;
+      this.persistRecentSessions();
       if (this.recentSessions.length !== normalizedSessions.length) {
         this.persistRecentSessions();
       }
@@ -906,7 +980,13 @@ export class AppDataService {
     }
     try {
       const parsed = JSON.parse(value) as AddressBookEntry[];
-      this.addressBook = parsed.map((item: AddressBookEntry) => this.normalizeAddressBookEntry(item));
+      this.addressBook = parsed.map((item: AddressBookEntry) => {
+        const entry = this.normalizeAddressBookEntry(item);
+        // The next server/LAN query is authoritative for online state.
+        entry.online = false;
+        return entry;
+      });
+      this.persistAddressBook();
       if (this.isSeededAddressBook(this.addressBook)) {
         this.addressBook = [];
         this.persistAddressBook();

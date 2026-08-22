@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.cer",
+          "certpath": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B3CE7021F6ABB7853E25F0B451A38C72D1458C53E3C5FE2237694F2FA598D366294EB00BD6C94DA",
-          "profile": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.p7b",
+          "keyPassword": "0000001B2209163500E359D08822B7998C78FF371C3B53C1BF5E06234B7DBB50DACD919739182A8B50B1F0",
+          "profile": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\Li Yan\\.ohos\\config\\default_11_Rustdesk_harmonyos_NBEDNvOadDt3Mhyz3sUqO_t-Tq4T4a9yJKTTdKpsDiQ=.p12",
-          "storePassword": "0000001B05777EEC3F28DECA70D761BF0260D3D38E6FB05359847072FF96FFDA0E71CED0FED99D473000D0"
+          "storeFile": "../99_Temp/rustdesk_harmonyos_signing/debug_hos.p12",
+          "storePassword": "0000001BAFFA3D745E7E2A21B4D9925AD3EF71B3398677661F4EF3E32798A4F0669EB0ADEF17DFA5BC4831"
         }
       }
     ],
@@ -21,16 +21,18 @@
         "signingConfig": "default",
         "compileSdkVersion": "6.1.1(24)",
         "compatibleSdkVersion": "6.1.0(23)",
-        "targetSdkVersion": "6.1.0(23)",
+        "targetSdkVersion": "6.1.1(24)",
         "runtimeOS": "HarmonyOS",
         "bundleName": "com.open.rundesk"
       },
       {
         "name": "openharmony_verify",
-        "compileSdkVersion": "6.1.1(24)",
-        "compatibleSdkVersion": "6.0.0(20)",
-        "targetSdkVersion": "6.1.0(23)",
-        "runtimeOS": "OpenHarmony"
+        "signingConfig": "default",
+        "compileSdkVersion": 24,
+        "compatibleSdkVersion": 23,
+        "targetSdkVersion": 24,
+        "runtimeOS": "OpenHarmony",
+        "bundleName": "com.open.rundesk"
       }
     ],
     "buildModeSet": [

@@ -1,6 +1,6 @@
 # 新对话交接入口
 
-> 更新时间：2026-08-18
+> 更新时间：2026-08-22
 > 本文件是新对话的第一入口。读取本文件后，按"必读顺序"读取其他文档。
 
 ## 当前项目状态
@@ -8,12 +8,23 @@
 - **项目**：RustDesk HarmonyOS 客户端（`com.open.rundesk`），第三方兼容客户端，非官方发布
 - **工作区**：`E:\Visual_Studio_Code\11_Rustdesk_harmonyos`
 - **核心库**：`E:\Visual_Studio_Code\13_librustdesk_core`（独立仓库，staticlib + CMake 链接）
-- **当前真机**：`192.168.0.106:36169`（arm64，HarmonyOS 无线 HDC）
+- **当前真机**：USB/HDC `2NX0224429035123`；最近无线地址 `192.168.0.108:36169`（无线端口可能重连后变化）
 - **用户主题**：暗色主题
 - **核心架构**：ArkTS Stage UI → C++ NAPI → Rust C ABI staticlib
 - **包名**：`com.open.rundesk`，AGPL-3.0-only
 
 ## 最近完成的工作
+
+### 2026-08-22 0.35.11 功能收口
+
+1. **在线状态**：页面切换保留 ID 在线状态、用户名和设备名；轮询结果加入新鲜度保护，离线判定与服务端官方超时策略对齐，避免长时间假在线和在线/离线闪烁。
+2. **登录与失效处理**：登录弹窗隐藏 API 地址，改为服务器连通性/延迟状态；账号密码为空时登录按钮显示灰色“登录”；取消页面驻留定时刷新；认证失效时清除本地登录态并退出账号状态。
+3. **通讯录与最近会话**：设备 `sysinfo` 上传 CPU、内存、系统、主机名、用户名、版本、ID、UUID；最近会话同步到服务器；收藏/历史/发现/ID 菜单恢复“加入通讯录”，标签选择和服务端同步链路补齐。
+4. **剪贴板同步**：本地与远端文本双向同步完成；正向“允许剪贴板同步”选项与会话配置统一；诊断元数据不会误写入系统剪贴板。Core 提交 `b8dab7e`。
+5. **终端会话**：使用 `ConnType::TERMINAL` 建立官方终端会话；终端输出 ANSI 清洗、软键盘焦点/避让、透明快捷键完成；输入按字符增量发送，CR/TAB/ESC 等控制字符不再被 C ABI trim 丢弃。Core 提交 `b8dab7e`。
+6. **会话工具与输入**：工具菜单失焦、点击键盘及执行菜单动作后立即收起；中文/英文标点和输入法自动补全差异处理完善。
+7. **触摸模式**：单击/双击窗口 200ms；快速滑动 200ms 内优先平移；短按拖动 400ms 滚动；停留 600ms 后拖动为“左框”；800ms 长按为右键，继续拖动为“右框”；滚动阈值按约 32vp 一行换算；双指缩放和平移保持原行为。
+8. **构建验证**：`node scripts/run_hvigor_with_sdk_patch.js assembleHap` 通过；版本 `0.35.11 (1000310)`；签名 HAP 已覆盖安装到 USB 设备 `2NX0224429035123`。
 
 ### 2026-08-18 当前发布快照
 
@@ -70,14 +81,12 @@
 
 ## 待完成任务
 
-- **IME 自动补全符号删除问题**（已搁置）：当前部分修复，用户反馈"输入冒号也自动补右括号，自动补的删不掉"，需进一步研究 IME 行为
 - **100 轮代码审计优化**：审计 RemoteControl.ets、Index.ets、CoreBuildInfo.ets 等文件的代码质量、性能、类型安全
 - 远程光标显示健壮性优化（事件队列容量、载荷编码、cursor clip）
 - 全部会话菜单端到端回归验证（Core cursor 回调仍为空实现）
 - 文件传输完整链路实现
 - 五编码设备切换和质量面板验证
 - 华为手机被控端操控已搁置（平台不支持，不作为阻塞项）
-- **Git 提交**：当前有 6 个未提交的修改文件（AppScope/app.json5、BuildInfo.ets、CoreBuildInfo.ets、Index.ets、RemoteControl.ets、I18nService.ets），需要提交并推送
 
 ## 工作规则
 
@@ -201,9 +210,9 @@ Pop-Location
 E:\Visual_Studio_Code\11_Rustdesk_harmonyos\docs\AGENT_HANDOFF.md，
 再按"必读顺序"读取项目文档，检查两个仓库 git status，保留全部未提交修改。
 所有操作按照项目规范要求文档进行（DIRECTORY_CONVENTIONS.md、AGENT_MEMORY.md、ISSUES.md）。
-所有修改在自主分支进行，不要在 master 直接修改，不要随意构建分支。
-使用中文交互，每次修改后构建验证。设备 192.168.8.152:36169，暗色主题。
-构建前先恢复签名配置，构建脚本在 99_Temp\rebuild.ps1。
+所有修改直接在 master 主分支进行，不创建或切换到 feature/fix 等临时开发分支；backup 只作为快照备份分支。
+使用中文交互，每次修改后通过项目现有脚本构建验证。设备地址以用户本轮明确指定值为准，当前测试目标为 192.168.0.113:36169，暗色主题。
+DevEco Studio 使用绝对路径时调用 `scripts\switch_deveco_paths.ps1 -Mode DevEco`；脚本构建/提交前切回 `-Mode Portable`。构建使用 `scripts\build_hap.bat`，构建安装使用 `scripts\AUTO_BUILD_INSTALL.bat <target>`，禁止手工拼接 Hvigor 或 HDC 命令。
 ```
 # Latest OAuth investigation (2026-08-14)
 

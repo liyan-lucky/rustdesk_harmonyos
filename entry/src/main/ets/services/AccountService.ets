@@ -95,8 +95,12 @@ export class AccountService {
   private serviceSyncBusy: boolean = false;
   private providersSyncSucceeded: boolean = true;
   private readonly SERVICE_SYNC_INTERVAL: number = 30000;
+  private clearingLoginState: boolean = false;
 
   private constructor() {
+    this.httpClient.setAuthInvalidatedListener((statusCode: number) => {
+      this.clearLoginState(`authorization invalid (${statusCode})`);
+    });
     this.loadSavedToken();
   }
 
@@ -750,12 +754,29 @@ export class AccountService {
     this.stopServiceSync();
     this.syncApiServerFromSettings();
     await this.httpClient.logout();
+    this.clearLoginState('user logout');
+  }
+
+  private clearLoginState(reason: string): void {
+    if (this.clearingLoginState) {
+      return;
+    }
+    this.clearingLoginState = true;
+    Logger.info('ACCOUNT', `Clearing login state: ${reason}`);
+    this.stopServiceSync();
+    this.resetOAuthTransaction();
+    NativeRustDeskBridge.accountAuthCancel();
     NativeRustDeskBridge.setLocalOption('access_token', '');
     NativeRustDeskBridge.setLocalOption('user_info', '');
     PreferenceStore.setAccountToken('');
     PreferenceStore.setAccountUserInfo('');
+    PreferenceStore.setAccountUsersCache('');
+    AppStorage.setOrCreate<string>('accessibleUsers', '[]');
+    AppStorage.setOrCreate<string>('accessibleUsersError', '');
+    AppStorage.setOrCreate<number>('accessibleUsersStatusCode', 0);
+    AppStorage.setOrCreate<boolean>('accessibleUsersLoading', false);
 
-    AppDataService.getInstance().setAddressBook([]);
+    this.appData.setAddressBook([]);
 
     this.appState.setAccount({
       isLoggedIn: false,
@@ -768,6 +789,7 @@ export class AccountService {
       status: 'idle',
       lastError: ''
     });
+    this.clearingLoginState = false;
   }
 
   async refreshUser(): Promise<void> {
@@ -780,8 +802,8 @@ export class AccountService {
         displayName: result.data.display_name ?? result.data.name ?? '',
         avatar: result.data.avatar ?? ''
       });
-    } else if (result.statusCode === 401 || result.statusCode === 400) {
-      await this.logout();
+    } else if (result.statusCode === 401 || result.statusCode === 406) {
+      this.clearLoginState(`refresh rejected (${result.statusCode})`);
     }
   }
 

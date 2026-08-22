@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+trap {
+  [Console]::Error.WriteLine($_.Exception.Message)
+  exit 1
+}
+
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $stageRootFull = [System.IO.Path]::GetFullPath($StageRoot)
 $workspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot ".."))
@@ -122,4 +127,4 @@ if (Test-Path -LiteralPath $buildProfilePath) {
 }
 
 Write-Host "Staged project for build at $stageRootFull"
-$global:LASTEXITCODE = 0
+exit 0

@@ -17,6 +17,32 @@ if (!process.env.CI) {
   process.env.CI = 'true';
 }
 
+// Ensure Windows system directories are on PATH and ComSpec is set.
+// hvigor worker_threads may inherit an empty/truncated PATH, causing
+// `spawn cmd.exe ENOENT` when ets-loader launches es2abc via child_process.exec.
+// This script is loaded in every child process via NODE_OPTIONS=--require,
+// so fixing process.env here propagates to all workers.
+(function ensureWindowsSystemPath() {
+  const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+  const system32 = path.join(systemRoot, 'System32');
+  const pathEntries = String(process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  const toAdd = [];
+  for (const dir of [system32, systemRoot]) {
+    const resolved = path.resolve(dir).toLowerCase();
+    if (!pathEntries.some((entry) => entry && path.resolve(entry).toLowerCase() === resolved)) {
+      toAdd.push(dir);
+    }
+  }
+  if (toAdd.length > 0) {
+    process.env.PATH = process.env.PATH
+      ? toAdd.join(path.delimiter) + path.delimiter + process.env.PATH
+      : toAdd.join(path.delimiter);
+  }
+  if (!process.env.ComSpec) {
+    process.env.ComSpec = path.join(system32, 'cmd.exe');
+  }
+})();
+
 const originalReadFileSync = fs.readFileSync.bind(fs);
 const missingModulecheckSchemas = new Set();
 
@@ -167,8 +193,14 @@ const devecoToolsRoot = firstExistingPath([
   defaultDevEcoToolsRoot,
 ]) || defaultDevEcoToolsRoot;
 const defaultDevEcoRoot = path.resolve('C:/Program Files/Huawei/DevEco Studio');
+if (process.env.DEVECO_SDK_HOME && !fs.existsSync(process.env.DEVECO_SDK_HOME)) {
+  console.warn(`[SDK] Ignoring invalid DEVECO_SDK_HOME: ${process.env.DEVECO_SDK_HOME}`);
+  delete process.env.DEVECO_SDK_HOME;
+}
 if (!process.env.DEVECO_SDK_HOME) {
   const sdkCandidates = [
+    localProperties['hwsdk.dir'] && path.resolve(localProperties['hwsdk.dir'], '..'),
+    path.resolve(defaultDevEcoRoot, 'sdk'),
     localProperties['sdk.dir'] && path.resolve(localProperties['sdk.dir'], '..'),
     localProperties['hwsdk.dir'],
     path.resolve(defaultDevEcoRoot, 'sdk/default'),
@@ -191,6 +223,13 @@ if (!process.env.JAVA_HOME) {
       process.env.JAVA_HOME = candidate;
       break;
     }
+  }
+}
+if (process.env.JAVA_HOME) {
+  const javaBin = path.resolve(process.env.JAVA_HOME, 'bin');
+  const pathEntries = String(process.env.PATH || '').split(path.delimiter);
+  if (!pathEntries.some((entry) => entry && path.resolve(entry).toLowerCase() === javaBin.toLowerCase())) {
+    process.env.PATH = process.env.PATH ? `${javaBin}${path.delimiter}${process.env.PATH}` : javaBin;
   }
 }
 
@@ -267,8 +306,16 @@ function resolveSdkRoot() {
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    if (candidate && require('fs').existsSync(candidate)) {
-      return candidate;
+    if (!candidate) {
+      continue;
+    }
+    const resolved = path.resolve(candidate);
+    if (fs.existsSync(path.resolve(resolved, 'openharmony'))) {
+      return resolved;
+    }
+    const defaultSdk = path.resolve(resolved, 'default');
+    if (fs.existsSync(path.resolve(defaultSdk, 'openharmony'))) {
+      return defaultSdk;
     }
   }
 

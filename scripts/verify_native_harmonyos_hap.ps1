@@ -23,12 +23,20 @@ $buildRoot = if ($env:RUSTDESK_HARMONY_BUILD_DIR) {
   [System.IO.Path]::GetFullPath((Join-Path $projectRoot "..\99_Temp\rustdesk_harmonyos_build"))
 }
 
-$expectedEntries = @(
-  "libs/arm64-v8a/librustdesk_bridge.so",
-  "libs/arm64-v8a/libc++_shared.so",
-  "libs/x86_64/librustdesk_bridge.so",
-  "libs/x86_64/libc++_shared.so"
-)
+$moduleBuildProfile = Join-Path $projectRoot "entry\build-profile.json5"
+$moduleBuildProfileText = if (Test-Path -LiteralPath $moduleBuildProfile) {
+  Get-Content -LiteralPath $moduleBuildProfile -Raw
+} else {
+  ""
+}
+$expectedArchitectures = @([regex]::Matches($moduleBuildProfileText, '"(arm64-v8a|x86_64)"') | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+if ($expectedArchitectures.Count -eq 0) {
+  $expectedArchitectures = @("arm64-v8a")
+}
+$expectedEntries = @($expectedArchitectures | ForEach-Object {
+  "libs/$_/librustdesk_bridge.so"
+  "libs/$_/libc++_shared.so"
+})
 $logRegex = "NativeRustDeskBridge|rustdesk_bridge|harmony_bridge|session-connected|video-frame|quality-status|fingerprint|msgbox"
 
 function Get-AppBundleName {
@@ -126,7 +134,12 @@ function Get-DevEcoPaths {
   }
 
   foreach ($sdkDir in $sdkDirCandidates) {
-    $resolvedSdkDir = [System.IO.Path]::GetFullPath($sdkDir)
+    try {
+      $resolvedSdkDir = [System.IO.Path]::GetFullPath($sdkDir)
+    } catch {
+      Write-Warning "Ignoring invalid SDK path: $sdkDir"
+      continue
+    }
     $hdcPath = Join-Path $resolvedSdkDir "toolchains\hdc.exe"
     $signToolPath = Join-Path $resolvedSdkDir "toolchains\lib\hap-sign-tool.jar"
     if (-not $result.Hdc -and (Test-Path -LiteralPath $hdcPath)) {
@@ -138,7 +151,12 @@ function Get-DevEcoPaths {
   }
 
   foreach ($hmsRoot in $hmsRootCandidates) {
-    $resolvedHmsRoot = [System.IO.Path]::GetFullPath($hmsRoot)
+    try {
+      $resolvedHmsRoot = [System.IO.Path]::GetFullPath($hmsRoot)
+    } catch {
+      Write-Warning "Ignoring invalid DevEco SDK root: $hmsRoot"
+      continue
+    }
     if (-not $result.Hdc) {
       $hmsHdcPath = Join-Path $resolvedHmsRoot "openharmony\toolchains\hdc.exe"
       if (Test-Path -LiteralPath $hmsHdcPath) {
@@ -218,7 +236,7 @@ function Assert-NativeRuntimeDependencies {
   $inspectDir = Join-Path $env:TEMP ("rustdesk_hap_native_" + [guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Force -Path $inspectDir | Out-Null
   try {
-    foreach ($architecture in @("arm64-v8a", "x86_64")) {
+    foreach ($architecture in $expectedArchitectures) {
       $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
       try {
         $entryName = "libs/$architecture/librustdesk_bridge.so"

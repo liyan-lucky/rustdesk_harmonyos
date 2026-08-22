@@ -1,5 +1,51 @@
 # 功能进度与优化方向
 
+## 2026-08-21 空格输入、菜单跳转、工具栏折叠、剪贴板同步、在线状态修复
+
+### 已修复
+
+1. **空格输入修复**（`RemoteControl.ets`）：
+   - 根因：`sendImeCommittedText` 中 `isAlphanumericText(' ')` 返回 false，空格走 `sessionInputString` 路径（该原生函数不处理空格）
+   - 修复：条件改为 `isAsciiKeyboardText(text)`，空格通过 `sendKeyboardInput(32, true/false, 0)` 键盘事件路径发送
+   - IME 哨兵字符从 `' '` 改为 `'\u200B'`（零宽空格），避免与真实空格混淆
+
+2. **文件传输/终端菜单跳转修复**（`Index.ets`）：
+   - 根因：`handleConnect` 关闭旧连接时触发 `session-closed` 事件 → `resetConnectionUiAfterTerminalEvent` 异步清除 `pendingNavigatePage` → 导航目标丢失
+   - 修复：从 `resetConnectionUiAfterTerminalEvent` 移除 `pendingNavigatePage = ''`
+
+3. **安装脚本 tconn 等待修复**（`scripts/AUTO_BUILD_INSTALL.bat`）：
+   - 根因：`tconn` 后没有等待时间，连接未稳定就执行设备检查
+   - 修复：`tconn` 后加 `timeout /t 3 /nobreak`
+
+4. **工具菜单自动折叠**（`RemoteControl.ets`）：
+   - 更多操作菜单：所有 13 项操作（OS Password、发送剪贴板、重置画布、Ctrl+Alt+Del、重启、锁定、阻止输入、刷新、文件传输、复制指纹、切换侧、截图、录制）点击后 `showToolbar = false`
+   - 聊天菜单：语音聊天、文字聊天点击后折叠
+   - 鼠标模式菜单：触摸模式切换后折叠（鼠标模式之前已有）
+
+5. **页面切换在线状态修复**（`Index.ets`）：
+   - 根因：`onPageShow` 中未重启在线状态轮询，页面从后台返回时 `onlineStatusPollTimer` 可能已停止
+   - 修复：`onPageShow` 中添加 `startOnlineStatusPoll()` 调用和 `onlineStatusListener` 重新注册
+
+### 部分实现（搁置）
+
+6. **剪贴板回传（远端→本地）**（`RemoteControl.ets`、`module.json5`）：
+   - 已添加 `sessionToggleOption('enable-clipboard')` 在 `aboutToAppear` 和 `session-connected` 中调用
+   - 已添加 `bridgeListener` 对 `clipboard`/`clipboard-incoming`/`event.kind.includes('clip')` 事件处理
+   - 已添加 `extractClipboardText` 方法 JSON 解析
+   - `WRITE_PASTEBOARD` 权限不是 SDK 预定义权限，已移除（`pasteboard.setData` 对前台应用默认允许）
+   - `sessionToggleOption` 添加 `[RC-Clipboard]` 诊断日志
+   - **状态：搁置** — 远端复制后手机剪贴板无内容，需通过 hdc hilog 排查 Rust core 是否输出剪贴板事件
+
+7. **本地→远端剪贴板自动同步**（`RemoteControl.ets`）：
+   - 已添加 `clipboardSyncListener` 监听 `ClipboardService` 的 `sync_required` 事件
+   - `aboutToAppear` 中注册，`aboutToDisappear` 中注销
+
+### 构建验证
+
+- 版本 `0.35.3 (1000301)`，HAP 约 `20398565` bytes
+- 设备 `192.168.0.107:36169`（arm64）安装启动成功
+- 修改文件：`RemoteControl.ets`、`Index.ets`、`module.json5`、`NativeRustDeskBridge.ts`、`AUTO_BUILD_INSTALL.bat`
+
 ## 2026-08-14 IME 成对符号与动态登录提供商修复
 
 - `RemoteControl.ets` 识别中英文括号、方括号、书名号等 IME 成对补全，只发送左符号并恢复 sentinel，消除本地/远端光标位置分叉，后续 Backspace 可正常删除。
@@ -1147,3 +1193,13 @@ Core `a7f7795` 和 App `3ebdc726` 已推送；Core run `27920089950`、App Linux
 - 登录页及连接页账户标签的同步按钮已统一放在搜索之后，使用与通讯录一致的 `refresh.svg`、主题滤色和旋转动画。
 - 当前版本为 `0.34.34 (1000279)`；arm64/x86_64 签名 HAP 构建通过，arm64 包已安装到 `192.168.0.106:36169`。
 - 所有修改已合并到 `master`；仓库仅保留 `master` 与远端 `backup`，后续开发直接在 `master` 进行。
+
+## 2026-08-22 0.35.11 会话功能全面收口
+
+- 在线状态与身份快照：页面切换不再清空已确认状态、用户名或设备名；客户端离线检测和服务端官方超时策略对齐，修复假在线与状态闪烁。
+- 登录体验：API 地址从登录弹窗移除并替换为连通性/延迟；按钮根据账号密码实时启用；移除驻留定时刷新；401/403 等认证失效会清理登录态。
+- 数据同步：设备完整 `sysinfo`、最近会话、通讯录设备和标签均接入服务器；收藏、历史、发现和 ID 菜单均可加入通讯录。
+- 剪贴板：双向文本同步实机可用，诊断事件与真实文本严格分流；Core `b8dab7e` 已推送。
+- 终端：官方 TERMINAL 连接类型、输出渲染、系统输入法、快捷键和控制字符输入完成；Core `b8dab7e` 已推送。
+- 触摸手势：形成 200/400/600/800ms 分层，快速滑动优先平移，随后依次为滚动、左框和右框；菜单补齐“左框/右框”中文翻译。
+- 验证：版本 `0.35.11 (1000310)`，双 ABI HAP 构建通过，签名包已安装到 `2NX0224429035123`。

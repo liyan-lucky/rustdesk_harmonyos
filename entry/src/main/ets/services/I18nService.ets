@@ -179,6 +179,7 @@ export class I18nService {
     this.translations.set('ID added to tag', 'ID 已添加到指定标签');
     this.translations.set('Deselect all tags', '取消选择所有标签');
     this.translations.set('Sync recent sessions', '同步最近会话');
+    this.translations.set('Server connectivity', '服务器连通性');
     this.translations.set('Filter by tags', '按标签过滤');
     this.translations.set('Open Web Console', '打开 Web 控制台以执行更多操作');
     this.translations.set('API Server is not configured', '尚未配置 API 服务器');
@@ -1166,6 +1167,7 @@ export class I18nService {
     this.translations.set('Tap', '单击');
     this.translations.set('Long Press', '长按');
     this.translations.set('Swipe', '滑动');
+    this.translations.set('Left Box Drag', '左框拖动');
     this.translations.set('Long Press Drag', '长按拖动');
     this.translations.set('Two-finger Pinch', '双指开合');
     this.translations.set('Two-finger Pan', '双指平移');
@@ -1187,7 +1189,9 @@ export class I18nService {
     this.translations.set('Middle Click', '中键');
     this.translations.set('Screen Pan', '平移');
     this.translations.set('Scroll', '滚动');
-    this.translations.set('Marquee Select', '框选');
+    this.translations.set('Marquee Select', '右框');
+    this.translations.set('Left Box', '左框');
+    this.translations.set('Right Box', '右框');
     this.translations.set('Left Drag', '左键拖拽');
     this.translations.set('Zoom', '缩放');
     this.translations.set('Mouse mode provides direct pointer control. Move finger to position cursor, tap to click, long press for right click.', '鼠标模式提供直接光标控制。移动手指定位光标，轻点单击，长按右键。');
@@ -1265,6 +1269,10 @@ export class I18nService {
     this.translations.set('Continue with', '继续使用');
     this.translations.set('Core stopped', '核心已停止');
     this.translations.set('Debug summary copied', '调试摘要已复制');
+    this.translations.set('Debug log exported', '调试日志已导出');
+    this.translations.set('Export cancelled', '导出已取消');
+    this.translations.set('Export failed', '导出失败');
+    this.translations.set('Cannot access file directory', '无法访问文件目录');
     this.translations.set('Deny LAN Discovery', '拒绝局域网发现');
     this.translations.set('Enable Adaptive Bitrate', '启用自适应码率');
     this.translations.set('Enable Direct IP', '启用直接 IP');
@@ -1335,6 +1343,7 @@ export class I18nService {
     this.translations.set('ID added to tag', 'ID added to the selected tag');
     this.translations.set('Deselect all tags', 'Deselect all tags');
     this.translations.set('Sync recent sessions', 'Sync recent sessions');
+    this.translations.set('Server connectivity', 'Server connectivity');
     this.translations.set('Filter by tags', 'Filter by tags');
     this.translations.set('Open Web Console', 'Open Web Console for more actions');
     this.translations.set('API Server is not configured', 'API Server is not configured');
@@ -1437,6 +1446,7 @@ export class I18nService {
     this.translations.set('单击', 'Tap');
     this.translations.set('长按', 'Long Press');
     this.translations.set('滑动', 'Swipe');
+    this.translations.set('左框拖动', 'Left Box Drag');
     this.translations.set('长按拖动', 'Long Press Drag');
     this.translations.set('双指开合', 'Two-finger Pinch');
     this.translations.set('双指平移', 'Two-finger Pan');
@@ -1459,6 +1469,8 @@ export class I18nService {
     this.translations.set('平移', 'Screen Pan');
     this.translations.set('滚动', 'Scroll');
     this.translations.set('框选', 'Marquee Select');
+    this.translations.set('左框', 'Left Box');
+    this.translations.set('右框', 'Right Box');
     this.translations.set('左键拖拽', 'Left Drag');
     this.translations.set('缩放', 'Zoom');
     this.translations.set('鼠标模式提供直接光标控制。移动手指定位光标，轻点单击，长按右键。', 'Mouse mode provides direct pointer control. Move finger to position cursor, tap to click, long press for right click.');
@@ -2426,6 +2438,10 @@ this.translations.set('About', 'About');
     this.translations.set('Continue with', 'Continue with');
     this.translations.set('Core stopped', 'Core stopped');
     this.translations.set('Debug summary copied', 'Debug summary copied');
+    this.translations.set('Debug log exported', 'Debug log exported');
+    this.translations.set('Export cancelled', 'Export cancelled');
+    this.translations.set('Export failed', 'Export failed');
+    this.translations.set('Cannot access file directory', 'Cannot access file directory');
     this.translations.set('Deny LAN Discovery', 'Deny LAN Discovery');
     this.translations.set('Enable Adaptive Bitrate', 'Enable Adaptive Bitrate');
     this.translations.set('Enable Direct IP', 'Enable Direct IP');

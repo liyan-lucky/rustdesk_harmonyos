@@ -22,6 +22,9 @@ export class PreferenceStore {
   private static readonly DEBUG_KEEP_SCREEN_AWAKE_DEFAULT_ON_MIGRATION_KEY: string = 'debug_keep_screen_awake_default_on_20260615';
   private static readonly PEER_CONNECT_MODES_KEY: string = 'peer_connect_modes';
   private static readonly PEER_OS_PASSWORDS_KEY: string = 'peer_os_passwords';
+  private static readonly TOOLBAR_SIDE_KEY: string = 'toolbar_side';
+  private static readonly TOOLBAR_Y_KEY: string = 'toolbar_y';
+  private static readonly CLIPBOARD_POSITIVE_OPTION_MIGRATION_KEY: string = 'clipboard_positive_option_20260822';
 
   private static getStore(): preferences.Preferences | undefined {
     const context = AppContextService.getContext();
@@ -50,6 +53,14 @@ export class PreferenceStore {
 
   public static setSessionOptions(value: string): void {
     PreferenceStore.setString(PreferenceStore.SESSION_OPTIONS_KEY, value);
+  }
+
+  public static isClipboardPositiveOptionMigrated(): boolean {
+    return PreferenceStore.getString(PreferenceStore.CLIPBOARD_POSITIVE_OPTION_MIGRATION_KEY) === 'Y';
+  }
+
+  public static markClipboardPositiveOptionMigrated(): void {
+    PreferenceStore.setString(PreferenceStore.CLIPBOARD_POSITIVE_OPTION_MIGRATION_KEY, 'Y');
   }
 
   public static getRecentSessions(): string | undefined {
@@ -250,6 +261,29 @@ export class PreferenceStore {
       delete map[peerId];
     }
     PreferenceStore.setString(PreferenceStore.PEER_OS_PASSWORDS_KEY, JSON.stringify(map));
+  }
+
+  static getToolbarSide(): string | undefined {
+    return PreferenceStore.getString(PreferenceStore.TOOLBAR_SIDE_KEY);
+  }
+
+  static setToolbarSide(side: string): void {
+    PreferenceStore.setString(PreferenceStore.TOOLBAR_SIDE_KEY, side);
+  }
+
+  static getToolbarY(): number | undefined {
+    const value = PreferenceStore.getString(PreferenceStore.TOOLBAR_Y_KEY);
+    if (value !== undefined) {
+      const parsed = parseInt(value, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return parsed;
+      }
+    }
+    return undefined;
+  }
+
+  static setToolbarY(y: number): void {
+    PreferenceStore.setString(PreferenceStore.TOOLBAR_Y_KEY, String(Math.round(y)));
   }
 
   private static getString(key: string): string | undefined {

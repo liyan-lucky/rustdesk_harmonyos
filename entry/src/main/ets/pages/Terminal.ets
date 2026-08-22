@@ -3,6 +3,7 @@ import { OfficialRustDeskBridge, OfficialSessionEvent } from '../services/Offici
 import { TerminalService, TerminalOutputEvent } from '../services/TerminalService';
 import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
+import inputMethod from '@ohos.inputMethod';
 
 interface TerminalResponsePayload {
   type?: string;
@@ -17,6 +18,9 @@ struct Terminal {
   private officialBridge: OfficialRustDeskBridge = OfficialRustDeskBridge.getInstance();
   private terminalService: TerminalService = TerminalService.getInstance();
   private terminalId: number = -1;
+  private imeController: TextAreaController = new TextAreaController();
+  private imePrevious: string = '\u200B';
+  private imeWakeGeneration: number = 0;
   private sessionEventListener = (event: OfficialSessionEvent): void => {
     this.handleOfficialEvent(event);
   };
@@ -30,6 +34,9 @@ struct Terminal {
   @State outputLines: string[] = [];
   @State sessionStatus: string = '';
   @State keyboardVisible: boolean = false;
+  @State activeKey: string = '';
+  @State imeText: string = '\u200B';
+  @State pendingTerminalInput: string = '';
 
   aboutToAppear() {
     this.outputLines = [this.lt('Waiting for terminal session...')];
@@ -68,6 +75,7 @@ struct Terminal {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
+  @StorageLink('avoidKeyboardHeight') avoidKeyboardHeight: number = 0;
 
   @StorageProp('themeIsDark') themeIsDark: boolean = true;
 
@@ -80,8 +88,11 @@ struct Terminal {
       .width('100%')
       .height('100%')
       .backgroundColor('#000000')
+      .padding({ bottom: this.avoidKeyboardHeight > 0 ? this.avoidKeyboardHeight : 0 })
 
       this.buildHeader()
+
+      this.buildTerminalImeProxy()
 
       Column()
         .width('100%')
@@ -134,7 +145,19 @@ struct Terminal {
             .width('100%')
             .textAlign(TextAlign.Start)
             .copyOption(CopyOptions.LocalDevice)
+            .onClick(() => {
+              this.keyboardVisible = true;
+              this.requestTerminalKeyboard(true);
+            })
         }, (line: string, index: number) => `${index}-${line}`)
+        if (this.pendingTerminalInput.length > 0) {
+          Text(`› ${this.pendingTerminalInput}`)
+            .fontSize(13)
+            .fontColor('#E5E7EB')
+            .fontFamily('monospace')
+            .width('100%')
+            .textAlign(TextAlign.Start)
+        }
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 96, bottom: 12 })
@@ -144,7 +167,8 @@ struct Terminal {
     .scrollBar(BarState.Off)
     .align(Alignment.BottomStart)
     .onClick(() => {
-      this.keyboardVisible = !this.keyboardVisible;
+      this.keyboardVisible = true;
+      this.requestTerminalKeyboard();
     })
   }
 
@@ -152,74 +176,66 @@ struct Terminal {
   private buildCustomKeyboard() {
     if (this.keyboardVisible) {
       Column() {
-        Row({ space: 4 }) {
-          this.buildKey('Esc')
-          this.buildKey('/')
-          this.buildKey('|')
-          this.buildKey('Home')
-          this.buildKey('↑')
-          this.buildKey('End')
-          this.buildKey('PgUp')
+        Scroll() {
+          Row({ space: 6 }) {
+            this.buildKey('Esc', 48)
+            this.buildKey('/', 44)
+            this.buildKey('|', 44)
+            this.buildKey('Home', 58)
+            this.buildKey('↑', 44, 18)
+            this.buildKey('End', 48)
+            this.buildKey('PgUp', 58)
+          }
+          .padding({ left: 8, right: 8, top: 6, bottom: 3 })
         }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
         .width('100%')
-        .padding({ left: 8, right: 8, top: 6, bottom: 3 })
 
-        Row({ space: 4 }) {
-          this.buildKey('Tab')
-          this.buildKey('Ctrl+C')
-          this.buildKey('~')
-          this.buildKey('←')
-          this.buildKey('↓')
-          this.buildKey('→')
-          this.buildKey('PgDn')
+        Scroll() {
+          Row({ space: 6 }) {
+            this.buildKey('Tab', 48)
+            this.buildKey('Ctrl+C', 72, 13)
+            this.buildKey('~', 44)
+            this.buildKey('←', 44, 18)
+            this.buildKey('↓', 44, 18)
+            this.buildKey('→', 44, 18)
+            this.buildKey('PgDn', 58)
+          }
+          .padding({ left: 8, right: 8, top: 3, bottom: 6 })
         }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
         .width('100%')
-        .padding({ left: 8, right: 8, top: 3, bottom: 6 })
 
-        Row({ space: 8 }) {
-          TextInput({ placeholder: this.lt('Input command'), text: this.commandInput })
-            .layoutWeight(1)
-            .height(40)
-            .backgroundColor('#1A1A1A')
-            .fontColor('#FFFFFF')
-            .borderRadius(6)
-            .padding({ left: 12, right: 12 })
-            .onChange((value: string) => {
-              this.commandInput = value;
-            })
-            .onSubmit(() => {
-              this.runCommand(this.commandInput);
-            })
-
-          Button(this.lt('Send'))
-            .height(40)
-            .fontSize(13)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .borderRadius(6)
-            .onClick(() => {
-              this.runCommand(this.commandInput);
-            })
-        }
-        .width('100%')
-        .padding({ left: 8, right: 8, top: 4, bottom: 8 })
       }
       .width('100%')
-      .backgroundColor('#111111')
+      .backgroundColor('#66000000')
       .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
       .padding({ bottom: this.avoidNavigationBarHeight })
     }
   }
 
   @Builder
-  private buildKey(label: string) {
+  private buildKey(label: string, width: number = 52, fontSize: number = 13) {
     Button(label)
-      .layoutWeight(1)
-      .height(36)
-      .fontSize(12)
-      .backgroundColor('#222222')
+      .width(width)
+      .height(40)
+      .padding(0)
+      .fontSize(fontSize)
+      .fontWeight(FontWeight.Medium)
+      .backgroundColor(this.activeKey === label ? '#553B82F6' : '#33232835')
       .fontColor('#FFFFFF')
-      .borderRadius(6)
+      .opacity(0.82)
+      .border({ width: 1, color: this.activeKey === label ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
+      .borderRadius(7)
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.activeKey = label;
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.activeKey = '';
+        }
+      })
       .onClick(() => {
         this.handleSpecialKey(label);
       })
@@ -292,7 +308,7 @@ struct Terminal {
     nextLines.push(`$ ${text}`);
     this.outputLines = nextLines;
     this.commandInput = '';
-    if (this.terminalService.sendInput(this.terminalId, `${text}\n`)) {
+    if (this.terminalService.sendInput(this.terminalId, `${text}\r`)) {
       return;
     }
     this.outputLines = this.outputLines.concat([this.lt('Terminal input send failed')]);
@@ -302,12 +318,116 @@ struct Terminal {
     if (event.terminalId !== this.terminalId) {
       return;
     }
-    const lines = event.data.split(/\r?\n/).filter((line: string) => line.length > 0);
+    const cleanData = this.sanitizeTerminalOutput(event.data);
+    const lines = cleanData.split(/\r?\n/).filter((line: string) => {
+      if (line.length === 0) return false;
+      // Interactive shells redraw the current command after every keystroke
+      // using CR/ANSI cursor controls. It is already rendered by
+      // pendingTerminalInput, so do not append every intermediate prefix.
+      if (this.pendingTerminalInput.length > 0 &&
+          (this.pendingTerminalInput === line || this.pendingTerminalInput.startsWith(line))) {
+        return false;
+      }
+      return true;
+    });
     if (lines.length > 0) {
       const combined = this.outputLines.concat(lines);
       const maxLines = 3000;
       this.outputLines = combined.length > maxLines ? combined.slice(combined.length - maxLines) : combined;
     }
+  }
+
+  @Builder
+  private buildTerminalImeProxy() {
+    TextArea({ text: $$this.imeText, controller: this.imeController })
+      .id('terminal-ime-proxy')
+      .width(2)
+      .height(2)
+      .opacity(0.01)
+      .fontSize(1)
+      .enterKeyType(EnterKeyType.NEW_LINE)
+      .position({ x: 4, y: 4 })
+      .onChange((value: string) => { this.handleTerminalImeChange(value); })
+  }
+
+  private requestTerminalKeyboard(forceRebind: boolean = false): void {
+    const generation = ++this.imeWakeGeneration;
+    try {
+      const focusController = this.getUIContext().getFocusController();
+      // When the user closes the IME manually, the invisible TextInput often
+      // remains focused. requestFocus() alone is then a no-op. Rebind focus
+      // before explicitly asking the input-method controller to show again.
+      if (forceRebind || this.avoidKeyboardHeight <= 0) {
+        focusController.clearFocus();
+      }
+      setTimeout(() => {
+        if (generation !== this.imeWakeGeneration) return;
+        try {
+          focusController.requestFocus('terminal-ime-proxy');
+          setTimeout(() => {
+            if (generation !== this.imeWakeGeneration) return;
+            void inputMethod.getController().showTextInput().catch((error: Object) => {
+              console.warn('show terminal keyboard failed: ' + JSON.stringify(error));
+            });
+          }, 40);
+        } catch (error) {
+          console.warn('request terminal keyboard focus failed: ' + JSON.stringify(error));
+        }
+      }, forceRebind || this.avoidKeyboardHeight <= 0 ? 20 : 0);
+    } catch (error) {
+      console.warn('request terminal keyboard failed: ' + JSON.stringify(error));
+    }
+  }
+
+  private handleTerminalImeChange(value: string): void {
+    if (this.terminalId === -1 || value === this.imePrevious) return;
+    const sentinel = '\u200B';
+    const previous = this.imePrevious.startsWith(sentinel) ? this.imePrevious.slice(1) : this.imePrevious;
+    const current = value.startsWith(sentinel) ? value.slice(1) : value;
+    const submittedByNewLine = current.includes('\n') || current.includes('\r');
+    const visibleCurrent = current.replace(/[\r\n]/g, '');
+    this.pendingTerminalInput = visibleCurrent;
+    let common = 0;
+    const limit = Math.min(previous.length, current.length);
+    while (common < limit && previous[common] === current[common]) common += 1;
+    const removed = previous.length - common;
+    if (removed > 0 && !this.terminalService.sendInput(this.terminalId, '\x7f'.repeat(removed))) {
+      this.outputLines = this.outputLines.concat([this.lt('Terminal input send failed')]);
+    }
+    const inserted = current.slice(common).replace(/[\r\n]/g, '');
+    if (inserted.length > 0 && !this.terminalService.sendInput(this.terminalId, inserted)) {
+      this.outputLines = this.outputLines.concat([this.lt('Terminal input send failed')]);
+    }
+    if (submittedByNewLine) {
+      const sent = this.terminalService.sendInput(this.terminalId, '\r');
+      if (visibleCurrent.length > 0) {
+        this.outputLines = this.outputLines.concat([`$ ${visibleCurrent}`]);
+      }
+      if (!sent) {
+        this.outputLines = this.outputLines.concat([this.lt('Terminal input send failed')]);
+      }
+      this.pendingTerminalInput = '';
+      this.resetTerminalImeProxy();
+      return;
+    }
+    this.imePrevious = value;
+    if (current.length > 64) this.resetTerminalImeProxy();
+  }
+
+  private resetTerminalImeProxy(): void {
+    this.imePrevious = '\u200B';
+    this.imeText = '\u200B';
+    setTimeout(() => {
+      try { this.imeController.caretPosition(1); } catch (_error) {}
+    }, 0);
+  }
+
+  private sanitizeTerminalOutput(data: string): string {
+    return data
+      .replace(/\x1B\][^\x07]*(?:\x07|\x1B\\)/g, '')
+      .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '')
+      .replace(/\x1B[@-_]/g, '')
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001A\u001C-\u001F\u007F]/g, '');
   }
 
   private handleOfficialEvent(event: OfficialSessionEvent): void {
@@ -321,7 +441,7 @@ struct Terminal {
       }
       if (payload.type === 'opened') {
         this.sessionStatus = payload.success === false ? this.lt('Failed to connect') : this.lt('Connected');
-        this.outputLines = this.outputLines.concat([payload.message?.trim() || this.lt('Terminal opened')]);
+        this.outputLines = [payload.message?.trim() || this.lt('Terminal opened')];
         return;
       }
       if (payload.type === 'error') {

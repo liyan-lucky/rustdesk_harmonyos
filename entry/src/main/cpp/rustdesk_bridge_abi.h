@@ -197,6 +197,10 @@ void rustdesk_bridge_main_set_user_default_option(const char * key, const char *
 const char * rustdesk_bridge_main_get_user_default_option(const char * key);
 const char * rustdesk_bridge_main_resolve_avatar_url(const char * avatar);
 const char * rustdesk_bridge_main_get_login_device_info(void);
+// Older/local core archives may not contain this newly added optional API.
+// Keep it weak so one missing optional symbol cannot prevent the whole NAPI
+// module (including account authorization) from loading.
+const char * rustdesk_bridge_main_get_sysinfo(void) __attribute__((weak));
 const char * rustdesk_bridge_main_get_hard_option(const char * key);
 const char * rustdesk_bridge_main_get_buildin_option(const char * key);
 const char * rustdesk_bridge_main_get_common(const char * key);

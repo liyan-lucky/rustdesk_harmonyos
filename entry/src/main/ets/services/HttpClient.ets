@@ -212,6 +212,7 @@ export class HttpClient {
   private baseUrl: string = AppDataService.OFFICIAL_API_SERVER;
   private timeout: number = 30000;
   private personalAddressBookGuid: string = '';
+  private authInvalidatedListener?: (statusCode: number) => void;
 
   private constructor() {
     this.publishNetworkState('idle', '', this.baseUrl);
@@ -236,6 +237,10 @@ export class HttpClient {
     return this.baseUrl;
   }
 
+  setAuthInvalidatedListener(listener: (statusCode: number) => void): void {
+    this.authInvalidatedListener = listener;
+  }
+
   private getAccessToken(): string {
     return NativeRustDeskBridge.getLocalOption('access_token').trim();
   }
@@ -248,6 +253,7 @@ export class HttpClient {
   ): Promise<HttpResult<T>> {
     const httpRequest = http.createHttp();
     const url = `${apiServer ?? this.baseUrl}${path}`;
+    const requestStartedAt = Date.now();
     const logUrl = this.redactUrlForLog(url);
     const accessToken = this.getAccessToken();
     this.publishNetworkState('checking', '', apiServer ?? this.baseUrl);
@@ -282,7 +288,7 @@ export class HttpClient {
       const response = await httpRequest.request(url, options);
       const statusCode = response.responseCode;
       // Any HTTP response proves that the configured API endpoint is reachable.
-      this.publishNetworkState('online', '', apiServer ?? this.baseUrl);
+      this.publishNetworkState('online', '', apiServer ?? this.baseUrl, Date.now() - requestStartedAt);
 
       Logger.debug('HTTP', `Response status: ${statusCode}`);
 
@@ -292,8 +298,11 @@ export class HttpClient {
         return { success: true, data, statusCode };
       }
 
-      if (statusCode === 401 || statusCode === 400) {
+      if (statusCode === 401 || statusCode === 406) {
         Logger.error('HTTP', `Auth failed: ${statusCode}`);
+        if (accessToken.length > 0 && this.authInvalidatedListener) {
+          this.authInvalidatedListener(statusCode);
+        }
         return { success: false, error: '认证失败，请重新登录', statusCode };
       }
 
@@ -310,10 +319,11 @@ export class HttpClient {
     }
   }
 
-  private publishNetworkState(status: ApiNetworkStatus, error: string, server: string): void {
+  private publishNetworkState(status: ApiNetworkStatus, error: string, server: string, latencyMs: number = -1): void {
     AppStorage.setOrCreate<string>('apiNetworkStatus', status);
     AppStorage.setOrCreate<string>('apiNetworkServer', server);
     AppStorage.setOrCreate<string>('apiNetworkError', error);
+    AppStorage.setOrCreate<number>('apiNetworkLatencyMs', latencyMs);
     AppStorage.setOrCreate<number>('apiNetworkUpdatedAt', Date.now());
   }
 
@@ -633,12 +643,32 @@ export class HttpClient {
   async syncDeviceSysinfo(username: string): Promise<HttpResult<string>> {
     const deviceInfo = this.getLoginDeviceInfo();
     const body = new DeviceSysinfoRequest();
+    const rawSysinfo = NativeRustDeskBridge.mainGetSysinfo().trim();
+    try {
+      if (rawSysinfo.length > 0) {
+        const sysinfo = JSON.parse(rawSysinfo) as Record<string, string>;
+        body.cpu = sysinfo['cpu'] ?? '';
+        body.memory = sysinfo['memory'] ?? '';
+        body.hostname = sysinfo['hostname'] ?? '';
+        body.os = sysinfo['os'] ?? body.os;
+        body.username = sysinfo['username'] ?? '';
+      }
+    } catch (error) {
+      Logger.warn('HTTP', `Invalid device sysinfo: ${JSON.stringify(error)}`);
+    }
     body.id = this.getDeviceId();
     body.uuid = this.getDeviceUuid();
-    body.hostname = deviceInfo.name.length > 0 ? deviceInfo.name : body.id;
-    body.os = deviceInfo.os.length > 0 ? deviceInfo.os : 'HarmonyOS';
-    body.username = username;
+    if (body.hostname.length === 0) {
+      body.hostname = deviceInfo.name.length > 0 ? deviceInfo.name : body.id;
+    }
+    if (body.os.length === 0) {
+      body.os = deviceInfo.os.length > 0 ? deviceInfo.os : 'HarmonyOS';
+    }
+    if (body.username.length === 0) {
+      body.username = username;
+    }
     body.version = NativeRustDeskBridge.mainGetVersion().trim();
+    Logger.info('SYNC', `syncDeviceSysinfo: hostname="${body.hostname}", cpu="${body.cpu}", memory="${body.memory}", os="${body.os}"`);
     return this.post<string>('/api/sysinfo', body);
   }
 

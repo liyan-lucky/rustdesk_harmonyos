@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("Status", "Portable", "DevEco")]
+  [ValidateSet("Status", "Portable", "DevEco", "Default", "ImportDevEco")]
   [string]$Mode = "Status",
 
   [string]$TempRoot,
@@ -101,6 +101,16 @@ function Write-HvigorConfig {
   Write-Utf8NoBomFile -Path $hvigorConfigPath -Content ($content + [Environment]::NewLine)
 }
 
+function Write-HvigorConfigDefault {
+  $content = @"
+{
+  "modelVersion": "6.1.1",
+  "dependencies": {}
+}
+"@
+  Write-Utf8NoBomFile -Path $hvigorConfigPath -Content ($content + [Environment]::NewLine)
+}
+
 function Write-BuildProfileSigningPaths {
   param(
     [Parameter(Mandatory = $true)][string]$CertPath,
@@ -109,10 +119,57 @@ function Write-BuildProfileSigningPaths {
   )
 
   $content = (Get-Content -LiteralPath $buildProfilePath -Raw).TrimStart([char]0xFEFF)
+  if (-not [regex]::IsMatch($content, '"signingConfigs"\s*:\s*\[\s*\{')) {
+    throw "Signing configuration is empty in $buildProfilePath. In DevEco Studio, create/apply the 'default' signing configuration first, then rerun this script."
+  }
+  foreach ($requiredKey in @("certpath", "profile", "storeFile", "keyAlias", "keyPassword", "storePassword")) {
+    if (-not [regex]::IsMatch($content, '"' + [regex]::Escape($requiredKey) + '"\s*:')) {
+      throw "Signing configuration key '$requiredKey' is missing in $buildProfilePath. Recreate and apply the DevEco signing configuration first."
+    }
+  }
   $content = Set-JsonStringValue -Content $content -Key "certpath" -Value $CertPath
   $content = Set-JsonStringValue -Content $content -Key "profile" -Value $ProfilePath
   $content = Set-JsonStringValue -Content $content -Key "storeFile" -Value $StoreFilePath
   Write-Utf8NoBomFile -Path $buildProfilePath -Content $content
+}
+
+function Get-CurrentSigningPath {
+  param([Parameter(Mandatory = $true)][string]$Key)
+
+  $content = Get-Content -LiteralPath $buildProfilePath -Raw
+  $match = [regex]::Match($content, '"' + [regex]::Escape($Key) + '"\s*:\s*"([^"]+)"')
+  if (-not $match.Success -or [string]::IsNullOrWhiteSpace($match.Groups[1].Value)) {
+    throw "Signing configuration key '$Key' is missing or empty in $buildProfilePath."
+  }
+  return [System.IO.Path]::GetFullPath($match.Groups[1].Value.Replace('\\', '\'))
+}
+
+function Import-DevEcoSigningMaterial {
+  $sourceCert = Get-CurrentSigningPath -Key "certpath"
+  $sourceProfile = Get-CurrentSigningPath -Key "profile"
+  $sourceStore = Get-CurrentSigningPath -Key "storeFile"
+  foreach ($source in @($sourceCert, $sourceProfile, $sourceStore)) {
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+      throw "DevEco signing file is missing: $source"
+    }
+  }
+
+  $sourceMaterial = Join-Path (Split-Path -Parent $sourceStore) "material"
+  if (-not (Test-Path -LiteralPath $sourceMaterial -PathType Container)) {
+    throw "DevEco encrypted password material directory is missing: $sourceMaterial"
+  }
+
+  New-Item -ItemType Directory -Force -Path $signingRootFull | Out-Null
+  Copy-Item -LiteralPath $sourceCert -Destination (Join-Path $signingRootFull "debug_hos.cer") -Force
+  Copy-Item -LiteralPath $sourceProfile -Destination (Join-Path $signingRootFull "debug_hos.p7b") -Force
+  Copy-Item -LiteralPath $sourceStore -Destination (Join-Path $signingRootFull "debug_hos.p12") -Force
+
+  $targetMaterial = Join-Path $signingRootFull "material"
+  if (Test-Path -LiteralPath $targetMaterial) {
+    Remove-Item -LiteralPath $targetMaterial -Recurse -Force
+  }
+  Copy-Item -LiteralPath $sourceMaterial -Destination $targetMaterial -Recurse -Force
+  Write-Host "Imported current DevEco signing files and encrypted password material."
 }
 
 function Show-Status {
@@ -122,8 +179,8 @@ function Show-Status {
     "projectRoot" = $projectRoot
     "tempRoot" = $tempRootFull
     "signingRoot" = $signingRootFull
-    "hvigor.cacheDir" = ([regex]::Match($hvigorConfig, '"hvigor\.cacheDir"\s*:\s*"([^"]+)"')).Groups[1].Value
-    "ohos.buildDir" = ([regex]::Match($hvigorConfig, '"ohos\.buildDir"\s*:\s*"([^"]+)"')).Groups[1].Value
+    "hvigor.cacheDir" = if (($m = [regex]::Match($hvigorConfig, '"hvigor\.cacheDir"\s*:\s*"([^"]+)"')).Success) { $m.Groups[1].Value } else { "(default)" }
+    "ohos.buildDir" = if (($m = [regex]::Match($hvigorConfig, '"ohos\.buildDir"\s*:\s*"([^"]+)"')).Success) { $m.Groups[1].Value } else { "(default)" }
     "certpath" = ([regex]::Match($buildProfile, '"certpath"\s*:\s*"([^"]+)"')).Groups[1].Value
     "profile" = ([regex]::Match($buildProfile, '"profile"\s*:\s*"([^"]+)"')).Groups[1].Value
     "storeFile" = ([regex]::Match($buildProfile, '"storeFile"\s*:\s*"([^"]+)"')).Groups[1].Value
@@ -134,6 +191,26 @@ function Show-Status {
 }
 
 if ($Mode -eq "Status") {
+  Show-Status
+  exit 0
+}
+
+if ($Mode -eq "Default") {
+  Write-HvigorConfigDefault
+  Write-Host ""
+  Write-Host "Switched to default paths (DevEco Studio mode)." -ForegroundColor Green
+  Show-Status
+  exit 0
+}
+
+if ($Mode -eq "ImportDevEco") {
+  Import-DevEcoSigningMaterial
+  Write-HvigorConfig -CacheDir "../99_Temp/harmonyos_cache" -BuildDir "../99_Temp/harmonyos_build"
+  Write-BuildProfileSigningPaths `
+    -CertPath (Convert-ToRepoRelativeJsonPath "debug_hos.cer") `
+    -ProfilePath (Convert-ToRepoRelativeJsonPath "debug_hos.p7b") `
+    -StoreFilePath (Convert-ToRepoRelativeJsonPath "debug_hos.p12")
+  Write-Host "Imported DevEco signing and switched to portable repo paths."
   Show-Status
   exit 0
 }

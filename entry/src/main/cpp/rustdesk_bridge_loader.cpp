@@ -2339,6 +2339,13 @@ napi_value MainGetLoginDeviceInfo(napi_env env, napi_callback_info info) {
   return MakeString(env, CopyOwnedText(rustdesk_bridge_main_get_login_device_info()));
 }
 
+napi_value MainGetSysinfo(napi_env env, napi_callback_info info) {
+  if (rustdesk_bridge_main_get_sysinfo == nullptr) {
+    return MakeString(env, "{}");
+  }
+  return MakeString(env, CopyOwnedText(rustdesk_bridge_main_get_sysinfo()));
+}
+
 napi_value MainGetHardOption(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value args[1] = {nullptr};
@@ -4347,6 +4354,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"mainGetUserDefaultOption", nullptr, MainGetUserDefaultOption, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainResolveAvatarUrl", nullptr, MainResolveAvatarUrl, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainGetLoginDeviceInfo", nullptr, MainGetLoginDeviceInfo, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"mainGetSysinfo", nullptr, MainGetSysinfo, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainGetHardOption", nullptr, MainGetHardOption, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainGetBuildinOption", nullptr, MainGetBuildinOption, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"mainGetCommon", nullptr, MainGetCommon, nullptr, nullptr, nullptr, napi_default, nullptr},

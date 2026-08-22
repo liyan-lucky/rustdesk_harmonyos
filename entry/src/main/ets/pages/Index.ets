@@ -41,6 +41,9 @@ import { Logger } from '../common/Logger';
 import { AccessibleUser } from '../services/HttpClient';
 import connection from '@ohos.net.connection';
 import { DirectIpProbeService, DirectIpTarget } from '../services/DirectIpProbeService';
+import fileFs from '@ohos.file.fs';
+import environment from '@ohos.file.environment';
+import picker from '@ohos.file.picker';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
 type ConnectPeerTab = 'recent' | 'favorites' | 'discovered' | 'addressBook' | 'account' | 'core';
@@ -166,17 +169,61 @@ struct Index {
     } else if (event.kind === 'session-connected' || event.kind === 'session-closed' || event.kind === 'session-error') {
       this.refreshCurrentSessionChat(true);
     }
+    if (event.kind === 'session-connected') {
+      const pendingPeerId = this.pendingPeerId.trim();
+      if (pendingPeerId.length > 0 && this.isConnecting) {
+        Logger.info('CONN', `bridgeListener session-connected: event-driven navigation peerId=${pendingPeerId}`);
+        this.openRemoteControlForPendingSession(pendingPeerId, this.officialCoreState);
+        return;
+      }
+    }
     if (event.kind === 'session-closed' || event.kind === 'closed') {
       this.resetConnectionUiAfterTerminalEvent();
-    } else if (event.kind === 'session-error' && !this.shouldPromptForPassword(event.detail)) {
-      this.officialCoreState = this.officialBridge.getCoreState();
-      const finalError = this.officialCoreState.lastError || this.officialCoreState.detailMessage || event.detail;
-      this.resetConnectionUiAfterTerminalEvent(finalError);
-      this.refreshCoreDetailInfo();
+    } else if (event.kind === 'session-error') {
+      const pendingPeerId = this.pendingPeerId.trim();
+      Logger.info('CONN', `bridgeListener session-error: detail=${event.detail.substring(0, 200)} pendingPeerId=${pendingPeerId}`);
+      const isPasswordError = this.shouldPromptForPassword(event.detail);
+      if (isPasswordError && pendingPeerId.length > 0) {
+        Logger.info('CONN', `bridgeListener session-error: password error, showing dialog peerId=${pendingPeerId}`);
+        PreferenceStore.setPeerPassword(pendingPeerId, '');
+        this.autoSubmittedSavedPasswordPeerId = '';
+        this.isConnecting = false;
+        this.pendingPassword = '';
+        this.showConnectPasswordDialog(pendingPeerId, false);
+        return;
+      }
+      if (!isPasswordError) {
+        this.officialCoreState = this.officialBridge.getCoreState();
+        const finalError = this.officialCoreState.lastError || this.officialCoreState.detailMessage || event.detail;
+        this.resetConnectionUiAfterTerminalEvent(finalError);
+        this.refreshCoreDetailInfo();
+      }
+    }
+    if (event.kind === 'msgbox') {
+      const pendingPeerId = this.pendingPeerId.trim();
+      const detailLower = event.detail.toLowerCase();
+      if (detailLower.includes('type=re-input-password') && pendingPeerId.length > 0) {
+        Logger.info('CONN', `bridgeListener msgbox re-input-password: showing dialog peerId=${pendingPeerId}`);
+        PreferenceStore.setPeerPassword(pendingPeerId, '');
+        this.autoSubmittedSavedPasswordPeerId = '';
+        this.isConnecting = false;
+        this.pendingPassword = '';
+        this.pendingConnectionInactivePollCount = 0;
+        this.showConnectPasswordDialog(pendingPeerId, false);
+        return;
+      }
+      if (detailLower.includes('type=input-password') && pendingPeerId.length > 0 && !this.showPasswordDialog) {
+        Logger.info('CONN', `bridgeListener msgbox input-password: showing dialog peerId=${pendingPeerId}`);
+        this.isConnecting = false;
+        this.pendingPassword = '';
+        this.pendingConnectionInactivePollCount = 0;
+        this.showConnectPasswordDialog(pendingPeerId, false);
+        return;
+      }
     }
   };
   private onlineStatusListener = (result: OnlineStatusResult): void => {
-    this.appData.updateOnlineStatusFromResult(result.onlines, result.offlines);
+    this.appData.updateServerOnlineStatusFromResult(result.onlines, result.offlines);
     this.recentSessions = this.appData.getRecentSessions();
     this.addressBookVersion++;
     this.peerOnlineVersion++;
@@ -540,6 +587,8 @@ struct Index {
   @StorageLink('apiNetworkStatus') apiNetworkStatus: string = 'idle';
   @StorageLink('apiNetworkServer') apiNetworkServer: string = '';
   @StorageLink('apiNetworkError') apiNetworkError: string = '';
+  @StorageLink('apiNetworkLatencyMs') apiNetworkLatencyMs: number = -1;
+  @StorageLink('apiNetworkUpdatedAt') apiNetworkUpdatedAt: number = 0;
   @StorageLink('addressBookServerTags') addressBookServerTagsJson: string = '[]';
   @StorageLink('addressBookTagColors') addressBookTagColorsJson: string = '{}';
   @State selectedAddressBookTags: string[] = [];
@@ -699,9 +748,7 @@ struct Index {
     this.chatService.removeEventListener(this.chatEventListener);
     this.chatService.addEventListener(this.chatEventListener);
     this.syncDraftServers();
-    if (this.settings.enableDirectIp) {
-      void this.refreshDirectAccessState();
-    }
+    void this.refreshDirectAccessState();
     this.themeMode = ThemeManager.resolveMode(this.settings.theme);
     void WindowChromeService.getInstance().refreshSystemBars();
     this.syncControlledKeepScreenOn();
@@ -757,6 +804,9 @@ struct Index {
     void WindowChromeService.getInstance().refreshSystemBars();
     this.refreshAccountState();
     this.syncControlledKeepScreenOn();
+    this.officialBridge.removeOnlineStatusListener(this.onlineStatusListener);
+    this.officialBridge.addOnlineStatusListener(this.onlineStatusListener);
+    this.startOnlineStatusPoll();
     if (this.accountState.isLoggedIn && this.showAccountDialog) {
       this.showAccountDialog = false;
       this.loginErrorMsg = '';
@@ -1688,24 +1738,40 @@ struct Index {
   private startAccountPageSyncTimer(): void {
     if (this.accountPageSyncTimer !== -1) return;
     this.accountPageSyncTimer = setInterval(() => {
-      if (this.showAccountDialog && !this.accountState.isLoggedIn) {
-        void this.syncLoginProviders(false);
-      } else if (this.currentConnectTab === 'account' && this.accountState.isLoggedIn && !this.accessibleUsersLoading) {
+      if (this.currentConnectTab === 'account' && this.accountState.isLoggedIn && !this.accessibleUsersLoading) {
         void this.refreshAccountUsers(false);
       }
     }, this.ACCOUNT_PAGE_SYNC_INTERVAL);
   }
 
   private async syncRecentSessionsToAddressBook(): Promise<void> {
+    this.refreshAccountState();
     if (!this.accountState.isLoggedIn) {
       return;
     }
-    for (const session of this.recentSessions) {
-      if (!this.isInAddressBook(session.id)) {
-        await this.accountService.addPeerToAddressBook({ id: session.id, alias: session.name, platform: session.platform, tags: [] });
+    const sessions = this.appData.getRecentSessions();
+    for (const session of sessions) {
+      const existing = this.appData.getAddressBookEntry(session.id);
+      if (existing) {
+        await this.accountService.updatePeerInAddressBook({
+          id: session.id,
+          username: session.username,
+          hostname: session.name,
+          platform: session.platform
+        });
+      } else {
+        await this.accountService.addPeerToAddressBook({
+          id: session.id,
+          username: session.username,
+          hostname: session.name,
+          platform: session.platform,
+          tags: []
+        });
       }
     }
-    await this.syncAddressBookFromServer(false);
+    await this.accountService.fetchAddressBook();
+    this.recentSessions = this.appData.getRecentSessions();
+    this.addressBookVersion++;
   }
 
   private async openAddressBookWebConsole(): Promise<void> {
@@ -2901,7 +2967,7 @@ struct Index {
           this.buildSettingsInfoSettingRow(this.lt('Display ID'), this.officialCoreState.displayId.length > 0 ? this.formatId(this.officialCoreState.displayId) : this.lt('Waiting for core init'), 'info_hash.svg')
           this.buildSettingsInfoSettingRow(this.lt('Server'), this.describeEffectiveServer(), 'settings_server.svg', '', true)
           this.buildSettingsInfoSettingRow(this.lt('Fingerprint'), this.officialCoreState.fingerprint.length > 0 ? this.officialCoreState.fingerprint : this.lt('None'), 'settings_shield_check.svg', '', true)
-          this.buildSettingsInfoSettingRow(this.lt('Direct Address'), this.officialCoreState.directAddress.length > 0 ? this.officialCoreState.directAddress : this.lt('None'), 'opt_link.svg', '', true)
+          this.buildSettingsInfoSettingRow(this.lt('Direct Address'), this.directAccessIp.length > 0 ? this.directAccessIp : this.lt('None'), 'opt_link.svg', '', true)
         }
         .width('100%')
       }
@@ -2971,7 +3037,7 @@ struct Index {
     }
     .width('100%')
     .gesture(LongPressGesture().onAction(() => {
-      void this.copyText(this.getDiagnosticsSummary(), this.lt('Debug summary copied'));
+      void this.exportDiagnosticsToFile();
     }))
   }
 
@@ -2993,6 +3059,33 @@ struct Index {
   private getDiagnosticsSummary(): string {
     const appLines = this.getAppDiagnosticsLines().map((item: RuntimeSummaryLine) => `${item.label}: ${item.value}`);
     return ['=== App Diagnostics ===', ...appLines, '=== Core Runtime ===', this.getFullDebugSummary(), Logger.dumpConnectionSummary()].join('\n');
+  }
+
+  private async exportDiagnosticsToFile(): Promise<void> {
+    try {
+      const content = this.getDiagnosticsSummary();
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+      const fileName = `rundesk_debug_${ts}.log`;
+      const documentSaveOptions = new picker.DocumentSaveOptions();
+      documentSaveOptions.newFileNames = [fileName];
+      documentSaveOptions.fileSuffixChoices = ['Log File|log'];
+      const documentPicker = new picker.DocumentViewPicker();
+      const uris = await documentPicker.save(documentSaveOptions);
+      if (!uris || uris.length === 0) {
+        this.setStatusMessageRaw(this.lt('Export cancelled'));
+        return;
+      }
+      const uri = uris[0];
+      const fileId = fileFs.openSync(uri, fileFs.OpenMode.CREATE | fileFs.OpenMode.WRITE_ONLY | fileFs.OpenMode.TRUNC);
+      fileFs.writeSync(fileId.fd, content);
+      fileFs.closeSync(fileId);
+      this.setStatusMessageRaw(`${this.lt('Debug log exported')}: ${uri}`);
+      Logger.info('APP', `Diagnostics exported to ${uri}`);
+    } catch (error) {
+      console.error('exportDiagnosticsToFile failed: ' + JSON.stringify(error));
+      this.setStatusMessageRaw(`${this.lt('Export failed')}: ${String(error)}`);
+    }
   }
 
   private parseRuntimeSummaryLines(): RuntimeSummaryLine[] {
@@ -3563,12 +3656,24 @@ struct Index {
             }, true, '', 'star.svg')
           }
 
-          if (this.accountState.isLoggedIn && !this.isInAddressBook(this.recentMenuSessionId)) {
+          if (!this.isInAddressBook(this.recentMenuSessionId)) {
             this.buildPeerMenuActionRow(this.lt('Add to Address Book'), () => {
               const id = this.recentMenuSessionId;
               const session = this.recentSessions.find((s: RecentSession) => s.id === id);
               this.recentMenuSessionId = '';
               void this.addRecentPeerToAddressBook(id, session);
+            })
+          }
+        }
+
+        if (this.currentConnectTab === 'favorites' || this.currentConnectTab === 'discovered') {
+          if (!this.isInAddressBook(this.recentMenuSessionId)) {
+            this.buildPeerMenuActionRow(this.lt('Add to Address Book'), () => {
+              const id = this.recentMenuSessionId;
+              const session = this.recentSessions.find((s: RecentSession) => s.id === id);
+              const discovered = this.appData.getDiscoveredDevices().find((entry: AddressBookEntry) => entry.id === id);
+              this.recentMenuSessionId = '';
+              void this.addRecentPeerToAddressBook(id, session, discovered);
             })
           }
         }
@@ -4561,6 +4666,12 @@ struct Index {
   }
 
   private pollOnlineStatusOnce(): void {
+    if (this.appData.expireLanPeerStatuses()) {
+      this.recentSessions = this.appData.getRecentSessions();
+      this.addressBookVersion++;
+      this.discoveredVersion++;
+      this.peerOnlineVersion++;
+    }
     const idSet = new Set<string>();
     const sessions = this.appData.getRecentSessions();
     sessions.forEach((s: RecentSession) => idSet.add(s.id));
@@ -4663,7 +4774,12 @@ struct Index {
       const ipv4 = addresses.find((item: connection.NetAddress) => item.family === 1 || item.address.indexOf(':') < 0);
       const ipv6 = addresses.find((item: connection.NetAddress) => item.family === 2 && !item.address.toLowerCase().startsWith('fe80:'));
       const fallback = addresses.find((item: connection.NetAddress) => item.family === 2);
-      this.directAccessIp = ipv4?.address ?? ipv6?.address ?? fallback?.address ?? this.lt('No local IP');
+      const ipv4Addr = ipv4?.address ?? '';
+      const ipv6Addr = ipv6?.address ?? fallback?.address ?? '';
+      const parts: string[] = [];
+      if (ipv4Addr.length > 0) { parts.push(ipv4Addr); }
+      if (ipv6Addr.length > 0) { parts.push(ipv6Addr); }
+      this.directAccessIp = parts.length > 0 ? parts.join(' | ') : this.lt('No local IP');
     } catch (error) {
       hilog.warn(0xA03D00, 'NET', 'refreshDirectAccessState failed: %{public}s', String(error));
       this.directAccessIp = this.lt('No local IP');
@@ -4823,7 +4939,6 @@ struct Index {
     this.pendingConnectionInactivePollCount = 0;
     this.pendingPeerId = '';
     this.pendingTransportTarget = '';
-    this.pendingNavigatePage = '';
     this.pendingPassword = '';
     this.pendingPasswordDialogProactive = false;
     this.autoSubmittedSavedPasswordPeerId = '';
@@ -4875,6 +4990,10 @@ struct Index {
       return;
     }
     try {
+    NativeRustDeskBridge.setLocalOption(
+      'harmony-session-type',
+      this.pendingNavigatePage === 'pages/Terminal' ? 'terminal' : 'default'
+    );
     this.cachedHostname = '';
     const targetId = this.sanitizeConnectionTargetInput(overrideTargetId ?? this.deviceId);
     console.error(`[CONN] handleConnect start targetId=${targetId} override=${overrideTargetId !== undefined} deviceId=${this.deviceId}`);
@@ -4909,7 +5028,9 @@ struct Index {
       coreState.sessionStage === 'connected' ||
       coreState.sessionStage === 'error';
     if (hasExistingRequest) {
+      const savedNavigatePage = this.pendingNavigatePage;
       await this.resetPendingConnectionState(true);
+      this.pendingNavigatePage = savedNavigatePage;
       coreState = await this.officialBridge.refresh(this.settings);
       this.officialCoreState = coreState;
     }
@@ -5277,6 +5398,9 @@ struct Index {
       return;
     }
     const success = await this.accountService.fetchAddressBook();
+    if (success && this.syncRecentSessionsEnabled) {
+      await this.syncRecentSessionsToAddressBook();
+    }
     this.recentSessions = this.appData.getRecentSessions();
     this.addressBookVersion++;
     this.peerOnlineVersion++;
@@ -5354,7 +5478,7 @@ struct Index {
           await this.sleep(260);
         }
         this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(true, this.settings);
-        await this.sleep(180);
+      await this.sleep(180);
         this.officialCoreState = await this.officialBridge.refresh(this.settings);
         this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.appData.getLocalDevice(), this.officialCoreState);
         this.nativeBridgeSummary = NativeRustDeskBridge.getRuntimeLogSummary();
@@ -5626,6 +5750,14 @@ struct Index {
   }
 
   private async loadLoginProviders(): Promise<void> {
+    // A request interrupted by page/app lifecycle must not leave the dialog
+    // permanently displaying "Connecting...".
+    if (this.apiNetworkStatus === 'checking' &&
+      (this.apiNetworkUpdatedAt <= 0 || Date.now() - this.apiNetworkUpdatedAt > 35000)) {
+      AppStorage.setOrCreate<string>('apiNetworkStatus', 'idle');
+      AppStorage.setOrCreate<string>('apiNetworkError', '');
+      AppStorage.setOrCreate<number>('apiNetworkLatencyMs', -1);
+    }
     const cached = this.accountService.getCachedAvailableProviders();
     if (cached !== undefined) {
       this.loginProviders = cached;
@@ -5633,6 +5765,7 @@ struct Index {
     }
     await this.syncLoginProviders(false);
   }
+
 
   private async syncLoginProviders(showFeedback: boolean = true): Promise<void> {
     if (this.loginProvidersLoading) return;
@@ -6089,15 +6222,16 @@ struct Index {
     return this.lt('Idle');
   }
 
-  private async addRecentPeerToAddressBook(peerId: string, session: RecentSession | undefined): Promise<void> {
+  private async addRecentPeerToAddressBook(peerId: string, session: RecentSession | undefined,
+    sourceEntry?: AddressBookEntry): Promise<void> {
     const entry: AddressBookEntry = {
       id: peerId,
-      alias: session ? session.name : '',
+      alias: session ? session.name : (sourceEntry?.alias ?? ''),
       note: '',
       group: '',
-      online: false,
+      online: this.appData.isPeerOnline(peerId),
       favorite: false,
-      platform: session ? session.platform : '',
+      platform: session ? session.platform : (sourceEntry?.platform ?? ''),
       tags: []
     };
     this.appData.addAddressBookEntry(entry);
@@ -6118,7 +6252,11 @@ struct Index {
   }
 
   private describeApiNetworkStatus(): string {
-    if (this.apiNetworkStatus === 'online') return this.lt('Available');
+    if (this.apiNetworkStatus === 'online') {
+      return this.apiNetworkLatencyMs >= 0
+        ? `${this.lt('Available')} · ${this.apiNetworkLatencyMs} ms`
+        : this.lt('Available');
+    }
     if (this.apiNetworkStatus === 'offline') return this.lt('Unreachable');
     if (this.apiNetworkStatus === 'checking') return this.lt('Connecting...');
     return this.lt('Not checked');
@@ -6973,14 +7111,23 @@ struct Index {
         }
         .width('100%')
 
-        this.buildSettingsInfoSettingRow(this.lt('API Server'),
-          this.describeApiNetworkStatus(), 'settings_server.svg', '', true)
-        Text(this.apiNetworkServer)
-          .fontSize(11)
-          .fontColor(this.theme_TEXT_TERTIARY)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
+        Row({ space: 8 }) {
+          Image($rawfile('settings_server.svg'))
+            .width(17)
+            .height(17)
+            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          Text(this.lt('Server connectivity'))
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .layoutWeight(1)
+          Text(this.describeApiNetworkStatus())
+            .fontSize(12)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .maxLines(1)
+        }
+        .width('100%')
+        .height(36)
+        .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
         if (this.apiNetworkStatus === 'offline' && this.apiNetworkError.length > 0) {
           Text(this.apiNetworkError)
             .fontSize(11)
@@ -7039,7 +7186,7 @@ struct Index {
                 .height(18)
                 .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
               TextInput({ placeholder: this.lt('Username'), text: this.loginUsername })
-                .height(44)
+                .height(38)
                 .backgroundColor(this.theme_INPUT_BG)
                 .borderRadius(8)
                 .layoutWeight(1)
@@ -7053,7 +7200,7 @@ struct Index {
                 .height(18)
                 .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
               TextInput({ placeholder: this.lt('Password'), text: this.loginPassword })
-                .height(44)
+                .height(38)
                 .type(InputType.Password)
                 .backgroundColor(this.theme_INPUT_BG)
                 .borderRadius(8)
@@ -7070,15 +7217,27 @@ struct Index {
             }
 
             Row() {
-              PrimaryButton(this.lt('Login'), () => {
-                void this.handlePasswordLoginInDialog();
-              }, this.loginUsername.length === 0 || this.loginPassword.length === 0)
+              Button(this.lt('Login'))
+                .layoutWeight(1)
+                .height(38)
+                .fontSize(ThemeConfig.FONT_SIZE_LG)
+                .fontWeight(FontWeight.Medium)
+                .backgroundColor(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0
+                  ? this.theme_ACCENT : this.theme_INPUT_BG)
+                .fontColor(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0
+                  ? this.theme_ACCENT_TEXT : this.theme_TEXT_TERTIARY)
+                .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+                .enabled(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0)
+                .onClick(() => {
+                  void this.handlePasswordLoginInDialog();
+                })
             }
             .width('100%')
 
-            if (this.loginProvidersLoading) {
+            if (this.loginProvidersLoading && this.loginProviders.length === 0) {
               LoadingProgress().width(20).height(20).color(this.theme_ACCENT)
-            } else if (this.loginProviders.length > 0) {
+            }
+            if (this.loginProviders.length > 0) {
               Text(this.lt('or'))
                 .fontSize(14)
                 .fontColor(this.theme_TEXT_TERTIARY)
@@ -8003,6 +8162,9 @@ struct Index {
     const platform = parsedPlatform.length > 0 ? parsedPlatform : 'RustDesk';
     this.appData.addRecentSession(this.appData.createRecentSession(normalizedPeerId, platform, true, hostname, parsedUsername));
     this.recentSessions = this.appData.getRecentSessions();
+    if (this.syncRecentSessionsEnabled) {
+      void this.syncRecentSessionsToAddressBook();
+    }
     this.selectLatestChatPeer(normalizedPeerId);
     this.hasHadSession = true;
     this.pendingConnectionMonitorId += 1;
@@ -8028,12 +8190,19 @@ struct Index {
       return;
     }
     const monitorId = ++this.pendingConnectionMonitorId;
-    for (let i = 0; i < 180; i += 1) {
-      await this.sleep(1000);
+    const initialState = await this.officialBridge.refresh(this.settings);
+    this.officialCoreState = initialState;
+    for (let i = 0; i < 600; i += 1) {
+      await this.sleep(300);
       if (monitorId !== this.pendingConnectionMonitorId || this.pendingPeerId.trim() !== peerId) {
         return;
       }
-      const state = await this.officialBridge.refresh(this.settings);
+      let state: OfficialCoreState;
+      if (i % 10 === 0) {
+        state = await this.officialBridge.refresh(this.settings);
+      } else {
+        state = this.officialBridge.getCoreState();
+      }
       this.officialCoreState = state;
       if (state.detailMessage.includes('hostname=')) {
         this.parseHostnameFromDetail(state.detailMessage);
@@ -8048,8 +8217,13 @@ struct Index {
         const errMsg = state.lastError || state.detailMessage;
         Logger.error('CONN', `monitor detected error at poll ${i}: ${errMsg.substring(0, 200)}`);
         if (this.shouldPromptForPassword(errMsg)) {
+          Logger.info('CONN', `monitor: password error at poll ${i}, showing dialog peerId=${peerId}`);
+          PreferenceStore.setPeerPassword(peerId, '');
+          this.autoSubmittedSavedPasswordPeerId = '';
+          this.isConnecting = false;
           this.pendingConnectionInactivePollCount = 0;
-          continue;
+          this.showConnectPasswordDialog(peerId, false);
+          return;
         }
         this.pendingConnectionInactivePollCount += 1;
         if (this.pendingConnectionInactivePollCount < 3) {

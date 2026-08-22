@@ -38,12 +38,17 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
-if not defined DEVECO_SDK_HOME if exist "C:\Program Files\Huawei\DevEco Studio\sdk\default" set "DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk\default"
+if defined DEVECO_SDK_HOME if not exist "%DEVECO_SDK_HOME%" set "DEVECO_SDK_HOME="
+if not defined DEVECO_SDK_HOME if exist "C:\Program Files\Huawei\DevEco Studio\sdk" set "DEVECO_SDK_HOME=C:\Program Files\Huawei\DevEco Studio\sdk"
 if not defined JAVA_HOME if exist "C:\Program Files\Huawei\DevEco Studio\jbr\bin\java.exe" set "JAVA_HOME=C:\Program Files\Huawei\DevEco Studio\jbr"
 if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
 
-call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1"
-if errorlevel 1 exit /b 1
+if not defined RUSTDESK_HARMONY_USE_LOCAL_CORE (
+  call powershell -NoProfile -ExecutionPolicy Bypass -File "%PROJECT_ROOT%\scripts\fetch_native_core.ps1"
+  if errorlevel 1 exit /b 1
+) else (
+  echo Using locally built native core; remote core refresh skipped.
+)
 
 if defined ABI_FILTER (
   echo Incremental HAP build for %PROJECT_ROOT% ^(ABI: %ABI_FILTER%^)
@@ -58,6 +63,8 @@ if not defined RUSTDESK_HARMONY_DISABLE_STAGE (
   set "BUILD_PROJECT_ROOT=%STAGE_ROOT%"
 )
 
+set "VERSION_BUMP=%~2"
+if defined VERSION_BUMP if not "%VERSION_BUMP%"=="" set "RUSTDESK_HARMONY_VERSION_BUMP=%VERSION_BUMP%"
 if not defined RUSTDESK_HARMONY_VERSION_BUMP set "RUSTDESK_HARMONY_VERSION_BUMP=incremental"
 set "OUTPUT_DIR=%RUSTDESK_HARMONY_TEMP_ROOT%\harmonyos_build\%PROJECT_NAME%\entry\build\default\outputs\default"
 

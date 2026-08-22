@@ -12,9 +12,9 @@ import { MOUSE_MASK } from '../services/InputService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
 import { PreferenceStore } from '../services/PreferenceStore';
 import { TouchInteractionManager, TouchInteractionState, TouchInteractionContext, MarqueeRect } from '../common/TouchInteractionManager';
-import { TouchAction, TouchSettings, DEFAULT_TOUCH_SETTINGS, TOUCH_ACTION_LABELS, TAP_ACTIONS, LONG_PRESS_ACTIONS, SWIPE_ACTIONS, SHORT_PRESS_DRAG_ACTIONS, LONG_PRESS_DRAG_ACTIONS, TWO_FINGER_PINCH_ACTIONS, TWO_FINGER_PAN_ACTIONS } from '../common/TouchActionConfig';
+import { TouchAction, TouchSettings, DEFAULT_TOUCH_SETTINGS, TOUCH_ACTION_LABELS, TAP_ACTIONS, QUICK_DRAG_ACTIONS, LONG_PRESS_ACTIONS, SWIPE_ACTIONS, SHORT_PRESS_DRAG_ACTIONS, LONG_PRESS_DRAG_ACTIONS, TWO_FINGER_PINCH_ACTIONS, TWO_FINGER_PAN_ACTIONS } from '../common/TouchActionConfig';
 import { WindowChromeService } from '../services/WindowChromeService';
-import { ClipboardService } from '../services/ClipboardService';
+import { ClipboardService, ClipboardEvent } from '../services/ClipboardService';
 import { AudioService } from '../services/AudioService';
 import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../services/ChatService';
 import { FrameService, frameService } from '../services/FrameService';
@@ -130,6 +130,7 @@ struct RemoteControl {
   private lastVideoRefreshRequestAt: number = 0;
   private sessionBecameActive: boolean = false;
   private sessionBecameActiveAt: number = 0;
+  private clipboardOptionSyncedForConnection: boolean = false;
   private sessionCloseRequestedLocally: boolean = false;
   private sessionExitScheduled: boolean = false;
   private pointerActive: boolean = false;
@@ -166,7 +167,7 @@ struct RemoteControl {
   private readonly AXIS_SCROLL_THRESHOLD: number = 1.0;
   private readonly SCROLL_THRESHOLD: number = 10;
   private readonly TWO_FINGER_SCROLL_THRESHOLD: number = 100;
-  private readonly TOUCH_SCROLL_THRESHOLD: number = 100;
+  private readonly TOUCH_SCROLL_THRESHOLD: number = 32;
   private touchInteractionManager: TouchInteractionManager | null = null;
   @State showMarquee: boolean = false;
   @State marqueeRect: MarqueeRect = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -185,6 +186,9 @@ struct RemoteControl {
     }
     if (this.shouldIgnoreBridgeEvent(event.kind)) {
       return;
+    }
+    if (event.kind !== 'video-frame') {
+      console.info(`[RC-Event] kind=${event.kind} detailLen=${event.detail.length}`);
     }
     this.captureBridgeEvent(event);
     if (event.kind === 'msgbox') {
@@ -214,11 +218,26 @@ struct RemoteControl {
     } else if (event.kind === 'privacy-mode-state') {
       this.privacyMode = event.detail.includes('on=true');
     }
+    // Diagnostic events such as `clipboard-decode-diag` contain metadata, not
+    // clipboard text. Only the two payload event types may reach pasteboard.
+    if (!this.disableClipboard && event.detail.length > 0 &&
+        (event.kind === 'clipboard' || event.kind === 'clipboard-incoming')) {
+      const clipText = this.extractClipboardText(event.detail);
+      if (clipText.length > 0) {
+        console.info(`[RemoteControl] remote clipboard incoming: kind=${event.kind} len=${clipText.length}`);
+        void ClipboardService.getInstance().setClipboardContent(clipText).then((written: boolean) => {
+          console.info(`[RemoteControl] remote clipboard write result=${written} len=${clipText.length}`);
+        }).catch((error: Object) => {
+          console.error(`[RemoteControl] remote clipboard write rejected=${JSON.stringify(error)}`);
+        });
+      }
+    }
     if (event.kind !== 'video-frame') {
       this.applyBridgeState(this.officialBridge.getCoreState());
     }
     if (event.kind === 'session-connected') {
       this.maybeRequestVideoRefresh(true);
+      this.syncClipboardOptionToSession();
     } else if ((event.kind === 'switch-display' || event.kind === 'current-display') &&
       !this.hasReceivedFrame) {
       this.maybeRequestVideoRefresh(true);
@@ -246,6 +265,15 @@ struct RemoteControl {
       this.scheduleChatPanelScroll(50);
     }
   };
+  private clipboardSyncListener = (event: ClipboardEvent): void => {
+    if (this.disableClipboard || event.type !== 'sync_required') {
+      return;
+    }
+    if (event.content && event.content.trim().length > 0) {
+      console.info(`[RemoteControl] local clipboard sync_required: ${event.content.length} chars`);
+      NativeRustDeskBridge.sendClipboardData(event.content, Date.now());
+    }
+  };
 
   @State deviceId: string = '';
   @State deviceName: string = '';
@@ -262,8 +290,8 @@ struct RemoteControl {
   private toolbarTouchStartX: number = 0;
   private toolbarTouchStartY: number = 0;
   @State @Watch('onShowKeyboardChange') showKeyboard: boolean = false;
-  @State imeProxyText: string = ' ';
-  private imeProxyPrev: string = ' ';
+  @State imeProxyText: string = '\u200B';
+  private imeProxyPrev: string = '\u200B';
   private imeProxyController: TextInputController = new TextInputController();
   @State imeProxyFocused: boolean = false;
   private imeProxyDismissRequested: boolean = false;
@@ -421,7 +449,17 @@ struct RemoteControl {
     this.showRemoteCursor = this.resolveToggleOption('show-remote-cursor');
     this.showQualityMonitor = this.resolveToggleOption('show-quality-monitor');
     this.muteAudio = this.resolveToggleOption('disable-audio');
-    this.disableClipboard = this.resolveToggleOption('disable-clipboard');
+    // Older builds exposed this persisted value through a negatively-worded
+    // menu and could leave it enabled accidentally.  The current menu is
+    // positive ("Allow Clipboard Sync"), so migrate existing installs once
+    // to the official/default enabled clipboard behaviour.
+    if (!PreferenceStore.isClipboardPositiveOptionMigrated()) {
+      NativeRustDeskBridge.setLocalOption('disable-clipboard', 'N');
+      PreferenceStore.markClipboardPositiveOptionMigrated();
+      this.disableClipboard = false;
+    } else {
+      this.disableClipboard = this.resolveToggleOption('disable-clipboard');
+    }
     this.lockAfterSession = this.resolveToggleOption('lock-after-session-end');
     this.reverseScroll = this.resolveToggleOption('reverse-scroll');
     this.swapMouseButtons = this.resolveToggleOption('swap-left-right-mouse');
@@ -462,13 +500,10 @@ struct RemoteControl {
         this.remoteCursorScale = parsed;
       }
     }
-    const toolbarSideValue = NativeRustDeskBridge.getLocalOption('toolbar-side');
-    const toolbarYValue = NativeRustDeskBridge.getLocalOption('toolbar-y');
-    if (toolbarYValue) {
-      const parsed = parseInt(toolbarYValue, 10);
-      if (!isNaN(parsed) && parsed >= 0) {
-        this.toolbarY = parsed;
-      }
+    const toolbarSideValue = PreferenceStore.getToolbarSide();
+    const toolbarYValue = PreferenceStore.getToolbarY();
+    if (toolbarYValue !== undefined) {
+      this.toolbarY = toolbarYValue;
     }
     if (toolbarSideValue === 'right') {
       this.toolbarSide = 'right';
@@ -537,11 +572,12 @@ struct RemoteControl {
 
   private loadTouchSettings(): TouchSettings {
     const s: TouchSettings = {
-      tap: { duration: this.resolveNumberOption('touch-tap-ms', 300, 50, 1000), action: this.resolveTouchAction('touch-tap-action', TouchAction.LEFT_CLICK), speed: 1 },
-      longPress: { duration: this.resolveNumberOption('touch-long-press-ms', 500, 200, 2000), action: this.resolveTouchAction('touch-long-press-action', TouchAction.RIGHT_CLICK), speed: 1 },
-      swipe: { duration: this.resolveNumberOption('touch-swipe-ms', 300, 100, 2000), action: this.resolveTouchAction('touch-swipe-action', TouchAction.SCREEN_PAN), speed: this.resolveNumberOption('touch-swipe-speed', 5, 1, 20) },
+      tap: { duration: this.resolveNumberOption('touch-tap-ms', 200, 50, 1000), action: this.resolveTouchAction('touch-tap-action', TouchAction.LEFT_CLICK), speed: 1 },
+      quickDrag: { duration: this.resolveNumberOption('touch-quick-drag-ms', 600, 50, 1000), action: this.resolveTouchAction('touch-quick-drag-action', TouchAction.LEFT_MARQUEE_SELECT), speed: 1 },
+      longPress: { duration: this.resolveNumberOption('touch-long-press-ms', 800, 200, 2000), action: this.resolveTouchAction('touch-long-press-action', TouchAction.RIGHT_CLICK), speed: 1 },
+      swipe: { duration: this.resolveNumberOption('touch-swipe-ms', 200, 100, 2000), action: this.resolveTouchAction('touch-swipe-action', TouchAction.SCREEN_PAN), speed: this.resolveNumberOption('touch-swipe-speed', 5, 1, 20) },
       shortPressDrag: { duration: this.resolveNumberOption('touch-short-press-drag-ms', 400, 100, 2000), action: this.resolveTouchAction('touch-short-press-drag-action', TouchAction.SCREEN_SCROLL), speed: this.resolveNumberOption('touch-short-press-drag-speed', 5, 1, 20) },
-      longPressDrag: { duration: this.resolveNumberOption('touch-long-press-drag-ms', 600, 200, 2000), action: this.resolveTouchAction('touch-long-press-drag-action', TouchAction.MARQUEE_SELECT), speed: this.resolveNumberOption('touch-long-press-drag-speed', 5, 1, 20) },
+      longPressDrag: { duration: this.resolveNumberOption('touch-long-press-drag-ms', 800, 200, 2000), action: this.resolveTouchAction('touch-long-press-drag-action', TouchAction.MARQUEE_SELECT), speed: this.resolveNumberOption('touch-long-press-drag-speed', 5, 1, 20) },
       twoFingerPinch: { duration: this.resolveNumberOption('touch-two-finger-pinch-ms', 100, 0, 1000), action: this.resolveTouchAction('touch-two-finger-pinch-action', TouchAction.ZOOM), speed: 1 },
       twoFingerPan: { duration: this.resolveNumberOption('touch-two-finger-pan-ms', 400, 200, 2000), action: this.resolveTouchAction('touch-two-finger-pan-action', TouchAction.SCREEN_PAN), speed: 1 },
     };
@@ -551,6 +587,8 @@ struct RemoteControl {
   private saveTouchSettings(): void {
     NativeRustDeskBridge.setLocalOption('touch-tap-ms', String(this.touchSettings.tap.duration));
     NativeRustDeskBridge.setLocalOption('touch-tap-action', this.touchSettings.tap.action);
+    NativeRustDeskBridge.setLocalOption('touch-quick-drag-ms', String(this.touchSettings.quickDrag.duration));
+    NativeRustDeskBridge.setLocalOption('touch-quick-drag-action', this.touchSettings.quickDrag.action);
     NativeRustDeskBridge.setLocalOption('touch-long-press-ms', String(this.touchSettings.longPress.duration));
     NativeRustDeskBridge.setLocalOption('touch-long-press-action', this.touchSettings.longPress.action);
     NativeRustDeskBridge.setLocalOption('touch-swipe-ms', String(this.touchSettings.swipe.duration));
@@ -686,6 +724,7 @@ struct RemoteControl {
     this.originalLandscapeMode = this.isLandscapeMode;
     this.sessionBecameActive = false;
     this.sessionBecameActiveAt = 0;
+    this.clipboardOptionSyncedForConnection = false;
     this.sessionCloseRequestedLocally = false;
     this.sessionExitScheduled = false;
     this.isRetryingConnection = false;
@@ -698,7 +737,7 @@ struct RemoteControl {
     this.lastSilentSessionWarningAt = 0;
     this.frameVersion = 0;
     this.hasReceivedFrame = false;
-    this.imeProxyText = ' ';
+    this.imeProxyText = '\u200B';
     this.frameWidth = 0;
     this.frameHeight = 0;
     this.remoteDisplayWidth = 0;
@@ -744,6 +783,11 @@ struct RemoteControl {
     this.chatService.addEventListener(this.chatListener);
     this.officialBridge.resetCloseRequestedFlag();
     void this.syncBridgeState();
+    // The connection is commonly established on Index before navigation, so
+    // RemoteControl may never observe the original session-connected event.
+    // Apply the desired state explicitly; unlike toggleOption this is safe to
+    // repeat when session-connected is observed later.
+    this.syncClipboardOptionToSession();
     this.startBridgeRefresh();
     this.startFrameRefresh();
     WindowChromeService.getInstance().enterImmersiveMode();
@@ -753,6 +797,7 @@ struct RemoteControl {
     this.initAudioPlayback();
     this.startAudioFrameRefresh();
     if (!this.disableClipboard) {
+      ClipboardService.getInstance().addEventListener(this.clipboardSyncListener);
       void ClipboardService.getInstance().startMonitoring();
     }
   }
@@ -1067,6 +1112,7 @@ struct RemoteControl {
         .onClick(() => {
           this.showDisplayMenu = false;
           this.displayMenuPopupId = '';
+          this.showToolbar = false;
         })
       }
 
@@ -1084,7 +1130,7 @@ struct RemoteControl {
                 this.buildTouchPopup();
               }
               .width('100%')
-              .margin({ bottom: 100 + (6 - this.touchPopupRow) * 36 })
+              .margin({ bottom: 100 + (7 - this.touchPopupRow) * 36 })
               .zIndex(120)
               .onClick(() => {});
             }
@@ -1100,6 +1146,7 @@ struct RemoteControl {
             this.touchPopupId = '';
           } else {
             this.showMouseModeMenu = false;
+            this.showToolbar = false;
           }
         })
       }
@@ -1118,6 +1165,7 @@ struct RemoteControl {
         .zIndex(110)
         .onClick(() => {
           this.showChatModeMenu = false;
+          this.showToolbar = false;
         })
       }
 
@@ -1135,6 +1183,7 @@ struct RemoteControl {
         .zIndex(110)
         .onClick(() => {
           this.showMoreMenu = false;
+          this.showToolbar = false;
         })
       }
 
@@ -1227,6 +1276,7 @@ struct RemoteControl {
             this.preKeyboardPanOffsetY = this.panOffsetY; this.showKeyboard = true; this.openSystemKeyboardFromCustomPanel();
           }
           this.showDisplayMenu = false; this.showMouseModeMenu = false;
+          this.showChatModeMenu = false; this.showMoreMenu = false; this.showToolbar = false;
         }, this.showKeyboard);
         this.buildToolBtnStroke($rawfile('actions.svg'), () => { this.showMouseModeMenu = !this.showMouseModeMenu; this.showDisplayMenu = false; }, this.showMouseModeMenu);
         this.buildToolBtnSvg($rawfile('chat.svg'), () => { this.showChatModeMenu = !this.showChatModeMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showChatPanel || this.showChatModeMenu);
@@ -1310,14 +1360,14 @@ struct RemoteControl {
     this.toolbarSide = isRight ? 'right' : 'left';
     if (isRight) {
       this.toolbarX = Math.max(8, this.previewWidth - 68);
-      NativeRustDeskBridge.setLocalOption('toolbar-side', 'right');
+      PreferenceStore.setToolbarSide('right');
     } else {
       this.toolbarX = 8;
-      NativeRustDeskBridge.setLocalOption('toolbar-side', 'left');
+      PreferenceStore.setToolbarSide('left');
     }
     const clampedY = Math.max(0, Math.min(this.previewHeight - 60, this.toolbarY < 0 ? this.previewHeight - 70 : this.toolbarY));
     this.toolbarY = clampedY;
-    NativeRustDeskBridge.setLocalOption('toolbar-y', String(Math.round(clampedY)));
+    PreferenceStore.setToolbarY(clampedY);
   }
 
   @Builder
@@ -1353,6 +1403,7 @@ struct RemoteControl {
         this.showMouseModeMenu = false;
         this.showChatModeMenu = false;
         this.showMoreMenu = false;
+        this.showToolbar = false;
       }, this.showKeyboard);
 
       this.buildToolBtnStroke($rawfile('actions.svg'), () => {
@@ -1724,8 +1775,8 @@ struct RemoteControl {
         this.imeProxyFocused = true;
         this.remoteInputActive = true;
         if (this.imeProxyText.length === 0) {
-          this.imeProxyText = ' ';
-          this.imeProxyPrev = ' ';
+          this.imeProxyText = '\u200B';
+          this.imeProxyPrev = '\u200B';
         }
       })
       .onBlur(() => {
@@ -2187,7 +2238,7 @@ struct RemoteControl {
           }
           CheckboxOptionItem({ label: this.lt('Show Quality Monitor'), icon: 'opt_activity.svg', checked: this.showQualityMonitor, onToggle: () => { this.showQualityMonitor = !this.showQualityMonitor; this.setConnectionInfoVisible(this.showQualityMonitor); this.applyToggleOption('show-quality-monitor', this.showQualityMonitor); } })
           CheckboxOptionItem({ label: this.lt('Mute'), icon: 'opt_mute.svg', checked: this.muteAudio, onToggle: () => { this.muteAudio = !this.muteAudio; this.applyToggleOption('disable-audio', this.muteAudio); } })
-          CheckboxOptionItem({ label: this.lt('Disable Clipboard'), icon: 'menu_clipboard.svg', checked: this.disableClipboard, onToggle: () => { this.toggleClipboardSync(); } })
+          CheckboxOptionItem({ label: this.lt('Allow Clipboard Sync'), icon: 'menu_clipboard.svg', checked: !this.disableClipboard, onToggle: () => { this.toggleClipboardSync(); } })
           CheckboxOptionItem({ label: this.lt('Lock After Session End'), icon: 'menu_lock.svg', checked: this.lockAfterSession, onToggle: () => { this.lockAfterSession = !this.lockAfterSession; this.applyToggleOption('lock-after-session-end', this.lockAfterSession); } })
           CheckboxOptionItem({ label: this.lt('Reverse Scroll'), icon: 'settings_udp.svg', checked: this.reverseScroll, onToggle: () => { this.reverseScroll = !this.reverseScroll; this.applyToggleOption('reverse-scroll', this.reverseScroll); } })
           CheckboxOptionItem({ label: this.lt('Swap Mouse Buttons'), icon: 'menu_switch.svg', checked: this.swapMouseButtons, onToggle: () => { this.swapMouseButtons = !this.swapMouseButtons; this.applyToggleOption('swap-left-right-mouse', this.swapMouseButtons); } })
@@ -2241,7 +2292,7 @@ struct RemoteControl {
       }
       .width('100%').height(44)
       .padding({ left: 12, right: 12 })
-      .onClick(() => { this.mouseControlMode = 0; NativeRustDeskBridge.setLocalOption('mouse-control-mode', '0'); })
+      .onClick(() => { this.mouseControlMode = 0; NativeRustDeskBridge.setLocalOption('mouse-control-mode', '0'); this.showMouseModeMenu = false; this.showToolbar = false; })
 
       Row({ space: 10 }) {
         Image($rawfile('opt_mouse.svg'))
@@ -2570,12 +2621,13 @@ struct RemoteControl {
         .width('100%')
         .padding({ left: 12, right: 12, top: 4, bottom: 4 });
       TouchGestureRow({ label: this.lt('Tap'), durationText: `${this.touchSettings.tap.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.tap.action), onTimeClick: () => { this.touchPopupRow = 0; this.touchPopupDurVal = this.touchSettings.tap.duration; this.touchPopupId = this.touchPopupId === 'tap:slider' ? '' : 'tap:slider'; }, onActionClick: () => { this.touchPopupRow = 0; this.touchPopupId = this.touchPopupId === 'tap:action' ? '' : 'tap:action'; } })
-      TouchGestureRow({ label: this.lt('Long Press'), durationText: `${this.touchSettings.longPress.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.longPress.action), onTimeClick: () => { this.touchPopupRow = 1; this.touchPopupDurVal = this.touchSettings.longPress.duration; this.touchPopupId = this.touchPopupId === 'long-press:slider' ? '' : 'long-press:slider'; }, onActionClick: () => { this.touchPopupRow = 1; this.touchPopupId = this.touchPopupId === 'long-press:action' ? '' : 'long-press:action'; } })
-      TouchGestureRow({ label: this.lt('Swipe'), durationText: `${this.touchSettings.swipe.duration}ms ${this.touchSettings.swipe.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.swipe.action), onTimeClick: () => { this.touchPopupRow = 2; this.touchPopupDurVal = this.touchSettings.swipe.duration; this.touchPopupSpdVal = this.touchSettings.swipe.speed; this.touchPopupId = this.touchPopupId === 'swipe:slider' ? '' : 'swipe:slider'; }, onActionClick: () => { this.touchPopupRow = 2; this.touchPopupId = this.touchPopupId === 'swipe:action' ? '' : 'swipe:action'; } })
-      TouchGestureRow({ label: this.lt('Short Press Drag'), durationText: `${this.touchSettings.shortPressDrag.duration}ms ${this.touchSettings.shortPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.shortPressDrag.action), onTimeClick: () => { this.touchPopupRow = 3; this.touchPopupDurVal = this.touchSettings.shortPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.shortPressDrag.speed; this.touchPopupId = this.touchPopupId === 'short-press-drag:slider' ? '' : 'short-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 3; this.touchPopupId = this.touchPopupId === 'short-press-drag:action' ? '' : 'short-press-drag:action'; } })
-      TouchGestureRow({ label: this.lt('Long Press Drag'), durationText: `${this.touchSettings.longPressDrag.duration}ms ${this.touchSettings.longPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.longPressDrag.action), onTimeClick: () => { this.touchPopupRow = 4; this.touchPopupDurVal = this.touchSettings.longPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.longPressDrag.speed; this.touchPopupId = this.touchPopupId === 'long-press-drag:slider' ? '' : 'long-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 4; this.touchPopupId = this.touchPopupId === 'long-press-drag:action' ? '' : 'long-press-drag:action'; } })
-      TouchGestureRow({ label: this.lt('Two-finger Pinch'), durationText: `${this.touchSettings.twoFingerPinch.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPinch.action), onTimeClick: () => { this.touchPopupRow = 5; this.touchPopupDurVal = this.touchSettings.twoFingerPinch.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:slider' ? '' : 'two-finger-pinch:slider'; }, onActionClick: () => { this.touchPopupRow = 5; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:action' ? '' : 'two-finger-pinch:action'; } })
-      TouchGestureRow({ label: this.lt('Two-finger Pan'), durationText: `${this.touchSettings.twoFingerPan.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPan.action), onTimeClick: () => { this.touchPopupRow = 6; this.touchPopupDurVal = this.touchSettings.twoFingerPan.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pan:slider' ? '' : 'two-finger-pan:slider'; }, onActionClick: () => { this.touchPopupRow = 6; this.touchPopupId = this.touchPopupId === 'two-finger-pan:action' ? '' : 'two-finger-pan:action'; } })
+      TouchGestureRow({ label: this.lt('Left Box Drag'), durationText: `${this.touchSettings.quickDrag.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.quickDrag.action), onTimeClick: () => { this.touchPopupRow = 1; this.touchPopupDurVal = this.touchSettings.quickDrag.duration; this.touchPopupId = this.touchPopupId === 'quick-drag:slider' ? '' : 'quick-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 1; this.touchPopupId = this.touchPopupId === 'quick-drag:action' ? '' : 'quick-drag:action'; } })
+      TouchGestureRow({ label: this.lt('Long Press'), durationText: `${this.touchSettings.longPress.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.longPress.action), onTimeClick: () => { this.touchPopupRow = 2; this.touchPopupDurVal = this.touchSettings.longPress.duration; this.touchPopupId = this.touchPopupId === 'long-press:slider' ? '' : 'long-press:slider'; }, onActionClick: () => { this.touchPopupRow = 2; this.touchPopupId = this.touchPopupId === 'long-press:action' ? '' : 'long-press:action'; } })
+      TouchGestureRow({ label: this.lt('Swipe'), durationText: `${this.touchSettings.swipe.duration}ms ${this.touchSettings.swipe.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.swipe.action), onTimeClick: () => { this.touchPopupRow = 3; this.touchPopupDurVal = this.touchSettings.swipe.duration; this.touchPopupSpdVal = this.touchSettings.swipe.speed; this.touchPopupId = this.touchPopupId === 'swipe:slider' ? '' : 'swipe:slider'; }, onActionClick: () => { this.touchPopupRow = 3; this.touchPopupId = this.touchPopupId === 'swipe:action' ? '' : 'swipe:action'; } })
+      TouchGestureRow({ label: this.lt('Short Press Drag'), durationText: `${this.touchSettings.shortPressDrag.duration}ms ${this.touchSettings.shortPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.shortPressDrag.action), onTimeClick: () => { this.touchPopupRow = 4; this.touchPopupDurVal = this.touchSettings.shortPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.shortPressDrag.speed; this.touchPopupId = this.touchPopupId === 'short-press-drag:slider' ? '' : 'short-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 4; this.touchPopupId = this.touchPopupId === 'short-press-drag:action' ? '' : 'short-press-drag:action'; } })
+      TouchGestureRow({ label: this.lt('Long Press Drag'), durationText: `${this.touchSettings.longPressDrag.duration}ms ${this.touchSettings.longPressDrag.speed}x`, actionText: this.getTouchActionLabel(this.touchSettings.longPressDrag.action), onTimeClick: () => { this.touchPopupRow = 5; this.touchPopupDurVal = this.touchSettings.longPressDrag.duration; this.touchPopupSpdVal = this.touchSettings.longPressDrag.speed; this.touchPopupId = this.touchPopupId === 'long-press-drag:slider' ? '' : 'long-press-drag:slider'; }, onActionClick: () => { this.touchPopupRow = 5; this.touchPopupId = this.touchPopupId === 'long-press-drag:action' ? '' : 'long-press-drag:action'; } })
+      TouchGestureRow({ label: this.lt('Two-finger Pinch'), durationText: `${this.touchSettings.twoFingerPinch.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPinch.action), onTimeClick: () => { this.touchPopupRow = 6; this.touchPopupDurVal = this.touchSettings.twoFingerPinch.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:slider' ? '' : 'two-finger-pinch:slider'; }, onActionClick: () => { this.touchPopupRow = 6; this.touchPopupId = this.touchPopupId === 'two-finger-pinch:action' ? '' : 'two-finger-pinch:action'; } })
+      TouchGestureRow({ label: this.lt('Two-finger Pan'), durationText: `${this.touchSettings.twoFingerPan.duration}ms`, actionText: this.getTouchActionLabel(this.touchSettings.twoFingerPan.action), onTimeClick: () => { this.touchPopupRow = 7; this.touchPopupDurVal = this.touchSettings.twoFingerPan.duration; this.touchPopupId = this.touchPopupId === 'two-finger-pan:slider' ? '' : 'two-finger-pan:slider'; }, onActionClick: () => { this.touchPopupRow = 7; this.touchPopupId = this.touchPopupId === 'two-finger-pan:action' ? '' : 'two-finger-pan:action'; } })
     }
     .width('100%');
   }
@@ -2685,6 +2737,8 @@ struct RemoteControl {
       Column() {
         if (this.touchPopupId === 'tap:slider') {
           this.buildTouchSliderPopup(this.touchSettings.tap.duration, 50, 1000, 50, (v: number) => { this.touchSettings.tap = { duration: v, action: this.touchSettings.tap.action, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
+        } else if (this.touchPopupId === 'quick-drag:slider') {
+          this.buildTouchSliderPopup(this.touchSettings.quickDrag.duration, 200, 1200, 50, (v: number) => { this.touchSettings.quickDrag = { duration: v, action: this.touchSettings.quickDrag.action, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'long-press:slider') {
           this.buildTouchSliderPopup(this.touchSettings.longPress.duration, 200, 2000, 50, (v: number) => { this.touchSettings.longPress = { duration: v, action: this.touchSettings.longPress.action, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); });
         } else if (this.touchPopupId === 'swipe:slider') {
@@ -2699,6 +2753,8 @@ struct RemoteControl {
           this.buildTouchSliderPopup(this.touchSettings.twoFingerPan.duration, 200, 2000, 50, (v: number) => { this.touchSettings.twoFingerPan = { duration: v, action: this.touchSettings.twoFingerPan.action, speed: 1 }; this.saveTouchSettings(); });
         } else if (this.touchPopupId === 'tap:action') {
           this.buildTouchActionPopup(TAP_ACTIONS, this.touchSettings.tap.action, (a: TouchAction) => { this.touchSettings.tap = { duration: this.touchSettings.tap.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
+        } else if (this.touchPopupId === 'quick-drag:action') {
+          this.buildTouchActionPopup(QUICK_DRAG_ACTIONS, this.touchSettings.quickDrag.action, (a: TouchAction) => { this.touchSettings.quickDrag = { duration: this.touchSettings.quickDrag.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'long-press:action') {
           this.buildTouchActionPopup(LONG_PRESS_ACTIONS, this.touchSettings.longPress.action, (a: TouchAction) => { this.touchSettings.longPress = { duration: this.touchSettings.longPress.duration, action: a, speed: 1 }; this.saveTouchSettings(); this.initTouchInteractionManager(); this.touchPopupId = ''; });
         } else if (this.touchPopupId === 'swipe:action') {
@@ -2835,7 +2891,8 @@ struct RemoteControl {
       'middle-click': this.lt('Middle Click'),
       'screen-pan': this.lt('Screen Pan'),
       'screen-scroll': this.lt('Scroll'),
-      'marquee-select': this.lt('Marquee Select'),
+      'marquee-select': this.lt('Right Box'),
+      'left-marquee-select': this.lt('Left Box'),
       'left-drag': this.lt('Left Drag'),
       'zoom': this.lt('Zoom'),
     };
@@ -2848,13 +2905,13 @@ struct RemoteControl {
       this.buildSessionPanelHeader(this.lt('Chat'), 'chat-mode');
       this.buildMenuRow(
         this.voiceCallActive ? this.lt('Stop Voice Chat') : this.lt('Voice Chat'),
-        () => { this.openVoiceChatMode(); },
+        () => { this.showChatModeMenu = false; this.showToolbar = false; this.openVoiceChatMode(); },
         false,
         'opt_mic.svg'
       );
       this.buildMenuRow(
         this.lt('Text Chat'),
-        () => { this.openSessionChatPanel(); },
+        () => { this.showChatModeMenu = false; this.showToolbar = false; this.openSessionChatPanel(); },
         false,
         'chat.svg'
       );
@@ -2872,19 +2929,19 @@ struct RemoteControl {
 
       Scroll() {
         Column({ space: 0 }) {
-          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; const peerId = this.deviceId.trim(); this.osPassword = peerId.length > 0 ? (PreferenceStore.getPeerOsPassword(peerId) ?? '') : ''; this.showOsPasswordDialog = true; }, false, 'menu_key.svg');
-          this.buildMenuRow(this.lt('Send Clipboard Keys'), () => { this.showMoreMenu = false; this.sendClipboardToRemote(); }, false, 'menu_clipboard.svg');
-          this.buildMenuRow(this.lt('Reset Canvas'), () => { this.showMoreMenu = false; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; void this.showToast(this.lt('Reset')); }, false, 'menu_reset.svg');
-          this.buildMenuRow(this.lt('Insert Ctrl+Alt+Del'), () => { this.showMoreMenu = false; if (this.sendCtrlAltDel()) { void this.showToast(this.lt('Inserted Ctrl+Alt+Del')); } }, false, 'menu_key.svg');
-          this.buildMenuRow(this.lt('Restart Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('restart'); }, false, 'menu_restart.svg');
-          this.buildMenuRow(this.lt('Lock Remote'), () => { this.showMoreMenu = false; this.sendSessionAction('lock_screen'); }, false, 'menu_lock.svg');
-          this.buildToggleMenuRow(this.lt('Block User Input'), this.blockInputOn, () => { this.showMoreMenu = false; this.toggleBlockInput(); }, 'menu_block.svg');
-          this.buildMenuRow(this.lt('Refresh Screen'), () => { this.showMoreMenu = false; this.maybeRequestVideoRefresh(true); void this.showToast(this.lt('Refreshing...')); }, false, 'menu_refresh.svg');
-          this.buildMenuRow(this.lt('File Transfer'), () => { this.showMoreMenu = false; void this.openFileTransferWithPermissionCheck(); }, true, 'menu_transfer.svg');
-          this.buildMenuRow(this.lt('Copy Fingerprint'), () => { this.showMoreMenu = false; this.copyFingerprint(); }, false, 'menu_fingerprint.svg');
-          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.switchSessionSides(); }, false, 'menu_switch.svg');
-          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.takeSessionScreenshot(); }, false, 'menu_screenshot.svg');
-          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; this.toggleSessionRecording(); }, 'menu_record.svg');
+          this.buildMenuRow(this.lt('OS Password'), () => { this.showMoreMenu = false; this.showToolbar = false; const peerId = this.deviceId.trim(); this.osPassword = peerId.length > 0 ? (PreferenceStore.getPeerOsPassword(peerId) ?? '') : ''; this.showOsPasswordDialog = true; }, false, 'menu_key.svg');
+          this.buildMenuRow(this.lt('Send Clipboard Keys'), () => { this.showMoreMenu = false; this.showToolbar = false; this.sendClipboardToRemote(); }, false, 'menu_clipboard.svg');
+          this.buildMenuRow(this.lt('Reset Canvas'), () => { this.showMoreMenu = false; this.showToolbar = false; this.pinchScale = 1; this.panOffsetX = 0; this.panOffsetY = 0; void this.showToast(this.lt('Reset')); }, false, 'menu_reset.svg');
+          this.buildMenuRow(this.lt('Insert Ctrl+Alt+Del'), () => { this.showMoreMenu = false; this.showToolbar = false; if (this.sendCtrlAltDel()) { void this.showToast(this.lt('Inserted Ctrl+Alt+Del')); } }, false, 'menu_key.svg');
+          this.buildMenuRow(this.lt('Restart Remote'), () => { this.showMoreMenu = false; this.showToolbar = false; this.sendSessionAction('restart'); }, false, 'menu_restart.svg');
+          this.buildMenuRow(this.lt('Lock Remote'), () => { this.showMoreMenu = false; this.showToolbar = false; this.sendSessionAction('lock_screen'); }, false, 'menu_lock.svg');
+          this.buildToggleMenuRow(this.lt('Block User Input'), this.blockInputOn, () => { this.showMoreMenu = false; this.showToolbar = false; this.toggleBlockInput(); }, 'menu_block.svg');
+          this.buildMenuRow(this.lt('Refresh Screen'), () => { this.showMoreMenu = false; this.showToolbar = false; this.maybeRequestVideoRefresh(true); void this.showToast(this.lt('Refreshing...')); }, false, 'menu_refresh.svg');
+          this.buildMenuRow(this.lt('File Transfer'), () => { this.showMoreMenu = false; this.showToolbar = false; void this.openFileTransferWithPermissionCheck(); }, true, 'menu_transfer.svg');
+          this.buildMenuRow(this.lt('Copy Fingerprint'), () => { this.showMoreMenu = false; this.showToolbar = false; this.copyFingerprint(); }, false, 'menu_fingerprint.svg');
+          this.buildMenuRow(this.lt('Switch Sides'), () => { this.showMoreMenu = false; this.showToolbar = false; this.switchSessionSides(); }, false, 'menu_switch.svg');
+          this.buildMenuRow(this.lt('Take Screenshot'), () => { this.showMoreMenu = false; this.showToolbar = false; this.takeSessionScreenshot(); }, false, 'menu_screenshot.svg');
+          this.buildToggleMenuRow(this.lt('Session Recording'), this.sessionRecording, () => { this.showMoreMenu = false; this.showToolbar = false; this.toggleSessionRecording(); }, 'menu_record.svg');
         }
       }
       .scrollable(ScrollDirection.Vertical)
@@ -3398,7 +3455,7 @@ struct RemoteControl {
 
   private handleImeProxyTextChange(value: string): void {
     const previous = this.imeProxyPrev;
-    const SENTINEL = ' ';
+    const SENTINEL = '\u200B';
     console.error(`[IME] onChange: prev="${previous}" value="${value}" cur="${this.imeProxyText}"`);
     if (value === previous) {
       return;
@@ -3451,17 +3508,21 @@ struct RemoteControl {
   }
 
   private resolveAutoPairOpening(insertedText: string): string {
-    const autoPairs: string[] = ['()', '[]', '{}', '<>', '（）', '［］', '【】', '《》', '〈〉', '「」', '『』'];
+    const autoPairs: string[] = ['()', '[]', '{}', '<>', '""', "''", '“”', '‘’', '（）', '［］', '【】', '《》', '〈〉', '「」', '『』'];
     for (const pair of autoPairs) {
       if (insertedText === pair) {
         return pair.slice(0, 1);
       }
     }
+    const punctuationWithAutoQuote: string[] = [':""', ':“”', '：""', '：“”', ':\'\'', ':‘’', '：\'\'', '：‘’'];
+    if (punctuationWithAutoQuote.includes(insertedText)) {
+      return insertedText.slice(0, 1);
+    }
     return '';
   }
 
   private restoreImeProxySentinel(): void {
-    const sentinel = ' ';
+    const sentinel = '\u200B';
     this.imeProxyPrev = sentinel;
     this.imeProxyText = sentinel;
     setTimeout(() => {
@@ -3502,11 +3563,27 @@ struct RemoteControl {
   }
 
   private sendImeCommittedText(text: string): void {
-    if (this.isAlphanumericText(text) || (this.buildModifierMask() !== 0 && this.isAsciiKeyboardText(text))) {
-      this.sendTextPayload(text);
-      return;
+    let keyboardRun = '';
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      const code = text.charCodeAt(index);
+      const useKeyboardEvent = code === 32 ||
+        (code >= 48 && code <= 57) ||
+        (code >= 65 && code <= 90) ||
+        (code >= 97 && code <= 122);
+      if (useKeyboardEvent) {
+        keyboardRun += char;
+        continue;
+      }
+      if (keyboardRun.length > 0) {
+        this.sendTextPayload(keyboardRun);
+        keyboardRun = '';
+      }
+      NativeRustDeskBridge.sessionInputString(char);
     }
-    NativeRustDeskBridge.sessionInputString(text);
+    if (keyboardRun.length > 0) {
+      this.sendTextPayload(keyboardRun);
+    }
   }
 
   private isAsciiKeyboardText(text: string): boolean {
@@ -3744,10 +3821,22 @@ struct RemoteControl {
     }
     this.disableClipboard = next;
     if (next) {
+      ClipboardService.getInstance().removeEventListener(this.clipboardSyncListener);
       ClipboardService.getInstance().stopMonitoring();
     } else {
+      ClipboardService.getInstance().addEventListener(this.clipboardSyncListener);
       void ClipboardService.getInstance().startMonitoring();
     }
+  }
+
+  private syncClipboardOptionToSession(): boolean {
+    const disabled = this.disableClipboard;
+    const before = NativeRustDeskBridge.getSessionToggleOption('disable-clipboard');
+    const applied = NativeRustDeskBridge.applySessionOption('disable-clipboard', disabled ? 'Y' : 'N');
+    const after = NativeRustDeskBridge.getSessionToggleOption('disable-clipboard');
+    hilog.error(0xA03D00, 'ClipboardDiag',
+      `session option desiredDisabled=${disabled} before=${before} applied=${applied} after=${after} peer=${this.deviceId}`);
+    return applied;
   }
 
   private sendSessionAction(action: string): void {
@@ -3795,6 +3884,20 @@ struct RemoteControl {
     } else {
       void this.showToast(this.lt('In development'));
     }
+  }
+
+  private extractClipboardText(detail: string): string {
+    try {
+      const parsed = JSON.parse(detail) as Record<string, string>;
+      if (parsed && typeof parsed === 'object') {
+        const text = parsed.text ?? parsed.content ?? parsed.data ?? parsed.clipboard ?? '';
+        if (typeof text === 'string' && text.length > 0) {
+          return text;
+        }
+      }
+    } catch (_e) {
+    }
+    return detail;
   }
 
   private sendClipboardToRemote(): void {
@@ -4089,6 +4192,14 @@ struct RemoteControl {
     }
 
     if (coreState.sessionStage === 'connected') {
+      if (!this.clipboardOptionSyncedForConnection) {
+        // Set the guard before applying because applySessionOption emits a
+        // synchronous session-option event that re-enters applyBridgeState.
+        this.clipboardOptionSyncedForConnection = true;
+        if (!this.syncClipboardOptionToSession()) {
+          this.clipboardOptionSyncedForConnection = false;
+        }
+      }
       this.sessionBecameActive = true;
       if (this.sessionBecameActiveAt <= 0) {
         this.sessionBecameActiveAt = Date.now();
@@ -6135,11 +6246,15 @@ struct RemoteControl {
         this.gestureStartPanY = this.panOffsetY;
         break;
       case TouchAction.MARQUEE_SELECT:
+      case TouchAction.LEFT_MARQUEE_SELECT:
         this.showMarquee = true;
         const rect: MarqueeRect = { left: ctx.startX, top: ctx.startY, right: ctx.currentX, bottom: ctx.currentY };
         this.marqueeRect = rect;
-        if (this.hasPointerPosition) {
-          this.sendRemoteMouseMask(MOUSE_MASK.RIGHT_DOWN, this.lastPointerRemoteX, this.lastPointerRemoteY, TouchType.Down);
+        const mappedStart = this.mapTouchToRemote(ctx.startX, ctx.startY, false);
+        if (mappedStart !== null) {
+          this.updatePointerPosition(mappedStart);
+          const downMask = action === TouchAction.LEFT_MARQUEE_SELECT ? MOUSE_MASK.LEFT_DOWN : MOUSE_MASK.RIGHT_DOWN;
+          this.sendRemoteMouseMask(downMask, mappedStart.x, mappedStart.y, TouchType.Down);
         }
         break;
       case TouchAction.LEFT_DRAG:
@@ -6173,6 +6288,7 @@ struct RemoteControl {
         }
         break;
       case TouchAction.MARQUEE_SELECT:
+      case TouchAction.LEFT_MARQUEE_SELECT:
         if (this.touchInteractionManager === null) return;
         this.marqueeRect = this.touchInteractionManager.getMarqueeRect();
         const mappedPoint = this.mapTouchToRemote(ctx.currentX, ctx.currentY, false);
@@ -6199,9 +6315,11 @@ struct RemoteControl {
         this.startPanSpringBack();
         break;
       case TouchAction.MARQUEE_SELECT:
+      case TouchAction.LEFT_MARQUEE_SELECT:
         this.showMarquee = false;
         if (this.hasPointerPosition) {
-          this.sendRemoteMouseMask(MOUSE_MASK.RIGHT_UP, this.lastPointerRemoteX, this.lastPointerRemoteY, TouchType.Up);
+          const upMask = action === TouchAction.LEFT_MARQUEE_SELECT ? MOUSE_MASK.LEFT_UP : MOUSE_MASK.RIGHT_UP;
+          this.sendRemoteMouseMask(upMask, this.lastPointerRemoteX, this.lastPointerRemoteY, TouchType.Up);
           this.maybeRequestVideoRefresh(true);
         }
         break;

@@ -7,6 +7,7 @@ export enum TouchAction {
   SCREEN_PAN = 'screen-pan',
   SCREEN_SCROLL = 'screen-scroll',
   MARQUEE_SELECT = 'marquee-select',
+  LEFT_MARQUEE_SELECT = 'left-marquee-select',
   LEFT_DRAG = 'left-drag',
   ZOOM = 'zoom',
 }
@@ -19,6 +20,7 @@ export interface TouchGestureConfig {
 
 export interface TouchSettings {
   tap: TouchGestureConfig;
+  quickDrag: TouchGestureConfig;
   longPress: TouchGestureConfig;
   swipe: TouchGestureConfig;
   shortPressDrag: TouchGestureConfig;
@@ -28,14 +30,23 @@ export interface TouchSettings {
 }
 
 export const DEFAULT_TOUCH_SETTINGS: TouchSettings = {
-  tap: { duration: 300, action: TouchAction.LEFT_CLICK, speed: 1 },
-  longPress: { duration: 500, action: TouchAction.RIGHT_CLICK, speed: 1 },
-  swipe: { duration: 300, action: TouchAction.SCREEN_PAN, speed: 5 },
+  tap: { duration: 200, action: TouchAction.LEFT_CLICK, speed: 1 },
+  quickDrag: { duration: 600, action: TouchAction.LEFT_MARQUEE_SELECT, speed: 1 },
+  longPress: { duration: 800, action: TouchAction.RIGHT_CLICK, speed: 1 },
+  swipe: { duration: 200, action: TouchAction.SCREEN_PAN, speed: 5 },
   shortPressDrag: { duration: 400, action: TouchAction.SCREEN_SCROLL, speed: 5 },
-  longPressDrag: { duration: 600, action: TouchAction.MARQUEE_SELECT, speed: 5 },
+  longPressDrag: { duration: 800, action: TouchAction.MARQUEE_SELECT, speed: 5 },
   twoFingerPinch: { duration: 100, action: TouchAction.ZOOM, speed: 1 },
   twoFingerPan: { duration: 400, action: TouchAction.SCREEN_PAN, speed: 1 },
 };
+
+export const QUICK_DRAG_ACTIONS: TouchAction[] = [
+  TouchAction.LEFT_MARQUEE_SELECT,
+  TouchAction.MARQUEE_SELECT,
+  TouchAction.LEFT_DRAG,
+  TouchAction.SCREEN_SCROLL,
+  TouchAction.NONE,
+];
 
 export const TOUCH_ACTION_LABELS: Record<string, string> = {
   [TouchAction.NONE]: 'None',
@@ -45,7 +56,8 @@ export const TOUCH_ACTION_LABELS: Record<string, string> = {
   [TouchAction.MIDDLE_CLICK]: 'Middle Click',
   [TouchAction.SCREEN_PAN]: 'Screen Pan',
   [TouchAction.SCREEN_SCROLL]: 'Scroll',
-  [TouchAction.MARQUEE_SELECT]: 'Marquee Select',
+  [TouchAction.MARQUEE_SELECT]: 'Right Box',
+  [TouchAction.LEFT_MARQUEE_SELECT]: 'Left Box',
   [TouchAction.LEFT_DRAG]: 'Left Drag',
   [TouchAction.ZOOM]: 'Zoom',
 };
@@ -75,12 +87,14 @@ export const SHORT_PRESS_DRAG_ACTIONS: TouchAction[] = [
   TouchAction.SCREEN_SCROLL,
   TouchAction.SCREEN_PAN,
   TouchAction.LEFT_DRAG,
+  TouchAction.LEFT_MARQUEE_SELECT,
   TouchAction.MARQUEE_SELECT,
   TouchAction.NONE,
 ];
 
 export const LONG_PRESS_DRAG_ACTIONS: TouchAction[] = [
   TouchAction.MARQUEE_SELECT,
+  TouchAction.LEFT_MARQUEE_SELECT,
   TouchAction.LEFT_DRAG,
   TouchAction.NONE,
 ];

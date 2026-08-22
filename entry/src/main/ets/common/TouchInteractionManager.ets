@@ -6,6 +6,7 @@ export enum TouchInteractionState {
   PANNING = 'panning',
   SCROLLING = 'scrolling',
   SHORT_PRESS_DRAG = 'short_press_drag',
+  QUICK_DRAG = 'quick_drag',
   LONG_PRESS = 'long_press',
   LONG_PRESS_DRAG = 'long_press_drag',
 }
@@ -118,7 +119,7 @@ export class TouchInteractionManager {
       return;
     }
 
-    if (this.ctx.state === TouchInteractionState.SHORT_PRESS_DRAG) {
+    if (this.ctx.state === TouchInteractionState.SHORT_PRESS_DRAG || this.ctx.state === TouchInteractionState.QUICK_DRAG) {
       this.listener.onActionUpdate?.(this.currentAction, this.ctx);
       return;
     }
@@ -127,11 +128,17 @@ export class TouchInteractionManager {
       this.ctx.isMoving = true;
 
       if (this.ctx.state === TouchInteractionState.PRESSED) {
-        const speed = this.ctx.duration > 0 ? (distance / this.ctx.duration) * 1000 : 0;
-        if (speed >= this.settings.swipe.duration && this.settings.swipe.action !== TouchAction.NONE) {
+        if (this.ctx.duration <= this.settings.swipe.duration && this.settings.swipe.action !== TouchAction.NONE) {
           this.cancelLongPressTimer();
           this.ctx.state = TouchInteractionState.SCROLLING;
           this.currentAction = this.settings.swipe.action;
+          this.scrollLastX = x;
+          this.scrollLastY = y;
+          this.listener.onActionStart?.(this.currentAction, this.ctx);
+        } else if (this.ctx.duration >= this.settings.quickDrag.duration && this.settings.quickDrag.action !== TouchAction.NONE) {
+          this.cancelLongPressTimer();
+          this.ctx.state = TouchInteractionState.QUICK_DRAG;
+          this.currentAction = this.settings.quickDrag.action;
           this.scrollLastX = x;
           this.scrollLastY = y;
           this.listener.onActionStart?.(this.currentAction, this.ctx);
@@ -160,7 +167,7 @@ export class TouchInteractionManager {
 
     if (state === TouchInteractionState.LONG_PRESS_DRAG) {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
-    } else if (state === TouchInteractionState.SHORT_PRESS_DRAG) {
+    } else if (state === TouchInteractionState.SHORT_PRESS_DRAG || state === TouchInteractionState.QUICK_DRAG) {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
     } else if (state === TouchInteractionState.PANNING || state === TouchInteractionState.SCROLLING) {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
@@ -172,7 +179,7 @@ export class TouchInteractionManager {
           const now = Date.now();
           const interval = now - this.lastTapTime;
           const dist = Math.sqrt((x - this.lastTapX) ** 2 + (y - this.lastTapY) ** 2);
-          if (interval < 300 && dist < this.TAP_THRESHOLD) {
+          if (interval <= this.settings.tap.duration && dist < this.TAP_THRESHOLD) {
             this.listener.onAction?.(TouchAction.LEFT_DOUBLE_CLICK, this.ctx);
             this.lastTapTime = 0;
           } else {
@@ -199,7 +206,7 @@ export class TouchInteractionManager {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
     } else if (this.ctx.state === TouchInteractionState.LONG_PRESS_DRAG) {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
-    } else if (this.ctx.state === TouchInteractionState.SHORT_PRESS_DRAG) {
+    } else if (this.ctx.state === TouchInteractionState.SHORT_PRESS_DRAG || this.ctx.state === TouchInteractionState.QUICK_DRAG) {
       this.listener.onActionEnd?.(this.currentAction, this.ctx);
     }
     this.ctx.state = TouchInteractionState.IDLE;

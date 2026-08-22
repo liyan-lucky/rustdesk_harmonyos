@@ -1,5 +1,177 @@
 # 问题整理
 
+## 2026-08-22 会话剪贴板开关与远端回传未关联
+
+- 根因：页面进入和 `session-connected` 各调用一次 `sessionToggleOption('enable-clipboard')`。该接口执行状态反转，两次调用可能刚开启又关闭；菜单本身却维护 `disable-clipboard=Y/N`，形成两套冲突状态。
+- 修复：删除反转式调用，连接成功时按菜单状态显式写入 `disable-clipboard=Y/N`；菜单改为正向的“允许同步剪贴板”，勾选即允许远端与本地文本剪贴板同步。
+- 二次实机日志显示连接通常在首页完成，远控页面注册监听器时已错过 `session-connected`，因此没有发送显式状态。现 `aboutToAppear` 也立即执行同一幂等同步，覆盖“先连接、后跳页”的正常路径。
+
+## 2026-08-22 ID 菜单通讯录入口与 LAN 缓存假在线
+
+- 历史和收藏菜单已有“加入通讯录”，但发现页条件遗漏；现统一为历史、收藏、发现均可加入，并保留发现记录的别名与平台信息。
+- 实机日志确认 `255030671` 的 rendezvous 查询持续返回离线，但 native LAN 列表仍重复返回旧的 `online:true` 缓存。现由服务器明确离线结果清除 LAN 在线 TTL，并阻止旧 LAN 缓存重新置在线；只有后续服务器在线结果才能解除。
+- 对话中写作 `225030671`，实机查询和 LAN 日志中的实际 ID 为 `255030671`。
+
+## 2026-08-22 登录按钮与第三方入口闪烁
+
+- 普通登录按钮不再把“表单未填写”误当成加载态显示 `...`：始终显示“登录”，账号或密码为空时为灰色禁用，输入完成后实时恢复主色可点击状态。
+- 登录弹窗不再参与每分钟 provider 自动刷新；provider 后台刷新时保留已有按钮，仅首次无缓存时显示加载状态，避免第三方登录入口周期性消失。
+
+## 2026-08-22 登录页暴露 API 地址且状态信息不足
+
+- 登录弹窗不再显示 API 服务器 URL；顶部改为“服务器连通性”，请求成功后显示实际往返延迟（毫秒），失败时保留可读错误信息。服务器地址只在服务器设置页维护。
+- 修正 provider 命中缓存后跳过网络检查的问题：缓存按钮保持显示，同时弹窗每次打开均在后台检查一次当前 API 连通性和延迟。
+
+## 2026-08-22 通讯录服务中的设备信息不完整
+
+- 原因：`DeviceSysinfoRequest` 虽声明 `cpu`、`memory`，实际请求只填写 ID、UUID、名称、系统、用户名和版本。
+- 修复：新增 Rust → C ABI → NAPI 的官方 `get_sysinfo()` 透传，设备心跳登录时完整填写 CPU、内存、系统、设备名和用户名；通讯录 peer 数据仍按官方地址簿字段独立维护。
+
+## 2026-08-22 “同步最近会话”未持续上传
+
+- 原因：旧逻辑只在开关从关闭切到开启时执行一次，而且只传 ID、别名和平台；登录后拉取通讯录及后续新增会话均不会触发。
+- 修复：开启时上传当前全部会话；登录/通讯录刷新成功后再次合并；新连接建立后立即同步。字段按官方 recent peer 合并规则包含 ID、用户名、设备名和平台，已有联系人只更新设备信息。
+
+## 2026-08-22 剪贴板回传、菜单与页面状态回归
+
+- Harmony core 的文本剪贴板接收函数为空，远端消息被直接丢弃；已转成 `clipboard-incoming` session event。
+- 键盘按钮仅关闭子菜单但未折叠工具栏；现统一关闭所有菜单并折叠工具栏。
+- “加入通讯录”被限制在已登录的最近会话，收藏页缺少入口；现恢复最近会话和收藏入口，本地添加不依赖登录。
+- 加载持久化最近会话时强制清空 `online`，导致切页短暂离线；现保留在线、用户名和设备名快照，再由后台查询校正。
+- 中文 IME 自动补全的成对引号及冒号后引号会被整体发送；现仅发送用户实际输入的首字符。
+
+## 2026-08-22 会话悬浮工具栏未自动收起
+
+**现象**：工具栏展开后会一直停留；只有部分菜单操作手工设置 `showToolbar=false`。
+
+**根因**：现有实现仅在部分按钮点击路径手工设置 `showToolbar=false`，菜单失焦/点击外部只关闭菜单，没有统一折叠工具栏。
+
+**处理**：不使用定时器。工具菜单失焦或点击菜单外部时统一关闭菜单并折叠工具栏；菜单内正在进行的操作不受影响。
+
+## 2026-08-22 在线状态显示后再次掉线
+
+**现象**：设备短暂显示在线，随后在下一轮查询或发现调度后变为离线。
+
+**根因**：在线状态合并保护被破坏：核心查询返回 `offline` 时无条件删除 LAN 在线 TTL；同时 LAN TTL 从三个发现周期缩短为一个周期，正常调度延迟也可能使状态过早失效。
+
+**处理**：恢复既有规则。有效 LAN TTL 内忽略核心离线覆盖，LAN 在线状态继续保留三个发现周期；持续在线轮询和 `onPageShow` 重启逻辑保持不变。
+
+## 2026-08-22 英文标点无法输入
+
+**现象**：远程控制软键盘可以输入英文字母和空格，但英文标点没有到达远端。
+
+**根因**：IME 提交的全部 ASCII 字符都被 `sendTextPayload` 转成键盘事件；标点依赖 Windows OEM 虚拟键码，当前 Rust core/Harmony 会话链路不能稳定处理这些键码。
+
+**处理**：`sendImeCommittedText` 按字符分流。字母、数字和空格保留键盘事件路径，标点及其他字符改用 `sessionInputString`。该处理不改变空格和大小写修复。
+
+## 2026-08-21 空格输入、菜单跳转、剪贴板权限、在线状态
+
+### 44. 剪贴板回传（远端→本地）未生效（已解决）
+
+**现象**：远端 PC 复制文本后，手机剪贴板得不到任何内容。已提示剪贴板权限。
+
+**已做的修复**：
+- `sessionToggleOption('enable-clipboard')` 在 `aboutToAppear` 和 `session-connected` 事件中调用
+- `bridgeListener` 添加 `clipboard`/`clipboard-incoming`/`event.kind.includes('clip')` 事件匹配
+- `extractClipboardText` 方法尝试 JSON 解析（`parsed.text`/`content`/`data`/`clipboard`）
+- 本地→远端方向添加 `clipboardSyncListener` 监听 `ClipboardService` 的 `sync_required` 事件
+- `sessionToggleOption` 添加 `[RC-Clipboard]` 诊断日志
+
+**最终根因与处理**：Harmony Core 的 OHOS clipboard handler 没有把收到的 Clipboard/MultiClipboards 文本送入 App；诊断事件又一度被 App 当成文本写入剪贴板。Core 现完成解压、UTF-8 解码和 `clipboard-incoming` 投递，App 只消费真实载荷事件。实机验证远端复制后可写入手机剪贴板，Core 修复提交为 `b8dab7e`。
+
+### 43. WRITE_PASTEBOARD 不是 SDK 预定义权限
+
+**现象**：`module.json5` 中添加 `ohos.permission.WRITE_PASTEBOARD` 权限声明后，hvigor 构建报错 `00303221 Configuration Error: The ohos.permission.WRITE_PASTEBOARD permission under requestPermissions must be a value that is predefined within the SDK`。
+
+**根因**：HarmonyOS SDK 中没有 `ohos.permission.WRITE_PASTEBOARD` 权限定义。写入剪贴板使用 `pasteboard.SystemPasteboard.setData()`，对前台应用默认允许，不需要权限声明。只有读取剪贴板需要 `ohos.permission.READ_PASTEBOARD`。
+
+**处理**：移除 `WRITE_PASTEBOARD` 权限声明，保留 `READ_PASTEBOARD`。
+
+**教训**：HarmonyOS 剪贴板权限只有 `READ_PASTEBOARD`，写入不需要权限。添加权限前应先确认 SDK 是否预定义该权限。
+
+### 42. 页面切换丢失在线状态
+
+**现象**：在首页看到设备在线，切换到其他页面后返回，设备不再显示为在线。
+
+**根因**：`Index.ets` 的 `onPageShow` 中未调用 `startOnlineStatusPoll()`。`startOnlineStatusPoll` 只在 `aboutToAppear` 中调用，`stopOnlineStatusPoll` 在 `aboutToDisappear` 中调用。当页面被销毁后重建时，轮询需要等待一个周期（5秒）才能更新在线状态，期间显示为离线。
+
+**处理**：在 `onPageShow` 中添加 `startOnlineStatusPoll()` 调用和 `onlineStatusListener` 重新注册，确保每次页面显示时立即启动轮询。
+
+### 41. 安装脚本 tconn 后设备未就绪
+
+**现象**：`AUTO_BUILD_INSTALL.bat` 中 `hdc tconn` 后立即执行设备检查，报 `Requested target is not available`。
+
+**根因**：`tconn` 后没有等待时间，设备连接尚未稳定就执行 `hdc -t <target> shell echo ok` 检查。
+
+**处理**：`tconn` 后加 `timeout /t 3 /nobreak` 等待连接稳定。
+
+### 40. 文件传输/终端菜单跳转丢失导航目标
+
+**现象**：从首页点击"文件传输"或"终端"按钮，连接建立后页面不跳转，停留在首页。
+
+**根因**：`handleConnect` 关闭旧连接时触发 `session-closed` 事件 → `resetConnectionUiAfterTerminalEvent` 异步清除 `pendingNavigatePage = ''` → 导航目标在 `session-connected` 事件触发时已丢失。
+
+**处理**：从 `resetConnectionUiAfterTerminalEvent` 移除 `pendingNavigatePage = ''`，导航目标只在成功跳转后清除。
+
+### 39. 空格输入不生效
+
+**现象**：手机键盘中按空格键，远端电脑无反应。
+
+**根因**：`sendImeCommittedText` 中 `isAlphanumericText(' ')` 返回 false，空格走 `sessionInputString` 路径。该原生函数不处理空格字符。
+
+**处理**：将条件改为 `isAsciiKeyboardText(text)`，空格（charCode 32）通过 `sendKeyboardInput(32, true/false, 0)` 键盘事件路径发送。同时 IME 哨兵字符从 `' '` 改为 `'\u200B'`（零宽空格），避免与真实空格输入混淆。
+
+## 2026-08-20 DevEco 新签名与命令行 Portable 路径切换
+
+**现象**：DevEco Studio 新生成签名后使用用户目录绝对路径；直接执行旧的 Portable 路径切换会指向 `99_Temp` 中旧证书，或因缺少与新密码配套的 `material/ac|ce|fd` 而签名失败。
+
+**处理**：使用 `scripts\switch_deveco_paths.ps1 -Mode ImportDevEco`，从当前 `build-profile.json5` 读取 DevEco 绝对路径，将新 `.cer/.p7b/.p12` 和同目录 `material` 成套导入标准签名目录，再写入 Portable 路径。普通 `Portable`/`DevEco` 模式仍只切换已经导入材料的路径。
+
+**教训**：DevEco 的 `keyPassword/storePassword` 是依赖 `material` 目录的加密值，证书三件套和加密材料必须作为同一批次迁移。
+
+## 2026-08-20 DEVECO_SDK_HOME 污染导致脚本构建失败
+
+**现象**：路径和签名验证通过，但 `AUTO_BUILD_INSTALL.bat` 在 Hvigor 初始化时报 `00303217 Invalid value of DEVECO_SDK_HOME`。
+
+**根因**：用户/进程环境变量被污染成命令文本而不是目录；旧脚本只检查变量是否已定义，导致无效值覆盖 `local.properties` 和默认 SDK 探测。
+
+**处理**：构建脚本在使用现有 `DEVECO_SDK_HOME` 前验证目录是否存在，无效时清空并回落到 DevEco SDK 集合根目录；`run_hvigor_with_sdk_patch.js` 同样过滤无效值，并优先选择包含具体 SDK 包的集合根目录。
+
+## 2026-08-20 hvigor 自定义 cacheDir 路径删除后导致 IDE 同步持久失败
+
+**现象**：`hvigor/hvigor-config.json5` 配置了 `hvigor.cacheDir: "../99_Temp/harmonyos_cache"`，该目录被删除后 DevEco Studio 反复同步失败，IDE 报 "targetSdkVersion not configured"、"Compatible SDK only option is 1"、"Can't identify package name" 等误导性提示；hvigor 构建报 00303015 版本解析错误。即使从配置中移除 cacheDir，IDE 重启后仍复现。
+
+**根因**（级联失效）：
+1. `hvigor-config.json5` 将 hvigor 缓存重定向至 `99_Temp/harmonyos_cache`；
+2. 该目录被删除后，hvigor 找不到缓存位置；
+3. 但首次同步时 `hvigor.cacheDir` 的值已被固化写入 `.hvigor/outputs/sync/output.json` 的 `CONFIG_PROPERTIES` 中；
+4. IDE 的 `ProjectOutputJsonParser` 读取 `output.json` 得到旧的缓存路径，传递给 `PreBuildSync.refreshSyncData` 时入参为 null，抛出 `NullPointerException`，导致同步彻底失败；
+5. IDE 同步失败后 `.idea/.deveco/project.cache.json` 记录了错误的 project 状态，后续每次打开都重复失败流程；
+6. 由于模块模型未正确加载，IDE 报出上述次级误导性提示。
+
+**处理**（最终方案：双模式切换）：
+1. **DevEco Studio 模式**（`scripts/switch_deveco_paths.ps1 -Mode Default`）：移除 `hvigor-config.json5` 中的 `properties` 段，使用 hvigor 默认内部路径。`entry/build/` 和 `.hvigor/cache/` 在项目内正常创建；
+2. **第三方工具模式**（`scripts/switch_deveco_paths.ps1 -Mode Portable`）：写入相对路径 `../99_Temp/harmonyos_cache` 和 `../99_Temp/harmonyos_build`，构建产物输出到项目外的 `99_Temp`；
+3. 模式切换后需运行 `hvigorw --sync` 重建 `output.json`（路径：`{DevecoHome}/tools/hvigor/bin/hvigorw.bat`）；
+4. 切换回 DevEco Studio 前务必运行 `-Mode Default` 切回默认路径。
+
+**教训**：
+- DevEco Studio **不支持**将 hvigor 缓存/构建目录重定向到项目外部（`ohos.buildDir`/`hvigor.cacheDir`）。虽然命令行 `hvigorw --sync` 能正确处理外部路径，但 IDE 重启后的内部同步流程无法解析这些路径，导致 NPE 同步失败。
+- 项目约定将构建产物放在 `99_Temp` 外部目录的做法，适用于**第三方/命令行构建工具**，不适用于 DevEco Studio IDE 直接开发。
+- `scripts/switch_deveco_paths.ps1` 提供了 `Default`（IDE 开发）和 `Portable`（三方工具）两种模式的切换能力，开发前需确保当前模式与使用场景匹配。
+- `hvigor-config.json5` 的自定义路径配置会被固化到 `output.json` 的 `CONFIG_PROPERTIES` 中，删除缓存目录后必须同步清理 `output.json` 或重新运行 `hvigorw --sync`。
+- `output.json` 是 IDE 读取项目结构的核心文件，其错误内容会导致 IDE 报出与根因完全无关的次级误导性错误。
+
+## 2026-08-19 DevEco Studio 同步误报 targetSdkVersion 未配置
+
+**现象**：DevEco Studio 提示“当前项目没有配置 targetSdkVersion”，随后工程同步失败，但根 `build-profile.json5` 的 product 中实际存在该字段。
+
+**根因**：本机只安装 HarmonyOS `6.1.1(24)` SDK，product 的 `compileSdkVersion` 已为 `6.1.1(24)`，但 `targetSdkVersion` 仍指向未安装的 `6.1.0(23)`。SDK 产品解析失败后，IDE 使用未完成的 product 配置继续兼容性检查，显示了字段缺失的次级误报；签名配置失败还可能让 `.idea/.deveco/project.cache.json` 中当前 product/buildMode 变为空，从而提高复现概率。
+
+**处理**：两个 product 的 `targetSdkVersion` 统一为已安装的 `6.1.1(24)`；最低系统兼容边界继续由 `compatibleSdkVersion` 分别保持 `6.1.0(23)` 和 `6.0.0(20)`。DevEco 本地项目选择恢复为 `default` / `debug`。
+
+**教训**：`targetSdkVersion` 存在不代表 SDK 可解析。遇到该提示应同时核对 `compileSdkVersion`、`targetSdkVersion`、SDK 根目录 `sdk-pkg.json` 和 `.hvigor/outputs/sync/output.json`，不要在模块级 `entry/build-profile.json5` 重复添加 SDK 字段。
+
 > 避免问题反复出现，修改前必查此文档
 
 ## 2026-08-14 IME 成对符号删除与动态第三方登录
@@ -2070,3 +2242,12 @@ sh scripts/clean_project_artifacts.sh  # 清理entry/build、entry/.cxx、native
 - **根因**：账户服务只返回布尔结果，UI 丢弃 HTTP 状态与具体错误，并将所有失败翻译成网络问题；异常路径还可能让 loading 状态不能及时复位。
 - **修复**：记录用户列表 HTTP 状态码，使用 `try/finally` 收口 loading，校验分页响应结构，并区分离线、400/401、403、5xx 与格式异常；最后一次成功缓存继续保留。
 - **验证**：`0.34.34 (1000279)` 双 ABI 签名构建通过，arm64 HAP 覆盖安装成功。
+# 2026-08-22 触摸手势动作被快速左框抢占
+
+**现象**：加入左键框选后，普通快速滑动几乎全部进入左框，最常用的画面平移无法触发；原框选动作还被错误改成左键，丢失右键框选。
+
+**根因**：状态机把“移动时间小于左框阈值”作为最高优先级，导致 200ms 内移动先命中左框；同时框选动作只有一个枚举，无法独立表达左右键。
+
+**处理**：新增独立 `LEFT_MARQUEE_SELECT`，原 `MARQUEE_SELECT` 保持右键；状态机按 200/400/600/800ms 分层：快速滑动平移、短按拖动滚动、停留后左框、长按后右框。框选鼠标按下从触摸起点发送，滚动阈值由 100 调整为约一行的 32vp。
+
+**教训**：互斥手势必须按使用频率和时间窗排序；快速平移必须拥有最高优先级，左右键框选不能复用同一个含义不明确的动作。

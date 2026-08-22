@@ -2681,8 +2681,16 @@ export class NativeRustDeskBridge {
       nativeModule,
       ['sessionToggleOption', 'session_toggle_option', 'rustdesk_bridge_session_toggle_option']
     );
-    if (!fn) return;
-    try { fn(name); } catch { /* ignore */ }
+    if (!fn) {
+      console.error(`[RC-Clipboard] sessionToggleOption: native fn NOT found for "${name}"`);
+      return;
+    }
+    try {
+      fn(name);
+      console.error(`[RC-Clipboard] sessionToggleOption: called "${name}" OK`);
+    } catch (e) {
+      console.error(`[RC-Clipboard] sessionToggleOption: call "${name}" failed: ${JSON.stringify(e)}`);
+    }
   }
 
   static sessionTogglePrivacyMode(impl_key: string, on: boolean): boolean {
@@ -3593,6 +3601,16 @@ export class NativeRustDeskBridge {
     const fn = NativeRustDeskBridge.resolveFunction<[], string>(
       nativeModule,
       ['mainGetLoginDeviceInfo', 'main_get_login_device_info', 'rustdesk_bridge_main_get_login_device_info']
+    );
+    if (!fn) return '';
+    try { return fn() || ''; } catch { return ''; }
+  }
+
+  static mainGetSysinfo(): string {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[], string>(
+      nativeModule,
+      ['mainGetSysinfo', 'main_get_sysinfo', 'rustdesk_bridge_main_get_sysinfo']
     );
     if (!fn) return '';
     try { return fn() || ''; } catch { return ''; }

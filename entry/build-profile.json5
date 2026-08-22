@@ -21,12 +21,10 @@
   ],
   "targets": [
     {
-      "name": "default",
-      "runtimeOS": "HarmonyOS"
+      "name": "default"
     },
     {
-      "name": "openharmony_verify",
-      "runtimeOS": "OpenHarmony"
+      "name": "openharmony_verify"
     }
   ]
 }

@@ -30,7 +30,9 @@ export class LanDiscoveryService {
   private discoveryTimer: number = -1;
   private discoveredPeers: Map<string, DiscoveredPeer> = new Map();
   private ignoredPeerIds: Set<string> = new Set();
-  private discoveryInterval: number = 30000;
+  // A scan completes in about 3.5 seconds. A 10-second cadence keeps the
+  // worst-case offline transition below 15 seconds without overlapping scans.
+  private discoveryInterval: number = 10000;
   private isDiscovering: boolean = false;
   private ignoredPeerIdsLoaded: boolean = false;
   private listeners: LanDiscoveryListener[] = [];
@@ -214,7 +216,11 @@ export class LanDiscoveryService {
     };
     appData.addDiscoveredDevice(entry);
     if (peer.online) {
+      // Keep a peer online across an occasional missed discovery response.
+      // An explicit offline reply still overrides this immediately.
       appData.markLanPeerOnline(normalizedId, this.discoveryInterval * 3);
+    } else {
+      appData.markLanPeerOffline(normalizedId);
     }
     if (!previous ||
       previous.username !== enrichedPeer.username ||
