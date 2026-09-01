@@ -43,10 +43,10 @@ export function resolveFillColor(color: string, iconIndex: number = -1): string 
 
 const ICON_COLOR_MAP: Record<string, string> = {
   'history.svg': '#1976C9', 'star.svg': '#2E9B58', 'explore.svg': '#7C5CE5',
-  'address_book.svg': '#2E9B58', 'device_group.svg': '#E18428',
+  'address_book.svg': '#D84E78', 'device_group.svg': '#E18428',
   'monitor.svg': '#D84E78', 'chat.svg': '#1976C9', 'screen.svg': '#2E9B58',
   'settings_gear.svg': '#E18428', 'search.svg': '#7C5CE5',
-  'close.svg': '#D84E78', 'refresh.svg': '#0F9D8A', 'secure.svg': '#1976C9',
+  'close.svg': '#D84E78', 'refresh.svg': '#0F9D8A', 'secure.svg': '#0F9D8A',
   'dark_mode.svg': '#7C5CE5', 'light_mode.svg': '#E18428', 'translate.svg': '#0F9D8A',
   'fingerprint.svg': '#D84E78', 'logout.svg': '#D84E78', 'dots_vertical.svg': '#667085',
   'arrow-forward-ios.svg': '#667085', 'arrow-back-ios.svg': '#667085',
@@ -82,8 +82,8 @@ const ICON_COLOR_MAP: Record<string, string> = {
   'android.svg': '#2E9B58', 'linux.svg': '#E18428',
   'history_filled.svg': '#D84E78', 'star_filled.svg': '#E18428',
   'actions.svg': '#7C5CE5', 'cursor-pointer.svg': '#1976C9',
-  'explore_filled.svg': '#D84E78', 'address_book_filled.svg': '#1976C9',
-  'device_group_filled.svg': '#7C5CE5', 'secure_filled.svg': '#D84E78',
+  'explore_filled.svg': '#2E9B58', 'address_book_filled.svg': '#1976C9',
+  'device_group_filled.svg': '#7C5CE5', 'secure_filled.svg': '#667085',
   'opt_login.svg': '#0F9D8A', 'settings_proxy.svg': '#2E9B58',
   'settings_websocket.svg': '#1976C9', 'settings_udp.svg': '#D84E78',
   'settings_ipv6.svg': '#E18428', 'settings_remark.svg': '#1976C9',

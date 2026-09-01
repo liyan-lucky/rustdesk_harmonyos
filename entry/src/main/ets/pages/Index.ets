@@ -984,7 +984,7 @@ struct Index {
               .height(40)
               .justifyContent(FlexAlign.Center)
               .alignItems(VerticalAlign.Center)
-              .backgroundColor(this.theme_ACCENT_SURFACE)
+              .backgroundColor(Color.Transparent)
               .borderRadius(20)
             }
             .width('100%')
@@ -1383,7 +1383,7 @@ struct Index {
             .width(28)
             .height(28)
             .justifyContent(FlexAlign.Center)
-            .backgroundColor(this.theme_ACCENT_SURFACE)
+            .backgroundColor(Color.Transparent)
             .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
 
             Column({ space: 2 }) {
@@ -2019,7 +2019,7 @@ struct Index {
       .width(40)
       .height(40)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.theme_ACCENT_SURFACE)
+      .backgroundColor(Color.Transparent)
       .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
 
       Column({ space: 4 }) {
@@ -3251,7 +3251,7 @@ struct Index {
       .width(40)
       .height(40)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.theme_ACCENT_SURFACE)
+      .backgroundColor(Color.Transparent)
       .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
 
       Column({ space: 4 }) {
@@ -3550,7 +3550,7 @@ struct Index {
       .width(40)
       .height(40)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(this.theme_ACCENT_SURFACE)
+      .backgroundColor(Color.Transparent)
       .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
 
       Column({ space: 4 }) {
