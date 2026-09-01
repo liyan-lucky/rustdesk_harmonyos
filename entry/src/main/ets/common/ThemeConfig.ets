@@ -163,6 +163,110 @@ const LIGHT_COLORS: ThemeColors = {
   INFO_TEXT: '#1E40AF',
 };
 
+const COLORFUL_DARK_COLORS: ThemeColors = {
+  GRAY_BG: '#1A1B2E',
+  ACCENT: '#7C3AED',
+  ACCENT_50: '#777C3AED',
+  ACCENT_80: '#AA7C3AED',
+  CANVAS_COLOR: '#16213E',
+  BORDER: '#4A5568',
+  ID_COLOR: '#00D9FF',
+  DARK_GRAY: '#A0AEC0',
+  BUTTON: '#7C3AED',
+  HOVER_BORDER: '#667EEA',
+  WHITE: '#FFFFFF',
+  BLACK: '#000000',
+  ACCENT_TEXT: '#FFFFFF',
+  CONTRAST_TEXT: '#F7FAFC',
+  TEXT_PRIMARY: '#F7FAFC',
+  TEXT_SECONDARY: '#CBD5E0',
+  TEXT_TERTIARY: '#A0AEC0',
+  SUCCESS_BG: '#22543D',
+  SUCCESS_TEXT: '#68D391',
+  ERROR_BG: '#822727',
+  ERROR_TEXT: '#FC8181',
+  WARNING_BG: '#744210',
+  WARNING_TEXT: '#F6E05E',
+  INPUT_BG: '#2D3748',
+  ACCENT_SURFACE: '#2D2B5E',
+  BORDER_SUBTLE: '#3D4663',
+  BORDER_SOFT: '#4A5568',
+  SECONDARY_BTN_BG: '#2D3748',
+  SECONDARY_BTN_TEXT: '#E2E8F0',
+  CARD_BG: '#252542',
+  HEADER_BG: '#1A1B2E',
+  TAB_BAR_BG: '#1A1B2E',
+  DISABLED_TEXT: '#718096',
+  INACTIVE_BG: '#4A5568',
+  PANEL_BG: '#252542',
+  MENU_BG: '#D0252542',
+  TOOLBAR_BG: '#2D2B5E',
+  OVERLAY_SEMI: '#CC1A1B2E',
+  OVERLAY_LIGHT: '#8A2D3748',
+  OVERLAY_FULL: '#E6000000',
+  ICON_FILL: '#A78BFA',
+  ICON_BG: '#1FA78BFA',
+  PROGRESS_COLOR: '#7C3AED',
+  PROGRESS_BG: '#3D4663',
+  DIALOG_OVERLAY: '#80000000',
+  SHADOW_COLOR: '#00000044',
+  CARET_HIDDEN: '#00000000',
+  INFO_BG: '#2C5282',
+  INFO_TEXT: '#90CDF4',
+};
+
+const COLORFUL_LIGHT_COLORS: ThemeColors = {
+  GRAY_BG: '#F0F4FF',
+  ACCENT: '#7C3AED',
+  ACCENT_50: '#777C3AED',
+  ACCENT_80: '#AA7C3AED',
+  CANVAS_COLOR: '#FFFFFF',
+  BORDER: '#CBD5E0',
+  ID_COLOR: '#00B4D8',
+  DARK_GRAY: '#718096',
+  BUTTON: '#7C3AED',
+  HOVER_BORDER: '#667EEA',
+  WHITE: '#FFFFFF',
+  BLACK: '#000000',
+  ACCENT_TEXT: '#FFFFFF',
+  CONTRAST_TEXT: '#1A202C',
+  TEXT_PRIMARY: '#1A202C',
+  TEXT_SECONDARY: '#4A5568',
+  TEXT_TERTIARY: '#718096',
+  SUCCESS_BG: '#C6F6D5',
+  SUCCESS_TEXT: '#22543D',
+  ERROR_BG: '#FED7D7',
+  ERROR_TEXT: '#822727',
+  WARNING_BG: '#FEF3C7',
+  WARNING_TEXT: '#744210',
+  INPUT_BG: '#EDF2F7',
+  ACCENT_SURFACE: '#EDE9FE',
+  BORDER_SUBTLE: '#E2E8F0',
+  BORDER_SOFT: '#CBD5E0',
+  SECONDARY_BTN_BG: '#EDF2F7',
+  SECONDARY_BTN_TEXT: '#4A5568',
+  CARD_BG: '#FFFFFF',
+  HEADER_BG: '#F0F4FF',
+  TAB_BAR_BG: '#F0F4FF',
+  DISABLED_TEXT: '#A0AEC0',
+  INACTIVE_BG: '#E2E8F0',
+  PANEL_BG: '#FFFFFF',
+  MENU_BG: '#D0FFFFFF',
+  TOOLBAR_BG: '#EDE9FE',
+  OVERLAY_SEMI: '#CCF0F4FF',
+  OVERLAY_LIGHT: '#8AF0F4FF',
+  OVERLAY_FULL: '#E6F0F4FF',
+  ICON_FILL: '#7C3AED',
+  ICON_BG: '#1F7C3AED',
+  PROGRESS_COLOR: '#7C3AED',
+  PROGRESS_BG: '#E2E8F0',
+  DIALOG_OVERLAY: '#80000000',
+  SHADOW_COLOR: '#00000022',
+  CARET_HIDDEN: '#00000000',
+  INFO_BG: '#BEE3F8',
+  INFO_TEXT: '#2C5282',
+};
+
 function getColorsForMode(isDark: boolean): ThemeColors {
   return isDark ? DARK_COLORS : LIGHT_COLORS;
 }
@@ -223,6 +327,7 @@ export class ThemeManager {
   private static instance: ThemeManager;
   private currentMode: AppThemeMode = 'system';
   private isDark: boolean = false;
+  private colorful: boolean = false;
 
   static getInstance(): ThemeManager {
     if (!ThemeManager.instance) {
@@ -239,8 +344,18 @@ export class ThemeManager {
     return this.isDark;
   }
 
+  getColorful(): boolean {
+    return this.colorful;
+  }
+
   applyStoredTheme(mode: StoredThemeMode): void {
     this.setMode(ThemeManager.resolveMode(mode));
+  }
+
+  setIconColorMode(mode: string): void {
+    this.colorful = mode === 'colorful';
+    AppStorage.setOrCreate<string>('iconColorMode', mode);
+    AppStorage.setOrCreate<boolean>('colorfulUI', this.colorful);
   }
 
   setMode(mode: AppThemeMode): void {

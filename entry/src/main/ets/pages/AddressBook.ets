@@ -1,6 +1,6 @@
 import { AddressBookEntry, AppDataService } from '../services/AppDataService';
 import { AbPeer } from '../services/HttpClient';
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { CardContainer, EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
@@ -25,7 +25,7 @@ struct AddressBook {
   private accountService: AccountService = AccountService.getInstance();
   private static hasFetchedAddressBook: boolean = false;
 
-  @State query: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State query: string = '';
   @State currentFilter: AddressFilter = 'all';
   @State entries: AddressBookEntry[] = [];
   @State entriesTick: number = 0;
@@ -72,7 +72,7 @@ struct AddressBook {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -119,7 +119,7 @@ struct AddressBook {
           Image($rawfile('secure_stop.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_ACCENT)
+            .colorFilter(createIconColorFilterForSrc('secure_stop.svg', this.iconColorMode))
 
           Text(this.lt('Login Required'))
             .fontSize(ThemeConfig.FONT_SIZE_LG)
@@ -154,7 +154,7 @@ struct AddressBook {
           Image($rawfile('search.svg'))
             .width(18)
             .height(18)
-            .fillColor(this.theme_TEXT_TERTIARY)
+            .colorFilter(createIconColorFilterForSrc('search.svg', this.iconColorMode))
             .margin({ right: 8 })
           TextInput({ placeholder: this.lt('Search device name, ID or group'), text: this.query })
             .layoutWeight(1)
@@ -420,7 +420,7 @@ struct AddressBook {
         Image(icon)
           .width(16)
           .height(16)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT_TEXT))
+          .colorFilter(createIconColorFilterForSrc('trash.svg', this.iconColorMode))
         Text(label)
           .fontSize(12)
           .fontColor(this.theme_ACCENT_TEXT)
@@ -440,7 +440,7 @@ struct AddressBook {
         Image(icon)
           .width(16)
           .height(16)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+          .colorFilter(createIconColorFilterForSrc('trash.svg', this.iconColorMode))
         Text(label)
           .fontSize(12)
           .fontColor(this.theme_TEXT_PRIMARY)

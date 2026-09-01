@@ -2,7 +2,7 @@ import { AccountService, OAuthProvider, accountService, AccountState } from '../
 import { AppState } from '../services/AppState';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import { Logger } from '../common/Logger';
 
 type LoginMode = 'oauth' | 'password';
@@ -13,7 +13,7 @@ struct LoginPage {
   private accountService: AccountService = AccountService.getInstance();
   private appState: AppState = AppState.getInstance();
 
-  @State loginMode: LoginMode = 'oauth';
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State loginMode: LoginMode = 'oauth';
   @State selectedProvider: string = 'github';
   @State availableProviders: OAuthProvider[] = [];
   @State providersSyncing: boolean = false;
@@ -38,7 +38,7 @@ struct LoginPage {
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
   @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#AAB2C5';
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
@@ -214,7 +214,7 @@ struct LoginPage {
           Image($rawfile('refresh.svg'))
             .width(18)
             .height(18)
-            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .colorFilter(createIconColorFilterForSrc('refresh.svg', this.iconColorMode))
             .rotate({ x: 0, y: 0, z: 1, angle: this.providersSyncAngle })
             .enabled(!this.providersSyncing)
             .accessibilityText(this.lt('Sync now'))
@@ -331,7 +331,7 @@ struct LoginPage {
       Image($rawfile('search.svg'))
         .width(18)
         .height(18)
-        .fillColor(this.showSearchInput ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .colorFilter(createIconColorFilterForSrc('search.svg', this.iconColorMode))
         .onClick(() => {
           if (this.showSearchInput) {
             this.dismissSearch();
@@ -411,7 +411,7 @@ struct LoginPage {
   private buildProviderButton(provider: OAuthProvider) {
     Button() {
       Row() {
-        Image($rawfile(provider.icon)).width(24).height(24).colorFilter(createStrokeIconColorFilter(this.theme_CONTRAST_TEXT))
+        Image($rawfile(provider.icon)).width(24).height(24).colorFilter(createIconColorFilterForSrc(provider.icon, this.iconColorMode))
         Text(`${this.lt('Login with')} ${provider.name}`)
           .fontSize(16).fontColor(this.theme_CONTRAST_TEXT).margin({ left: 12 }).layoutWeight(1)
         if (this.isLoading && this.selectedProvider === provider.id) {

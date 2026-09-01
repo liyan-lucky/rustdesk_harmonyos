@@ -10,8 +10,169 @@ export function toArgbColor(color: string): number {
   return 0xFF000000 + parseInt(normalized, 16);
 }
 
+export const ICON_DEFAULT_COLORS: string[] = ['#1976C9', '#0F9D8A', '#7C5CE5', '#2E9B58', '#E18428', '#D84E78', '#667085'];
+
+export function resolveIconColor(defaultColor: string, selectedMode: string = ''): string {
+  const selected: string = selectedMode.length > 0 ? selectedMode :
+    (AppStorage.get<string>('iconColorMode') || 'colorful');
+  return selected === 'colorful' ? defaultColor : selected;
+}
+
+export function createIconColorFilter(defaultColor: string, selectedMode: string = ''): drawing.ColorFilter {
+  return drawing.ColorFilter.createBlendModeColorFilter(
+    toArgbColor(resolveIconColor(defaultColor, selectedMode)), drawing.BlendMode.SRC_IN);
+}
+
+export function iconDefaultColor(index: number): string {
+  return ICON_DEFAULT_COLORS[Math.abs(index) % ICON_DEFAULT_COLORS.length];
+}
+
+export function resolveFillColor(color: string, iconIndex: number = -1): string {
+  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  if (mode === 'colorful') {
+    if (iconIndex >= 0) return ICON_DEFAULT_COLORS[iconIndex % ICON_DEFAULT_COLORS.length];
+    let hash: number = 0;
+    for (let i = 0; i < color.length; i++) {
+      hash = ((hash << 5) - hash) + color.charCodeAt(i);
+      hash = hash & 0x7FFFFFFF;
+    }
+    return ICON_DEFAULT_COLORS[hash % ICON_DEFAULT_COLORS.length];
+  }
+  return mode;
+}
+
+const ICON_COLOR_MAP: Record<string, string> = {
+  'history.svg': '#1976C9', 'star.svg': '#2E9B58', 'explore.svg': '#7C5CE5',
+  'address_book.svg': '#2E9B58', 'device_group.svg': '#E18428',
+  'monitor.svg': '#D84E78', 'chat.svg': '#1976C9', 'screen.svg': '#2E9B58',
+  'settings_gear.svg': '#E18428', 'search.svg': '#7C5CE5',
+  'close.svg': '#D84E78', 'refresh.svg': '#0F9D8A', 'secure.svg': '#1976C9',
+  'dark_mode.svg': '#7C5CE5', 'light_mode.svg': '#E18428', 'translate.svg': '#0F9D8A',
+  'fingerprint.svg': '#D84E78', 'logout.svg': '#D84E78', 'dots_vertical.svg': '#667085',
+  'arrow-forward-ios.svg': '#667085', 'arrow-back-ios.svg': '#667085',
+  'settings_palette.svg': '#7C5CE5', 'display.svg': '#1976C9',
+  'call-made.svg': '#2E9B58', 'group.svg': '#0F9D8A', 'info_edit.svg': '#1976C9',
+  'delete-forever.svg': '#D84E78', 'scan_frame.svg': '#0F9D8A',
+  'checkbox-outline.svg': '#1976C9', 'checkbox-checked.svg': '#2E9B58',
+  'checkbox-unchecked.svg': '#667085', 'Sorting_order.svg': '#7C5CE5',
+  'arrow_input.svg': '#E18428', 'color_palette.svg': '#7C5CE5',
+  'settings.svg': '#667085', 'settings_person.svg': '#1976C9',
+  'settings_network.svg': '#0F9D8A', 'settings_cpu.svg': '#E18428',
+  'settings_server.svg': '#7C5CE5', 'menu_key.svg': '#D84E78',
+  'opt_user.svg': '#2E9B58', 'auth_api.svg': '#D84E78', 'auth_oidc.svg': '#7C5CE5',
+  'auth_google.svg': '#E18428', 'auth_github.svg': '#667085', 'auth_selfhosted.svg': '#0F9D8A',
+  'arrow-autofit-up.svg': '#1976C9', 'arrow-autofit-down.svg': '#D84E78',
+  'file_transfer.svg': '#D84E78', 'terminal.svg': '#0F9D8A', 'clipboard.svg': '#7C5CE5',
+  'lock.svg': '#E18428', 'unlock.svg': '#2E9B58', 'shield.svg': '#1976C9',
+  'key.svg': '#D84E78', 'user.svg': '#1976C9', 'network.svg': '#0F9D8A',
+  'globe.svg': '#1976C9', 'server.svg': '#7C5CE5', 'cpu.svg': '#E18428',
+  'folder.svg': '#E18428', 'file.svg': '#D84E78', 'image.svg': '#2E9B58',
+  'play.svg': '#1976C9', 'pause.svg': '#E18428', 'stop.svg': '#D84E78',
+  'volume.svg': '#7C5CE5', 'mic.svg': '#D84E78', 'camera.svg': '#0F90F0A',
+  'edit.svg': '#1976C9', 'delete.svg': '#D84E78', 'more.svg': '#667085',
+  'back.svg': '#667085', 'forward.svg': '#667085', 'check.svg': '#2E9B58',
+  'x.svg': '#D84E78', 'plus.svg': '#2E9B58', 'minus.svg': '#D84E78',
+  'info.svg': '#1976C9', 'warning.svg': '#E18428', 'error.svg': '#D84E78',
+  'success.svg': '#2E9B58', 'arrow.svg': '#667085', 'checkmark.svg': '#2E9B58',
+  'rec.svg': '#D84E78', 'secure_stop.svg': '#D84E78', 'add.svg': '#2E9B58',
+  'qr_code.svg': '#0F9D8A', 'bookmark.svg': '#E18428', 'connect.svg': '#1976C9',
+  'insecure.svg': '#E18428', 'keyboard.svg': '#7C5CE5', 'keyboard_mouse.svg': '#0F9D8A',
+  'login.svg': '#2E9B58', 'content_copy.svg': '#1976C9', 'content_paste.svg': '#7C5CE5',
+  'android.svg': '#2E9B58', 'linux.svg': '#E18428',
+  'history_filled.svg': '#D84E78', 'star_filled.svg': '#E18428',
+  'explore_filled.svg': '#D84E78', 'address_book_filled.svg': '#1976C9',
+  'device_group_filled.svg': '#7C5CE5', 'secure_filled.svg': '#D84E78',
+  'opt_login.svg': '#0F9D8A', 'settings_proxy.svg': '#2E9B58',
+  'settings_websocket.svg': '#1976C9', 'settings_udp.svg': '#D84E78',
+  'settings_ipv6.svg': '#E18428', 'settings_remark.svg': '#1976C9',
+  'settings_keepscreen.svg': '#2E9B58', 'settings_display.svg': '#7C5CE5',
+  'settings_language.svg': '#0F9D8A', 'settings_theme.svg': '#E18428',
+  'settings_record.svg': '#D84E78', 'settings_record_in.svg': '#1976C9',
+  'settings_record_out.svg': '#2E9B58', 'settings_shield.svg': '#7C5CE5',
+  'settings_shield_check.svg': '#1976C9', 'settings_terminal.svg': '#0F9D8A',
+  'settings_timer.svg': '#E18428', 'settings_tune.svg': '#D84E78',
+  'settings_update.svg': '#2E9B58', 'settings_video.svg': '#7C5CE5',
+  'settings_websocket_off.svg': '#667085', 'settings_wifi_off.svg': '#D84E78',
+  'settings_whitelist.svg': '#0F9D8A', 'settings_power.svg': '#E18428',
+  'settings_privacy.svg': '#7C5CE5', 'settings_router.svg': '#1976C9',
+  'settings_monitor.svg': '#0F9D8A', 'settings_floating.svg': '#D84E78',
+  'settings_folder.svg': '#2E9B58', 'settings_gauge.svg': '#E18428',
+  'settings_info.svg': '#1976C9', 'settings_info_circle.svg': '#7C5CE5',
+  'opt_touch.svg': '#D84E78', 'opt_mouse.svg': '#1976C9',
+  'opt_activity.svg': '#0F9D8A', 'opt_download.svg': '#E18428',
+  'opt_upload.svg': '#2E9B58', 'opt_view.svg': '#7C5CE5',
+  'opt_mic.svg': '#D84E78', 'opt_mute.svg': '#667085',
+  'opt_rotate.svg': '#1976C9', 'opt_shield.svg': '#0F9D8A',
+  'opt_timer.svg': '#E18428', 'opt_translate.svg': '#D84E78',
+  'opt_move.svg': '#2E9B58', 'opt_link.svg': '#7C5CE5',
+  'opt_balance.svg': '#1976C9',
+  'opt_codec.svg': '#0F9D8A', 'opt_custom.svg': '#E18428',
+  'opt_fit.svg': '#D84E78', 'opt_grid.svg': '#7C5CE5',
+  'opt_grip.svg': '#2E9B58', 'opt_original.svg': '#667085',
+  'opt_quality.svg': '#1976C9', 'opt_speed.svg': '#0F9D8A',
+  'opt_zoom.svg': '#E18428',
+  'ft_phone.svg': '#1976C9', 'ft_remote.svg': '#D84E78',
+  'ft_home.svg': '#0F9D8A', 'ft_back.svg': '#7C5CE5',
+  'ft_up.svg': '#E18428', 'ft_sort.svg': '#2E9B58',
+  'ft_copy.svg': '#1976C9', 'ft_delete.svg': '#D84E78',
+  'ft_paste.svg': '#0F9D8A', 'ft_show.svg': '#7C5CE5',
+  'ft_hidden.svg': '#E18428', 'ft_new_folder.svg': '#2E9B58',
+  'ft_file.svg': '#1976C9', 'ft_folder.svg': '#D84E78',
+  'ft_monitor.svg': '#0F9D8A',
+  'nav-arrow-left.svg': '#667085', 'nav-arrow-right.svg': '#667085',
+  'menu_block.svg': '#E18428',
+  'menu_clipboard.svg': '#1976C9', 'menu_fingerprint.svg': '#7C5CE5',
+  'menu_lock.svg': '#0F9D8A', 'menu_record.svg': '#D84E78',
+  'menu_refresh.svg': '#2E9B58', 'menu_reset.svg': '#E18428',
+  'menu_restart.svg': '#7C5CE5', 'menu_screenshot.svg': '#1976C9',
+  'menu_switch.svg': '#0F9D8A', 'menu_transfer.svg': '#D84E78',
+  'info_alert.svg': '#D84E78', 'info_clock.svg': '#1976C9',
+  'info_code.svg': '#7C5CE5', 'info_drive.svg': '#0F9D8A',
+  'info_file.svg': '#E18428', 'info_hash.svg': '#2E9B58',
+  'info_layers.svg': '#D84E78', 'info_route.svg': '#7C5CE5',
+  'info_target.svg': '#1976C9', 'info_trash.svg': '#667085',
+};
+
+export function getIconColor(src: string): string {
+  const fileName: string = src.split('/').pop() ?? src;
+  const mapped: string | undefined = ICON_COLOR_MAP[fileName];
+  if (mapped) {
+    return mapped;
+  }
+  let hash: number = 0;
+  for (let i = 0; i < fileName.length; i++) {
+    hash = (hash * 31 + fileName.charCodeAt(i)) | 0;
+  }
+  hash = hash ^ (hash >>> 13);
+  hash = (Math.abs(hash) * 2654435761) | 0;
+  hash = hash ^ (hash >>> 15);
+  return ICON_DEFAULT_COLORS[Math.abs(hash) % ICON_DEFAULT_COLORS.length];
+}
+
+export function getIconColorByIndex(index: number): string {
+  return ICON_DEFAULT_COLORS[Math.abs(index) % ICON_DEFAULT_COLORS.length];
+}
+
+export function createIconColorFilterByIndex(index: number, mode: string = ''): drawing.ColorFilter {
+  return createIconColorFilter(getIconColorByIndex(index), mode);
+}
+
+export function resolveIconFillColor(src: string): string {
+  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  if (mode === 'colorful') return getIconColor(src);
+  return mode;
+}
+
+export function createIconColorFilterForSrc(src: string, mode: string = ''): drawing.ColorFilter {
+  return createIconColorFilter(getIconColor(src), mode);
+}
+
 export function createStrokeIconColorFilter(color: string): drawing.ColorFilter {
-  return drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(color), drawing.BlendMode.SRC_IN);
+  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  if (mode === 'colorful') {
+    return drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(color), drawing.BlendMode.SRC_IN);
+  }
+  return drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(mode), drawing.BlendMode.SRC_IN);
 }
 
 @Component
@@ -105,7 +266,7 @@ export function InfoRow(label: string, value: string, icon: string = '') {
       Image($rawfile(icon))
         .width(18)
         .height(18)
-        .colorFilter(drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(ThemeConfig.TEXT_TERTIARY), drawing.BlendMode.SRC_IN))
+        .colorFilter(createIconColorFilterForSrc(icon))
     }
 
     Text(label)

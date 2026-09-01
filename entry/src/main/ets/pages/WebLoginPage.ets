@@ -34,7 +34,7 @@ struct WebLoginPage {
   @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
   @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#AAB2C5';
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;

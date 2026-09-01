@@ -52,7 +52,7 @@ struct MyDevice {
   @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#AAB2C5';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {

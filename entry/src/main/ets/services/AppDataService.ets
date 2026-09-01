@@ -27,6 +27,7 @@ export interface AddressBookEntry {
 
 export interface SettingsState {
   theme: 'light' | 'dark' | 'auto';
+  iconColorMode: string;
   language: string;
   notificationsEnabled: boolean;
   autoConnect: boolean;
@@ -176,6 +177,7 @@ export class AppDataService {
   updateSettings(settings: Partial<SettingsState>): SettingsState {
     const next: SettingsState = this.copySettings(this.settings);
     if (settings.theme !== undefined) next.theme = settings.theme;
+    if (settings.iconColorMode !== undefined) next.iconColorMode = settings.iconColorMode;
     if (settings.language !== undefined) next.language = settings.language;
     if (settings.notificationsEnabled !== undefined) next.notificationsEnabled = settings.notificationsEnabled;
     if (settings.autoConnect !== undefined) next.autoConnect = settings.autoConnect;
@@ -1031,6 +1033,7 @@ export class AppDataService {
   private copySettings(source: SettingsState): SettingsState {
     return {
       theme: source.theme,
+      iconColorMode: source.iconColorMode,
       language: source.language,
       notificationsEnabled: source.notificationsEnabled,
       autoConnect: source.autoConnect,
@@ -1179,6 +1182,7 @@ export class AppDataService {
   private static createDefaultSettings(): SettingsState {
     return {
       theme: 'auto',
+      iconColorMode: 'colorful',
       language: 'zh-CN',
       notificationsEnabled: true,
       autoConnect: false,

@@ -12,7 +12,8 @@ import {
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
-  StatusBadge
+  StatusBadge,
+  createIconColorFilterForSrc, createIconColorFilterByIndex, resolveIconFillColor
 } from '../common/CommonComponents';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent, OnlineStatusResult } from '../services/OfficialRustDeskBridge';
 import { CoreLoaderService } from '../services/CoreLoaderService';
@@ -29,7 +30,6 @@ import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerC
 import { WindowChromeService } from '../services/WindowChromeService';
 import { BuildInfo } from '../common/BuildInfo';
 import { CoreBuildInfo } from '../common/CoreBuildInfo';
-import drawing from '@ohos.graphics.drawing';
 
 import { LanDiscoveryService } from '../services/LanDiscoveryService';
 import { ScreenCaptureService } from '../services/ScreenCaptureService';
@@ -574,7 +574,7 @@ struct Index {
   @State draftApiServer: string = '';
   @State draftKey: string = '';
   @State themeMode: AppThemeMode = ThemeManager.resolveMode(this.appData.getSettings().theme);
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @State officialCoreState: OfficialCoreState = this.officialBridge.getCoreState();
   @State coreModules: CoreModuleInfo[] = [];
   @State coreLoadBusy: boolean = false;
@@ -610,6 +610,7 @@ struct Index {
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
   @StorageLink('accessibleUsersStatusCode') accessibleUsersStatusCode: number = 0;
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';
   @State accountRefreshTick: number = 0;
   private accountPageSyncTimer: number = -1;
   private readonly ACCOUNT_PAGE_SYNC_INTERVAL: number = 60000;
@@ -643,6 +644,7 @@ struct Index {
   @State languageDialogOpacity: number = 1;
   @State @Watch('onShowAccountDialogChange') showAccountDialog: boolean = false;
   @State showThemeDialog: boolean = false;
+  @State showIconColorDialog: boolean = false;
   @State showDisplaySettingsDialog: boolean = false;
   @State loginUsername: string = '';
   @State loginPassword: string = '';
@@ -750,6 +752,7 @@ struct Index {
     this.syncDraftServers();
     void this.refreshDirectAccessState();
     this.themeMode = ThemeManager.resolveMode(this.settings.theme);
+    ThemeManager.getInstance().applyStoredTheme(this.settings.theme);
     void WindowChromeService.getInstance().refreshSystemBars();
     this.syncControlledKeepScreenOn();
     void this.refreshState().then(() => {
@@ -954,7 +957,7 @@ struct Index {
               Image($rawfile('call-made.svg'))
                 .width(22)
                 .height(22)
-                .fillColor(this.theme_TEXT_PRIMARY)
+                .colorFilter(createIconColorFilterForSrc('call-made.svg', this.iconColorMode))
 
               Column({ space: 2 }) {
                 Text(this.resolveChatPeerName())
@@ -975,7 +978,7 @@ struct Index {
                 Image($rawfile('group.svg'))
                   .width(22)
                   .height(22)
-                  .fillColor(this.theme_ACCENT)
+                  .colorFilter(createIconColorFilterForSrc('group.svg', this.iconColorMode))
               }
               .width(40)
               .height(40)
@@ -1218,7 +1221,7 @@ struct Index {
               Image($rawfile('close.svg'))
                 .width(20)
                 .height(20)
-                .fillColor(this.theme_TEXT_TERTIARY)
+                .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
                 .hitTestBehavior(HitTestMode.Block)
                 .onClick(() => {
                   this.showIdSuggestions = false;
@@ -1233,7 +1236,7 @@ struct Index {
             Image($rawfile('arrow_input.svg'))
               .width(30)
               .height(30)
-              .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              .colorFilter(createIconColorFilterForSrc('arrow_input.svg', this.iconColorMode))
               .hitTestBehavior(HitTestMode.Block)
               .onClick(() => {
                 this.showIdSuggestions = false;
@@ -1277,14 +1280,14 @@ struct Index {
               Image($rawfile('checkbox-outline.svg'))
                 .width(18)
                 .height(18)
-                .fillColor(this.theme_TEXT_TERTIARY)
+                .colorFilter(createIconColorFilterForSrc('checkbox-outline.svg', this.iconColorMode))
             }
 
             if (this.currentConnectTab !== 'account' && (this.currentConnectTab === 'favorites' || this.currentConnectTab === 'discovered' || this.currentConnectTab === 'addressBook')) {
               Image($rawfile('Sorting_order.svg'))
                 .width(18)
                 .height(18)
-                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                .colorFilter(createIconColorFilterForSrc('Sorting_order.svg', this.iconColorMode))
                 .onClick(() => {
                   this.dismissConnectSearch();
                   this.showSortMenu = true;
@@ -1295,7 +1298,7 @@ struct Index {
               Image($rawfile('refresh.svg'))
                 .width(18)
                 .height(18)
-                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                .colorFilter(createIconColorFilterForSrc('refresh.svg', this.iconColorMode))
                 .rotate({ x: 0, y: 0, z: 1, angle: this.connectTabRefreshAngle })
                 .onClick(() => {
                   if (this.isConnectTabRefreshing) {
@@ -1327,7 +1330,7 @@ struct Index {
       Image($rawfile('search.svg'))
         .width(18)
         .height(18)
-        .fillColor(this.showSearchInput ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .colorFilter(createIconColorFilterForSrc('search.svg', this.iconColorMode))
         .onClick(() => {
           if (this.showSearchInput) {
             this.dismissConnectSearch();
@@ -1603,7 +1606,7 @@ struct Index {
             Image($rawfile(this.showAddressBookTagManagement ? 'close.svg' : 'dots_vertical.svg'))
               .width(20)
               .height(20)
-              .fillColor(this.theme_TEXT_SECONDARY)
+              .colorFilter(createIconColorFilterForSrc('search.svg', this.iconColorMode))
           }
           .id('address-book-tag-manage-btn')
           .width(36)
@@ -1793,7 +1796,7 @@ struct Index {
         Row() {
           Text(this.lt('Manage Tags')).fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme_TEXT_PRIMARY)
           Blank()
-          Image($rawfile('close.svg')).width(20).height(20).fillColor(this.theme_TEXT_PRIMARY).onClick(() => {
+          Image($rawfile('close.svg')).width(20).height(20).colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode)).onClick(() => {
             this.closeAddressBookTagManagement();
           })
         }.width('100%')
@@ -1816,7 +1819,7 @@ struct Index {
         Row() {
           Text(this.lt('Add ID')).fontSize(20).fontWeight(FontWeight.Bold).fontColor(this.theme_TEXT_PRIMARY)
           Blank()
-          Image($rawfile('close.svg')).width(20).height(20).fillColor(this.theme_TEXT_PRIMARY)
+          Image($rawfile('close.svg')).width(20).height(20).colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => { this.closeAddressBookTagManagement(); })
         }.width('100%')
         this.buildAddAddressBookIdForm()
@@ -1904,9 +1907,9 @@ struct Index {
         Row({ space: ThemeConfig.SPACING_SM }) {
           Circle().width(8).height(8).fill(this.getAddressBookTagColor(tag))
           Text(tag).layoutWeight(1).fontSize(ThemeConfig.FONT_SIZE_SM).fontColor(this.theme_TEXT_PRIMARY)
-          Button() { Image($rawfile('info_edit.svg')).width(18).height(18).fillColor(this.theme_TEXT_SECONDARY) }
+          Button() { Image($rawfile('info_edit.svg')).width(18).height(18).colorFilter(createIconColorFilterForSrc('info_edit.svg', this.iconColorMode)) }
             .width(36).height(36).backgroundColor(Color.Transparent).onClick(() => { this.editingAddressBookTag = tag; this.addressBookTagDraft = tag; })
-          Button() { Image($rawfile('delete-forever.svg')).width(18).height(18).fillColor(this.theme_ERROR_TEXT) }
+          Button() { Image($rawfile('delete-forever.svg')).width(18).height(18).colorFilter(createIconColorFilterForSrc('delete-forever.svg', this.iconColorMode)) }
             .width(36).height(36).backgroundColor(Color.Transparent).onClick(() => { void this.removeAddressBookTag(tag); })
         }.width('100%').height(44)
       }, (tag: string) => `manage-${tag}`)
@@ -2052,7 +2055,7 @@ struct Index {
         Image($rawfile('dots_vertical.svg'))
           .width(20)
           .height(20)
-          .fillColor(this.theme_TEXT_TERTIARY)
+          .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
       }
       .width(44)
       .height(44)
@@ -2082,7 +2085,7 @@ struct Index {
           Image($rawfile(this.resolveAuthProviderIcon()))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_TERTIARY)
+            .colorFilter(createIconColorFilterForSrc(this.resolveAuthProviderIcon(), this.iconColorMode))
 
           if (this.accountState.isLoggedIn) {
             Text(this.lt('Account Name'))
@@ -2100,7 +2103,7 @@ struct Index {
               Image($rawfile('logout.svg'))
                 .width(20)
                 .height(20)
-                .fillColor(this.theme_TEXT_TERTIARY)
+                .colorFilter(createIconColorFilterForSrc('logout.svg', this.iconColorMode))
             }
             .width(36)
             .height(36)
@@ -2156,7 +2159,7 @@ struct Index {
             Image($rawfile('translate.svg'))
               .width(20)
               .height(20)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('translate.svg', this.iconColorMode))
 
             Column({ space: 4 }) {
               Text(this.lt('Language'))
@@ -2175,7 +2178,7 @@ struct Index {
             Image($rawfile('arrow-forward-ios.svg'))
               .width(16)
               .height(16)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
           }
           .width('100%')
           .height(ThemeConfig.MENU_ITEM_HEIGHT)
@@ -2190,7 +2193,7 @@ struct Index {
               .width(20)
               .height(20)
               .objectFit(ImageFit.Contain)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc(this.themeIsDark ? 'dark_mode.svg' : 'light_mode.svg', this.iconColorMode))
 
             Column({ space: 4 }) {
               Text(this.themeIsDark ? this.lt('Dark Theme') : this.lt('Light Theme'))
@@ -2209,7 +2212,7 @@ struct Index {
             Image($rawfile('arrow-forward-ios.svg'))
               .width(16)
               .height(16)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
           }
           .width('100%')
           .height(ThemeConfig.MENU_ITEM_HEIGHT)
@@ -2217,6 +2220,39 @@ struct Index {
           .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
           .onClick(() => {
             this.showThemeDialog = true;
+          })
+
+          Row() {
+            Image($rawfile('color_palette.svg'))
+              .width(20)
+              .height(20)
+              .colorFilter(createIconColorFilterForSrc('color_palette.svg', this.iconColorMode))
+
+            Column({ space: 4 }) {
+              Text(this.lt('Icon Color'))
+                .fontSize(ThemeConfig.FONT_SIZE_XL)
+                .fontColor(this.theme_TEXT_PRIMARY)
+                .width('100%')
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.iconColorLabel(this.settings.iconColorMode))
+              .fontSize(ThemeConfig.FONT_SIZE_SM)
+              .fontColor(this.theme_TEXT_SECONDARY)
+              .textAlign(TextAlign.End)
+
+            Image($rawfile('arrow-forward-ios.svg'))
+              .width(16)
+              .height(16)
+              .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
+          }
+          .width('100%')
+          .height(ThemeConfig.MENU_ITEM_HEIGHT)
+          .constraintSize({ minHeight: ThemeConfig.MENU_ITEM_HEIGHT })
+          .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+          .onClick(() => {
+            this.showIconColorDialog = true;
           })
 
           this.buildSettingsToggleSettingRow(this.lt('Request remark at session end'), this.settings.requestRemarkOnSessionEnd, (value: boolean) => {
@@ -2243,7 +2279,7 @@ struct Index {
               .width(20)
               .height(20)
               .objectFit(ImageFit.Contain)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('display.svg', this.iconColorMode))
 
             Text(this.lt('Display Settings'))
               .fontSize(ThemeConfig.FONT_SIZE_XL)
@@ -2253,7 +2289,7 @@ struct Index {
             Image($rawfile('arrow-forward-ios.svg'))
               .width(16)
               .height(16)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
           }
           .width('100%')
           .height(ThemeConfig.MENU_ITEM_HEIGHT)
@@ -2404,7 +2440,7 @@ struct Index {
             Image($rawfile('fingerprint.svg'))
               .width(20)
               .height(20)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('fingerprint.svg', this.iconColorMode))
 
             Text(this.lt('Fingerprint'))
               .fontSize(ThemeConfig.FONT_SIZE_XL)
@@ -2441,18 +2477,6 @@ struct Index {
     .width('100%')
   }
 
-  private createStrokeIconColorFilter(color: string): drawing.ColorFilter {
-    return drawing.ColorFilter.createBlendModeColorFilter(this.toArgbColor(color), drawing.BlendMode.SRC_IN);
-  }
-
-  private toArgbColor(color: string): number {
-    const normalized = color.trim().startsWith('#') ? color.trim().substring(1) : color.trim();
-    if (normalized.length === 8) {
-      return parseInt(normalized, 16);
-    }
-    return 0xFF000000 + parseInt(normalized, 16);
-  }
-
   @Builder
   private buildCoreBridgeCard() {
     Column({ space: ThemeConfig.SPACING_SM }) {
@@ -2465,12 +2489,12 @@ struct Index {
                 Image($rawfile(modItem.icon))
                   .width(20)
                   .height(20)
-                  .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                  .colorFilter(createIconColorFilterForSrc('fingerprint.svg', this.iconColorMode))
               } else if (modItem === null) {
                 Image($rawfile('settings_cpu.svg'))
                   .width(20)
                   .height(20)
-                  .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                  .colorFilter(createIconColorFilterForSrc('settings_cpu.svg', this.iconColorMode))
               }
 
               Text(modItem !== null ? modItem.name : this.lt('Rust Core'))
@@ -2483,7 +2507,7 @@ struct Index {
               Image($rawfile('arrow-forward-ios.svg'))
                 .width(16)
                 .height(16)
-                .fillColor(this.theme_TEXT_TERTIARY)
+                .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
             }
             .width('100%')
             .height(ThemeConfig.MENU_ITEM_HEIGHT)
@@ -2805,7 +2829,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showCoreDetailDialog = false;
             })
@@ -3210,8 +3234,8 @@ struct Index {
       EmptyState($rawfile('display.svg'), this.lt('No recent sessions yet. Your first connection will appear here.'))
     } else {
       Column({ space: ThemeConfig.SPACING_SM }) {
-        ForEach(this.filterRecentSessions(this.recentSessions), (session: RecentSession) => {
-          this.buildRecentSessionRow(session)
+        ForEach(this.filterRecentSessions(this.recentSessions), (session: RecentSession, index: number) => {
+          this.buildRecentSessionRow(session, index)
         }, (session: RecentSession) => session.id)
       }
       .width('100%')
@@ -3258,7 +3282,7 @@ struct Index {
         Image($rawfile('arrow-forward-ios.svg'))
           .width(16)
           .height(16)
-          .fillColor(this.theme_TEXT_TERTIARY)
+          .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
       }
     }
     .width('100%')
@@ -3495,7 +3519,7 @@ struct Index {
       Image($rawfile(icon))
         .width(20)
         .height(20)
-        .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+        .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
 
       Text(label)
         .fontSize(ThemeConfig.FONT_SIZE_MD)
@@ -3518,10 +3542,10 @@ struct Index {
   }
 
   @Builder
-  private buildRecentSessionRow(session: RecentSession) {
+  private buildRecentSessionRow(session: RecentSession, colorIndex: number = -1) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        this.buildThemedPlatformIcon(session.platform, 26)
+        this.buildThemedPlatformIcon(session.platform, 26, colorIndex)
       }
       .width(40)
       .height(40)
@@ -3557,7 +3581,7 @@ struct Index {
         Image($rawfile('dots_vertical.svg'))
           .width(20)
           .height(20)
-          .fillColor(this.theme_TEXT_TERTIARY)
+          .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
       }
       .width(44)
       .height(44)
@@ -3754,7 +3778,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .fillColor(textColor.length > 0 ? textColor : this.theme_ACCENT)
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
     }
     .width('100%')
@@ -3780,12 +3804,12 @@ struct Index {
         Image($rawfile('checkbox-checked.svg'))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+          .colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode))
       } else {
         Image($rawfile('checkbox-unchecked.svg'))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode))
       }
     }
     .width('100%')
@@ -3889,7 +3913,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
           .margin({ right: ThemeConfig.SPACING_SM })
       }
 
@@ -3935,7 +3959,7 @@ struct Index {
           Image($rawfile('scan_frame.svg'))
             .width(22)
             .height(22)
-            .fillColor(this.theme_TEXT_TERTIARY)
+            .colorFilter(createIconColorFilterForSrc('scan_frame.svg', this.iconColorMode))
         }
         .width(40)
         .height(40)
@@ -3955,17 +3979,10 @@ struct Index {
 
   @Builder
   private buildConnectPeerTabIcon(tab: ConnectPeerTab) {
-    if (tab === 'recent' || tab === 'addressBook') {
-      Image(this.resolveConnectPeerTabIconResource(tab))
-        .width(22)
-        .height(22)
-        .colorFilter(this.createStrokeIconColorFilter(this.resolveConnectPeerTabIconColor(tab)))
-    } else {
-      Image(this.resolveConnectPeerTabIconResource(tab))
-        .width(tab === 'core' ? 20 : 22)
-        .height(tab === 'core' ? 20 : 22)
-        .fillColor(this.resolveConnectPeerTabIconColor(tab))
-    }
+    Image(this.resolveConnectPeerTabIconResource(tab))
+      .width(tab === 'core' ? 20 : 22)
+      .height(tab === 'core' ? 20 : 22)
+      .colorFilter(createIconColorFilterForSrc(this.resolveConnectPeerTabIconSrc(tab), this.iconColorMode))
   }
 
   @Builder
@@ -4017,7 +4034,7 @@ struct Index {
         Image($rawfile(icon))
           .width(16)
           .height(16)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
       Text(title)
         .fontSize(ThemeConfig.FONT_SIZE_MD)
@@ -4035,7 +4052,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
 
       Column({ space: 4 }) {
@@ -4065,7 +4082,7 @@ struct Index {
       Image($rawfile('arrow-forward-ios.svg'))
         .width(16)
         .height(16)
-        .fillColor(this.theme_TEXT_TERTIARY)
+        .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
     }
     .width('100%')
     .height(ThemeConfig.MENU_ITEM_HEIGHT)
@@ -4081,7 +4098,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
       }
 
       Column({ space: 4 }) {
@@ -4120,7 +4137,7 @@ struct Index {
       Image($rawfile('settings_network.svg'))
         .width(20)
         .height(20)
-        .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+        .colorFilter(createIconColorFilterForSrc('settings_network.svg', this.iconColorMode))
 
       Column({ space: 4 }) {
         Text(this.lt('Direct IP access'))
@@ -4145,7 +4162,7 @@ struct Index {
           Image($rawfile('info_edit.svg'))
             .width(18)
             .height(18)
-            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+          .colorFilter(createIconColorFilterForSrc('info_edit.svg', this.iconColorMode))
         }
         .width(40)
         .height(40)
@@ -4178,7 +4195,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
 
       Column({ space: 4 }) {
@@ -4371,7 +4388,7 @@ struct Index {
       Image(icon)
         .width(22)
         .height(22)
-        .fillColor(this.currentTab === tab ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+      .colorFilter(createIconColorFilterForSrc(this.resolveHomeTabIconSrc(tab), this.iconColorMode))
       Text(this.resolveHomeTabLabel(tab))
         .fontSize(11)
         .fontColor(this.currentTab === tab ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
@@ -4396,7 +4413,7 @@ struct Index {
         Image(icon)
           .width(22)
           .height(22)
-          .colorFilter(this.createStrokeIconColorFilter(this.currentTab === tab ? this.theme_ACCENT : this.theme_TEXT_TERTIARY))
+      .colorFilter(createIconColorFilterForSrc(this.resolveHomeTabIconSrc(tab), this.iconColorMode))
         if (tab === 'share' && this.isShareServiceRunning()) {
           Circle()
             .width(8)
@@ -4586,17 +4603,22 @@ struct Index {
   }
 
   @Builder
-  private buildThemedPlatformIcon(platform: string, size: number) {
-    if (this.isFillPlatformIcon(platform)) {
+  private buildThemedPlatformIcon(platform: string, size: number, colorIndex: number = -1) {
+    if (colorIndex >= 0) {
       Image(this.resolvePlatformIcon(platform))
         .width(size)
         .height(size)
-        .fillColor(this.theme_ACCENT)
+        .colorFilter(createIconColorFilterByIndex(colorIndex, this.iconColorMode))
+    } else if (this.isFillPlatformIcon(platform)) {
+      Image(this.resolvePlatformIcon(platform))
+        .width(size)
+        .height(size)
+        .colorFilter(createIconColorFilterForSrc(this.resolvePlatformIconSrc(platform), this.iconColorMode))
     } else {
       Image(this.resolvePlatformIcon(platform))
         .width(size)
         .height(size)
-        .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+        .colorFilter(createIconColorFilterForSrc(this.resolvePlatformIconSrc(platform), this.iconColorMode))
     }
   }
 
@@ -5989,6 +6011,39 @@ struct Index {
     return $rawfile(isSelected ? 'secure_filled.svg' : 'secure.svg');
   }
 
+  private resolveConnectPeerTabIconSrc(tab: ConnectPeerTab): string {
+    const isSelected = this.currentConnectTab === tab;
+    if (tab === 'recent') {
+      return isSelected ? 'history_filled.svg' : 'history.svg';
+    }
+    if (tab === 'favorites') {
+      return isSelected ? 'star_filled.svg' : 'star.svg';
+    }
+    if (tab === 'discovered') {
+      return isSelected ? 'explore_filled.svg' : 'explore.svg';
+    }
+    if (tab === 'addressBook') {
+      return isSelected ? 'address_book_filled.svg' : 'address_book.svg';
+    }
+    if (tab === 'account') {
+      return isSelected ? 'device_group_filled.svg' : 'device_group.svg';
+    }
+    return isSelected ? 'secure_filled.svg' : 'secure.svg';
+  }
+
+  private resolveHomeTabIconSrc(tab: HomeTab): string {
+    if (tab === 'connect') {
+      return 'monitor.svg';
+    }
+    if (tab === 'chat') {
+      return 'chat.svg';
+    }
+    if (tab === 'share') {
+      return 'screen.svg';
+    }
+    return 'settings_gear.svg';
+  }
+
   private resolvePlatformForDevice(deviceId: string, fallback: string): string {
     for (let i = 0; i < this.recentSessions.length; i++) {
       if (this.recentSessions[i].id === deviceId) {
@@ -6016,6 +6071,23 @@ struct Index {
       return $rawfile('win.svg');
     }
     return $rawfile('win.svg');
+  }
+
+  private resolvePlatformIconSrc(text: string): string {
+    const normalized = text.toLowerCase();
+    if (normalized.indexOf('android') >= 0) {
+      return 'android.svg';
+    }
+    if (normalized.indexOf('harmony') >= 0) {
+      return 'android.svg';
+    }
+    if (normalized.indexOf('mac') >= 0 || normalized.indexOf('ios') >= 0) {
+      return 'mac.svg';
+    }
+    if (normalized.indexOf('linux') >= 0 || normalized.indexOf('ubuntu') >= 0) {
+      return 'linux.svg';
+    }
+    return 'win.svg';
   }
 
   private resolveLocalToggleOption(key: string): boolean {
@@ -6486,7 +6558,7 @@ struct Index {
           Image($rawfile('arrow-autofit-up.svg'))
             .width(22)
             .height(22)
-            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+            .colorFilter(createIconColorFilterForSrc('arrow-autofit-up.svg', this.iconColorMode))
             .onClick(() => {
               void this.exportServerConfig();
             })
@@ -6494,7 +6566,7 @@ struct Index {
           Image($rawfile('arrow-autofit-down.svg'))
             .width(22)
             .height(22)
-            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+            .colorFilter(createIconColorFilterForSrc('arrow-autofit-down.svg', this.iconColorMode))
             .margin({ left: 12 })
             .onClick(() => {
               void this.importServerConfig();
@@ -6664,7 +6736,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showLanguageDialog = false;
             })
@@ -6732,6 +6804,101 @@ struct Index {
     })
   }
 
+  private iconColorOptions: string[] = ['colorful', '#1976C9', '#0F9D8A', '#7C5CE5', '#2E9B58', '#E18428', '#D84E78', '#667085'];
+
+  private iconColorLabel(mode: string): string {
+    const keys: string[] = ['Colorful', 'Blue', 'Cyan', 'Purple', 'Green', 'Orange', 'Rose', 'Gray'];
+    const index: number = this.iconColorOptions.indexOf(mode);
+    return this.lt(keys[index < 0 ? 0 : index]);
+  }
+
+  @Builder
+  private buildIconColorDialog() {
+    Column() {
+      Column({ space: 20 }) {
+        Row() {
+          Text(this.lt('Icon Color'))
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.theme_TEXT_PRIMARY)
+
+          Blank()
+
+          Image($rawfile('close.svg'))
+            .width(20)
+            .height(20)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
+            .onClick(() => {
+              this.showIconColorDialog = false;
+            })
+        }
+        .width('100%')
+
+        Column({ space: 0 }) {
+          ForEach(this.iconColorOptions, (mode: string, index: number) => {
+            this.buildIconColorOptionRow(mode, this.iconColorLabel(mode), index > 0)
+          })
+        }
+        .width('100%')
+      }
+      .width('85%')
+      .padding(24)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(16)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showIconColorDialog = false;
+    })
+  }
+
+  @Builder
+  private buildIconColorOptionRow(mode: string, label: string, showTopBorder: boolean = false) {
+    Row({ space: 10 }) {
+      if (mode === 'colorful') {
+        Row({ space: 2 }) {
+          Circle().width(5).height(5).fill('#1976C9')
+          Circle().width(5).height(5).fill('#0F9D8A')
+          Circle().width(5).height(5).fill('#7C5CE5')
+          Circle().width(5).height(5).fill('#D84E78')
+        }
+        .width(24)
+        .justifyContent(FlexAlign.Center)
+      } else {
+        Circle()
+          .width(20)
+          .height(20)
+          .fill(mode)
+      }
+
+      Text(label)
+        .fontSize(ThemeConfig.FONT_SIZE_XL)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .layoutWeight(1)
+
+      if (this.settings.iconColorMode === mode) {
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(this.theme_ACCENT)
+      }
+    }
+    .width('100%')
+    .height(ThemeConfig.MENU_ITEM_HEIGHT)
+    .padding({ left: 4, right: 4 })
+    .border({ width: showTopBorder ? { top: 1 } : {}, color: this.theme_BORDER_SUBTLE })
+    .onClick(() => {
+      this.updateSettings({ iconColorMode: mode });
+      ThemeManager.getInstance().setIconColorMode(mode);
+      this.showIconColorDialog = false;
+    })
+  }
+
   @Builder
   private buildThemeDialog() {
     Column() {
@@ -6747,7 +6914,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showThemeDialog = false;
             })
@@ -6823,7 +6990,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_TERTIARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showDisplaySettingsDialog = false;
             })
@@ -7104,7 +7271,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showAccountDialog = false;
             })
@@ -7115,7 +7282,7 @@ struct Index {
           Image($rawfile('settings_server.svg'))
             .width(17)
             .height(17)
-            .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .colorFilter(createIconColorFilterForSrc('settings_server.svg', this.iconColorMode))
           Text(this.lt('Server connectivity'))
             .fontSize(14)
             .fontColor(this.theme_TEXT_PRIMARY)
@@ -7141,7 +7308,7 @@ struct Index {
             Image($rawfile('settings_person.svg'))
               .width(18)
               .height(18)
-              .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+              .colorFilter(createIconColorFilterForSrc('settings_person.svg', this.iconColorMode))
             Text(this.describeAccountName())
               .fontSize(16)
               .fontColor(this.theme_TEXT_PRIMARY)
@@ -7184,7 +7351,7 @@ struct Index {
               Image($rawfile('opt_user.svg'))
                 .width(18)
                 .height(18)
-                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                .colorFilter(createIconColorFilterForSrc('opt_user.svg', this.iconColorMode))
               TextInput({ placeholder: this.lt('Username'), text: this.loginUsername })
                 .height(38)
                 .backgroundColor(this.theme_INPUT_BG)
@@ -7198,7 +7365,7 @@ struct Index {
               Image($rawfile('menu_key.svg'))
                 .width(18)
                 .height(18)
-                .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+                .colorFilter(createIconColorFilterForSrc('menu_key.svg', this.iconColorMode))
               TextInput({ placeholder: this.lt('Password'), text: this.loginPassword })
                 .height(38)
                 .type(InputType.Password)
@@ -7296,7 +7463,7 @@ struct Index {
         Image($rawfile(provider.icon))
           .width(18)
           .height(18)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_CONTRAST_TEXT))
+          .colorFilter(createIconColorFilterForSrc('menu_key.svg', this.iconColorMode))
         Text(`${this.lt('Continue with')} ${provider.name}`)
           .fontSize(14)
           .fontColor(this.theme_CONTRAST_TEXT)
@@ -7559,12 +7726,12 @@ struct Index {
         Image($rawfile('checkbox-checked.svg'))
           .width(16)
           .height(16)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_ACCENT))
+          .colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode))
       } else {
         Image($rawfile('checkbox-unchecked.svg'))
           .width(16)
           .height(16)
-          .colorFilter(this.createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode))
       }
     }
     .width('100%')
@@ -7974,7 +8141,7 @@ struct Index {
           Image($rawfile('close.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showProxyDialog = false;
             })
@@ -8502,6 +8669,9 @@ struct Index {
       }
       if (this.showThemeDialog) {
         this.buildThemeDialog()
+      }
+      if (this.showIconColorDialog) {
+        this.buildIconColorDialog()
       }
       if (this.showDisplaySettingsDialog) {
         this.buildDisplaySettingsDialog()

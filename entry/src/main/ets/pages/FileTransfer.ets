@@ -1,5 +1,5 @@
 import { AppDataService, TransferTask } from '../services/AppDataService';
-import { createStrokeIconColorFilter, PageHeader } from '../common/CommonComponents';
+import { PageHeader, createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import {
   FileInfo,
@@ -52,7 +52,7 @@ struct FileTransfer {
   private fileAccessRequestPromise: Promise<boolean> | null = null;
   private bootstrapTimer: number = -1;
 
-  @State deviceId: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State deviceId: string = '';
   @State deviceName: string = '';
   @State currentPane: FilePane = 'remote';
   @State sortField: SortField = 'name';
@@ -127,7 +127,7 @@ struct FileTransfer {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   private get selectedCount(): number {
     return this.getCurrentEntries().filter((e: FileEntry) => e.selected).length;
   }
@@ -184,7 +184,7 @@ struct FileTransfer {
       Image($rawfile('close.svg'))
         .width(24)
         .height(24)
-        .fillColor(this.theme_TEXT_PRIMARY)
+        .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
         .onClick(() => this.goBack())
         .margin({ right: 12 })
 
@@ -193,7 +193,7 @@ struct FileTransfer {
           Image($rawfile('ft_phone.svg'))
             .width(16)
             .height(16)
-            .colorFilter(createStrokeIconColorFilter(this.currentPane === 'local' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY))
+            .colorFilter(createIconColorFilterForSrc('ft_phone.svg', this.iconColorMode))
           Text(this.lt('Local'))
             .fontSize(14)
             .fontColor(this.currentPane === 'local' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
@@ -213,7 +213,7 @@ struct FileTransfer {
           Image($rawfile('ft_remote.svg'))
             .width(16)
             .height(16)
-            .colorFilter(createStrokeIconColorFilter(this.currentPane === 'remote' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY))
+            .colorFilter(createIconColorFilterForSrc('ft_remote.svg', this.iconColorMode))
           Text(this.lt('Remote'))
             .fontSize(14)
             .fontColor(this.currentPane === 'remote' ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
@@ -234,7 +234,7 @@ struct FileTransfer {
       Image($rawfile('dots_vertical.svg'))
         .width(24)
         .height(24)
-        .fillColor(this.theme_TEXT_PRIMARY)
+        .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
         .margin({ left: 12 })
         .onClick(() => {
           this.showMoreMenu = true;
@@ -252,7 +252,7 @@ struct FileTransfer {
       Image($rawfile('ft_home.svg'))
         .width(22)
         .height(22)
-        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+        .colorFilter(createIconColorFilterForSrc('ft_home.svg', this.iconColorMode))
         .onClick(() => {
           void this.goHome();
         })
@@ -262,7 +262,7 @@ struct FileTransfer {
       Image($rawfile('ft_back.svg'))
         .width(22)
         .height(22)
-        .colorFilter(createStrokeIconColorFilter(this.canGoBack() ? this.theme_TEXT_PRIMARY : this.theme_TEXT_TERTIARY))
+        .colorFilter(createIconColorFilterForSrc('ft_back.svg', this.iconColorMode))
         .margin({ right: 16 })
         .onClick(() => {
           if (this.canGoBack()) {
@@ -273,7 +273,7 @@ struct FileTransfer {
       Image($rawfile('ft_up.svg'))
         .width(22)
         .height(22)
-        .colorFilter(createStrokeIconColorFilter(this.canGoUp() ? this.theme_TEXT_PRIMARY : this.theme_TEXT_TERTIARY))
+        .colorFilter(createIconColorFilterForSrc('ft_up.svg', this.iconColorMode))
         .margin({ right: 16 })
         .onClick(() => {
           if (this.canGoUp()) {
@@ -284,7 +284,7 @@ struct FileTransfer {
       Image($rawfile('ft_sort.svg'))
         .width(22)
         .height(22)
-        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+        .colorFilter(createIconColorFilterForSrc('ft_sort.svg', this.iconColorMode))
         .onClick(() => {
           this.showSortMenu = true;
         })
@@ -330,13 +330,13 @@ struct FileTransfer {
           Image($rawfile('checkbox-checked.svg'))
             .width(20)
             .height(20)
-            .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT))
+            .colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode))
             .margin({ right: 12 })
         } else {
           Image($rawfile('checkbox-unchecked.svg'))
             .width(20)
             .height(20)
-            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode))
             .margin({ right: 12 })
         }
       }
@@ -344,7 +344,7 @@ struct FileTransfer {
       Image($rawfile(entry.type === 'folder' ? 'ft_folder.svg' : 'ft_file.svg'))
         .width(22)
         .height(22)
-        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+        .colorFilter(createIconColorFilterForSrc(entry.type === 'folder' ? 'ft_folder.svg' : 'ft_file.svg', this.iconColorMode))
         .margin({ right: 12 })
 
       Column({ space: 2 }) {
@@ -364,7 +364,7 @@ struct FileTransfer {
       Image($rawfile('dots_vertical.svg'))
         .width(20)
         .height(20)
-        .fillColor(this.theme_TEXT_TERTIARY)
+        .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
         .onClick(() => {
           this.itemMenuEntry = entry;
           this.showItemMenu = true;
@@ -413,7 +413,7 @@ struct FileTransfer {
         Image($rawfile('ft_paste.svg'))
           .width(22)
           .height(22)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT_TEXT))
+          .colorFilter(createIconColorFilterForSrc('ft_paste.svg', this.iconColorMode))
           .margin({ left: 16 })
           .onClick(() => {
             void this.executePaste();
@@ -422,7 +422,7 @@ struct FileTransfer {
         Image($rawfile('close.svg'))
           .width(22)
           .height(22)
-          .fillColor(this.theme_ACCENT_TEXT)
+          .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
           .margin({ left: 16 })
           .onClick(() => {
             this.cancelPaste();
@@ -444,7 +444,7 @@ struct FileTransfer {
         Image($rawfile('ft_copy.svg'))
           .width(22)
           .height(22)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+          .colorFilter(createIconColorFilterForSrc('ft_copy.svg', this.iconColorMode))
           .margin({ left: 16 })
           .onClick(() => {
             this.copySelected();
@@ -453,7 +453,7 @@ struct FileTransfer {
         Image($rawfile('ft_delete.svg'))
           .width(22)
           .height(22)
-          .colorFilter(createStrokeIconColorFilter(this.theme_ERROR_TEXT))
+          .colorFilter(createIconColorFilterForSrc('ft_delete.svg', this.iconColorMode))
           .margin({ left: 16 })
           .onClick(() => {
             void this.deleteSelected();
@@ -462,7 +462,7 @@ struct FileTransfer {
         Image($rawfile('close.svg'))
           .width(22)
           .height(22)
-          .fillColor(this.theme_TEXT_PRIMARY)
+          .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
           .margin({ left: 16 })
           .onClick(() => {
             this.exitMultiSelect();
@@ -537,7 +537,7 @@ struct FileTransfer {
         Image($rawfile('checkmark.svg'))
           .width(16)
           .height(16)
-          .fillColor(this.theme_ACCENT)
+          .colorFilter(createIconColorFilterForSrc('checkmark.svg', this.iconColorMode))
       }
     }
     .width('100%')
@@ -658,7 +658,7 @@ struct FileTransfer {
       Image(icon)
         .width(18)
         .height(18)
-        .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_PRIMARY))
+        .colorFilter(createIconColorFilterForSrc(label, this.iconColorMode))
       Text(label)
         .fontSize(14)
         .fontColor(this.theme_TEXT_PRIMARY)
@@ -667,7 +667,7 @@ struct FileTransfer {
         Image($rawfile('checkmark.svg'))
           .width(16)
           .height(16)
-          .fillColor(this.theme_ACCENT)
+          .colorFilter(createIconColorFilterForSrc('checkmark.svg', this.iconColorMode))
       }
     }
     .width('100%')

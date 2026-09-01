@@ -1,0 +1,1048 @@
+﻿[BuildInfo] Updated build time: 2026-09-01 14:40, version: 0.35.12, versionCode: 1000311, bump: none
+[CoreBuildInfo] Updated native core info: arm64=140149676/B0A80CF0C2B166336DB4B0CEDFA163A1E500CB6B72882FDF2E1CD701721882D3, x86_64=130840066/2199D151CD6C2900BD1FB489561F6C7716314147DF2F87F542178134C4482476
+> hvigor DEBUG prepare-node-path [36menv: nodejsVersion=v24.19.0[39m
+> hvigor DEBUG prepare-node-path [36menv: hvigor-config.json5 content = {
+  modelVersion: '6.1.1',
+  dependencies: {},
+  properties: {
+    'hvigor.cacheDir': 'E:/Visual_Studio_Code/99_Temp/harmonyos_cache',
+    'ohos.buildDir': 'E:/Visual_Studio_Code/99_Temp/harmonyos_build'
+  }
+}[39m
+> hvigor DEBUG hvigor [36menv: daemon=false[39m
+> hvigor DEBUG hvigor [36mno-daemon, use the parent process.execArgv --max-old-space-size=8192,--max-semi-space-size=16,--expose-gc[39m
+> hvigor DEBUG hvigor-init [36mHvigor init with startParameters:{
+  hvigorfileTypeCheck: false,
+  parallelExecution: true,
+  incrementalExecution: true,
+  printStackTrace: false,
+  daemon: false,
+  analyze: 0,
+  logLevel: Level { level: 10000, levelStr: 'DEBUG', colour: 'cyan' },
+  optimizationStrategy: 'memory',
+  hotCompile: undefined,
+  hotReloadBuild: undefined,
+  customizedParam: undefined
+}[39m
+> hvigor DEBUG hvigor-init [36mCache service initialization finished in 12 ms [39m
+> hvigor DEBUG configuration [36mhvigorfile, resolving E:\Visual_Studio_Code\11_Rustdesk_harmonyos\hvigorfile.ts[39m
+> hvigor DEBUG configuration [36mhvigorfile, require result:  { default: { system: [Function: appTasks], plugins: [] } }[39m
+> hvigor DEBUG configuration [36mhvigorfile, binding system plugins [Function: appTasks][39m
+> hvigor DEBUG AbstractPluginBuilder [36mStarting plugin build process[39m
+> hvigor DEBUG AbstractPluginBuilder [36mApp plugin prepare start...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mApp plugin prepare end...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mApp plugin creating...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mApp plugin register hook start...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mApp plugin register hook end...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mPlugin build process completed[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize project's product build option map with build mode debug.[39m
+> hvigor DEBUG BuildModeManager [36mPicking option from product 'default' with build mode 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mProduct 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mPicking option from product 'openharmony_verify' with build mode 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mProduct 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize project's product build option map with build mode 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mObtain build option for product 'default'in this build.[39m
+> hvigor DEBUG GlobalProjectDataService [36mE:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\cache\default\remote_hsp\remoteHspCache.json not exists.[39m
+> hvigor DEBUG SdkPreviewerComponent [36mStart recording SDK configuration permission data.[39m
+> hvigor DEBUG hos-sdk-info [36mSdk init in 25 ms [39m
+> hvigor DEBUG ProjectTaskInitializer [36mProject task initialization takes 7 ms [39m
+> hvigor DEBUG configuration [36mhvigorfile, begin to bind custom plugins...[39m
+> hvigor DEBUG configuration [36mhvigorfile, no custom plugins were found in E:\Visual_Studio_Code\11_Rustdesk_harmonyos\hvigorfile.ts[39m
+> hvigor DEBUG configuration [36mhvigorfile, resolve finished E:\Visual_Studio_Code\11_Rustdesk_harmonyos\hvigorfile.ts[39m
+> hvigor DEBUG configuration [36mhvigorfile, resolving E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\hvigorfile.ts[39m
+> hvigor DEBUG configuration [36mhvigorfile, require result:  { default: { system: [Function: hapTasks], plugins: [] } }[39m
+> hvigor DEBUG configuration [36mhvigorfile, binding system plugins [Function: hapTasks][39m
+> hvigor DEBUG AbstractPluginBuilder [36mStarting plugin build process[39m
+> hvigor DEBUG AbstractPluginBuilder [36mHap plugin creating...[39m
+> hvigor DEBUG CangjieRegisterService [36mfailed to load cangjie to dynamically generate schemas: Error: Cannot find module '@ohos/cangjie-build-support/index'
+Require stack:
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\hooks\cangjie-register.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\strategy\stage-init-strategy.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\abstract-plugin-builder.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\builder\app-plugin-builder.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\src\plugin\factory\plugin-factory.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\index.js
+- E:\Visual_Studio_Code\11_Rustdesk_harmonyos\hvigorfile.ts
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor\src\base\internal\lifecycle\configuration.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor\src\base\boot\index.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor\src\cli\main\cli.js
+- C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor\bin\hvigor.js[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize module-target build option map, moduleName=entry, buildMode=debug[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'default' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'openharmony_verify' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mDoes not get target 'openharmony_verify'corresponding build option.[39m
+> hvigor DEBUG BuildModeManager [36mUsing preset build option 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize module-target build option map, moduleName=entry[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize module-target build option map, moduleName=entry, buildMode=release[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'default' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'openharmony_verify' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mDoes not get target 'openharmony_verify'corresponding build option.[39m
+> hvigor DEBUG BuildModeManager [36mUsing preset build option 'release'.[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize module-target build option map, moduleName=entry[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize module-target build option map, moduleName=entry, buildMode=debug[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'default' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'openharmony_verify' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mDoes not get target 'openharmony_verify'corresponding build option.[39m
+> hvigor DEBUG BuildModeManager [36mUsing preset build option 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize module-target build option map, moduleName=entry[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize module-target build option map, moduleName=entry, buildMode=release[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'default' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'openharmony_verify' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mDoes not get target 'openharmony_verify'corresponding build option.[39m
+> hvigor DEBUG BuildModeManager [36mUsing preset build option 'release'.[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize module-target build option map, moduleName=entry[39m
+> hvigor DEBUG BuildModeManager [36mStart initialize module-target build option map, moduleName=entry, buildMode=debug[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'default' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mTarget 'openharmony_verify' config initialized[39m
+> hvigor DEBUG BuildModeManager [36mDoes not get target 'openharmony_verify'corresponding build option.[39m
+> hvigor DEBUG BuildModeManager [36mUsing preset build option 'debug'.[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'default' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mModule 'entry' target 'openharmony_verify' build option initialized[39m
+> hvigor DEBUG BuildModeManager [36mEnd initialize module-target build option map, moduleName=entry[39m
+> hvigor DEBUG BuildModeManager [36mObtain build option for module 'entry' target 'default'in this build.[39m
+> hvigor DEBUG TaskInitialization [36mModule entry task initialization takes 3 ms [39m
+> hvigor DEBUG AbstractPluginBuilder [36mHap plugin register hook start...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mHap plugin register hook end...[39m
+> hvigor DEBUG AbstractPluginBuilder [36mPlugin build process completed[39m
+> hvigor DEBUG configuration [36mhvigorfile, begin to bind custom plugins...[39m
+> hvigor DEBUG configuration [36mhvigorfile, no custom plugins were found in E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\hvigorfile.ts[39m
+> hvigor DEBUG configuration [36mhvigorfile, resolve finished E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\hvigorfile.ts[39m
+> hvigor DEBUG hvigor-make-project-info [36mproject has submodules:entry[39m
+> hvigor DEBUG OhPackageLoader [36mstart to load updatedOhPackageInfo to the disk[39m
+> hvigor DEBUG OhPackageLoader [36mload to the disk finished[39m
+> hvigor DEBUG TaskService [36mStart to initialize dependency information.[39m
+> hvigor DEBUG ohos-dependency-manager [36mModule 11_Rustdesk_harmonyos Collected Dependency: [39m
+> hvigor DEBUG ohos-dependency-manager [36mModule 11_Rustdesk_harmonyos's total dependency: 0[39m
+> hvigor DEBUG TaskService [36mStart to initialize dependency information.[39m
+> hvigor DEBUG ohos-dependency-manager [36mModule entry Collected Dependency: E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\cpp\types\librustdesk_bridge[39m
+> hvigor DEBUG ohos-dependency-manager [36mModule entry's total dependency: 1[39m
+> hvigor DEBUG configuration [36mConfiguration phase cost:1 s 67 ms [39m
+> hvigor DEBUG hvigor-task-executor [36mConfiguration task cost before running: 1 s 90 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@PreBuild[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@PreBuild' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@PreBuild is not up-to-date, since the input file 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@PreBuild pre-execution cost: 2 ms .[39m
+> hvigor DEBUG hvigor-preBuild [36mcurrent product is not Atomic service.[39m
+> hvigor DEBUG AbstractPreBuild [36mUse tool [win32: JAVA_HOME, CLASSPATH]
+ [
+  { JAVA_HOME: 'C:\\Program Files\\Huawei\\DevEco Studio\\jbr' },
+  { CLASSPATH: undefined }
+][39m
+> hvigor DEBUG AbstractPreBuild [36mUse tool [win32: NODE_HOME]
+ [ { NODE_HOME: undefined } ][39m
+> hvigor DEBUG task-runner [36mentry : default@PreBuild cost memory 8.858444213867188[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 200 ms [39m
+> hvigor [32mFinished :entry:default@PreBuild... after 104 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@CreateModuleInfo[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@CreateModuleInfo' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG task-runner [36mentry : default@CreateModuleInfo cost memory 0.07303619384765625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 202 ms [39m
+> hvigor [32mFinished :entry:default@CreateModuleInfo... after 1 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@GenerateMetadata[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@GenerateMetadata' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@GenerateMetadata pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@GenerateMetadata cost memory 0.15824127197265625[39m
+> hvigor [32mUP-TO-DATE :entry:default@GenerateMetadata...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ConfigureCmake[39m
+> hvigor DEBUG task-runner [36mentry : default@ConfigureCmake cost memory -8.57525634765625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 217 ms [39m
+> hvigor [32mFinished :entry:default@ConfigureCmake... after 10 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@MergeProfile[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@MergeProfile' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@MergeProfile is not up-to-date, since the input file 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@MergeProfile pre-execution cost: 1 ms .[39m
+> hvigor DEBUG hvigor-merge-profile [36mChange app bundleName with 'c***k'.[39m
+> hvigor DEBUG hvigor-merge-profile [36mChange app api release type with 'Release'[39m
+> hvigor DEBUG hvigor-merge-profile [36mChange app compile API version with '6.0.2.130'[39m
+> hvigor DEBUG hvigor-merge-profile [36mChange app target API version with '60101024'[39m
+> hvigor DEBUG hvigor-merge-profile [36mChange app minimum API version with '60100023'[39m
+> hvigor DEBUG hvigor-merge-profile [36mUse cli appEnvironment[39m
+> hvigor DEBUG task-runner [36mentry : default@MergeProfile cost memory 0.4387664794921875[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 222 ms [39m
+> hvigor [32mFinished :entry:default@MergeProfile... after 4 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@CreateBuildProfile[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@CreateBuildProfile' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@CreateBuildProfile is not up-to-date, since the input file 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CreateBuildProfile pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@CreateBuildProfile cost memory 0.14383697509765625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 225 ms [39m
+> hvigor [32mFinished :entry:default@CreateBuildProfile... after 2 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@PreCheckSyscap[39m
+> hvigor DEBUG task-runner [36mentry : default@PreCheckSyscap cost memory 0.02730560302734375[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 227 ms [39m
+> hvigor [32mFinished :entry:default@PreCheckSyscap... after 1 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@GeneratePkgContextInfo[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@GeneratePkgContextInfo' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG task-runner [36mentry : default@GeneratePkgContextInfo cost memory 0.4375762939453125[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 234 ms [39m
+> hvigor [32mFinished :entry:default@GeneratePkgContextInfo... after 6 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@GeneratePkgSdkInfo[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@GeneratePkgSdkInfo' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@GeneratePkgSdkInfo pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@GeneratePkgSdkInfo cost memory 0.20713043212890625[39m
+> hvigor [32mUP-TO-DATE :entry:default@GeneratePkgSdkInfo...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessIntegratedHsp[39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@ProcessIntegratedHsp is not up-to-date, since the output file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\cache\default\integrated_hsp\integratedHspCache.json' does not exist.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessIntegratedHsp pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessIntegratedHsp cost memory 0.09679412841796875[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 239 ms [39m
+> hvigor [32mFinished :entry:default@ProcessIntegratedHsp... after 1 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@BuildNativeWithCmake[39m
+> hvigor DEBUG BuildNativeWithCmake [36mUse tool [Cmake]
+ [
+  'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\native\\build-tools\\cmake\\bin\\cmake.exe',
+  '-HE:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main\\cpp',
+  '-BE:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\.cxx\\default\\default\\debug\\arm64-v8a',
+  '-DOHOS_ARCH=arm64-v8a',
+  '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\cmake\\default\\obj\\arm64-v8a',
+  '-DCMAKE_BUILD_TYPE=Debug',
+  '-DOHOS_SDK_NATIVE=C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\native',
+  '-DCMAKE_SYSTEM_NAME=OHOS',
+  '-DCMAKE_OHOS_ARCH_ABI=arm64-v8a',
+  '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+  '-DCMAKE_TOOLCHAIN_FILE=C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\hms\\native\\build\\cmake\\hmos.toolchain.cmake',
+  '-GNinja',
+  '-DCMAKE_MAKE_PROGRAM=C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\native\\build-tools\\cmake\\bin\\ninja.exe',
+  '-DCMAKE_FIND_ROOT_PATH=E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\.cxx\\default\\default\\debug\\hvigor\\arm64-v8a',
+  '-DPACKAGE_FIND_FILE=E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\.cxx\\default\\default\\debug\\hvigor\\arm64-v8a\\summary.cmake',
+  '--no-warn-unused-cli',
+  '-DHMOS_SDK_NATIVE=C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\hms\\native'
+][39m
+> hvigor DEBUG BuildNativeWithCmake [36mCMake configuration was up-to-date[39m
+> hvigor DEBUG task-runner [36mentry : default@BuildNativeWithCmake cost memory 0.983489990234375[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 250 ms [39m
+> hvigor [32mFinished :entry:default@BuildNativeWithCmake... after 10 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@MakePackInfo[39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@MakePackInfo is not up-to-date, since the input file 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@MakePackInfo pre-execution cost: 1 ms .[39m
+> hvigor DEBUG MakePackInfo [36mModule Pack Info:  {
+  summary: {
+    app: {
+      bundleName: 'com.open.rundesk',
+      bundleType: 'app',
+      version: [Object]
+    },
+    modules: [ [Object] ]
+  },
+  packages: [
+    {
+      deviceType: [Array],
+      moduleType: 'entry',
+      deliveryWithInstall: true,
+      name: 'entry-default'
+    }
+  ]
+}[39m
+> hvigor DEBUG task-runner [36mentry : default@MakePackInfo cost memory 0.20737457275390625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 254 ms [39m
+> hvigor [32mFinished :entry:default@MakePackInfo... after 3 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@SyscapTransform[39m
+> hvigor DEBUG incremental-declarator [36mFile: 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\syscap.json' from 'sysCapJsonPath' is not exists, just ignore.[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@SyscapTransform' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@SyscapTransform is not up-to-date, since the output file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\syscap\default\rpcid.sc' does not exist.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@SyscapTransform pre-execution cost: 8 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@SyscapTransform cost memory 0.19026947021484375[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 264 ms [39m
+> hvigor [32mFinished :entry:default@SyscapTransform... after 9 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessProfile[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@ProcessProfile' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@ProcessProfile is not up-to-date, since the input file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\merge_profile\default\module.json' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessProfile pre-execution cost: 1 ms .[39m
+> hvigor DEBUG EtsArkComponent [36m[
+  'C:\\Program Files\\nodejs\\node.exe',
+  'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\ets\\build-tools\\ets-loader\\bin\\ark\\ts2abc.js',
+  '--target-api-version',
+  '23'
+][39m
+> hvigor DEBUG root:defaultTask [36m13.0.1.0[39m
+> hvigor DEBUG hvigor-process-profile [36mNo need to add fake ui ability because of not in preview process.[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessProfile cost memory 1.8830718994140625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 965 ms [39m
+> hvigor [32mFinished :entry:default@ProcessProfile... after 700 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessRouterMap[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessRouterMap pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessRouterMap cost memory 0.178924560546875[39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessRouterMap...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessShareConfig[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessShareConfig pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessShareConfig cost memory 0.13226318359375[39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessShareConfig...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessStartupConfig[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@ProcessStartupConfig' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@ProcessStartupConfig is not up-to-date, since the output file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\startup\default\startup_config.json' does not exist.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessStartupConfig pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessStartupConfig cost memory 0.1378326416015625[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 1 s 973 ms [39m
+> hvigor [32mFinished :entry:default@ProcessStartupConfig... after 2 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@BuildNativeWithNinja[39m
+> hvigor DEBUG BuildNativeWithNinja [36mUse tool [Ninja]
+ [
+  'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\native\\build-tools\\cmake\\bin\\ninja.exe',
+  '-C',
+  'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\.cxx\\default\\default\\debug\\arm64-v8a'
+][39m
+> hvigor DEBUG hvigor-worker-pool [36mSince there is no instance or instance is terminated, create a new worker pool.[39m
+> hvigor DEBUG hvigor-worker-pool [36mWorker pool is initialized with config:  {
+  minPoolNum: 2,
+  maxPoolNum: undefined,
+  maxCoreSize: undefined,
+  cacheCapacity: undefined,
+  cacheTtl: undefined
+}[39m
+> hvigor DEBUG WorkerManagerImpl [36mCreate  resident worker with id: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCreate  resident worker with id: 1.[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@BuildNativeWithNinja work[0] is submitted.[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@BuildNativeWithNinja work[0] is pushed to ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[15] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCreate  resident worker with id: 14.[39m
+> hvigor DEBUG workerDispatcher [36mdefault@BuildNativeWithNinja work[0] has been dispatched to worker[14].[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@BuildNativeWithNinja work[0] is dispatched.[39m
+> hvigor DEBUG BuildNativeWithNinja [36mOHOS_STL is c++_shared[39m
+> hvigor DEBUG BuildNativeWithNinja [36mCopy STL libc++_shared.so to E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\cmake\default\obj\arm64-v8a due to OHOS_STL is 'c++_shared'[39m
+> hvigor DEBUG task-runner [36mentry : default@BuildNativeWithNinja cost memory 2.239959716796875[39m
+> hvigor DEBUG Resource [36mrestool module names: entry; moduleName=entry, taskName=default@ProcessResource[39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessResource[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@ProcessResource' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessResource pre-execution cost: 1 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessResource cost memory 0.1817169189453125[39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessResource...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@GenerateLoaderJson[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@GenerateLoaderJson' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@GenerateLoaderJson pre-execution cost: 5 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@GenerateLoaderJson cost memory 0.4611358642578125[39m
+> hvigor [32mUP-TO-DATE :entry:default@GenerateLoaderJson...  [39m
+> hvigor DEBUG Resource [36mrestool module names: entry; moduleName=entry, taskName=default@CompileResource[39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@CompileResource[39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@CompileResource is not up-to-date, since the input file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\process_profile\default\module.json' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CompileResource pre-execution cost: 9 ms .[39m
+> hvigor DEBUG CompileResource [36mUse tool [C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\restool.exe]
+ [
+  'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\toolchains\\restool.exe',
+  '-l',
+  'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\res\\default\\resConfig.json'
+][39m
+> hvigor DEBUG entry:default@CompileResource [36mcurrent process  memoryUsage: {
+  rss: 282599424,
+  heapTotal: 173383680,
+  heapUsed: 139902104,
+  external: 4354286,
+  arrayBuffers: 215425
+} os memoryUsage :9.563560485839844[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: Pack: normal pack mode
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: hardware concurrency count is : 16
+Info: thread count is : 16
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: thread pool is started
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: GenericCompiler::CompileFiles
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: GenericCompiler::CompileFiles
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mWarning: 'E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\resources\base\media\app_icon.png' is defined repeatedly.
+Info: GenericCompiler::CompileFiles
+[39m
+> hvigor DEBUG entry:default@CompileResource [36m09-01 14:40:13.637 21452  7504 E C01400/ImageTranscoderUtils: DecodeToRGBA IN
+09-01 14:40:13.637 21452  7504 E C01400/ImageTranscoderUtils: ImageFilter IN E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\resources\base\media\app_icon.png
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mWarning: The width or height of the png file referenced by the icon exceeds the limit (41 pixels)
+at E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\resources\base\media\app_icon.png
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mWarning: The width or height of the png file referenced by the startWindowIcon exceeds the limit (144 pixels)
+at E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\resources\base\media\app_icon.png
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: restool resources compile success.
+[39m
+> hvigor DEBUG entry:default@CompileResource [36mInfo: thread pool is stopped
+[39m
+> hvigor DEBUG task-runner [36mentry : default@CompileResource cost memory -33.07914733886719[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 2 s 299 ms [39m
+> hvigor [32mFinished :entry:default@CompileResource... after 279 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@CompileArkTS[39m
+> hvigor DEBUG ArkCompile [36mobfuscationOptions: undefined[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@CompileArkTS' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mentry:default@CompileArkTS is not up-to-date, since the input file 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\ResourceTable.txt' has been changed.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CompileArkTS pre-execution cost: 9 ms .[39m
+> hvigor DEBUG ArkCompile [36mbuild config:[39m
+> hvigor DEBUG ArkCompile [36m{
+  moduleType: 'entry',
+  perf: 0,
+  targetName: '.default',
+  packageManagerType: 'ohpm',
+  localPropertiesPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\local.properties',
+  isPreview: false,
+  isOhosTest: false,
+  isLocalTest: false,
+  buildMode: 'Debug',
+  hotReloadBuild: undefined,
+  watchMode: 'false',
+  aceProfilePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\res\\default\\resources\\base\\profile',
+  etsLoaderPath: 'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\ets\\build-tools\\ets-loader',
+  modulePath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+  testFrameworkPar: {
+    testMode: undefined,
+    coveragePathFilter: undefined,
+    coverageMode: undefined
+  },
+  needCoverageInsert: false,
+  debugLine: false,
+  projectTopDir: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos',
+  compileSdkVersion: 24,
+  compatibleSdkVersion: 23,
+  originCompatibleSdkVersion: '6.1.0(23)',
+  compatibleSdkVersionStage: undefined,
+  bundleName: 'com.open.rundesk',
+  etsLoaderVersion: '6.0.2.130',
+  etsLoaderReleaseType: 'Release',
+  aotCompileMode: 'type',
+  apPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\modules.ap',
+  entryModuleName: 'entry',
+  entryModuleVersion: '1.0.0',
+  entryPackageName: 'entry',
+  allModuleNameHash: 'd0ccf7102b54012054d1e9a400d11d6e665185a175be28c04c62b191ce688543',
+  externalApiPaths: [
+    'C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\hms\\ets'
+  ],
+  compilerTypes: [],
+  isCrossplatform: false,
+  hvigorPluginFile: undefined,
+  compilePluginPath: undefined,
+  buildGeneratedProfilePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\generated\\profile\\default',
+  bundleType: 'app',
+  arkTSVersion: undefined,
+  apiVersion: 24,
+  needCompleteSourcesMap: false,
+  isFaMode: false,
+  buildDir: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build',
+  deviceTypes: [ 'phone', 'tablet' ],
+  pkgContextInfo: undefined,
+  ohPackagePathMap: Map(2) {
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\oh-package.json5' => 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_cache\\11_Rustdesk_harmonyos\\.hvigor\\dependencyMap\\entry\\oh-package.json5',
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\oh-package.json5' => 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_cache\\11_Rustdesk_harmonyos\\.hvigor\\dependencyMap\\oh-package.json5'
+  },
+  dependencyAliasMap: Map(0) {},
+  permission: {
+    requestPermissions: [
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object]
+    ],
+    definePermissions: undefined
+  },
+  useGetCurrentBundleName: false,
+  projectArkOption: undefined,
+  sourceMapDir: undefined,
+  branchElimination: false,
+  transformLib: undefined,
+  tsImportSendable: false,
+  resolveConflictMode: true,
+  depName2RootPath: Map(1) {
+    'librustdesk_bridge.so' => 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main\\cpp\\types\\librustdesk_bridge'
+  },
+  depName2DepInfo: Map(1) {
+    'librustdesk_bridge.so' => {
+      dependencyType: 'so',
+      isByteCodeHar: false,
+      pkgRootPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main\\cpp\\types\\librustdesk_bridge',
+      pkgName: 'librustdesk_bridge.so',
+      pkgVersion: '1.0.0'
+    }
+  },
+  depName2OhExports: Map(0) {},
+  rootPathSet: [
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos',
+    'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos'
+  ],
+  useNativeResolver: true,
+  shouldEmitJs: true,
+  useTscResolve: false,
+  singleFileEmit: false,
+  userProjectConfig: {
+    autoLazyImport: false,
+    allowEmptyBundleName: false,
+    reExportCheckMode: 'noCheck',
+    executionMode: 'memory',
+    usePathPlaceholder: false,
+    writeRollupCache: true,
+    isExpandImportEnabled: false,
+    expandImportExclude: '',
+    lazyImportExclude: '',
+    lazyImportInclude: '',
+    ignoreCrossplatformCheck: false,
+    isHarDeduplicateEnabled: false,
+    skipOhModulesLint: false,
+    enableStrictCheckOHModule: false,
+    disableSendableCheckRules: [],
+    useDeclarationFileSignature: false,
+    customizedOptions: undefined,
+    integratedHsp: false,
+    isPreloadSoEnabled: false
+  },
+  executionMode: 'memory',
+  arkCompileCachePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\cache\\default\\default@CompileArkTS\\esmodule',
+  autoLazyFilter: undefined,
+  isHarDeduplicateEnabled: false,
+  intermediateHarDuplicateDirPath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\har_duplicate\\default',
+  autoLazyImport: false,
+  allowEmptyBundleName: false,
+  reExportCheckMode: 'noCheck',
+  usePathPlaceholder: false,
+  writeRollupCache: true,
+  isExpandImportEnabled: false,
+  expandImportExclude: '',
+  lazyImportExclude: '',
+  lazyImportInclude: '',
+  ignoreCrossplatformCheck: false,
+  skipOhModulesLint: false,
+  enableStrictCheckOHModule: false,
+  disableSendableCheckRules: [],
+  useDeclarationFileSignature: false,
+  customizedOptions: undefined,
+  integratedHsp: false,
+  isPreloadSoEnabled: false,
+  strictMode: undefined,
+  useNormalizedOHMUrl: false,
+  caseSensitiveCheck: false,
+  strictCheckerOnly: false,
+  aceModuleJsonPath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\res\\default\\ark_module.json',
+  appResource: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\res\\default\\ResourceTable.txt',
+  rawFileResource: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\res\\default\\resources\\rawfile',
+  resourceTableHash: 'def8fce97491004ad9bc224bcac0840f8e028350f6c021289d5d5462924c2878',
+  runtimeOS: 'HarmonyOS',
+  sdkInfo: 'false:24:6.0.2.130:Release',
+  aceModuleRoot: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main\\ets',
+  compileMode: 'esmodule',
+  aceSuperVisualPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main\\supervisual',
+  aceBuildJson: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\loader\\default\\loader.json',
+  cachePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\cache\\default\\default@CompileArkTS\\esmodule\\debug',
+  aceModuleBuild: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\loader_out\\default\\ets',
+  supportChunks: true,
+  declaredFilesPath: undefined,
+  shouldCollectDirectImportees: false,
+  isByteCodeHarOptimize: false,
+  expandImportPath: undefined,
+  resourceTableTs: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\generated\\r\\default\\ResourceTable.ts',
+  moduleMetaInfoFiles: [
+    {
+      filePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\generated\\r\\default\\ResourceTable.ts',
+      ohmurl: 'com.open.rundesk/entry/build/generated/r/ResourceTable'
+    }
+  ],
+  pkgNameToPkgBriefInfo: {
+    entry: {
+      pkgRoot: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+      originalSourceRoots: undefined,
+      sourceRoots: [Array],
+      pkgName: 'entry'
+    }
+  },
+  projectModel: {
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry\\src\\main': {
+      moduleName: 'entry',
+      modulePkgPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+      belongProjectPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos'
+    },
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry': {
+      moduleName: 'entry',
+      modulePkgPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+      belongProjectPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos'
+    },
+    'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry': {
+      moduleName: 'entry',
+      modulePkgPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+      belongProjectPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos',
+      isBuildCacheDir: true
+    },
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos': {
+      moduleName: '11_Rustdesk_harmonyos',
+      modulePkgPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos',
+      belongProjectPath: 'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos'
+    }
+  },
+  pkgJsonFileHash: '96024386edb3e9879b9f7b12807e09c2e2e4c79229d85b09eb332ae4b951af69',
+  allModulePaths: [
+    'E:\\Visual_Studio_Code\\11_Rustdesk_harmonyos\\entry',
+    'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry'
+  ],
+  routerMap: Map(0) {},
+  obfuscationOptions: undefined,
+  byteCodeHarToDependencyKeys: undefined,
+  compileBlockPkg: [],
+  mockParams: {
+    decorator: '@MockSetup',
+    packageName: '@ohos/hamock',
+    etsSourceRootPath: 'src/main/ets',
+    mockConfigPath: undefined,
+    mockConfigKey2ModuleInfo: {},
+    source2ModuleIdMap: Map(0) {}
+  },
+  copyCodeResourceEnable: true,
+  copyCodeResourceExcludes: [],
+  copyCodeResourceIncludes: undefined,
+  uiTransformOptimization: false,
+  sdkPath: 'C:/Program Files/Huawei/DevEco Studio/sdk/default',
+  needPreloadSoFileSet: Set(0) {},
+  preloadSoFilePath: 'E:\\Visual_Studio_Code\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\intermediates\\preload\\default\\preload.json',
+  useSourceHash: false,
+  localModuleParamMap: Map(0) {},
+  otherPaths: {
+    'entry/*': [
+      '..\\*',
+      '..\\..\\..\\..\\..\\99_Temp\\harmonyos_build\\11_Rustdesk_harmonyos\\entry\\build\\default\\generated\\profile\\default\\*'
+    ]
+  },
+  collectImportersConfig: undefined
+}[39m
+> hvigor DEBUG ArkCompile [36mCompile arkts with external api path: C:\Program Files\Huawei\DevEco Studio\sdk\default\hms\ets[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[1] is submitted.[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[1] is pushed to ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[15] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[14] failed because of worker busy.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[13] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[12] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[11] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[10] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[9] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[8] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[7] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[6] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[5] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCreate  resident worker with id: 4.[39m
+> hvigor DEBUG workerDispatcher [36mdefault@CompileArkTS work[1] has been dispatched to worker[4].[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[1] is dispatched.[39m
+> hvigor DEBUG ArkCompile [36mCopyResources startTime: 59155956444400[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[2] is submitted.[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[2] is pushed to ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[15] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[14] failed because of worker busy.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCreate  resident worker with id: 13.[39m
+> hvigor DEBUG workerDispatcher [36mdefault@CompileArkTS work[2] has been dispatched to worker[13].[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[2] is dispatched.[39m
+> hvigor DEBUG task-runner [36mentry : default@CompileArkTS cost memory 3.6814804077148438[39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@BuildJS[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@BuildJS' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG task-runner [36mentry : default@BuildJS cost memory 0.1454620361328125[39m
+> hvigor DEBUG task-runner [36mrunTaskFromQueue task cost before running: 2 s 340 ms [39m
+> hvigor [32mFinished :entry:default@BuildJS... after 3 ms [39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[13] has one work done.[39m
+> hvigor DEBUG ArkCompile [36mCopyResources is end, endTime: 59157097259500[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[2] done.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[13] failed because unable to get work from ready queue.[39m
+> hvigor DEBUG Native [36mninja: Entering directory `E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a'
+ninja: no work to do.
+[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[14] has one work done.[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libhilog_ndk.z.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libhilog_ndk.z.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libace_napi.z.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libace_napi.z.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\llvm\lib\aarch64-linux-ohos\libc++_shared.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\llvm\lib\aarch64-linux-ohos\libc++_shared.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_avscreen_capture.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_avscreen_capture.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_buffer.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_buffer.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_vdec.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_vdec.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_core.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_core.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_codecbase.so".[39m
+> hvigor DEBUG BuildNativeWithNinja [36mSync native runtime file E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\.cxx\default\default\debug\arm64-v8a\"C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\native\sysroot\usr\lib\aarch64-linux-ohos\libnative_media_codecbase.so".[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@BuildNativeWithNinja work[0] done.[39m
+> hvigor DEBUG workerDispatcher [36mA work dispatched to worker[14] failed because unable to get work from ready queue.[39m
+> hvigor [32mFinished :entry:default@BuildNativeWithNinja... after 506 ms [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@ProcessLibs[39m
+> hvigor DEBUG File [36mCheck content hash for E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\cmake\default\obj\arm64-v8a\librustdesk_bridge.so[39m
+> hvigor DEBUG File [36mCheck content hash for E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\cmake\default\obj\arm64-v8a\libc++_shared.so[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessLibs pre-execution cost: 6 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@ProcessLibs cost memory 3.5648117065429688[39m
+> hvigor [32mUP-TO-DATE :entry:default@ProcessLibs...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@DoNativeStrip[39m
+> hvigor DEBUG incremental-declarator [36mFile: 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\binxo\default' from 'doBinxoNativeLibs' is not exists, just ignore.[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@DoNativeStrip' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@DoNativeStrip pre-execution cost: 2 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@DoNativeStrip cost memory 0.1561431884765625[39m
+> hvigor [32mUP-TO-DATE :entry:default@DoNativeStrip...  [39m
+> hvigor DEBUG task-runner [36mExecuting task :entry:default@CacheNativeLibs[39m
+> hvigor DEBUG incremental-declarator [36mFile: 'E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\binxo\default' from 'cacheBinxoNativeLibs' is not exists, just ignore.[39m
+> hvigor DEBUG incremental-declarator [36mTask 'entry:default@CacheNativeLibs' cost while wrapping incremental declarations: 1 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CacheNativeLibs pre-execution cost: 2 ms .[39m
+> hvigor DEBUG task-runner [36mentry : default@CacheNativeLibs cost memory 0.16950225830078125[39m
+> hvigor [32mUP-TO-DATE :entry:default@CacheNativeLibs...  [39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[4] has one work error.[39m
+> hvigor DEBUG hvigor-worker-pool [36mdefault@CompileArkTS work[1] failed.[39m
+node : > hvigor [91mERROR: Failed :entry:default@CompileArkTS... [39m
+At line:1 char:125
++ ... ; $output = node scripts\run_hvigor_with_sdk_patch.js assembleHap 2>& ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (> hvigor [91mE...eArkTS... [39m:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+> hvigor [33mWARN: 
+[33m1 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/NativeR
+ustDeskBridge.ts:1:36
+ Currently module for 'librustdesk_bridge.so' is not verified. If you're importing napi, its verification will be enabl
+ed in later SDK version. Please make sure the corresponding .d.ts file is provided and the napis are correctly declared
+.
+[39m[39m
+[33m2 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:34:29
+ The system capacity of this api 'selectMode' is not supported on all devices
+[39m[39m
+[33m3 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:34:67
+ The system capacity of this api 'DocumentSelectMode' is not supported on all devices
+[39m[39m
+[33m4 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:34:86
+ The system capacity of this api 'FOLDER' is not supported on all devices
+[39m[39m
+[33m5 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:34:102
+ The system capacity of this api 'DocumentSelectMode' is not supported on all devices
+[39m[39m
+[33m6 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:34:121
+ The system capacity of this api 'FILE' is not supported on all devices
+[39m[39m
+[33m7 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileAut
+horizationService.ts:36:31
+ The system capacity of this api 'authMode' is not supported on all devices
+[39m[39m
+[33m8 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/CoreLoa
+derService.ts:395:39
+ The system capacity of this api 'getUserDownloadDir' is not supported on all devices
+[39m[39m
+[33m9 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/CoreLoa
+derService.ts:420:18
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33m10 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/CoreLo
+aderService.ts:422:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33m11 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/CoreLo
+aderService.ts:424:7
+ Function may throw exceptions. Special handling is required.
+[39m[39m
+[33m12 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/network/DeviceI
+dGenerator.ets:82:23
+ 'encode' has been deprecated.
+[39m[39m
+[33m13 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/network/DeviceI
+dGenerator.ets:207:23
+ 'encode' has been deprecated.
+[39m[39m
+[33m14 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/Screen
+CaptureService.ets:54:40
+ 'getDefaultDisplay' has been deprecated.
+[39m[39m
+[33m15 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Index.ets
+:1207:16
+ 'key' can only be used for testing directories 
+[39m[39m
+[33m16 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/AudioS
+ervice.ets:189:51
+ 'read' has been deprecated.
+[39m[39m
+[33m17 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteCon
+trol.ets:4103:32
+ 'write' has been deprecated.
+[39m[39m
+[33m18 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/services/FileTr
+ansferService.ets:126:39
+ The system capacity of this api 'getUserDownloadDir' is not supported on all devices
+[39m[39m
+[33m19 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Terminal.
+ets:96:29
+ 'getParams' has been deprecated.
+[39m[39m
+[33m20 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Terminal.
+ets:131:12
+ 'back' has been deprecated.
+[39m[39m
+[33m21 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Terminal.
+ets:355:12
+ 'key' can only be used for testing directories 
+[39m[39m
+[33m22 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+66:33
+ 'vp2px' has been deprecated.
+[39m[39m
+[33m23 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+69:34
+ 'vp2px' has been deprecated.
+[39m[39m
+[33m24 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+285:45
+ 'PhotoSelectOptions' has been deprecated.
+[39m[39m
+[33m25 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+286:26
+ 'MIMEType' has been deprecated.
+[39m[39m
+[33m26 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+286:44
+ 'PhotoViewMIMETypes' has been deprecated.
+[39m[39m
+[33m27 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+286:63
+ 'IMAGE_TYPE' has been deprecated.
+[39m[39m
+[33m28 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+287:26
+ 'maxSelectNumber' has been deprecated.
+[39m[39m
+[33m29 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+288:38
+ 'PhotoViewPicker' has been deprecated.
+[39m[39m
+[33m30 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+289:40
+ 'select' has been deprecated.
+[39m[39m
+[33m31 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+290:29
+ 'photoUris' has been deprecated.
+[39m[39m
+[33m32 WARN: [33m[33mArkTS:WARN File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Scan.ets:
+297:66
+ 'photoUris' has been deprecated.
+[39m[39m[39m
+> hvigor DEBUG hvigor-core-task [36mhvigor build process will be closed with an error.[39m
+> hvigor [91mERROR: ArkTS Compiler Error
+[31m1 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Index.ets:39
+84:68
+[39m
+[39m
+[31m2 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteContro
+l.ets:1263:77
+[39m
+[39m
+[31m3 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteContro
+l.ets:1288:76
+[39m
+[39m
+[31m4 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteContro
+l.ets:1305:74
+[39m
+[39m
+[31m5 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteContro
+l.ets:1308:75
+[39m
+[39m
+[31m6 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteContro
+l.ets:1476:72
+[39m
+[39m
+[31m7 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: Declaration or statement expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/e
+ts/pages/RemoteControl.ets:1477:9
+[39m
+[39m
+[31m8 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: Cannot find name 'objectFit'. Did you mean 'Object'? At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyo
+s/entry/src/main/ets/pages/RemoteControl.ets:1477:10
+[39m
+[39m
+[31m9 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry
+/src/main/ets/pages/RemoteControl.ets:1263:78
+[39m
+[39m
+[31m10 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry
+/src/main/ets/pages/RemoteControl.ets:1288:77
+[39m
+[39m
+[31m11 ERROR: [31m10905209 ArkTS Compiler Error
+> hvigor DEBUG hvigor-core-task [36mERROR: stacktrace = Error: ArkTS Compiler Error
+[31m1 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/Index.ets:3984:68
+[39m
+[39m
+[31m2 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1263:77
+[39m
+[39m
+[31m3 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1288:76
+[39m
+[39m
+[31m4 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1305:74
+[39m
+[39m
+[31m5 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1308:75
+[39m
+[39m
+[31m6 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: ';' expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1476:72
+[39m
+[39m
+[31m7 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: Declaration or statement expected. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1477:9
+[39m
+[39m
+[31m8 ERROR: [31m10505001 ArkTS Compiler Error
+Error Message: Cannot find name 'objectFit'. Did you mean 'Object'? At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1477:10
+[39m
+[39m
+[31m9 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1263:78
+[39m
+[39m
+[31m10 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1288:77
+[39m
+[39m
+[31m11 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1305:75
+[39m
+[39m
+[31m12 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry/src/main/ets/pages/RemoteControl.ets:1308:76
+[39m
+[39m
+[31mCOMPILE RESULT:FAIL {ERROR:13 WARN:32}[39m
+    at runArkPack (C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\node_modules\@ohos\hvigor-arkts-compose\dist\src\arkts-pack.js:1:5965)
+ArkTSCompilerError: ArkTS Compiler Error
+    at throwArkTsCompilerError (C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\node_modules\@ohos\hvigor-arkts-compose\dist\src\data\compose-error.js:1:423)
+    at throwErrorIfHasErrorInfo (C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\node_modules\@ohos\hvigor-arkts-compose\dist\src\plugins\common-plugin.js:1:4923)
+    at Object.handler (C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\node_modules\@ohos\hvigor-arkts-compose\dist\src\plugins\common-plugin.js:1:3018)
+    at C:\Program Files\Huawei\DevEco Studio\tools\hvigor\hvigor-ohos-plugin\node_modules\@ohos\hvigor-arkts-base\node_modules\rollup\dist\shared\rollup.js:27864:40[39m
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry
+/src/main/ets/pages/RemoteControl.ets:1305:75
+[39m
+[39m
+[31m12 ERROR: [31m10905209 ArkTS Compiler Error
+Error Message: Only UI component syntax can be written here. At File: E:/Visual_Studio_Code/11_Rustdesk_harmonyos/entry
+/src/main/ets/pages/RemoteControl.ets:1308:76
+[39m
+[39m
+[31mCOMPILE RESULT:FAIL {ERROR:13 WARN:32}[39m
+
+[31m* Try:
+> Run with --stacktrace option to get the stack trace.
+[39m
+> hvigor [91mERROR: BUILD FAILED in 27 s 955 ms [39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5 cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\module.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\build-profile.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\build-profile.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\resources\base\profile\main_pages.json cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\hvigor\hvigor-config.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\oh-package.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@PreBuild input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\oh-package.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@PreBuild post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CreateModuleInfo output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\profile\default\ModuleInfo.ts cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CreateModuleInfo post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@GenerateMetadata is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MergeProfile input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5 cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MergeProfile input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\build-profile.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MergeProfile input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\module.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MergeProfile output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\merge_profile\default\module.json cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@MergeProfile post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CreateBuildProfile input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5 cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CreateBuildProfile input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\build-profile.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CreateBuildProfile output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\profile\default\BuildProfile.ets cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CreateBuildProfile post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@GeneratePkgContextInfo output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\loader\default\pkgContextInfo.json cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@GeneratePkgContextInfo post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@GeneratePkgSdkInfo is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@ProcessIntegratedHsp output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\build\cache\default\integrated_hsp\integratedHspCache.json cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessIntegratedHsp post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MakePackInfo input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\app.json5 cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MakePackInfo input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\module.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MakePackInfo input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\build-profile.json5 cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@MakePackInfo output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\outputs\default\pack.info cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@MakePackInfo post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@SyscapTransform input file:C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\syscap_tool.exe cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@SyscapTransform input file:C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\ets\api\device-define cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@SyscapTransform output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\syscap\default\rpcid.sc cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@SyscapTransform post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@ProcessProfile input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\merge_profile\default\module.json cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@ProcessProfile output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\process_profile\default\module.json cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessProfile post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@ProcessRouterMap is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@ProcessShareConfig is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@ProcessStartupConfig output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\startup\default\startup_config.json cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@ProcessStartupConfig post-execution cost:1 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@ProcessResource is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@GenerateLoaderJson is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\resources cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\AppScope\resources cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\process_profile\default\module.json cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\resConfig.json cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\r\default\ResourceTable.h cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\r\default\ResourceTable.ts cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileResource output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\r\default cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CompileResource post-execution cost:12 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\loader\default cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\resources\rawfile cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\ResourceTable.txt cache from map.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\ark_module.json cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\resources\base\profile cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\ets cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\generated\profile\default\BuildProfile.ets cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS input file:E:\Visual_Studio_Code\11_Rustdesk_harmonyos\entry\src\main\cpp\types cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@CompileArkTS output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\loader_out\default\ets cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@CompileArkTS post-execution cost:8 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\loader\default cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\resources\rawfile cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\ResourceTable.txt cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\ark_module.json cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS input file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\res\default\resources\base\profile cache by regenerate.[39m
+> hvigor DEBUG hvigor-task-proxy [36mUpdate task entry:default@BuildJS output file:E:\Visual_Studio_Code\99_Temp\harmonyos_build\11_Rustdesk_harmonyos\entry\build\default\intermediates\loader_out\default\js cache.[39m
+> hvigor DEBUG hvigor-task-proxy [36mIncremental task entry:default@BuildJS post-execution cost:5 ms .[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@ProcessLibs is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@DoNativeStrip is up-to-date.[39m
+> hvigor DEBUG hvigor-task-proxy [36mThere is no need to refresh cache, since the incremental task entry:default@CacheNativeLibs is up-to-date.[39m
+> hvigor DEBUG hvigor-worker-pool [36mCurrent worker pool is stopped or closed.[39m
+> hvigor DEBUG WorkerManagerImpl [36mClear worker 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mWorker 0 has been cleared.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent idle worker size: 4.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent busy worker size: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mClear worker 1.[39m
+> hvigor DEBUG WorkerManagerImpl [36mWorker 1 has been cleared.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent idle worker size: 3.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent busy worker size: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mClear worker 13.[39m
+> hvigor DEBUG WorkerManagerImpl [36mWorker 13 has been cleared.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent idle worker size: 2.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent busy worker size: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mClear worker 14.[39m
+> hvigor DEBUG WorkerManagerImpl [36mWorker 14 has been cleared.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent idle worker size: 1.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent busy worker size: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mClear worker 4.[39m
+> hvigor DEBUG WorkerManagerImpl [36mWorker 4 has been cleared.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent idle worker size: 0.[39m
+> hvigor DEBUG WorkerManagerImpl [36mCurrent busy worker size: 0.[39m
+> hvigor DEBUG hvigor-process [36mhvigor build process will be closed.[39m
+> hvigor DEBUG Ark [36mArk compile task finished.finished time is 59181568664800[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[1] exits with exit code 1.[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[0] exits with exit code 1.[39m
+> hvigor DEBUG hvigor-worker-pool [36mCurrent worker pool is terminated.[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[14] exits with exit code 1.[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[13] exits with exit code 1.[39m
+> hvigor DEBUG WorkerManagerImpl [36mworker[4] exits with exit code 1.[39m

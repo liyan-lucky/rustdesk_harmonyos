@@ -19,7 +19,8 @@ For each asset group, record:
 
 | Path | Origin | License status | Action required |
 | --- | --- | --- | --- |
-| `entry/src/main/resources/rawfile/*.svg` | Project assets / copied or generated icons, exact per-file origin not fully recorded | Must be verified before commercial distribution | Confirm origin and update this table with exact licenses |
+| `entry/src/main/resources/rawfile/close.svg`, `group.svg`, `color_palette.svg`, `trash.svg`, `settings_gear.svg` | Iconoir SVG collection, https://iconoir.com/ | MIT | Modified only by renaming for the app's semantic resource names; retain this attribution |
+| Remaining `entry/src/main/resources/rawfile/*.svg` | Project assets / copied or generated icons, exact per-file origin not fully recorded | Must be verified before commercial distribution | Confirm origin and update this table with exact licenses |
 | `entry/src/main/resources/base/media/*` | Project media resources | Must be verified before commercial distribution | Confirm origin and license |
 | `entry/src/main/resources/base/profile/*` | HarmonyOS profile/config resources | Project/application configuration | Keep free of private signing profiles and personal data |
 

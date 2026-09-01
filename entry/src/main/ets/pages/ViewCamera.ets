@@ -1,5 +1,5 @@
 import { ThemeConfig } from '../common/ThemeConfig';
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import {
   CardContainer,
   PageHeader,
@@ -23,7 +23,7 @@ interface DeviceRouteParams {
 struct ViewCamera {
   private deviceId: string = '';
   private frameRefreshTimer: number = -1;
-  @State renderedFrame: image.PixelMap | null = null;
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State renderedFrame: image.PixelMap | null = null;
   private lastFrameId: number = 0;
 
   @State cameraStatus: string = '';
@@ -56,7 +56,7 @@ struct ViewCamera {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
@@ -111,7 +111,7 @@ struct ViewCamera {
             Image($rawfile('rec.svg'))
               .width(64)
               .height(64)
-              .fillColor(this.theme_TEXT_TERTIARY)
+              .colorFilter(createIconColorFilterForSrc('rec.svg', this.iconColorMode))
             Text(this.lt('Waiting for camera...'))
               .fontSize(ThemeConfig.FONT_SIZE_MD)
               .fontColor(this.theme_TEXT_SECONDARY)

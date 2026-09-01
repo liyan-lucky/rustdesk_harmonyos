@@ -1,4 +1,4 @@
-import { createStrokeIconColorFilter, EmptyState } from '../common/CommonComponents';
+import { EmptyState, createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import { AppDataService, SettingsState } from '../services/AppDataService';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent } from '../services/OfficialRustDeskBridge';
 import { NativeRustDeskBridge, NativeVideoFrame } from '../services/NativeRustDeskBridge';
@@ -109,7 +109,7 @@ struct RemoteControl {
   private chatService: ChatService = ChatService.getInstance();
   private audioRenderer: audio.AudioRenderer | null = null;
   private remoteAudioEnabled: boolean = false;
-  @State renderedFrame: image.PixelMap | null = null;
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State renderedFrame: image.PixelMap | null = null;
   private renderedFrameWidth: number = 0;
   private renderedFrameHeight: number = 0;
   private renderedFrameFormat: string = '';
@@ -862,7 +862,7 @@ struct RemoteControl {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('theme_TOOLBAR_BG') theme_TOOLBAR_BG: string = '#2A2A2A';
   @StorageProp('theme_WHITE') theme_WHITE: string = '#FFFFFF';
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
   @State i18nOpacity: number = 1;
@@ -948,7 +948,7 @@ struct RemoteControl {
                   Image($rawfile('display.svg'))
                     .width(64)
                     .height(64)
-                    .fillColor(this.theme_TEXT_TERTIARY);
+                    .colorFilter(createIconColorFilterForSrc('display.svg', this.iconColorMode));
                   Text(this.videoStatus)
                     .fontSize(16)
                     .fontColor(this.theme_TEXT_SECONDARY)
@@ -1219,7 +1219,7 @@ struct RemoteControl {
       Image($rawfile('close.svg'))
         .width(24)
         .height(24)
-        .fillColor(this.theme_TEXT_PRIMARY)
+        .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
         .onClick(() => {
           this.closeSession();
         });
@@ -1241,7 +1241,7 @@ struct RemoteControl {
         Image($rawfile('display.svg'))
           .width(24)
           .height(24)
-          .fillColor(this.theme_ICON_FILL)
+          .colorFilter(createIconColorFilterForSrc('display.svg', this.iconColorMode))
           .onClick(() => {
             this.setConnectionInfoVisible(!this.showConnectionInfo);
           });
@@ -1260,15 +1260,15 @@ struct RemoteControl {
         Column() {
           Image($rawfile('nav-arrow-right.svg'))
             .width(20).height(20)
-            .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
+            .colorFilter(createIconColorFilterForSrc('nav-arrow-right.svg', this.iconColorMode));
         }
         .width(32).height(48)
         .justifyContent(FlexAlign.Center)
         .onTouch((event: TouchEvent) => { this.handleToolbarDrag(event); });
 
-        this.buildToolBtnSvg($rawfile('close.svg'), () => { this.closeSession(); });
-        this.buildToolBtnSvg($rawfile('display.svg'), () => { this.showDisplayMenu = !this.showDisplayMenu; this.showMouseModeMenu = false; }, this.showDisplayMenu);
-        this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), () => {
+        this.buildToolBtnSvg($rawfile('close.svg'), 'close.svg', () => { this.closeSession(); });
+        this.buildToolBtnSvg($rawfile('display.svg'), 'display.svg', () => { this.showDisplayMenu = !this.showDisplayMenu; this.showMouseModeMenu = false; }, this.showDisplayMenu);
+        this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), 'keyboard_mouse.svg', () => {
           if (this.showKeyboard || this.imeProxyFocused) {
             this.showKeyboard = false; this.imeProxyFocused = false; this.imeProxyDismissRequested = true;
             try { this.getUIContext().getFocusController().clearFocus(); } catch (e) { console.warn('clearFocus failed: ' + JSON.stringify(e)); }
@@ -1279,13 +1279,13 @@ struct RemoteControl {
           this.showChatModeMenu = false; this.showMoreMenu = false; this.showToolbar = false;
         }, this.showKeyboard);
         this.buildToolBtnStroke($rawfile('actions.svg'), () => { this.showMouseModeMenu = !this.showMouseModeMenu; this.showDisplayMenu = false; }, this.showMouseModeMenu);
-        this.buildToolBtnSvg($rawfile('chat.svg'), () => { this.showChatModeMenu = !this.showChatModeMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showChatPanel || this.showChatModeMenu);
-        this.buildToolBtnSvg($rawfile('dots_vertical.svg'), () => { this.showMoreMenu = !this.showMoreMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showMoreMenu);
+        this.buildToolBtnSvg($rawfile('chat.svg'), 'chat.svg', () => { this.showChatModeMenu = !this.showChatModeMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showChatPanel || this.showChatModeMenu);
+        this.buildToolBtnSvg($rawfile('dots_vertical.svg'), 'dots_vertical.svg', () => { this.showMoreMenu = !this.showMoreMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showMoreMenu);
 
         Column() {
           Image($rawfile('nav-arrow-left.svg'))
             .width(20).height(20)
-            .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
+            .colorFilter(createIconColorFilterForSrc('nav-arrow-left.svg', this.iconColorMode));
         }
         .width(32).height(48)
         .justifyContent(FlexAlign.Center)
@@ -1302,10 +1302,10 @@ struct RemoteControl {
       Row() {
         Image($rawfile('nav-arrow-left.svg'))
           .width(20).height(20)
-          .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
+          .colorFilter(createIconColorFilterForSrc('nav-arrow-left.svg', this.iconColorMode));
         Image($rawfile('nav-arrow-right.svg'))
           .width(20).height(20)
-          .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor()));
+          .colorFilter(createIconColorFilterForSrc('nav-arrow-right.svg', this.iconColorMode));
       }
       .width(60).height(48)
       .justifyContent(FlexAlign.SpaceEvenly)
@@ -1373,11 +1373,11 @@ struct RemoteControl {
   @Builder
   private buildBottomToolbar() {
     Row({ space: 0 }) {
-      this.buildToolBtnSvg($rawfile('close.svg'), () => {
+      this.buildToolBtnSvg($rawfile('close.svg'), 'close.svg', () => {
         this.closeSession();
       });
 
-      this.buildToolBtnSvg($rawfile('display.svg'), () => {
+      this.buildToolBtnSvg($rawfile('display.svg'), 'display.svg', () => {
         const wasOpen = this.showDisplayMenu;
         this.showDisplayMenu = !wasOpen;
         this.showMouseModeMenu = false;
@@ -1385,7 +1385,7 @@ struct RemoteControl {
         this.showMoreMenu = false;
       }, this.showDisplayMenu);
 
-      this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), () => {
+      this.buildToolBtnSvg($rawfile('keyboard_mouse.svg'), 'keyboard_mouse.svg', () => {
         if (this.showKeyboard || this.imeProxyFocused) {
           this.showKeyboard = false;
           this.imeProxyFocused = false;
@@ -1414,7 +1414,7 @@ struct RemoteControl {
         this.showMoreMenu = false;
       }, this.showMouseModeMenu);
 
-      this.buildToolBtnSvg($rawfile('chat.svg'), () => {
+      this.buildToolBtnSvg($rawfile('chat.svg'), 'chat.svg', () => {
         const wasOpen = this.showChatModeMenu;
         this.showChatModeMenu = !wasOpen;
         this.showDisplayMenu = false;
@@ -1422,7 +1422,7 @@ struct RemoteControl {
         this.showMoreMenu = false;
       }, this.showChatPanel || this.showChatModeMenu);
 
-      this.buildToolBtnSvg($rawfile('dots_vertical.svg'), () => {
+      this.buildToolBtnSvg($rawfile('dots_vertical.svg'), 'dots_vertical.svg', () => {
         const wasOpen = this.showMoreMenu;
         this.showMoreMenu = !wasOpen;
         this.showDisplayMenu = false;
@@ -1435,7 +1435,7 @@ struct RemoteControl {
       Image($rawfile('arrow-back-ios.svg'))
         .width(20)
         .height(20)
-        .fillColor(this.resolveToolbarIconColor())
+        .colorFilter(createIconColorFilterForSrc('arrow-back-ios.svg', this.iconColorMode))
         .onClick(() => {
           this.showToolbar = false;
         });
@@ -1450,12 +1450,12 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildToolBtnSvg(icon: Resource, action: () => void, selected: boolean = false) {
+  private buildToolBtnSvg(icon: Resource, iconSrc: string, action: () => void, selected: boolean = false) {
     Row() {
       Image(icon)
         .width(30)
         .height(30)
-        .fillColor(this.resolveToolbarIconColor(selected))
+        .colorFilter(createIconColorFilterForSrc(iconSrc, this.iconColorMode))
         .objectFit(ImageFit.Contain);
     }
     .width(44)
@@ -1473,7 +1473,7 @@ struct RemoteControl {
       Image(icon)
         .width(30)
         .height(30)
-        .colorFilter(createStrokeIconColorFilter(this.resolveToolbarIconColor(selected)))
+        .colorFilter(createIconColorFilterForSrc('arrow-back-ios.svg', this.iconColorMode))
         .objectFit(ImageFit.Contain);
     }
     .width(44)
@@ -1492,7 +1492,7 @@ struct RemoteControl {
         Image($rawfile('arrow-forward-ios.svg'))
           .width(18)
           .height(18)
-          .fillColor(this.resolveToolbarIconColor())
+          .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
           .onClick(() => {
             this.showToolbar = true;
           });
@@ -1947,9 +1947,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 0) {
-            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode));
           } else {
-            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1960,9 +1960,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 1) {
-            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode));
           } else {
-            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1973,9 +1973,9 @@ struct RemoteControl {
             .fontColor(this.displayScaleMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
             .layoutWeight(1);
           if (this.displayScaleMode === 2) {
-            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+            Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode));
           } else {
-            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
+            Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode));
           }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
@@ -1983,37 +1983,37 @@ struct RemoteControl {
       } else if (this.displayMenuPopupId === 'codec') {
         Row() {
           Text('Auto').fontSize(13).fontColor(this.videoCodecMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 0) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 0) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(0); this.displayMenuPopupId = ''; });
         Row() {
           Text('VP8').fontSize(13).fontColor(this.videoCodecMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 1) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 1) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(1); this.displayMenuPopupId = ''; });
         Row() {
           Text('VP9').fontSize(13).fontColor(this.videoCodecMode === 2 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 2) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 2) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(2); this.displayMenuPopupId = ''; });
         Row() {
           Text('AV1').fontSize(13).fontColor(this.videoCodecMode === 3 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 3) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 3) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(3); this.displayMenuPopupId = ''; });
         Row() {
           Text('H264').fontSize(13).fontColor(this.videoCodecMode === 4 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 4) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 4) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(4); this.displayMenuPopupId = ''; });
         Row() {
           Text('H265').fontSize(13).fontColor(this.videoCodecMode === 5 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY).layoutWeight(1);
-          if (this.videoCodecMode === 5) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_ACCENT)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY)); }
+          if (this.videoCodecMode === 5) { Image($rawfile('checkbox-checked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode)); } else { Image($rawfile('checkbox-unchecked.svg')).width(16).height(16).colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode)); }
         }
         .width('100%').height(40).padding({ left: 16, right: 16 })
         .onClick(() => { this.applyVideoCodec(5); this.displayMenuPopupId = ''; });
@@ -2273,7 +2273,7 @@ struct RemoteControl {
       Row({ space: 10 }) {
         Image($rawfile('opt_touch.svg'))
           .width(18).height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc('opt_touch.svg', this.iconColorMode))
         Text(this.lt('Touch Mode'))
           .fontSize(14)
           .fontColor(this.mouseControlMode === 0 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
@@ -2297,7 +2297,7 @@ struct RemoteControl {
       Row({ space: 10 }) {
         Image($rawfile('opt_mouse.svg'))
           .width(18).height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc('opt_mouse.svg', this.iconColorMode))
         Text(this.lt('Mouse Mode'))
           .fontSize(14)
           .fontColor(this.mouseControlMode === 1 ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
@@ -2861,12 +2861,12 @@ struct RemoteControl {
             Image($rawfile('checkbox-checked.svg'))
               .width(14)
               .height(14)
-              .colorFilter(createStrokeIconColorFilter(this.theme_ACCENT));
+              .colorFilter(createIconColorFilterForSrc('checkbox-checked.svg', this.iconColorMode));
           } else {
             Image($rawfile('checkbox-unchecked.svg'))
               .width(14)
               .height(14)
-              .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY));
+              .colorFilter(createIconColorFilterForSrc('checkbox-unchecked.svg', this.iconColorMode));
           }
         }
         .width('100%')
@@ -2968,7 +2968,7 @@ struct RemoteControl {
           Image($rawfile('close.svg'))
             .width(18)
             .height(18)
-            .fillColor(this.theme_TEXT_PRIMARY)
+            .colorFilter(createIconColorFilterForSrc('close.svg', this.iconColorMode))
             .onClick(() => {
               this.showChatPanel = false;
             });
@@ -3115,13 +3115,13 @@ struct RemoteControl {
           Image($rawfile(headerAction.icon))
             .width(18)
             .height(18)
-            .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+            .colorFilter(createIconColorFilterForSrc(headerAction.icon, this.iconColorMode))
             .onClick(() => headerAction.action());
         } else {
           Image($rawfile(headerAction.icon))
             .width(18)
             .height(18)
-            .fillColor(this.theme_TEXT_TERTIARY)
+            .colorFilter(createIconColorFilterForSrc(headerAction.icon, this.iconColorMode))
             .onClick(() => headerAction.action());
         }
       }
@@ -3152,7 +3152,7 @@ struct RemoteControl {
         Image($rawfile(icon))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
 
       Text(label)
@@ -3164,7 +3164,7 @@ struct RemoteControl {
         Image($rawfile('arrow-forward-ios.svg'))
           .width(16)
           .height(16)
-          .fillColor(this.theme_TEXT_TERTIARY)
+          .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
       }
     }
     .width('100%')
@@ -3180,7 +3180,7 @@ struct RemoteControl {
         Image($rawfile(icon))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
 
       Text(label)
@@ -6674,7 +6674,7 @@ struct RadioOptionItem {
         Image($rawfile(this.icon))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "colorful"))
       }
 
       Text(this.label)
@@ -6725,7 +6725,7 @@ struct CheckboxOptionItem {
         Image($rawfile(this.icon))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_TERTIARY))
+          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "colorful"))
       }
 
       Text(this.label)

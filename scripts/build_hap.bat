@@ -8,6 +8,8 @@ for %%I in ("%PROJECT_ROOT%\..\99_Temp") do set "TEMP_ROOT=%%~fI"
 for %%I in ("%PROJECT_ROOT%\..\99_Temp\harmonyos_stage\%PROJECT_NAME%") do set "STAGE_ROOT=%%~fI"
 
 if not defined RUSTDESK_HARMONY_TEMP_ROOT set "RUSTDESK_HARMONY_TEMP_ROOT=%TEMP_ROOT%"
+for %%I in ("%RUSTDESK_HARMONY_TEMP_ROOT%\harmonyos_stage\%PROJECT_NAME%") do set "STAGE_ROOT=%%~fI"
+if defined RUSTDESK_HARMONY_STAGE_ROOT for %%I in ("%RUSTDESK_HARMONY_STAGE_ROOT%") do set "STAGE_ROOT=%%~fI"
 if not defined BUILD_CACHE_DIR set "BUILD_CACHE_DIR=%RUSTDESK_HARMONY_TEMP_ROOT%\harmonyos_cache"
 if not defined CI set "CI=true"
 if not exist "%BUILD_CACHE_DIR%" mkdir "%BUILD_CACHE_DIR%" >nul 2>nul

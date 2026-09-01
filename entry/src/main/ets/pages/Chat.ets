@@ -1,4 +1,4 @@
-import { createStrokeIconColorFilter } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
 import { AppDataService } from '../services/AppDataService';
 import { EmptyState, PageHeader } from '../common/CommonComponents';
 import { ChatEvent, ChatMessage, ChatMessageType, ChatService } from '../services/ChatService';
@@ -25,7 +25,7 @@ struct Chat {
   private chatScroller: Scroller = new Scroller();
   private scrollTimers: number[] = [];
 
-  @State deviceId: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State deviceId: string = '';
   @State deviceName: string = '';
   @State draft: string = '';
   @State messages: ChatMessage[] = [];
@@ -62,7 +62,7 @@ struct Chat {
   @StorageProp('theme_TEXT_TERTIARY') theme_TEXT_TERTIARY: string = '#7E879A';
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
-  @StorageProp('themeIsDark') themeIsDark: boolean = false;
+  @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
 
@@ -153,7 +153,7 @@ struct Chat {
         Image($rawfile('file.svg'))
           .width(64)
           .height(64)
-          .fillColor(this.theme_ACCENT)
+          .colorFilter(createIconColorFilterForSrc('file.svg', this.iconColorMode))
         
         Text(this.lt('Drop files to send'))
           .fontSize(18)
@@ -167,7 +167,7 @@ struct Chat {
                 Image($rawfile('file.svg'))
                   .width(20)
                   .height(20)
-                  .fillColor(this.theme_TEXT_SECONDARY)
+                  .colorFilter(createIconColorFilterForSrc('file.svg', this.iconColorMode))
                 Text(file.name)
                   .fontSize(14)
                   .fontColor(this.theme_TEXT_SECONDARY)
@@ -274,7 +274,7 @@ struct Chat {
         Image(icon)
           .width(14)
           .height(14)
-          .colorFilter(createStrokeIconColorFilter(fontColor))
+          .colorFilter(createIconColorFilterForSrc('trash.svg', this.iconColorMode))
         Text(label)
           .fontSize(11)
           .fontColor(fontColor)
@@ -294,7 +294,7 @@ struct Chat {
         Image($rawfile('chat2.svg'))
           .width(18)
           .height(18)
-          .colorFilter(createStrokeIconColorFilter(this.theme_TEXT_SECONDARY))
+          .colorFilter(createIconColorFilterForSrc('chat2.svg', this.iconColorMode))
           .margin({ right: 8 })
         TextInput({ placeholder: this.lt('Input message'), text: this.draft })
           .layoutWeight(1)
@@ -321,7 +321,7 @@ struct Chat {
           Image($rawfile('arrow.svg'))
             .width(14)
             .height(14)
-            .fillColor(this.theme_ACCENT_TEXT)
+            .colorFilter(createIconColorFilterForSrc('arrow.svg', this.iconColorMode))
             .rotate({ angle: 90 })
           Text(this.lt('Send'))
             .fontSize(13)
