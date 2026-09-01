@@ -2132,7 +2132,7 @@ struct Index {
   @Builder
   private buildSettingsServerSection() {
     Column({ space: ThemeConfig.SPACING_SM }) {
-      this.buildSettingsSectionLabel(this.lt('Settings'), 'settings_server.svg')
+      this.buildSettingsSectionLabel(this.lt('Settings'), 'settings_gear.svg')
       CardContainer() {
         Column({ space: 0 }) {
           this.buildSettingsLinkRow(this.lt('ID / Relay Server'), this.describeServerSummary(), () => {
@@ -2313,7 +2313,7 @@ struct Index {
         Column({ space: 0 }) {
           this.buildSettingsToggleSettingRow(this.lt('Enable hardware codec'), this.settings.enableHardwareCodec, (value: boolean) => {
             this.updateSettings({ enableHardwareCodec: value });
-          }, '', false, 'settings_cpu.svg')
+          }, '', false, 'settings_monitor.svg')
         }
         .width('100%')
       }
@@ -2349,7 +2349,7 @@ struct Index {
         Column({ space: 0 }) {
           this.buildSettingsToggleSettingRow(this.lt('Enable Two Factor'), this.settings.twoFactorEnabled, (value: boolean) => {
             this.updateSettings({ twoFactorEnabled: value });
-          }, '', false, 'settings_shield.svg')
+          }, '', false, 'settings_shield_check.svg')
           this.buildSettingsToggleSettingRow(this.lt('Only Whitelist IP Access'), this.settings.onlyWhitelistIpAccess, (value: boolean) => {
             this.updateSettings({ onlyWhitelistIpAccess: value });
           }, '', true, 'settings_whitelist.svg')

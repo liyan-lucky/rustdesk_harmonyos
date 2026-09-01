@@ -1278,7 +1278,7 @@ struct RemoteControl {
           this.showDisplayMenu = false; this.showMouseModeMenu = false;
           this.showChatModeMenu = false; this.showMoreMenu = false; this.showToolbar = false;
         }, this.showKeyboard);
-        this.buildToolBtnStroke($rawfile('actions.svg'), () => { this.showMouseModeMenu = !this.showMouseModeMenu; this.showDisplayMenu = false; }, this.showMouseModeMenu);
+        this.buildToolBtnStroke($rawfile('actions.svg'), 'actions.svg', () => { this.showMouseModeMenu = !this.showMouseModeMenu; this.showDisplayMenu = false; }, this.showMouseModeMenu);
         this.buildToolBtnSvg($rawfile('chat.svg'), 'chat.svg', () => { this.showChatModeMenu = !this.showChatModeMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showChatPanel || this.showChatModeMenu);
         this.buildToolBtnSvg($rawfile('dots_vertical.svg'), 'dots_vertical.svg', () => { this.showMoreMenu = !this.showMoreMenu; this.showDisplayMenu = false; this.showMouseModeMenu = false; }, this.showMoreMenu);
 
@@ -1406,7 +1406,7 @@ struct RemoteControl {
         this.showToolbar = false;
       }, this.showKeyboard);
 
-      this.buildToolBtnStroke($rawfile('actions.svg'), () => {
+      this.buildToolBtnStroke($rawfile('actions.svg'), 'actions.svg', () => {
         const wasOpen = this.showMouseModeMenu;
         this.showMouseModeMenu = !wasOpen;
         this.showDisplayMenu = false;
@@ -1468,12 +1468,12 @@ struct RemoteControl {
   }
 
   @Builder
-  private buildToolBtnStroke(icon: Resource, action: () => void, selected: boolean = false) {
+  private buildToolBtnStroke(icon: Resource, iconSrc: string, action: () => void, selected: boolean = false) {
     Row() {
       Image(icon)
         .width(30)
         .height(30)
-        .colorFilter(createIconColorFilterForSrc('arrow-back-ios.svg', this.iconColorMode))
+        .colorFilter(createIconColorFilterForSrc(iconSrc, this.iconColorMode))
         .objectFit(ImageFit.Contain);
     }
     .width(44)
