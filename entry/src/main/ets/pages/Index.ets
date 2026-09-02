@@ -2002,8 +2002,8 @@ struct Index {
       EmptyState($rawfile('display.svg'), emptyMessage)
     } else {
       Column({ space: ThemeConfig.SPACING_SM }) {
-        ForEach(entries, (entry: AddressBookEntry) => {
-          this.buildConnectAddressEntryRow(entry)
+        ForEach(entries, (entry: AddressBookEntry, index: number) => {
+          this.buildConnectAddressEntryRow(entry, index)
         }, (entry: AddressBookEntry) => `${entry.id}-${entry.group}-${entry.favorite ? 'fav' : 'plain'}`)
       }
       .width('100%')
@@ -2011,10 +2011,10 @@ struct Index {
   }
 
   @Builder
-  private buildConnectAddressEntryRow(entry: AddressBookEntry) {
+  private buildConnectAddressEntryRow(entry: AddressBookEntry, colorIndex: number = -1) {
     Row({ space: ThemeConfig.SPACING_MD }) {
       Row() {
-        this.buildThemedPlatformIcon(entry.platform, 26)
+        this.buildThemedPlatformIcon(entry.platform, 26, colorIndex)
       }
       .width(40)
       .height(40)
