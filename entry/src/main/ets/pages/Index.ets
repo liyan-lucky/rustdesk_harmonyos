@@ -46,6 +46,7 @@ import { DirectIpProbeService, DirectIpTarget } from '../services/DirectIpProbeS
 import fileFs from '@ohos.file.fs';
 import environment from '@ohos.file.environment';
 import picker from '@ohos.file.picker';
+import pasteboard from '@ohos.pasteboard';
 
 type HomeTab = 'connect' | 'chat' | 'share' | 'settings';
 type ConnectPeerTab = 'recent' | 'favorites' | 'discovered' | 'addressBook' | 'account' | 'core';
@@ -606,6 +607,9 @@ struct Index {
   @State showAddressBookActionsMenu: boolean = false;
   @State addressBookMenuX: number = 0;
   @State addressBookMenuY: number = 0;
+  @State showDiagnosticsMenu: boolean = false;
+  @State diagnosticsMenuX: number = 0;
+  @State diagnosticsMenuY: number = 0;
   @State addressBookTagDraft: string = '';
   @State editingAddressBookTag: string = '';
   @State addressBookTagBusy: boolean = false;
@@ -3093,7 +3097,20 @@ struct Index {
         .width('100%')
         .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
       }
-      this.buildSettingsSectionLabel(this.lt('Runtime Summary'))
+      Row() {
+        this.buildSettingsSectionLabel(this.lt('Runtime Summary'))
+        Blank()
+        Image($rawfile('dots_vertical.svg'))
+          .width(18)
+          .height(18)
+          .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
+          .onClick((event: ClickEvent) => {
+            this.diagnosticsMenuX = event.windowX - 120;
+            this.diagnosticsMenuY = event.windowY + 24;
+            this.showDiagnosticsMenu = true;
+          })
+      }
+      .width('100%')
       CardContainer() {
         Column({ space: 2 }) {
           ForEach(this.parseRuntimeSummaryLines(), (item: RuntimeSummaryLine) => {
@@ -3118,12 +3135,17 @@ struct Index {
         }
         .width('100%')
         .padding({ top: ThemeConfig.SPACING_MD, bottom: ThemeConfig.SPACING_MD })
+        .gesture(
+          LongPressGesture({ duration: 500 })
+            .onAction((event: GestureEvent) => {
+              this.diagnosticsMenuX = event.fingerList[0].globalX - 80;
+              this.diagnosticsMenuY = event.fingerList[0].globalY + 20;
+              this.showDiagnosticsMenu = true;
+            })
+        )
       }
     }
     .width('100%')
-    .gesture(LongPressGesture().onAction(() => {
-      void this.exportDiagnosticsToFile();
-    }))
   }
 
   private getAppDiagnosticsLines(): RuntimeSummaryLine[] {
@@ -3147,6 +3169,7 @@ struct Index {
   }
 
   private async exportDiagnosticsToFile(): Promise<void> {
+    this.showDiagnosticsMenu = false;
     try {
       const content = this.getDiagnosticsSummary();
       const now = new Date();
@@ -3174,6 +3197,69 @@ struct Index {
       console.error('exportDiagnosticsToFile failed: ' + JSON.stringify(error));
       this.setStatusMessageRaw(`${this.lt('Export failed')}: ${String(error)}`);
     }
+  }
+
+  private async copyDiagnosticsToClipboard(): Promise<void> {
+    this.showDiagnosticsMenu = false;
+    try {
+      const content = this.getDiagnosticsSummary();
+      const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, content);
+      const systemPasteboard = pasteboard.getSystemPasteboard();
+      await systemPasteboard.setData(pasteData);
+      this.showToast(this.lt('Copied to clipboard'));
+    } catch (error) {
+      console.error('copyDiagnosticsToClipboard failed: ' + JSON.stringify(error));
+      this.showToast(this.lt('Copy failed'));
+    }
+  }
+
+  @Builder
+  private buildDiagnosticsMenu() {
+    Column({ space: 0 }) {
+      Row({ space: 10 }) {
+        Image($rawfile('copy.svg'))
+          .width(18)
+          .height(18)
+          .colorFilter(createIconColorFilterForSrc('copy.svg', this.iconColorMode))
+        Text(this.lt('Copy'))
+          .fontSize(16)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .height(44)
+      .padding({ left: 16, right: 16 })
+      .onClick(() => {
+        void this.copyDiagnosticsToClipboard();
+      })
+
+      Divider().color(this.theme_BORDER_SUBTLE).margin({ left: 16, right: 16 })
+
+      Row({ space: 10 }) {
+        Image($rawfile('file_export.svg'))
+          .width(18)
+          .height(18)
+          .colorFilter(createIconColorFilterForSrc('file_export.svg', this.iconColorMode))
+        Text(this.lt('Export to file'))
+          .fontSize(16)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .layoutWeight(1)
+      }
+      .width('100%')
+      .height(44)
+      .padding({ left: 16, right: 16 })
+      .onClick(() => {
+        void this.exportDiagnosticsToFile();
+      })
+    }
+    .width(160)
+    .padding({ top: 6, bottom: 6 })
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(12)
+    .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    .position({ x: this.clampMenuX(this.diagnosticsMenuX, 160), y: this.clampMenuY(this.diagnosticsMenuY, 120) })
+    .zIndex(50)
   }
 
   private parseRuntimeSummaryLines(): RuntimeSummaryLine[] {
@@ -3303,6 +3389,7 @@ struct Index {
     this.showSortMenu = false;
     this.showConnectTabVisibilityMenu = false;
     this.showAddressBookActionsMenu = false;
+    this.showDiagnosticsMenu = false;
   }
 
   @Builder
@@ -3790,7 +3877,7 @@ struct Index {
       .borderRadius(8)
       .backgroundColor(this.theme_CARD_BG)
       .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
-      .position({ x: '10%', y: '38%' })
+      .position({ x: '10%', y: this.screenHeight - 110 - this.avoidNavigationBarHeight })
       .zIndex(100)
       .animation({ duration: 200, curve: Curve.EaseInOut })
     }
@@ -3862,6 +3949,7 @@ struct Index {
               this.appData.removeFavorite(id);
               this.addressBookVersion++;
               this.refreshAccountState();
+              void this.showToast(this.lt('Removed from favorites'));
             }, true, '', 'star_filled.svg')
           } else {
             this.buildPeerMenuActionRow(this.lt('Add to Favorites'), () => {
@@ -3870,6 +3958,7 @@ struct Index {
               this.appData.addFavorite(id);
               this.addressBookVersion++;
               this.refreshAccountState();
+              void this.showToast(this.lt('Added to favorites'));
             }, true, '', 'star.svg')
           }
 
@@ -3927,12 +4016,15 @@ struct Index {
               this.appData.removeFavorite(id);
               this.addressBookVersion++;
               this.refreshAccountState();
+              void this.showToast(this.lt('Removed from favorites'));
             } else if (this.currentConnectTab === 'addressBook') {
               this.appData.removeAddressBookEntry(id);
               this.refreshAccountState();
+              void this.showToast(this.lt('Removed from address book'));
             } else {
               LanDiscoveryService.getInstance().removeDiscoveredPeer(id);
               this.addressBookVersion++;
+              void this.showToast(this.lt('Removed from discovered'));
             }
           }, true, this.theme_ERROR_TEXT, 'delete-forever.svg')
         }
@@ -5080,6 +5172,7 @@ struct Index {
   private async importServerConfig(): Promise<void> {
     const raw = await this.clipboardService.getClipboardContent();
     if (!raw || raw.trim().length === 0) {
+      await this.showToast(this.lt('Clipboard is empty'));
       return;
     }
     const config: ServerConfigImportResult | null = ServerConfigCodec.decode(raw);
@@ -5140,7 +5233,14 @@ struct Index {
     if (nextStatusMessage && nextStatusMessage.trim().length > 0) {
       this.setStatusMessageRaw(nextStatusMessage ?? "");
     }
-    await this.sleep(180);
+    const closeDeadline = Date.now() + 180;
+    while (Date.now() < closeDeadline) {
+      const checkState = this.officialBridge.getCoreState();
+      if (checkState.sessionStage !== 'connecting' && checkState.sessionStage !== 'connected') {
+        break;
+      }
+      await this.sleep(20);
+    }
   }
 
   private resetConnectionUiAfterTerminalEvent(finalStatusMessage: string = ''): void {
@@ -5161,10 +5261,12 @@ struct Index {
       this.clearStatusMessage();
     }
     this.refreshCurrentSessionChat(false);
+    this.startOnlineStatusPoll();
   }
 
   private async cancelPendingConnection(): Promise<void> {
     await this.resetPendingConnectionState(true, this.lt('Connection request cancelled.'));
+    this.startOnlineStatusPoll();
   }
 
   private isPendingConnectionAlive(coreState: OfficialCoreState, peerId: string): boolean {
@@ -5200,6 +5302,7 @@ struct Index {
       return;
     }
     try {
+    this.stopOnlineStatusPoll();
     NativeRustDeskBridge.setLocalOption(
       'harmony-session-type',
       this.pendingNavigatePage === 'pages/Terminal' ? 'terminal' : 'default'
@@ -5277,6 +5380,7 @@ struct Index {
       Logger.error('CONN', `handleConnect failed: ${JSON.stringify(error)}`);
       this.isConnecting = false;
       this.setStatusMessage("connection_failed");
+      this.startOnlineStatusPoll();
     }
   }
 
@@ -6077,7 +6181,11 @@ struct Index {
         this.addressBookVersion++;
         this.refreshAccountState();
         void this.showToast(this.lt('Delete failed on server, entry kept'));
+      } else {
+        void this.showToast(this.lt('Removed from address book'));
       }
+    } else {
+      void this.showToast(this.lt('Removed from address book'));
     }
   }
 
@@ -6607,6 +6715,7 @@ struct Index {
     this.addressBookVersion++;
     this.refreshAccountState();
     if (!this.accountState.isLoggedIn) {
+      void this.showToast(this.lt('Added to address book'));
       return;
     }
     const success = await this.accountService.addPeerToAddressBook({
@@ -6617,6 +6726,8 @@ struct Index {
     });
     if (!success) {
       await this.showToast(this.lt('Add failed on server, entry kept locally'));
+    } else {
+      await this.showToast(this.lt('Added to address book'));
     }
   }
 
@@ -8351,6 +8462,7 @@ struct Index {
               if (newName.length > 0) {
                 this.appData.renameRecentSession(id, newName);
                 this.recentSessions = this.appData.getRecentSessions();
+                void this.showToast(this.lt('Renamed successfully'));
               }
               this.showRenameDialog = false;
             })
@@ -8667,6 +8779,7 @@ struct Index {
     this.isConnecting = false;
     this.pendingConnectionRetryCount = 0;
     this.pendingConnectionInactivePollCount = 0;
+    this.startOnlineStatusPoll();
     this.setStatusMessageRaw(state.sessionStage === 'connected'
       ? this.lt('Connection established. Opening remote desktop...')
       : this.lt('Connection request continuing...'));
@@ -8682,10 +8795,10 @@ struct Index {
       return;
     }
     const monitorId = ++this.pendingConnectionMonitorId;
-    const initialState = await this.officialBridge.refresh(this.settings);
+    const initialState = this.officialBridge.getCoreState();
     this.officialCoreState = initialState;
     for (let i = 0; i < 600; i += 1) {
-      await this.sleep(300);
+      await this.sleep(150);
       if (monitorId !== this.pendingConnectionMonitorId || this.pendingPeerId.trim() !== peerId) {
         return;
       }
@@ -8963,7 +9076,8 @@ struct Index {
       .hitTestBehavior(HitTestMode.Transparent)
 
       if (this.recentMenuSessionId.length > 0 || this.showSortMenu ||
-        this.showConnectTabVisibilityMenu || this.showAddressBookActionsMenu) {
+        this.showConnectTabVisibilityMenu || this.showAddressBookActionsMenu ||
+        this.showDiagnosticsMenu) {
         Column()
           .width('100%')
           .height('100%')
@@ -8989,6 +9103,9 @@ struct Index {
         ForEach([this.addressBookActionsMenuVersion], (_version: number) => {
           this.buildAddressBookActionsMenu()
         }, (_version: number) => `${_version}`)
+      }
+      if (this.showDiagnosticsMenu) {
+        this.buildDiagnosticsMenu()
       }
       if (this.showAddressBookTagManagement) {
         if (this.addressBookDialogMode === 'id') {

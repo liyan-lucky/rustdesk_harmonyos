@@ -83,6 +83,7 @@ const ICON_COLOR_MAP: Record<string, string> = {
   'qr_code.svg': '#0F9D8A', 'bookmark.svg': '#E18428', 'connect.svg': '#1976C9',
   'insecure.svg': '#E18428', 'keyboard.svg': '#7C5CE5', 'keyboard_mouse.svg': '#0F9D8A',
   'login.svg': '#2E9B58', 'content_copy.svg': '#1976C9', 'content_paste.svg': '#7C5CE5',
+  'copy.svg': '#1976C9', 'file_export.svg': '#0F9D8A',
   'android.svg': '#2E9B58', 'linux.svg': '#E18428',
   'history_filled.svg': '#D84E78', 'star_filled.svg': '#E18428',
   'actions.svg': '#7C5CE5', 'cursor-pointer.svg': '#1976C9',
@@ -713,7 +714,7 @@ export struct ToastOverlay {
       .borderRadius(8)
       .backgroundColor(this.themeCardBg)
       .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
-      .position({ x: '10%', y: '38%' })
+      .position({ x: '10%', y: '82%' })
       .zIndex(100)
       .animation({ duration: 200, curve: Curve.EaseInOut })
     }

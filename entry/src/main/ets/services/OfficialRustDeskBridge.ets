@@ -178,7 +178,10 @@ export class OfficialRustDeskBridge {
     this.sessionTransportPeerId = transportPeerId;
     this.sessionDisplayPeerId = explicitDisplayPeerId.length > 0 ? explicitDisplayPeerId : requestedPeerId;
     const serverConfig = AppDataService.resolveServerConfig(settings);
-    const coreState = await this.refresh(settings);
+    let coreState = this.getCoreState();
+    if (!coreState.coreReady) {
+      coreState = await this.refresh(settings);
+    }
     if (!coreState.coreReady && !NativeRustDeskBridge.hasNativeModule()) {
       const missingCoreState = OfficialRustDeskBridge.copyCoreState(coreState);
       missingCoreState.sessionStage = 'error';
