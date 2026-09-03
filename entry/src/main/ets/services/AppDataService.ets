@@ -422,10 +422,7 @@ export class AppDataService {
   updateOnlineStatusFromResult(onlines: string[], offlines: string[]): void {
     onlines.forEach((id: string) => {
       const normalizedId = DeviceIdFormatter.parse(id);
-      const lanOfflineUntil = this.lanOfflineUntilMap.get(normalizedId) ?? 0;
-      if (lanOfflineUntil > Date.now()) {
-        return;
-      }
+      this.lanOfflineUntilMap.delete(normalizedId);
       this.peerOnlineMap.set(normalizedId, true);
       this.updateStoredPeerOnlineState(normalizedId, true);
     });

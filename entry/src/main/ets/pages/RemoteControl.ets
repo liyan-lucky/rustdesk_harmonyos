@@ -1,4 +1,4 @@
-import { EmptyState, createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
+import { EmptyState, createIconColorFilterForSrc, resolveIconFillColor, ToastOverlay } from '../common/CommonComponents';
 import { AppDataService, SettingsState } from '../services/AppDataService';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent } from '../services/OfficialRustDeskBridge';
 import { NativeRustDeskBridge, NativeVideoFrame } from '../services/NativeRustDeskBridge';
@@ -410,6 +410,10 @@ struct RemoteControl {
   @State stickyWin: boolean = false;
   @State stickyFn: boolean = false;
   @State activeKey: string = '';
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
+  private toastTimer: number = -1;
   private fpsCalcLastTime: number = 0;
   private fpsCalcFrameCount: number = 0;
   private lastNonZeroFps: number = 0;
@@ -627,11 +631,13 @@ struct RemoteControl {
   }
 
   private async showToast(message: string): Promise<void> {
-    try {
-      await this.getUIContext().getPromptAction().openToast({ message });
-    } catch (error) {
-      console.error('RemoteControl toast failed', JSON.stringify(error));
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    if (this.toastTimer !== -1) {
+      clearTimeout(this.toastTimer);
     }
+    this.toastTimer = setTimeout(() => { this.toastVisible = false; this.toastTimer = -1; }, 2500);
   }
 
   private openSessionChatPanel(): void {
@@ -697,7 +703,12 @@ struct RemoteControl {
     [0, delayMs, delayMs + 80, delayMs + 180].forEach((delay: number) => {
       const timerId = setTimeout(() => {
         this.chatScrollTimers = this.chatScrollTimers.filter((id: number) => id !== timerId);
-        this.chatPanelScroller.scrollEdge(Edge.Bottom);
+        try {
+          if (this.showChatPanel) {
+            this.chatPanelScroller.scrollEdge(Edge.Bottom);
+          }
+        } catch (e) {
+        }
       }, Math.max(0, delay));
       this.chatScrollTimers.push(timerId);
     });
@@ -1202,6 +1213,12 @@ struct RemoteControl {
       if (!this.showOsPasswordDialog) {
         this.buildImeProxyInput();
       }
+
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
     }
     .width('100%')
     .height('100%')
@@ -1857,7 +1874,7 @@ struct RemoteControl {
       .fontSize(fontSize)
       .fontWeight(FontWeight.Medium)
       .fontColor(this.theme_TEXT_PRIMARY)
-      .backgroundColor(this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .backgroundColor(Color.Transparent)
       .opacity(0.5)
       .border({ width: 1, color: this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
@@ -1890,10 +1907,10 @@ struct RemoteControl {
       .padding(0)
       .fontSize(14)
       .fontWeight(this.isStickyActive(key) ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(this.isStickyActive(key) ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      .backgroundColor(this.isStickyActive(key) ? this.theme_ACCENT : (this.activeKey === key ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG))
+      .fontColor(this.isStickyActive(key) ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(Color.Transparent)
       .opacity(0.5)
-      .border({ width: 1, color: this.isStickyActive(key) || this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
+      .border({ width: this.isStickyActive(key) ? 2 : 1, color: this.isStickyActive(key) || this.activeKey === key ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === key ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
       .borderRadius(6)
       .shadow(this.isStickyActive(key) ? { radius: 6, color: this.theme_ACCENT, offsetX: 0, offsetY: 0 } : { radius: 0, color: Color.Transparent })
@@ -1918,7 +1935,7 @@ struct RemoteControl {
       .fontSize(14)
       .fontWeight(FontWeight.Medium)
       .fontColor(this.theme_TEXT_PRIMARY)
-      .backgroundColor(this.activeKey === label ? this.theme_BORDER_SOFT : this.theme_TOOLBAR_BG)
+      .backgroundColor(Color.Transparent)
       .opacity(0.5)
       .border({ width: 1, color: this.activeKey === label ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .scale(this.activeKey === label ? { x: 0.96, y: 0.96 } : { x: 1, y: 1 })
@@ -3030,8 +3047,9 @@ struct RemoteControl {
             .width(72)
             .height(40)
             .fontSize(14)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme_ACCENT)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(10)
             .onClick(() => {
               void this.sendSessionChatMessage();
@@ -3239,7 +3257,7 @@ struct RemoteControl {
           .height(40)
           .fontSize(14)
           .fontColor(this.theme_CONTRAST_TEXT)
-          .backgroundColor(this.theme_INACTIVE_BG)
+          .backgroundColor(Color.Transparent)
           .borderRadius(8)
           .onClick(() => {
             this.savePeerPassword();
@@ -3250,7 +3268,9 @@ struct RemoteControl {
           .height(40)
           .fontSize(14)
           .fontColor(this.theme_ACCENT_TEXT)
-          .backgroundColor(this.theme_ACCENT)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT)
+          .border({ width: 1.5, color: this.theme_ACCENT })
           .borderRadius(8)
           .onClick(() => {
             this.submitSessionPassword();
@@ -3277,7 +3297,7 @@ struct RemoteControl {
           .height(48)
           .fontSize(16)
           .fontColor(this.theme_TEXT_PRIMARY)
-          .backgroundColor(this.theme_INACTIVE_BG)
+          .backgroundColor(Color.Transparent)
           .borderRadius(8)
           .padding({ left: 12, right: 12 })
           .type(InputType.Password)
@@ -3311,7 +3331,7 @@ struct RemoteControl {
             .height(44)
             .fontSize(14)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INACTIVE_BG)
+            .backgroundColor(Color.Transparent)
             .borderRadius(8)
             .onClick(() => {
               this.showOsPasswordDialog = false;
@@ -3323,7 +3343,9 @@ struct RemoteControl {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT)
+          .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               this.showOsPasswordDialog = false;
@@ -3375,7 +3397,7 @@ struct RemoteControl {
             .height(36)
             .fontSize(15)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INACTIVE_BG)
+            .backgroundColor(Color.Transparent)
             .borderRadius(8)
             .onClick(() => {
               this.cancelReconnectDialog();
@@ -3387,7 +3409,7 @@ struct RemoteControl {
               .height(36)
               .fontSize(15)
               .fontColor(this.theme_TEXT_PRIMARY)
-              .backgroundColor(this.theme_INACTIVE_BG)
+              .backgroundColor(Color.Transparent)
               .borderRadius(8)
               .onClick(() => {
                 void this.retrySessionConnection(true);
@@ -3399,7 +3421,9 @@ struct RemoteControl {
             .height(36)
             .fontSize(15)
             .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT)
+          .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               void this.retrySessionConnection(false);
@@ -3822,7 +3846,8 @@ struct RemoteControl {
     this.disableClipboard = next;
     if (next) {
       ClipboardService.getInstance().removeEventListener(this.clipboardSyncListener);
-      ClipboardService.getInstance().stopMonitoring();
+    ClipboardService.getInstance().removeEventListener(this.clipboardSyncListener);
+    ClipboardService.getInstance().stopMonitoring();
     } else {
       ClipboardService.getInstance().addEventListener(this.clipboardSyncListener);
       void ClipboardService.getInstance().startMonitoring();

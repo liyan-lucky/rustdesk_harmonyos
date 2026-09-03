@@ -43,12 +43,16 @@ export class ClipboardService {
     if (this.isMonitoring) {
       return;
     }
-    this.isMonitoring = true;
-
-    this.lastContent = await this.getClipboardContent();
-    this.monitorInterval = setInterval(() => {
-      void this.checkClipboardChange();
-    }, intervalMs);
+    try {
+      this.lastContent = await this.getClipboardContent();
+      this.isMonitoring = true;
+      this.monitorInterval = setInterval(() => {
+        void this.checkClipboardChange();
+      }, intervalMs);
+    } catch (error) {
+      this.isMonitoring = false;
+      console.error('ClipboardService startMonitoring failed: ' + JSON.stringify(error));
+    }
   }
 
   public stopMonitoring(): void {

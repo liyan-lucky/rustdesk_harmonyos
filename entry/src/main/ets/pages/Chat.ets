@@ -180,7 +180,7 @@ struct Chat {
               }
               .width('100%')
               .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-              .backgroundColor(this.theme_CARD_BG)
+              .backgroundColor(Color.Transparent)
               .borderRadius(8)
             })
           }
@@ -240,7 +240,7 @@ struct Chat {
       .layoutWeight(1)
       .height(34)
       .fontSize(11)
-      .backgroundColor(this.theme_CARD_BG)
+      .backgroundColor(Color.Transparent)
       .fontColor(this.theme_ACCENT)
       .borderRadius(16)
       .onClick(() => {
@@ -282,7 +282,8 @@ struct Chat {
     }
     .layoutWeight(1)
     .height(34)
-    .backgroundColor(color)
+    .backgroundColor(Color.Transparent)
+    .border({ width: 1, color: color })
     .borderRadius(12)
     .onClick(action)
   }
@@ -311,7 +312,7 @@ struct Chat {
       }
       .layoutWeight(1)
       .height(44)
-      .backgroundColor(this.theme_CARD_BG)
+      .backgroundColor(Color.Transparent)
       .borderRadius(12)
       .padding({ left: 16, right: 16 })
       .alignItems(VerticalAlign.Center)
@@ -330,7 +331,7 @@ struct Chat {
       }
       .width(84)
       .height(44)
-      .backgroundColor(this.theme_ACCENT)
+      .backgroundColor(Color.Transparent)
       .borderRadius(12)
       .onClick(() => {
         this.sendMessage();

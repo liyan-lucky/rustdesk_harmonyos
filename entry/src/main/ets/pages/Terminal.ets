@@ -7,6 +7,7 @@ import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/Com
 import { TerminalEmulator, TerminalRenderLine, TerminalRenderRun } from '../common/terminal/TerminalEmulator';
 import inputMethod from '@ohos.inputMethod';
 import router from '@ohos.router';
+import { KeyboardAvoidMode } from '@ohos.arkui.UIContext';
 
 @Entry
 @Component
@@ -42,6 +43,8 @@ struct Terminal {
   private terminalTouchStartX: number = 0;
   private terminalTouchStartY: number = 0;
   private terminalTouchMoved: boolean = false;
+  private terminalStableHeight: number = 0;
+  private terminalStableWidth: number = 0;
 
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
@@ -56,8 +59,16 @@ struct Terminal {
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @StorageLink('avoidKeyboardHeight') avoidKeyboardHeight: number = 0;
   @StorageProp('themeIsDark') themeIsDark: boolean = true;
+  @StorageLink('terminalThemeMode') terminalThemeMode: string = 'app';
+  @StorageLink('terminalFontColorMode') @Watch('onTerminalFontColorChanged') terminalFontColorMode: string = 'colorful';
+  @StorageLink('terminalFontSizeMode') @Watch('onTerminalFontSizeChanged') terminalFontSizeMode: string = 'medium';
+  @StorageLink('terminalFontFamily') terminalFontFamily: string = 'monospace';
+  @StorageLink('terminalExtraKeysEnabled') terminalExtraKeysEnabled: boolean = true;
+  @State sessionTerminalFontColor: string = '#38BDF8';
 
   aboutToAppear() {
+    this.chooseSessionTerminalFontColor();
+    this.getUIContext().setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
     this.terminalText = this.lt('Waiting for terminal session...');
     this.sessionStatus = this.lt('Disconnected');
     const params = this.getRouteParams();
@@ -81,7 +92,9 @@ struct Terminal {
     this.terminalService.removeOutputListener(this.outputListener);
     if (this.terminalId !== -1) {
       this.terminalService.closeTerminal(this.terminalId);
+      this.terminalId = -1;
     }
+    this.officialBridge.requestSessionClose();
   }
 
   private lt(key: string): string {
@@ -122,10 +135,19 @@ struct Terminal {
 
   private scrollToLatest(): void {
     if (this.manualScrollBrowsing) return;
-    try {
-      this.terminalScroller.scrollEdge(Edge.Bottom);
-    } catch (e) {
-    }
+    setTimeout((): void => {
+      const meaningfulText: string = this.terminalText.replace(/\s+$/, '');
+      const lineCount: number = Math.max(1, meaningfulText.split('\n').length);
+      const headerInset: number = this.avoidStatusBarHeight + 54;
+      const bottomInset: number = this.terminalExtraKeysEnabled ? 76 : 12;
+      const visibleHeight: number = Math.max(1,
+        this.terminalStableHeight - this.avoidKeyboardHeight - headerInset - bottomInset);
+      const outputHeight: number = lineCount * this.terminalLineHeight();
+      try {
+        this.terminalScroller.scrollEdge(outputHeight > visibleHeight ? Edge.Bottom : Edge.Top);
+      } catch (e) {
+      }
+    }, 0);
   }
 
   private goBack(): void {
@@ -247,11 +269,68 @@ struct Terminal {
   }
 
   private shellBg(): string {
-    return this.themeIsDark ? '#000000' : '#FFFFFF';
+    return this.terminalIsDark() ? '#000000' : '#FFFFFF';
   }
 
-  private terminalForeground(): string {
-    return this.themeIsDark ? '#D1FAE5' : '#1A202C';
+  private terminalIsDark(): boolean {
+    if (this.terminalThemeMode === 'app') return this.themeIsDark;
+    return this.terminalThemeMode === 'dark';
+  }
+
+  private terminalFontSize(): number {
+    if (this.terminalFontSizeMode === 'extraSmall') return 9.2;
+    if (this.terminalFontSizeMode === 'small') return 10.5;
+    if (this.terminalFontSizeMode === 'large') return 13;
+    return 11.5;
+  }
+
+  private terminalLineHeight(): number {
+    if (this.terminalFontSizeMode === 'extraSmall') return 11;
+    if (this.terminalFontSizeMode === 'small') return 12.5;
+    if (this.terminalFontSizeMode === 'large') return 15;
+    return 13.5;
+  }
+
+  private terminalForeground(color: string): string {
+    if (this.terminalIsDark()) return color;
+    if (color === '#D1FAE5' || color === '#FFFFFF' || color === '#E5E5E5' || color === '#F5F543') {
+      return '#111827';
+    }
+    return color;
+  }
+
+  private configuredTerminalForeground(fallback: string): string {
+    if (this.terminalFontColorMode === 'colorful') return this.sessionTerminalFontColor;
+    if (!this.terminalIsDark() && this.terminalFontColorMode === '#E5E7EB') return '#374151';
+    return this.terminalFontColorMode.length > 0 ? this.terminalFontColorMode : this.terminalForeground(fallback);
+  }
+
+  private chooseSessionTerminalFontColor(): void {
+    const darkColors: string[] = ['#38BDF8', '#34D399', '#A78BFA', '#FB923C', '#F472B6', '#E5E7EB'];
+    const lightColors: string[] = ['#0369A1', '#047857', '#6D28D9', '#C2410C', '#BE185D', '#1F2937'];
+    const colors: string[] = this.terminalIsDark() ? darkColors : lightColors;
+    const candidates: string[] = colors.filter((color: string) => color !== this.sessionTerminalFontColor);
+    const available: string[] = candidates.length > 0 ? candidates : colors;
+    this.sessionTerminalFontColor = available[Math.floor(Math.random() * available.length)];
+  }
+
+  private onTerminalFontColorChanged(): void {
+    if (this.terminalFontColorMode === 'colorful') this.chooseSessionTerminalFontColor();
+  }
+
+  private onTerminalFontSizeChanged(): void {
+    if (this.terminalStableWidth <= 0 || this.terminalStableHeight <= 0) return;
+    this.updateTerminalSize(this.terminalStableWidth,
+      Math.max(1, this.terminalStableHeight - this.avoidKeyboardHeight));
+  }
+
+  private updateTerminalSize(width: number, height: number): void {
+    if (width <= 0 || height <= 0) return;
+    if (this.terminalStableWidth > 0 && Math.abs(width - this.terminalStableWidth) > this.terminalStableWidth * 0.2) {
+      this.terminalStableHeight = 0;
+    }
+    this.terminalStableWidth = width;
+    this.terminalStableHeight = Math.max(this.terminalStableHeight, height + this.avoidKeyboardHeight);
   }
 
   private controlBg(): string {
@@ -281,10 +360,11 @@ struct Terminal {
       .height(36)
       .padding({ left: 13, right: 13 })
       .fontSize(13)
-      .fontColor(this.controlText())
+      .fontColor(this.theme_TEXT_PRIMARY)
       .backgroundColor(this.themeIsDark ? '#C0171A1E' : '#C0F0F4FA')
       .border({ width: 1, color: this.themeIsDark ? '#55FFFFFF' : '#70FFFFFF' })
       .borderRadius(8)
+      .shadow({ radius: 5, color: this.themeIsDark ? '#44000000' : '#18000000', offsetY: 2 })
       .focusable(false)
       .onClick(action)
   }
@@ -296,13 +376,16 @@ struct Terminal {
       .padding({ left: 13, right: 13 })
       .fontSize(13)
       .fontWeight(this.modifierActive(modifier) ? FontWeight.Bold : FontWeight.Normal)
-      .fontColor(this.modifierActive(modifier) ? '#071B2E' : this.controlText())
+      .fontColor(this.modifierActive(modifier) ? '#071B2E' : this.theme_TEXT_PRIMARY)
       .backgroundColor(this.modifierActive(modifier) ? '#E00A84FF' :
         (this.themeIsDark ? '#C0171A1E' : '#C0F0F4FA'))
       .border({ width: this.modifierActive(modifier) ? 2 : 1,
         color: this.modifierActive(modifier) ? '#D0FFFFFF' :
           (this.themeIsDark ? '#55FFFFFF' : '#70FFFFFF') })
       .borderRadius(8)
+      .shadow({ radius: this.modifierActive(modifier) ? 8 : 5,
+        color: this.modifierActive(modifier) ? '#660A84FF' :
+          (this.themeIsDark ? '#44000000' : '#18000000'), offsetY: 2 })
       .focusable(false)
       .onClick(() => this.toggleModifier(modifier))
   }
@@ -313,18 +396,18 @@ struct Terminal {
       Text(this.terminalText)
         .width('100%')
         .textAlign(TextAlign.Start)
-        .fontFamily('monospace')
-        .fontSize(13)
-        .lineHeight(15)
+        .fontFamily(this.terminalFontFamily)
+        .fontSize(this.terminalFontSize())
+        .lineHeight(this.terminalLineHeight())
         .letterSpacing(-0.52)
-        .fontColor(this.terminalForeground())
+        .fontColor(this.configuredTerminalForeground('#D1FAE5'))
         .copyOption(CopyOptions.LocalDevice)
     } else {
       Text() {
         ForEach(this.terminalLines, (line: TerminalRenderLine, lineIndex: number) => {
           ForEach(line.runs, (run: TerminalRenderRun) => {
             Span(run.text)
-              .fontColor(run.cursor ? this.theme_ACCENT : this.terminalForeground())
+              .fontColor(run.cursor ? '#0A84FF' : this.configuredTerminalForeground(run.foreground))
               .backgroundColor(Color.Transparent)
               .fontWeight(run.bold ? FontWeight.Bold : FontWeight.Normal)
               .fontStyle(run.italic ? FontStyle.Italic : FontStyle.Normal)
@@ -341,9 +424,9 @@ struct Terminal {
       }
       .width('100%')
       .textAlign(TextAlign.Start)
-      .fontFamily('monospace')
-      .fontSize(13)
-      .lineHeight(15)
+      .fontFamily(this.terminalFontFamily)
+      .fontSize(this.terminalFontSize())
+      .lineHeight(this.terminalLineHeight())
       .letterSpacing(-0.62)
       .copyOption(CopyOptions.LocalDevice)
     }
@@ -366,6 +449,10 @@ struct Terminal {
           .enterKeyType(EnterKeyType.Send)
           .onClick(() => this.focusTerminalIme())
           .onChange((value: string) => this.onImeTextChanged(value))
+          .onSubmit((_enterKey: EnterKeyType, event: SubmitEvent) => {
+            event.keepEditableState();
+            this.sendTerminalInput('\r');
+          })
 
         Scroll(this.terminalScroller) {
           Column() {
@@ -377,7 +464,8 @@ struct Terminal {
         }
         .width('100%')
         .height('100%')
-        .padding({ left: 2, right: 2, top: 0, bottom: 66 })
+        .padding({ left: 2, right: 2, top: 0,
+          bottom: this.terminalExtraKeysEnabled ? 76 : 12 })
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.terminalTouching = true;
@@ -402,6 +490,9 @@ struct Terminal {
       .height('100%')
       .width('100%')
       .backgroundColor(this.shellBg())
+      .onAreaChange((_oldValue, newValue) => {
+        this.updateTerminalSize(Number(newValue.width), Number(newValue.height));
+      })
 
       Column()
         .width('100%')
@@ -409,8 +500,12 @@ struct Terminal {
         .linearGradient({
           angle: 180,
           colors: this.themeIsDark
-            ? [['#BB000000', 0.0], ['#99000000', 0.3], ['#55000000', 0.7], ['#00000000', 1.0]]
-            : [['#CCF8FAFC', 0.0], ['#AAF8FAFC', 0.3], ['#55F8FAFC', 0.7], ['#00F8FAFC', 1.0]]
+            ? [['#BB171A1E', 0.0], ['#AA171A1E', 0.05], ['#99171A1E', 0.12], ['#88171A1E', 0.22],
+              ['#77171A1E', 0.35], ['#66171A1E', 0.52], ['#55171A1E', 0.72], ['#33171A1E', 0.88],
+              ['#00171A1E', 1.0]]
+            : [['#C0F0F4FA', 0.0], ['#B0F0F4FA', 0.05], ['#A0F0F4FA', 0.12], ['#90F0F4FA', 0.22],
+              ['#80F0F4FA', 0.35], ['#70F0F4FA', 0.52], ['#50F0F4FA', 0.72], ['#30F0F4FA', 0.88],
+              ['#00F0F4FA', 1.0]]
         })
         .position({ x: 0, y: 0 })
         .zIndex(1)
@@ -425,12 +520,12 @@ struct Terminal {
 
           Column() {
             Text(this.deviceName || this.lt('Terminal'))
-              .fontSize(18)
+              .fontSize(20)
               .fontWeight(FontWeight.Bold)
-              .fontColor(this.controlText())
+              .fontColor(this.theme_TEXT_PRIMARY)
             Text(this.sessionStatus)
               .fontSize(12)
-              .fontColor(this.theme_ACCENT)
+              .fontColor(this.controlText())
           }
           .alignItems(HorizontalAlign.Start)
           .margin({ left: 12 })
@@ -442,46 +537,48 @@ struct Terminal {
 
         Blank()
 
-        Scroll() {
-          Row({ space: 6 }) {
-            this.TerminalModifierKey('Ctrl', 'ctrl')
-            this.TerminalModifierKey('Alt', 'alt')
-            this.TerminalModifierKey('Shift', 'shift')
-            this.TerminalKey('Esc', () => this.sendTerminalSpecial('Esc'))
-            this.TerminalKey('Tab', () => this.sendTerminalSpecial('Tab'))
-            this.TerminalKey('Enter', () => this.sendTerminalSpecial('Enter'))
-            this.TerminalKey('Backspace', () => this.sendTerminalSpecial('Backspace'))
-            this.TerminalKey('Insert', () => this.sendTerminalSpecial('Insert'))
-            this.TerminalKey('Delete', () => this.sendTerminalSpecial('Delete'))
-            this.TerminalKey('Home', () => this.sendTerminalSpecial('Home'))
-            this.TerminalKey('End', () => this.sendTerminalSpecial('End'))
-            this.TerminalKey('PgUp', () => this.sendTerminalSpecial('PageUp'))
-            this.TerminalKey('PgDn', () => this.sendTerminalSpecial('PageDown'))
-            this.TerminalKey('←', () => this.sendTerminalSpecial('Left'))
-            this.TerminalKey('↑', () => this.sendTerminalSpecial('Up'))
-            this.TerminalKey('↓', () => this.sendTerminalSpecial('Down'))
-            this.TerminalKey('→', () => this.sendTerminalSpecial('Right'))
-            this.TerminalKey('F1', () => this.sendTerminalSpecial('F1'))
-            this.TerminalKey('F2', () => this.sendTerminalSpecial('F2'))
-            this.TerminalKey('F3', () => this.sendTerminalSpecial('F3'))
-            this.TerminalKey('F4', () => this.sendTerminalSpecial('F4'))
-            this.TerminalKey('F5', () => this.sendTerminalSpecial('F5'))
-            this.TerminalKey('F6', () => this.sendTerminalSpecial('F6'))
-            this.TerminalKey('F7', () => this.sendTerminalSpecial('F7'))
-            this.TerminalKey('F8', () => this.sendTerminalSpecial('F8'))
-            this.TerminalKey('F9', () => this.sendTerminalSpecial('F9'))
-            this.TerminalKey('F10', () => this.sendTerminalSpecial('F10'))
-            this.TerminalKey('F11', () => this.sendTerminalSpecial('F11'))
-            this.TerminalKey('F12', () => this.sendTerminalSpecial('F12'))
+        if (this.terminalExtraKeysEnabled) {
+          Scroll() {
+            Row({ space: 6 }) {
+              this.TerminalModifierKey('Ctrl', 'ctrl')
+              this.TerminalModifierKey('Alt', 'alt')
+              this.TerminalModifierKey('Shift', 'shift')
+              this.TerminalKey('Esc', () => this.sendTerminalSpecial('Esc'))
+              this.TerminalKey('Tab', () => this.sendTerminalSpecial('Tab'))
+              this.TerminalKey('Enter', () => this.sendTerminalSpecial('Enter'))
+              this.TerminalKey('Backspace', () => this.sendTerminalSpecial('Backspace'))
+              this.TerminalKey('Insert', () => this.sendTerminalSpecial('Insert'))
+              this.TerminalKey('Delete', () => this.sendTerminalSpecial('Delete'))
+              this.TerminalKey('Home', () => this.sendTerminalSpecial('Home'))
+              this.TerminalKey('End', () => this.sendTerminalSpecial('End'))
+              this.TerminalKey('PgUp', () => this.sendTerminalSpecial('PageUp'))
+              this.TerminalKey('PgDn', () => this.sendTerminalSpecial('PageDown'))
+              this.TerminalKey('←', () => this.sendTerminalSpecial('Left'))
+              this.TerminalKey('↑', () => this.sendTerminalSpecial('Up'))
+              this.TerminalKey('↓', () => this.sendTerminalSpecial('Down'))
+              this.TerminalKey('→', () => this.sendTerminalSpecial('Right'))
+              this.TerminalKey('F1', () => this.sendTerminalSpecial('F1'))
+              this.TerminalKey('F2', () => this.sendTerminalSpecial('F2'))
+              this.TerminalKey('F3', () => this.sendTerminalSpecial('F3'))
+              this.TerminalKey('F4', () => this.sendTerminalSpecial('F4'))
+              this.TerminalKey('F5', () => this.sendTerminalSpecial('F5'))
+              this.TerminalKey('F6', () => this.sendTerminalSpecial('F6'))
+              this.TerminalKey('F7', () => this.sendTerminalSpecial('F7'))
+              this.TerminalKey('F8', () => this.sendTerminalSpecial('F8'))
+              this.TerminalKey('F9', () => this.sendTerminalSpecial('F9'))
+              this.TerminalKey('F10', () => this.sendTerminalSpecial('F10'))
+              this.TerminalKey('F11', () => this.sendTerminalSpecial('F11'))
+              this.TerminalKey('F12', () => this.sendTerminalSpecial('F12'))
+            }
+            .padding({ left: 10, right: 10, top: 7, bottom: 7 })
           }
-          .padding({ left: 10, right: 10, top: 7, bottom: 7 })
+          .width('100%')
+          .height(54)
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .backgroundColor(Color.Transparent)
+          .padding({ bottom: 4 })
         }
-        .width('100%')
-        .height(54)
-        .scrollable(ScrollDirection.Horizontal)
-        .scrollBar(BarState.Off)
-        .backgroundColor(Color.Transparent)
-        .padding({ bottom: 4 })
       }
       .width('100%')
       .height('100%')

@@ -61,7 +61,11 @@ const ICON_COLOR_MAP: Record<string, string> = {
   'settings_network.svg': '#0F9D8A', 'settings_cpu.svg': '#E18428',
   'settings_server.svg': '#7C5CE5', 'menu_key.svg': '#D84E78',
   'opt_user.svg': '#2E9B58', 'auth_api.svg': '#D84E78', 'auth_oidc.svg': '#7C5CE5',
-  'auth_google.svg': '#E18428', 'auth_github.svg': '#667085', 'auth_selfhosted.svg': '#0F9D8A',
+  'auth-google.svg': '#E18428', 'auth-github.svg': '#667085', 'auth-selfhosted.svg': '#0F9D8A',
+  'auth-apple.svg': '#1976C9', 'auth-gitlab.svg': '#D84E78', 'auth-gitee.svg': '#D84E78',
+  'auth-facebook.svg': '#1976C9', 'auth-microsoft.svg': '#2E9B58', 'auth-azure.svg': '#7C5CE5',
+  'auth-qq.svg': '#0F9D8A', 'auth-wechat.svg': '#2E9B58', 'auth-auth0.svg': '#E18428',
+  'auth-okta.svg': '#1976C9', 'auth-webauth.svg': '#7C5CE5', 'auth-default.svg': '#D84E78',
   'arrow-autofit-up.svg': '#1976C9', 'arrow-autofit-down.svg': '#D84E78',
   'file_transfer.svg': '#D84E78', 'terminal.svg': '#0F9D8A', 'clipboard.svg': '#7C5CE5',
   'lock.svg': '#E18428', 'unlock.svg': '#2E9B58', 'shield.svg': '#1976C9',
@@ -201,9 +205,10 @@ export function PrimaryButton(label: string, action: () => void, isLoading: bool
     .height(ThemeConfig.BUTTON_HEIGHT_ENTRY)
     .fontSize(ThemeConfig.FONT_SIZE_LG)
     .fontWeight(FontWeight.Medium)
-    .backgroundColor(ThemeConfig.ACCENT)
-    .fontColor(ThemeConfig.ACCENT_TEXT)
+    .backgroundColor(Color.Transparent)
+    .fontColor(ThemeConfig.ACCENT)
     .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
+    .border({ width: 1.5, color: ThemeConfig.ACCENT })
     .enabled(!isLoading)
     .opacity(isLoading ? 0.65 : 1)
     .onClick(action)
@@ -216,7 +221,7 @@ export function SecondaryButton(label: string, action: () => void) {
     .height(ThemeConfig.BUTTON_HEIGHT_ENTRY)
     .fontSize(ThemeConfig.FONT_SIZE_LG)
     .fontWeight(FontWeight.Medium)
-    .backgroundColor(ThemeConfig.SECONDARY_BTN_BG)
+    .backgroundColor(Color.Transparent)
     .fontColor(ThemeConfig.TEXT_PRIMARY)
     .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
     .border({
@@ -231,9 +236,10 @@ export function SmallButton(label: string, action: () => void) {
   Button(label)
     .height(ThemeConfig.BUTTON_HEIGHT_SMALL)
     .fontSize(ThemeConfig.FONT_SIZE_SM)
-    .backgroundColor(ThemeConfig.ACCENT)
-    .fontColor(ThemeConfig.ACCENT_TEXT)
+    .backgroundColor(Color.Transparent)
+    .fontColor(ThemeConfig.ACCENT)
     .borderRadius(ThemeConfig.BORDER_RADIUS_SMALL)
+    .border({ width: 1, color: ThemeConfig.ACCENT })
     .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD })
     .onClick(action)
 }
@@ -683,4 +689,33 @@ export function MenuRowDivider() {
     .width('100%')
     .height(1)
     .color(ThemeConfig.BORDER_SUBTLE)
+}
+
+@Component
+export struct ToastOverlay {
+  @Prop toastMessage: string = '';
+  @Prop toastVisible: boolean = false;
+  @Prop toastColorOffset: number = 0;
+  @Prop cardBgColor: string = '#FFFFFF';
+  @StorageProp('theme_CARD_BG') themeCardBg: string = '#FFFFFF';
+
+  build() {
+    if (this.toastVisible) {
+      Row() {
+        Text(this.toastMessage)
+          .fontSize(14)
+          .fontColor(getIconColorByIndex(this.toastColorOffset))
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+      .border({ width: 1.5, color: getIconColorByIndex(this.toastColorOffset), style: BorderStyle.Solid })
+      .borderRadius(8)
+      .backgroundColor(this.themeCardBg)
+      .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
+      .position({ x: '10%', y: '38%' })
+      .zIndex(100)
+      .animation({ duration: 200, curve: Curve.EaseInOut })
+    }
+  }
 }

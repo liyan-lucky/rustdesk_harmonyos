@@ -79,6 +79,7 @@ export class ScreenCaptureService {
         this.pollCaptureHealth();
       }, intervalMs);
     } catch (error) {
+      this.isCapturing = false;
       console.error('Failed to start screen capture:', error);
       throw new Error(error instanceof Error ? error.message : String(error));
     }
@@ -128,6 +129,7 @@ export class ScreenCaptureService {
       const stats = NativeRustDeskBridge.getNativeScreenCaptureStats();
       console.info('Native screen capture stats: ' + stats);
       if (!NativeRustDeskBridge.isNativeScreenCaptureActive()) {
+        this.stopCapture();
         this.dispatchEvent({
           type: 'error',
           error: 'Native screen capture became inactive: ' + stats
@@ -167,7 +169,9 @@ export class ScreenCaptureService {
     this.applyConfig(config);
     if (this.isCapturing) {
       this.stopCapture();
-      void this.startCapture(this.getConfig());
+      this.startCapture(this.getConfig()).catch((e: Object) => {
+        console.error('restart capture after config update failed: ' + JSON.stringify(e));
+      });
     }
   }
 

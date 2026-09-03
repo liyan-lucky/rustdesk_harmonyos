@@ -148,8 +148,9 @@ struct ViewCamera {
           Button(this.showControls ? this.lt('Hide Controls') : this.lt('Show Controls'))
             .layoutWeight(1)
             .height(44)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY)
+            .border({ width: 1, color: this.theme_TEXT_TERTIARY })
             .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
             .onClick(() => {
               this.showControls = !this.showControls;

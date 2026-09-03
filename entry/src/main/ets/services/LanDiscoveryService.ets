@@ -216,11 +216,7 @@ export class LanDiscoveryService {
     };
     appData.addDiscoveredDevice(entry);
     if (peer.online) {
-      // Keep a peer online across an occasional missed discovery response.
-      // An explicit offline reply still overrides this immediately.
       appData.markLanPeerOnline(normalizedId, this.discoveryInterval * 3);
-    } else {
-      appData.markLanPeerOffline(normalizedId);
     }
     if (!previous ||
       previous.username !== enrichedPeer.username ||

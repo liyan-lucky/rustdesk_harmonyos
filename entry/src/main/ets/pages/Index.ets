@@ -13,7 +13,8 @@ import {
   SecondaryButton,
   SectionTitle,
   StatusBadge,
-  createIconColorFilterForSrc, createIconColorFilterByIndex, resolveIconFillColor
+  createIconColorFilterForSrc, createIconColorFilterByIndex, createIconColorFilter, resolveIconFillColor,
+  ICON_DEFAULT_COLORS, getIconColorByIndex
 } from '../common/CommonComponents';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent, OnlineStatusResult } from '../services/OfficialRustDeskBridge';
 import { CoreLoaderService } from '../services/CoreLoaderService';
@@ -37,6 +38,7 @@ import { PermissionService } from '../services/PermissionService';
 import { PermissionStatus } from '../services/PermissionService';
 import { Permissions } from '@ohos.abilityAccessCtrl';
 import hilog from '@ohos.hilog';
+import display from '@ohos.display';
 import { Logger } from '../common/Logger';
 import { AccessibleUser } from '../services/HttpClient';
 import connection from '@ohos.net.connection';
@@ -246,6 +248,11 @@ struct Index {
   private connectTabRefreshTimer: number = -1;
   @State showConnectTabVisibilityMenu: boolean = false;
   @State showIdSuggestions: boolean = false;
+  @State suggestionColorOffset: number = 0;
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
+  private toastTimer: number = -1;
   @State deviceIdInputFocused: boolean = false;
   @State showSortMenu: boolean = false;
   @State showSearchInput: boolean = false;
@@ -522,6 +529,9 @@ struct Index {
   }
 
   private switchHomeTab(tab: HomeTab): void {
+    if (tab !== 'connect') {
+      this.exitMultiSelectMode();
+    }
     this.currentTab = tab;
     if (tab === 'connect') {
       this.showIdSuggestions = false;
@@ -594,6 +604,8 @@ struct Index {
   @State selectedAddressBookTags: string[] = [];
   @State showAddressBookTagManagement: boolean = false;
   @State showAddressBookActionsMenu: boolean = false;
+  @State addressBookMenuX: number = 0;
+  @State addressBookMenuY: number = 0;
   @State addressBookTagDraft: string = '';
   @State editingAddressBookTag: string = '';
   @State addressBookTagBusy: boolean = false;
@@ -679,6 +691,20 @@ struct Index {
   private autoSubmittedSavedPasswordPeerId: string = '';
   private incomingServiceRestoreBusy: boolean = false;
   private incomingServiceActionBusy: boolean = false;
+  @State multiSelectMode: boolean = false;
+  @State selectedPeerIds: Set<string> = new Set<string>();
+  @State multiSelectVersion: number = 0;
+  @State showMultiSelectMenu: boolean = false;
+  @State multiSelectMenuX: number = 0;
+  @State multiSelectMenuY: number = 0;
+  @State peerMenuX: number = 0;
+  @State peerMenuY: number = 0;
+  @State sortMenuX: number = 0;
+  @State sortMenuY: number = 0;
+  @State tabVisMenuX: number = 0;
+  @State tabVisMenuY: number = 0;
+  @State screenWidth: number = 360;
+  @State screenHeight: number = 800;
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @StorageProp('avoidKeyboardHeight') avoidKeyboardHeight: number = 0;
@@ -741,6 +767,19 @@ struct Index {
   }
 
   aboutToAppear() {
+    try {
+      const disp = display.getDefaultDisplaySync();
+      const density = disp.densityPixels > 0 ? disp.densityPixels : 3;
+      this.screenWidth = disp.width / density;
+      this.screenHeight = disp.height / density;
+      if (this.screenWidth <= 0 || this.screenHeight <= 0) {
+        this.screenWidth = 360;
+        this.screenHeight = 800;
+      }
+    } catch (e) {
+      this.screenWidth = 360;
+      this.screenHeight = 800;
+    }
     this.officialBridge.removeEventListener(this.bridgeListener);
     this.officialBridge.addEventListener(this.bridgeListener);
     this.officialBridge.removeOnlineStatusListener(this.onlineStatusListener);
@@ -785,6 +824,7 @@ struct Index {
   }
 
   aboutToDisappear() {
+    this.exitMultiSelectMode();
     this.officialBridge.removeEventListener(this.bridgeListener);
     this.officialBridge.removeOnlineStatusListener(this.onlineStatusListener);
     LanDiscoveryService.getInstance().removeListener(this.lanDiscoveryListener);
@@ -1180,7 +1220,11 @@ struct Index {
                 this.deviceId = raw;
                 this.deviceIdInputController.caretPosition(caretPos);
                 this.deviceIdDisplay = formattedValue;
-                this.showIdSuggestions = this.deviceIdInputFocused && raw.length >= 3;
+                const newShowSuggestions = this.deviceIdInputFocused && raw.length >= 3;
+                if (newShowSuggestions && !this.showIdSuggestions) {
+                  this.suggestionColorOffset = (this.suggestionColorOffset + 1) % 7;
+                }
+                this.showIdSuggestions = newShowSuggestions;
                 this.restoreDeviceIdCaret(caretPos);
               })
               .onTextSelectionChange((_selectionStart: number, selectionEnd: number) => {
@@ -1195,6 +1239,7 @@ struct Index {
               .onFocus(() => {
                 this.deviceIdInputFocused = true;
                 if (this.deviceId.trim().length >= 3) {
+                  this.suggestionColorOffset = (this.suggestionColorOffset + 1) % 7;
                   this.showIdSuggestions = true;
                 }
               })
@@ -1276,11 +1321,23 @@ struct Index {
           Row({ space: 8 }) {
             this.buildConnectSearchAnchor()
 
-            if (this.currentConnectTab === 'recent') {
-              Image($rawfile('checkbox-outline.svg'))
+            if (this.currentConnectTab === 'recent' || this.currentConnectTab === 'favorites' || this.currentConnectTab === 'discovered' || this.currentConnectTab === 'addressBook') {
+              Image($rawfile(this.multiSelectMode ? 'checkbox-checked.svg' : 'checkbox-outline.svg'))
                 .width(18)
                 .height(18)
-                .colorFilter(createIconColorFilterForSrc('checkbox-outline.svg', this.iconColorMode))
+                .colorFilter(createIconColorFilterForSrc(this.multiSelectMode ? 'checkbox-checked.svg' : 'checkbox-outline.svg', this.iconColorMode))
+                .onClick((event: ClickEvent) => {
+                  this.dismissConnectSearch();
+                  if (this.multiSelectMode) {
+                    this.exitMultiSelectMode();
+                  } else {
+                    this.multiSelectMenuX = event.windowX - 160;
+                    this.multiSelectMenuY = event.windowY + 24;
+                    this.multiSelectMode = true;
+                    this.multiSelectVersion++;
+                    this.showMultiSelectMenu = true;
+                  }
+                })
             }
 
             if (this.currentConnectTab !== 'account' && (this.currentConnectTab === 'favorites' || this.currentConnectTab === 'discovered' || this.currentConnectTab === 'addressBook')) {
@@ -1288,8 +1345,10 @@ struct Index {
                 .width(18)
                 .height(18)
                 .colorFilter(createIconColorFilterForSrc('Sorting_order.svg', this.iconColorMode))
-                .onClick(() => {
+                .onClick((event: ClickEvent) => {
                   this.dismissConnectSearch();
+                  this.sortMenuX = event.windowX - 80;
+                  this.sortMenuY = event.windowY + 20;
                   this.showSortMenu = true;
                 })
             }
@@ -1375,10 +1434,10 @@ struct Index {
   private buildIdSuggestions() {
     if (this.showIdSuggestions && this.deviceId.trim().length >= 3) {
       Column({ space: 0 }) {
-        ForEach(this.getIdSuggestions(), (item: RecentSession | AddressBookEntry) => {
+        ForEach(this.getIdSuggestions(), (item: RecentSession | AddressBookEntry, index?: number) => {
           Row({ space: ThemeConfig.SPACING_MD }) {
             Row() {
-              this.buildThemedPlatformIcon(this.getSuggestionPlatform(item), 20)
+              this.buildThemedPlatformIcon(this.getSuggestionPlatform(item), 20, ((index ?? 0) + this.suggestionColorOffset) % 7)
             }
             .width(28)
             .height(28)
@@ -1436,8 +1495,9 @@ struct Index {
         .height(ThemeConfig.BUTTON_HEIGHT_ENTRY)
         .fontSize(ThemeConfig.FONT_SIZE_HUGE)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.theme_ACCENT_TEXT)
-        .backgroundColor(this.theme_ACCENT)
+        .fontColor(this.theme_ACCENT)
+        .backgroundColor(Color.Transparent)
+        .border({ width: 1.5, color: this.theme_ACCENT })
         .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
         .onClick(() => {
           this.showAccountDialog = true;
@@ -1485,8 +1545,9 @@ struct Index {
           .width(156)
           .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
           .fontSize(ThemeConfig.FONT_SIZE_MD)
-          .backgroundColor(this.theme_ACCENT)
-          .fontColor(this.theme_ACCENT_TEXT)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT)
+          .border({ width: 1.5, color: this.theme_ACCENT })
           .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
           .onClick(() => {
             this.showAccountDialog = true;
@@ -1545,8 +1606,9 @@ struct Index {
           .width(156)
           .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
           .fontSize(ThemeConfig.FONT_SIZE_MD)
-          .backgroundColor(this.theme_ACCENT)
-          .fontColor(this.theme_ACCENT_TEXT)
+          .backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT)
+          .border({ width: 1.5, color: this.theme_ACCENT })
           .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
           .onClick(() => {
             this.showAccountDialog = true;
@@ -1612,7 +1674,9 @@ struct Index {
           .width(36)
           .height(36)
           .backgroundColor(Color.Transparent)
-          .onClick(() => {
+          .onClick((event: ClickEvent) => {
+            this.addressBookMenuX = event.windowX - 270;
+            this.addressBookMenuY = event.windowY + 36;
             this.showAddressBookActionsMenu = true;
             if (this.accountState.isLoggedIn) {
               void this.syncAddressBookFromServer(false);
@@ -1645,61 +1709,55 @@ struct Index {
 
   @Builder
   private buildAddressBookActionsMenu() {
-    Column() {
-      Column({ space: 0 }) {
-        this.buildAddressBookMenuAction(this.lt('Add ID'), () => {
-          this.showAddressBookActionsMenu = false;
-          this.addressBookPeerIdDraft = '';
-          this.addressBookPeerAliasDraft = '';
-          this.addressBookPeerNoteDraft = '';
-          this.addressBookDialogMode = 'id';
-          this.showAddressBookTagManagement = true;
-        })
-        this.buildAddressBookMenuAction(this.lt('Add Tag'), () => {
-          this.showAddressBookActionsMenu = false;
-          this.addressBookTagDraft = '';
-          this.editingAddressBookTag = '';
-          this.addressBookDialogMode = 'tag';
-          this.showAddressBookTagManagement = true;
-        })
-        this.buildAddressBookMenuAction(this.lt('Deselect all tags'), () => {
-          this.selectedAddressBookTags = [];
-          this.addressBookVersion++;
-          this.showAddressBookActionsMenu = false;
-        })
-        this.buildAddressBookMenuToggle(this.lt('Sync recent sessions'), this.syncRecentSessionsEnabled, () => {
-          this.syncRecentSessionsEnabled = !this.syncRecentSessionsEnabled;
-          this.addressBookActionsMenuVersion++;
-          NativeRustDeskBridge.setLocalOption('address-book-sync-recent-sessions', this.syncRecentSessionsEnabled ? 'Y' : 'N');
-          if (this.syncRecentSessionsEnabled) {
-            void this.syncRecentSessionsToAddressBook();
-          }
-        })
-        this.buildAddressBookMenuToggle(this.lt('Filter by tags'), this.filterAddressBookByTags, () => {
-          this.filterAddressBookByTags = !this.filterAddressBookByTags;
-          this.addressBookActionsMenuVersion++;
-          NativeRustDeskBridge.setLocalOption('address-book-filter-by-tags', this.filterAddressBookByTags ? 'Y' : 'N');
-          this.addressBookVersion++;
-        })
-        Divider().color(this.theme_BORDER_SUBTLE)
-        this.buildAddressBookMenuAction(this.lt('Open Web Console'), () => {
-          this.showAddressBookActionsMenu = false;
-          void this.openAddressBookWebConsole();
-        })
-      }
-      .width(270)
-      .padding({ top: 6, bottom: 6 })
-      .backgroundColor(this.theme_CARD_BG)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-      .borderRadius(8)
-      .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
-      .onClick(() => {})
+    Column({ space: 0 }) {
+      this.buildAddressBookMenuAction(this.lt('Add ID'), () => {
+        this.showAddressBookActionsMenu = false;
+        this.addressBookPeerIdDraft = '';
+        this.addressBookPeerAliasDraft = '';
+        this.addressBookPeerNoteDraft = '';
+        this.addressBookDialogMode = 'id';
+        this.showAddressBookTagManagement = true;
+      })
+      this.buildAddressBookMenuAction(this.lt('Add Tag'), () => {
+        this.showAddressBookActionsMenu = false;
+        this.addressBookTagDraft = '';
+        this.editingAddressBookTag = '';
+        this.addressBookDialogMode = 'tag';
+        this.showAddressBookTagManagement = true;
+      })
+      this.buildAddressBookMenuAction(this.lt('Deselect all tags'), () => {
+        this.selectedAddressBookTags = [];
+        this.addressBookVersion++;
+        this.showAddressBookActionsMenu = false;
+      })
+      this.buildAddressBookMenuToggle(this.lt('Sync recent sessions'), this.syncRecentSessionsEnabled, () => {
+        this.syncRecentSessionsEnabled = !this.syncRecentSessionsEnabled;
+        this.addressBookActionsMenuVersion++;
+        NativeRustDeskBridge.setLocalOption('address-book-sync-recent-sessions', this.syncRecentSessionsEnabled ? 'Y' : 'N');
+        if (this.syncRecentSessionsEnabled) {
+          void this.syncRecentSessionsToAddressBook();
+        }
+      })
+      this.buildAddressBookMenuToggle(this.lt('Filter by tags'), this.filterAddressBookByTags, () => {
+        this.filterAddressBookByTags = !this.filterAddressBookByTags;
+        this.addressBookActionsMenuVersion++;
+        NativeRustDeskBridge.setLocalOption('address-book-filter-by-tags', this.filterAddressBookByTags ? 'Y' : 'N');
+        this.addressBookVersion++;
+      })
+      Divider().color(this.theme_BORDER_SUBTLE)
+      this.buildAddressBookMenuAction(this.lt('Open Web Console'), () => {
+        this.showAddressBookActionsMenu = false;
+        void this.openAddressBookWebConsole();
+      })
     }
-    .width('100%').height('100%')
-    .padding({ top: 250, right: 24 })
-    .alignItems(HorizontalAlign.End)
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .onClick(() => { this.showAddressBookActionsMenu = false; })
+    .width(270)
+    .padding({ top: 6, bottom: 6 })
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(8)
+    .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    .position({ x: this.clampMenuX(this.addressBookMenuX, 270), y: this.clampMenuY(this.addressBookMenuY, 340) })
+    .zIndex(50)
   }
 
   @Builder
@@ -1860,11 +1918,11 @@ struct Index {
       }.width('100%').alignItems(VerticalAlign.Top)
       Row({ space: 12 }) {
         Blank()
-        Button(this.lt('Cancel')).height(40).backgroundColor(this.theme_INPUT_BG).fontColor(this.theme_TEXT_PRIMARY)
+        Button(this.lt('Cancel')).height(40).backgroundColor(Color.Transparent).fontColor(this.theme_TEXT_PRIMARY).border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .borderRadius(6).onClick(() => { this.closeAddressBookTagManagement(); })
         Button(this.lt('Confirm')).height(40)
           .enabled(!this.addressBookTagBusy && DeviceIdFormatter.parse(this.addressBookPeerIdDraft).length > 0 && this.addressBookPeerTagDraft.length > 0)
-          .backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT).borderRadius(6)
+          .backgroundColor(Color.Transparent).fontColor(this.theme_ACCENT).border({ width: 1.5, color: this.theme_ACCENT }).borderRadius(6)
           .onClick(() => { void this.addIdToAddressBookTag(); })
       }.width('100%')
     }.width('100%')
@@ -1890,7 +1948,7 @@ struct Index {
           .layoutWeight(1).height(42).fontSize(ThemeConfig.FONT_SIZE_SM).backgroundColor(this.theme_INPUT_BG)
           .onChange((value: string) => { this.addressBookTagDraft = value; })
         Button(this.lt(this.editingAddressBookTag.length > 0 ? 'Save' : 'Add Tag')).height(42)
-          .enabled(!this.addressBookTagBusy).backgroundColor(this.theme_ACCENT).fontColor(this.theme_ACCENT_TEXT)
+          .enabled(!this.addressBookTagBusy).backgroundColor(Color.Transparent).fontColor(this.theme_ACCENT).border({ width: 1.5, color: this.theme_ACCENT })
           .borderRadius(6).onClick(() => { void this.saveAddressBookTag(); })
       }.width('100%')
       if (this.editingAddressBookTag.length === 0) {
@@ -2013,6 +2071,9 @@ struct Index {
   @Builder
   private buildConnectAddressEntryRow(entry: AddressBookEntry, colorIndex: number = -1) {
     Row({ space: ThemeConfig.SPACING_MD }) {
+      if (this.multiSelectMode) {
+        this.buildPeerSelectCheckbox(entry.id)
+      }
       Row() {
         this.buildThemedPlatformIcon(entry.platform, 26, colorIndex)
       }
@@ -2061,7 +2122,10 @@ struct Index {
       .height(44)
       .justifyContent(FlexAlign.Center)
       .hitTestBehavior(HitTestMode.Block)
-      .onClick(() => {
+      .visibility(this.multiSelectMode ? Visibility.None : Visibility.Visible)
+      .onClick((event: ClickEvent) => {
+        this.peerMenuX = event.windowX - 180;
+        this.peerMenuY = event.windowY + 20;
         this.recentMenuSessionId = entry.id;
       })
     }
@@ -2069,11 +2133,35 @@ struct Index {
     .padding(ThemeConfig.SPACING_LG)
     .backgroundColor(this.theme_CARD_BG)
     .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .border({ width: this.isPeerSelected(entry.id) ? 2 : 1,
+      color: this.isPeerSelected(entry.id) ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
     .onClick(() => {
+      if (this.multiSelectMode) {
+        this.togglePeerSelection(entry.id);
+        return;
+      }
       this.selectDeviceIdInputTarget(entry.id);
       void this.handleConnect(entry.id);
     })
+    .gesture(LongPressGesture({ repeat: false, duration: 450 })
+      .onAction((event: GestureEvent) => {
+        if (!this.multiSelectMode) {
+          this.multiSelectMode = true;
+          this.selectedPeerIds.add(entry.id);
+          this.multiSelectVersion++;
+          this.multiSelectMenuX = event.fingerList[0].globalX - 160;
+          this.multiSelectMenuY = event.fingerList[0].globalY + 24;
+          this.showMultiSelectMenu = true;
+        }
+      }))
+  }
+
+  @Builder
+  private buildPeerSelectCheckbox(id: string) {
+    Image($rawfile(this.isPeerSelected(id) ? 'checkbox-checked.svg' : 'checkbox-unchecked.svg'))
+      .width(22)
+      .height(22)
+      .colorFilter(createIconColorFilterForSrc(this.isPeerSelected(id) ? 'checkbox-checked.svg' : 'checkbox-unchecked.svg', this.iconColorMode))
   }
 
   @Builder
@@ -2489,7 +2577,7 @@ struct Index {
                 Image($rawfile(modItem.icon))
                   .width(20)
                   .height(20)
-                  .colorFilter(createIconColorFilterForSrc('fingerprint.svg', this.iconColorMode))
+                  .colorFilter(createIconColorFilterByIndex(index, this.iconColorMode))
               } else if (modItem === null) {
                 Image($rawfile('settings_cpu.svg'))
                   .width(20)
@@ -2521,33 +2609,6 @@ struct Index {
         }
         .width('100%')
       }
-
-      Row({ space: ThemeConfig.SPACING_SM }) {
-        Button(this.getCorePrimaryButtonLabel())
-          .height(36)
-          .fontSize(ThemeConfig.FONT_SIZE_MD)
-          .backgroundColor(this.officialCoreState.coreReady ? this.theme_SECONDARY_BTN_BG : this.theme_ACCENT)
-          .fontColor(this.officialCoreState.coreReady ? this.theme_SECONDARY_BTN_TEXT : this.theme_ACCENT_TEXT)
-          .borderRadius(8)
-          .layoutWeight(1)
-          .enabled(!this.coreLoadBusy)
-          .onClick(() => {
-            this.handleCorePrimaryAction();
-          })
-
-        Button(this.getCoreSecondaryButtonLabel())
-          .height(36)
-          .fontSize(ThemeConfig.FONT_SIZE_MD)
-          .backgroundColor(this.theme_SECONDARY_BTN_BG)
-          .fontColor(this.theme_SECONDARY_BTN_TEXT)
-          .borderRadius(8)
-          .layoutWeight(1)
-          .enabled(!this.coreLoadBusy && this.officialCoreState.coreReady)
-          .onClick(() => {
-            this.handleCoreSecondaryAction();
-          })
-      }
-      .width('100%')
     }
     .width('100%')
   }
@@ -3102,8 +3163,11 @@ struct Index {
       }
       const uri = uris[0];
       const fileId = fileFs.openSync(uri, fileFs.OpenMode.CREATE | fileFs.OpenMode.WRITE_ONLY | fileFs.OpenMode.TRUNC);
-      fileFs.writeSync(fileId.fd, content);
-      fileFs.closeSync(fileId);
+      try {
+        fileFs.writeSync(fileId.fd, content);
+      } finally {
+        fileFs.closeSync(fileId);
+      }
       this.setStatusMessageRaw(`${this.lt('Debug log exported')}: ${uri}`);
       Logger.info('APP', `Diagnostics exported to ${uri}`);
     } catch (error) {
@@ -3226,6 +3290,91 @@ struct Index {
     return result.length > 0 ? result : [{ label: this.lt('No data'), value: '' }];
   }
 
+  private clampMenuX(x: number, menuWidth: number): number {
+    return Math.max(8, Math.min(x, this.screenWidth - menuWidth - 8));
+  }
+
+  private clampMenuY(y: number, estimatedHeight: number): number {
+    return Math.max(8, Math.min(y, this.screenHeight - estimatedHeight - 8));
+  }
+
+  private closeAllPopupMenus(): void {
+    this.recentMenuSessionId = '';
+    this.showSortMenu = false;
+    this.showConnectTabVisibilityMenu = false;
+    this.showAddressBookActionsMenu = false;
+  }
+
+  @Builder
+  private buildMultiSelectMenu() {
+    Column({ space: 0 }) {
+      Row() {
+        Text(`${this.lt('Selected')} ${this.selectedPeerIds.size}`)
+          .fontSize(13)
+          .fontColor(this.theme_TEXT_SECONDARY)
+      }
+      .width('100%')
+      .height(34)
+      .padding({ left: 14, right: 14 })
+
+      Divider().color(this.theme_BORDER_SUBTLE)
+
+      this.buildMultiSelectMenuItem('opt_grid.svg', this.lt('Select all'), () => {
+        this.selectAllVisiblePeers();
+      })
+      this.buildMultiSelectMenuItem('trash.svg', this.lt('Delete'), () => {
+        this.showMultiSelectMenu = false;
+        this.batchDeleteSelected();
+      })
+      if (this.currentConnectTab !== 'addressBook') {
+        this.buildMultiSelectMenuItem('address_book.svg', this.lt('Address book'), () => {
+          this.showMultiSelectMenu = false;
+          this.batchAddSelectedToAddressBook();
+        })
+      }
+      if (this.currentConnectTab !== 'favorites') {
+        this.buildMultiSelectMenuItem('star.svg', this.lt('Favorite'), () => {
+          this.showMultiSelectMenu = false;
+          this.batchFavoriteSelected();
+        })
+      }
+
+      Divider().color(this.theme_BORDER_SUBTLE)
+
+      this.buildMultiSelectMenuItem('close.svg', this.lt('Cancel'), () => {
+        this.showMultiSelectMenu = false;
+        this.exitMultiSelectMode();
+      })
+    }
+    .width(132)
+    .padding({ top: 6, bottom: 6 })
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(8)
+    .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    .position({ x: this.screenWidth - 132 - 8, y: this.clampMenuY(this.multiSelectMenuY, 300) })
+    .zIndex(50)
+  }
+
+  @Builder
+  private buildMultiSelectMenuItem(icon: string, label: string, action: () => void) {
+    Row({ space: 8 }) {
+      Image($rawfile(icon))
+        .width(16)
+        .height(16)
+        .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
+      Text(label)
+        .fontSize(13)
+        .fontColor(this.theme_TEXT_PRIMARY)
+        .maxLines(1)
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .height(40)
+    .padding({ left: 14, right: 12 })
+    .onClick(action)
+  }
+
   @Builder
   private buildRecentSessionsCard() {
     if (this.filterRecentSessions(this.recentSessions).length === 0 && this.recentSessions.length > 0) {
@@ -3345,8 +3494,9 @@ struct Index {
             .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
             .fontSize(ThemeConfig.FONT_SIZE_MD)
             .fontWeight(FontWeight.Medium)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme_ACCENT)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
             .onClick(() => {
               if (this.isShareStopAvailable()) {
@@ -3360,8 +3510,9 @@ struct Index {
               .layoutWeight(1)
               .height(ThemeConfig.BUTTON_HEIGHT_MEDIUM)
               .fontSize(ThemeConfig.FONT_SIZE_MD)
-              .backgroundColor(this.theme_INPUT_BG)
-              .fontColor(this.theme_TEXT_PRIMARY)
+.backgroundColor(Color.Transparent)
+          .fontColor(this.theme_TEXT_PRIMARY)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
               .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
               .onClick(() => {
                 void this.generateSharePassword();
@@ -3544,6 +3695,9 @@ struct Index {
   @Builder
   private buildRecentSessionRow(session: RecentSession, colorIndex: number = -1) {
     Row({ space: ThemeConfig.SPACING_MD }) {
+      if (this.multiSelectMode) {
+        this.buildPeerSelectCheckbox(session.id)
+      }
       Row() {
         this.buildThemedPlatformIcon(session.platform, 26, colorIndex)
       }
@@ -3587,7 +3741,10 @@ struct Index {
       .height(44)
       .justifyContent(FlexAlign.Center)
       .hitTestBehavior(HitTestMode.Block)
-      .onClick(() => {
+      .visibility(this.multiSelectMode ? Visibility.None : Visibility.Visible)
+      .onClick((event: ClickEvent) => {
+        this.peerMenuX = event.windowX - 180;
+        this.peerMenuY = event.windowY + 20;
         this.recentMenuSessionId = session.id;
       })
     }
@@ -3595,17 +3752,53 @@ struct Index {
     .padding(ThemeConfig.SPACING_LG)
     .backgroundColor(this.theme_CARD_BG)
     .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
-    .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+    .border({ width: this.isPeerSelected(session.id) ? 2 : 1,
+      color: this.isPeerSelected(session.id) ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
     .onClick(() => {
+      if (this.multiSelectMode) {
+        this.togglePeerSelection(session.id);
+        return;
+      }
       this.selectDeviceIdInputTarget(session.id);
       void this.handleConnect(session.id);
     })
+    .gesture(LongPressGesture({ repeat: false, duration: 450 })
+      .onAction((event: GestureEvent) => {
+        if (!this.multiSelectMode) {
+          this.multiSelectMode = true;
+          this.selectedPeerIds.add(session.id);
+          this.multiSelectVersion++;
+          this.multiSelectMenuX = event.fingerList[0].globalX - 160;
+          this.multiSelectMenuY = event.fingerList[0].globalY + 24;
+          this.showMultiSelectMenu = true;
+        }
+      }))
+  }
+
+  @Builder
+  private buildToastOverlay() {
+    if (this.toastVisible) {
+      Row() {
+        Text(this.toastMessage)
+          .fontSize(14)
+          .fontColor(getIconColorByIndex(this.toastColorOffset))
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+      .border({ width: 1.5, color: getIconColorByIndex(this.toastColorOffset), style: BorderStyle.Solid })
+      .borderRadius(8)
+      .backgroundColor(this.theme_CARD_BG)
+      .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
+      .position({ x: '10%', y: '38%' })
+      .zIndex(100)
+      .animation({ duration: 200, curve: Curve.EaseInOut })
+    }
   }
 
   @Builder
   private buildRecentSessionMenu() {
-    Column() {
-      Scroll() {
+    Scroll() {
         Column({ space: 0 }) {
         this.buildPeerMenuActionRow(this.lt('Connect'), () => {
           const id = this.recentMenuSessionId;
@@ -3751,17 +3944,11 @@ struct Index {
       .constraintSize({ maxHeight: '84%' })
       .scrollBar(BarState.Off)
       .backgroundColor(this.theme_CARD_BG)
-      .border({ width: 1, color: this.theme_BORDER_SUBTLE })
+      .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
       .borderRadius(12)
       .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .justifyContent(FlexAlign.Center)
-    .onClick(() => {
-      this.recentMenuSessionId = '';
-    })
+      .position({ x: this.clampMenuX(this.peerMenuX, 210), y: this.clampMenuY(this.peerMenuY, 400) })
+      .zIndex(50)
   }
 
   @Builder
@@ -3982,7 +4169,7 @@ struct Index {
     Image(this.resolveConnectPeerTabIconResource(tab))
       .width(tab === 'core' ? 20 : 22)
       .height(tab === 'core' ? 20 : 22)
-      .colorFilter(createIconColorFilterForSrc(this.resolveConnectPeerTabIconSrc(tab), this.iconColorMode))
+      .colorFilter(createIconColorFilter(this.resolveConnectPeerTabIconColor(tab), this.iconColorMode))
   }
 
   @Builder
@@ -4006,6 +4193,7 @@ struct Index {
     .id(tab === 'recent' ? 'recent-tab-btn' : `${tab}-tab-btn`)
     .onClick(() => {
       this.dismissConnectSearch();
+      this.exitMultiSelectMode();
       this.currentConnectTab = tab;
       if (tab === 'account') {
         this.refreshAccountState();
@@ -4021,7 +4209,9 @@ struct Index {
     })
     .gesture(
       LongPressGesture({ duration: 500 })
-        .onAction(() => {
+        .onAction((event: GestureEvent) => {
+          this.tabVisMenuX = event.fingerList[0].globalX - 100;
+          this.tabVisMenuY = event.fingerList[0].globalY + 20;
           this.showConnectTabVisibilityMenu = true;
         })
     )
@@ -4098,7 +4288,7 @@ struct Index {
         Image($rawfile(icon))
           .width(20)
           .height(20)
-          .colorFilter(createIconColorFilterForSrc('arrow-forward-ios.svg', this.iconColorMode))
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
       }
 
       Column({ space: 4 }) {
@@ -4237,82 +4427,70 @@ struct Index {
 
   @Builder
   private buildSortMenu() {
-    Column() {
-      Column({ space: 0 }) {
-        ForEach([this.lt('Remote ID'), this.lt('Hostname'), this.lt('Username'), this.lt('Status')], (item: string) => {
-          Row({ space: 10 }) {
-            Stack() {
+    Column({ space: 0 }) {
+      ForEach([this.lt('Remote ID'), this.lt('Hostname'), this.lt('Username'), this.lt('Status')], (item: string) => {
+        Row({ space: 10 }) {
+          Stack() {
+            Circle()
+              .width(20)
+              .height(20)
+              .fill(Color.Transparent)
+              .stroke(this.currentSort === item ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+              .strokeWidth(2)
+
+            if (this.currentSort === item) {
               Circle()
-                .width(20)
-                .height(20)
-                .fill(Color.Transparent)
-                .stroke(this.currentSort === item ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
-                .strokeWidth(2)
-
-              if (this.currentSort === item) {
-                Circle()
-                  .width(12)
-                  .height(12)
-                  .fill(this.theme_ACCENT)
-              }
+                .width(12)
+                .height(12)
+                .fill(this.theme_ACCENT)
             }
-            .width(20)
-            .height(20)
-
-            Text(item)
-              .fontSize(16)
-              .fontColor(this.currentSort === item ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
-              .layoutWeight(1)
           }
-          .width('100%')
-          .height(48)
-          .padding({ left: 16, right: 16 })
-          .onClick(() => {
-            this.currentSort = item;
-            this.applySortToRecentSessions();
-            this.showSortMenu = false;
-          })
-        }, (item: string) => item)
-      }
-      .width(160)
-      .padding({ top: 8, bottom: 8 })
-      .backgroundColor(this.theme_CARD_BG)
-      .borderRadius(12)
-      .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+          .width(20)
+          .height(20)
+
+          Text(item)
+            .fontSize(16)
+            .fontColor(this.currentSort === item ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .height(48)
+        .padding({ left: 16, right: 16 })
+        .onClick(() => {
+          this.currentSort = item;
+          this.applySortToRecentSessions();
+          this.showSortMenu = false;
+        })
+      }, (item: string) => item)
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .justifyContent(FlexAlign.Center)
-    .onClick(() => {
-      this.showSortMenu = false;
-    })
+    .width(160)
+    .padding({ top: 8, bottom: 8 })
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(12)
+    .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    .position({ x: this.clampMenuX(this.sortMenuX, 160), y: this.clampMenuY(this.sortMenuY, 220) })
+    .zIndex(50)
   }
 
   @Builder
   private buildConnectTabVisibilityMenu() {
-    Column() {
-      Column({ space: 0 }) {
-        this.buildConnectTabVisibilityRow('recent', this.lt('Recently Visited'))
-        this.buildConnectTabVisibilityRow('favorites', this.lt('Favorite'))
-        this.buildConnectTabVisibilityRow('discovered', this.lt('Discovered'))
-        this.buildConnectTabVisibilityRow('addressBook', this.lt('Address book'))
-        this.buildConnectTabVisibilityRow('account', this.lt('Account'))
-        this.buildConnectTabVisibilityRow('core', this.lt('Core'))
-      }
-      .width(200)
-      .padding({ top: 8, bottom: 8 })
-      .backgroundColor(this.theme_CARD_BG)
-      .borderRadius(12)
-      .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    Column({ space: 0 }) {
+      this.buildConnectTabVisibilityRow('recent', this.lt('Recently Visited'))
+      this.buildConnectTabVisibilityRow('favorites', this.lt('Favorite'))
+      this.buildConnectTabVisibilityRow('discovered', this.lt('Discovered'))
+      this.buildConnectTabVisibilityRow('addressBook', this.lt('Address book'))
+      this.buildConnectTabVisibilityRow('account', this.lt('Account'))
+      this.buildConnectTabVisibilityRow('core', this.lt('Core'))
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(this.theme_DIALOG_OVERLAY)
-    .justifyContent(FlexAlign.Center)
-    .onClick(() => {
-      this.showConnectTabVisibilityMenu = false;
-    })
+    .width(200)
+    .padding({ top: 8, bottom: 8 })
+    .backgroundColor(this.theme_CARD_BG)
+    .border({ width: 1.5, color: this.theme_BORDER_SUBTLE })
+    .borderRadius(12)
+    .shadow({ radius: 16, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+    .position({ x: this.clampMenuX(this.tabVisMenuX, 200), y: this.clampMenuY(this.tabVisMenuY, 320) })
+    .zIndex(50)
   }
 
   @Builder
@@ -4388,10 +4566,10 @@ struct Index {
       Image(icon)
         .width(22)
         .height(22)
-      .colorFilter(createIconColorFilterForSrc(this.resolveHomeTabIconSrc(tab), this.iconColorMode))
+      .colorFilter(createIconColorFilter(this.resolveHomeTabIconColor(tab), this.iconColorMode))
       Text(this.resolveHomeTabLabel(tab))
         .fontSize(11)
-        .fontColor(this.currentTab === tab ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .fontColor(this.currentTab === tab ? this.resolveHomeTabIconColor(tab) : this.theme_TEXT_TERTIARY)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
@@ -4413,7 +4591,7 @@ struct Index {
         Image(icon)
           .width(22)
           .height(22)
-      .colorFilter(createIconColorFilterForSrc(this.resolveHomeTabIconSrc(tab), this.iconColorMode))
+      .colorFilter(createIconColorFilter(this.resolveHomeTabIconColor(tab), this.iconColorMode))
         if (tab === 'share' && this.isShareServiceRunning()) {
           Circle()
             .width(8)
@@ -4426,7 +4604,7 @@ struct Index {
       .height(22)
       Text(this.resolveHomeTabLabel(tab))
         .fontSize(11)
-        .fontColor(this.currentTab === tab ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+        .fontColor(this.currentTab === tab ? this.resolveHomeTabIconColor(tab) : this.theme_TEXT_TERTIARY)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
@@ -4438,6 +4616,14 @@ struct Index {
     .onClick(() => {
       this.switchHomeTab(tab);
     })
+  }
+
+  private resolveHomeTabIconColor(tab: HomeTab): string {
+    const selected: boolean = this.currentTab === tab;
+    if (tab === 'connect') return selected ? '#FF7BA3' : '#D84E78';
+    if (tab === 'chat') return selected ? '#4FA8F5' : '#1976C9';
+    if (tab === 'share') return selected ? '#5BD88A' : '#2E9B58';
+    return selected ? '#FFB15C' : '#E18428';
   }
 
   private resolveHomeTabLabel(tab: HomeTab): string {
@@ -4509,6 +4695,8 @@ struct Index {
         previousDisplayId !== this.getShareDisplayId()) {
         this.shareUiVersion++;
       }
+    } catch (error) {
+      console.warn('refreshState error: ' + JSON.stringify(error));
     } finally {
       this.refreshStateBusy = false;
     }
@@ -5427,11 +5615,7 @@ struct Index {
     this.addressBookVersion++;
     this.peerOnlineVersion++;
     if (showToast) {
-      try {
-        await this.getUIContext().getPromptAction().openToast({
-          message: success ? this.lt('Address book sync succeeded') : this.lt('Address book sync failed')
-        });
-      } catch (e) { console.warn('openToast failed: ' + JSON.stringify(e)); }
+      await this.showToast(success ? this.lt('Address book sync succeeded') : this.lt('Address book sync failed'));
     }
   }
 
@@ -5542,13 +5726,16 @@ struct Index {
   }
 
   private async showToast(message: string): Promise<void> {
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message
-      });
-    } catch (error) {
-      console.error('toast failed', JSON.stringify(error));
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    if (this.toastTimer !== -1) {
+      clearTimeout(this.toastTimer);
     }
+    this.toastTimer = setTimeout(() => {
+      this.toastVisible = false;
+      this.toastTimer = -1;
+    }, 2500);
   }
 
   private async handlePasswordLoginInDialog(): Promise<void> {
@@ -5562,11 +5749,7 @@ struct Index {
       this.addressBookVersion++;
       this.discoveredVersion++;
       await this.syncAddressBookFromServer(false);
-      try {
-        await this.getUIContext().getPromptAction().openToast({
-          message: this.lt('Login successful')
-        });
-      } catch (e) {}
+      await this.showToast(this.lt('Login successful'));
     } else if (result.emailCheck) {
       this.loginErrorMsg = this.lt('Email verification required');
     } else if (result.tfaCheck) {
@@ -5649,8 +5832,9 @@ struct Index {
       .height(32)
       .margin({ right: 8, bottom: 6 })
       .fontSize(ThemeConfig.FONT_SIZE_SM)
-      .fontColor(this.addressBookPeerTagDraft === tag ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
-      .backgroundColor(this.addressBookPeerTagDraft === tag ? this.theme_ACCENT : this.theme_INPUT_BG)
+      .fontColor(this.addressBookPeerTagDraft === tag ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(Color.Transparent)
+      .border({ width: 1, color: this.addressBookPeerTagDraft === tag ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
       .borderRadius(6)
       .onClick(() => {
         this.addressBookPeerTagDraft = tag;
@@ -5892,11 +6076,7 @@ struct Index {
         this.appData.addAddressBookEntry(existing);
         this.addressBookVersion++;
         this.refreshAccountState();
-        try {
-          this.getUIContext().getPromptAction().openToast({
-            message: this.lt('Delete failed on server, entry kept')
-          });
-        } catch (e) {}
+        void this.showToast(this.lt('Delete failed on server, entry kept'));
       }
     }
   }
@@ -5919,26 +6099,14 @@ struct Index {
       this.deviceIdDisplay = '';
       this.deviceIdInputKey++;
     }
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message: this.lt('Recent target deleted')
-      });
-    } catch (error) {
-      console.error('toast failed', JSON.stringify(error));
-    }
+    await this.showToast(this.lt('Recent target deleted'));
   }
 
   private async clearRecentTargetPasswordById(peerId: string): Promise<void> {
     this.swipedRecentTargetId = '';
     PreferenceStore.setPeerPassword(peerId, '');
     this.clearNativePeerPassword(peerId, this.resolveConnectionTransportTarget(peerId));
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message: this.lt('Saved password deleted')
-      });
-    } catch (error) {
-      console.error('toast failed', JSON.stringify(error));
-    }
+    await this.showToast(this.lt('Saved password deleted'));
   }
 
   private isAccountBusy(): boolean {
@@ -5983,13 +6151,6 @@ struct Index {
     return this.officialCoreState.sessionStage !== 'error';
   }
 
-  private resolveConnectPeerTabIconColor(tab: ConnectPeerTab): string {
-    if (this.currentConnectTab === tab) {
-      return this.theme_ACCENT;
-    }
-    return this.themeIsDark ? '#AAB2C5' : '#7E879A';
-  }
-
   private resolveConnectPeerTabIconResource(tab: ConnectPeerTab): Resource {
     const isSelected = this.currentConnectTab === tab;
     
@@ -6029,6 +6190,26 @@ struct Index {
       return isSelected ? 'device_group_filled.svg' : 'device_group.svg';
     }
     return isSelected ? 'secure_filled.svg' : 'secure.svg';
+  }
+
+  private resolveConnectPeerTabIconColor(tab: ConnectPeerTab): string {
+    const isSelected = this.currentConnectTab === tab;
+    if (tab === 'recent') {
+      return isSelected ? '#D84E78' : '#1976C9';
+    }
+    if (tab === 'favorites') {
+      return isSelected ? '#E18428' : '#2E9B58';
+    }
+    if (tab === 'discovered') {
+      return isSelected ? '#2E9B58' : '#7C5CE5';
+    }
+    if (tab === 'addressBook') {
+      return isSelected ? '#1976C9' : '#D84E78';
+    }
+    if (tab === 'account') {
+      return isSelected ? '#7C5CE5' : '#E18428';
+    }
+    return isSelected ? '#667085' : '#0F9D8A';
   }
 
   private resolveHomeTabIconSrc(tab: HomeTab): string {
@@ -6292,6 +6473,122 @@ struct Index {
       return this.lt('Login anomaly');
     }
     return this.lt('Idle');
+  }
+
+  private toggleMultiSelectMode(): void {
+    this.multiSelectMode = !this.multiSelectMode;
+    if (!this.multiSelectMode) {
+      this.selectedPeerIds.clear();
+    }
+    this.multiSelectVersion++;
+  }
+
+  private exitMultiSelectMode(): void {
+    this.multiSelectMode = false;
+    this.showMultiSelectMenu = false;
+    this.selectedPeerIds.clear();
+    this.multiSelectVersion++;
+  }
+
+  private togglePeerSelection(id: string): void {
+    if (this.selectedPeerIds.has(id)) {
+      this.selectedPeerIds.delete(id);
+    } else {
+      this.selectedPeerIds.add(id);
+    }
+    this.multiSelectVersion++;
+  }
+
+  private isPeerSelected(id: string): boolean {
+    return this.selectedPeerIds.has(id);
+  }
+
+  private selectAllVisiblePeers(): void {
+    let ids: string[] = [];
+    if (this.currentConnectTab === 'recent') {
+      ids = this.recentSessions.map((s: RecentSession) => s.id);
+    } else if (this.currentConnectTab === 'favorites') {
+      ids = this.filterAddressEntries(this.appData.getFavorites()).map((e: AddressBookEntry) => e.id);
+    } else if (this.currentConnectTab === 'discovered') {
+      ids = this.filterAddressEntries(this.appData.getDiscoveredDevices()).map((e: AddressBookEntry) => e.id);
+    } else if (this.currentConnectTab === 'addressBook') {
+      ids = this.getFilteredAddressBookEntries().map((e: AddressBookEntry) => e.id);
+    }
+    if (ids.length === this.selectedPeerIds.size && ids.every((id: string) => this.selectedPeerIds.has(id))) {
+      this.selectedPeerIds.clear();
+    } else {
+      this.selectedPeerIds.clear();
+      ids.forEach((id: string) => this.selectedPeerIds.add(id));
+    }
+    this.multiSelectVersion++;
+  }
+
+  private async batchDeleteSelected(): Promise<void> {
+    const ids: string[] = Array.from(this.selectedPeerIds);
+    if (ids.length === 0) return;
+    if (this.currentConnectTab === 'recent') {
+      ids.forEach((id: string) => this.appData.removeRecentSession(id));
+      this.recentSessions = this.appData.getRecentSessions();
+    } else if (this.currentConnectTab === 'addressBook') {
+      ids.forEach((id: string) => {
+        this.appData.removeAddressBookEntry(id);
+        void this.accountService.deletePeerFromAddressBook(id);
+      });
+    } else if (this.currentConnectTab === 'favorites') {
+      ids.forEach((id: string) => {
+        if (this.appData.isFavorite(id)) this.appData.toggleFavorite(id);
+      });
+    } else if (this.currentConnectTab === 'discovered') {
+      ids.forEach((id: string) => this.appData.removeDiscoveredDevice(id));
+    }
+    this.exitMultiSelectMode();
+    this.addressBookVersion++;
+    this.peerOnlineVersion++;
+    await this.showToast(this.lt('Deleted') + ` (${ids.length})`);
+  }
+
+  private async batchAddSelectedToAddressBook(): Promise<void> {
+    const ids: string[] = Array.from(this.selectedPeerIds);
+    if (ids.length === 0) return;
+    let added: number = 0;
+    for (const id of ids) {
+      if (this.isInAddressBook(id)) continue;
+      const session = this.recentSessions.find((s: RecentSession) => s.id === id);
+      const source = this.appData.getAddressBook().find((e: AddressBookEntry) => e.id === id);
+      const entry: AddressBookEntry = {
+        id: id,
+        alias: source?.alias ?? (session ? session.name : ''),
+        note: source?.note ?? '',
+        group: source?.group ?? '',
+        online: this.appData.isPeerOnline(id),
+        favorite: this.appData.isFavorite(id),
+        platform: source?.platform ?? (session ? session.platform : ''),
+        tags: source?.tags ?? []
+      };
+      this.appData.addAddressBookEntry(entry);
+      added++;
+      if (this.accountState.isLoggedIn) {
+        void this.accountService.addPeerToAddressBook({ id: id, alias: entry.alias, platform: entry.platform, tags: entry.tags });
+      }
+    }
+    this.exitMultiSelectMode();
+    this.addressBookVersion++;
+    if (added > 0) {
+      await this.showToast(this.lt('Added to address book') + ` (${added})`);
+    } else {
+      await this.showToast(this.lt('Already in address book'));
+    }
+  }
+
+  private async batchFavoriteSelected(): Promise<void> {
+    const ids: string[] = Array.from(this.selectedPeerIds);
+    if (ids.length === 0) return;
+    ids.forEach((id: string) => {
+      if (!this.appData.isFavorite(id)) this.appData.addFavorite(id);
+    });
+    this.exitMultiSelectMode();
+    this.addressBookVersion++;
+    await this.showToast(this.lt('Added to favorites') + ` (${ids.length})`);
   }
 
   private async addRecentPeerToAddressBook(peerId: string, session: RecentSession | undefined,
@@ -7009,7 +7306,11 @@ struct Index {
 
         Scroll() {
           Column({ space: 0 }) {
-            Row({ space: 12 }) {
+            Row({ space: 10 }) {
+              Image($rawfile('opt_zoom.svg'))
+                .width(18)
+                .height(18)
+                .colorFilter(createIconColorFilterForSrc('opt_zoom.svg', this.iconColorMode))
               Text(this.lt('Default View Mode'))
                 .fontSize(16)
                 .fontColor(this.theme_TEXT_PRIMARY)
@@ -7061,7 +7362,11 @@ struct Index {
               .padding({ left: 16, right: 16, bottom: 8 })
             }
 
-            Row({ space: 12 }) {
+            Row({ space: 10 }) {
+              Image($rawfile('opt_quality.svg'))
+                .width(18)
+                .height(18)
+                .colorFilter(createIconColorFilterForSrc('opt_quality.svg', this.iconColorMode))
               Text(this.lt('Default Image Quality'))
                 .fontSize(16)
                 .fontColor(this.theme_TEXT_PRIMARY)
@@ -7131,7 +7436,11 @@ struct Index {
               .padding({ left: 16, right: 16, bottom: 8 })
             }
 
-            Row({ space: 12 }) {
+            Row({ space: 10 }) {
+              Image($rawfile('opt_codec.svg'))
+                .width(18)
+                .height(18)
+                .colorFilter(createIconColorFilterForSrc('opt_codec.svg', this.iconColorMode))
               Text(this.lt('Default Codec'))
                 .fontSize(16)
                 .fontColor(this.theme_TEXT_PRIMARY)
@@ -7169,15 +7478,15 @@ struct Index {
               .height(ThemeConfig.MENU_ITEM_HEIGHT)
               .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
 
-            this.buildDisplaySettingsToggleRow(this.lt('View Mode'), this.resolveLocalToggleOption('view-only'), (value: boolean) => { this.applySessionAndLocalToggleOption('view-only', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Show Remote Cursor'), this.resolveLocalToggleOption('show-remote-cursor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-remote-cursor', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Show Quality Monitor'), this.resolveLocalToggleOption('show-quality-monitor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-quality-monitor', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Mute'), this.resolveLocalToggleOption('disable-audio'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-audio', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Disable Clipboard'), this.resolveLocalToggleOption('disable-clipboard'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-clipboard', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Lock After Session End'), this.resolveLocalToggleOption('lock-after-session-end'), (value: boolean) => { this.applySessionAndLocalToggleOption('lock-after-session-end', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Reverse Mouse Scroll'), this.resolveLocalToggleOption('reverse-scroll'), (value: boolean) => { this.applySessionAndLocalToggleOption('reverse-scroll', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Swap Mouse Buttons'), this.resolveLocalToggleOption('swap-left-right-mouse'), (value: boolean) => { this.applySessionAndLocalToggleOption('swap-left-right-mouse', value); }, true)
-            this.buildDisplaySettingsToggleRow(this.lt('Keep Terminal Session On Disconnect'), this.resolveLocalToggleOption('terminal-persistent'), (value: boolean) => { this.applySessionAndLocalToggleOption('terminal-persistent', value); }, true)
+            this.buildDisplaySettingsToggleRow(this.lt('View Mode'), this.resolveLocalToggleOption('view-only'), (value: boolean) => { this.applySessionAndLocalToggleOption('view-only', value); }, true, 'opt_view.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Show Remote Cursor'), this.resolveLocalToggleOption('show-remote-cursor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-remote-cursor', value); }, true, 'opt_mouse.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Show Quality Monitor'), this.resolveLocalToggleOption('show-quality-monitor'), (value: boolean) => { this.applySessionAndLocalToggleOption('show-quality-monitor', value); }, true, 'opt_activity.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Mute'), this.resolveLocalToggleOption('disable-audio'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-audio', value); }, true, 'opt_mute.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Disable Clipboard'), this.resolveLocalToggleOption('disable-clipboard'), (value: boolean) => { this.applySessionAndLocalToggleOption('disable-clipboard', value); }, true, 'menu_clipboard.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Lock After Session End'), this.resolveLocalToggleOption('lock-after-session-end'), (value: boolean) => { this.applySessionAndLocalToggleOption('lock-after-session-end', value); }, true, 'menu_lock.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Reverse Mouse Scroll'), this.resolveLocalToggleOption('reverse-scroll'), (value: boolean) => { this.applySessionAndLocalToggleOption('reverse-scroll', value); }, true, 'settings_udp.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Swap Mouse Buttons'), this.resolveLocalToggleOption('swap-left-right-mouse'), (value: boolean) => { this.applySessionAndLocalToggleOption('swap-left-right-mouse', value); }, true, 'menu_switch.svg')
+            this.buildDisplaySettingsToggleRow(this.lt('Keep Terminal Session On Disconnect'), this.resolveLocalToggleOption('terminal-persistent'), (value: boolean) => { this.applySessionAndLocalToggleOption('terminal-persistent', value); }, true, 'opt_timer.svg')
           }
           .width('100%')
         }
@@ -7218,8 +7527,15 @@ struct Index {
   }
 
   @Builder
-  private buildDisplaySettingsToggleRow(label: string, isOn: boolean, onChange: (value: boolean) => void, showTopBorder: boolean = false) {
-    Row() {
+  private buildDisplaySettingsToggleRow(label: string, isOn: boolean, onChange: (value: boolean) => void, showTopBorder: boolean = false, icon: string = '') {
+    Row({ space: 10 }) {
+      if (icon.length > 0) {
+        Image($rawfile(icon))
+          .width(18)
+          .height(18)
+          .colorFilter(createIconColorFilterForSrc(icon, this.iconColorMode))
+      }
+
       Text(label)
         .fontSize(16)
         .fontColor(this.theme_TEXT_PRIMARY)
@@ -7289,12 +7605,17 @@ struct Index {
             .layoutWeight(1)
           Text(this.describeApiNetworkStatus())
             .fontSize(12)
-            .fontColor(this.theme_TEXT_SECONDARY)
+            .fontColor(this.apiNetworkStatus === 'online' ? this.theme_SUCCESS_TEXT : (this.apiNetworkStatus === 'offline' ? this.theme_ERROR_TEXT : this.theme_TEXT_SECONDARY))
             .maxLines(1)
         }
         .width('100%')
         .height(36)
         .border({ width: { top: 1 }, color: this.theme_BORDER_SUBTLE })
+        .onClick(() => {
+          if (this.apiNetworkStatus !== 'checking') {
+            void this.syncLoginProviders(false);
+          }
+        })
         if (this.apiNetworkStatus === 'offline' && this.apiNetworkError.length > 0) {
           Text(this.apiNetworkError)
             .fontSize(11)
@@ -7389,10 +7710,11 @@ struct Index {
                 .height(38)
                 .fontSize(ThemeConfig.FONT_SIZE_LG)
                 .fontWeight(FontWeight.Medium)
-                .backgroundColor(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0
-                  ? this.theme_ACCENT : this.theme_INPUT_BG)
+                .backgroundColor(Color.Transparent)
                 .fontColor(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0
-                  ? this.theme_ACCENT_TEXT : this.theme_TEXT_TERTIARY)
+                  ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+                .border({ width: 1.5, color: this.loginUsername.trim().length > 0 && this.loginPassword.length > 0
+                  ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
                 .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
                 .enabled(this.loginUsername.trim().length > 0 && this.loginPassword.length > 0)
                 .onClick(() => {
@@ -7463,10 +7785,10 @@ struct Index {
         Image($rawfile(provider.icon))
           .width(18)
           .height(18)
-          .colorFilter(createIconColorFilterForSrc('menu_key.svg', this.iconColorMode))
+          .colorFilter(createIconColorFilter(provider.color, this.iconColorMode))
         Text(`${this.lt('Continue with')} ${provider.name}`)
           .fontSize(14)
-          .fontColor(this.theme_CONTRAST_TEXT)
+          .fontColor(provider.color)
           .margin({ left: 8 })
           .layoutWeight(1)
       }
@@ -7475,7 +7797,8 @@ struct Index {
     }
     .width('100%')
     .height(40)
-    .backgroundColor(provider.color)
+    .backgroundColor(Color.Transparent)
+    .border({ width: 1.5, color: provider.color })
     .borderRadius(8)
     .onClick(() => {
       this.showAccountDialog = false;
@@ -7546,8 +7869,9 @@ struct Index {
               .height(44)
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
-              .fontColor(Color.White)
-              .backgroundColor(this.shareWarningCountdown > 0 ? '#6680A7D8' : this.theme_ACCENT)
+              .fontColor(this.shareWarningCountdown > 0 ? '#9980A7D8' : this.theme_ACCENT)
+              .backgroundColor(Color.Transparent)
+              .border({ width: 1.5, color: this.shareWarningCountdown > 0 ? '#6680A7D8' : this.theme_ACCENT })
               .borderRadius(8)
               .enabled(this.shareWarningCountdown <= 0)
               .onClick(() => {
@@ -7560,8 +7884,8 @@ struct Index {
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
               .fontColor(Color.White)
-              .backgroundColor('#55334152')
-              .border({ width: 1, color: '#99FFFFFF' })
+              .backgroundColor(Color.Transparent)
+              .border({ width: 1.5, color: '#99FFFFFF' })
               .borderRadius(8)
               .onClick(() => {
                 this.closeShareStartWarning();
@@ -7675,7 +7999,8 @@ struct Index {
             .height(28)
             .fontSize(12)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(6)
             .onClick(() => {
               this.showShareSettingsDialog = false;
@@ -7685,8 +8010,9 @@ struct Index {
             .layoutWeight(1)
             .height(28)
             .fontSize(12)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(6)
             .onClick(() => {
               if (this.saveShareSettings()) {
@@ -7787,7 +8113,8 @@ struct Index {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
               this.showShareFixedPasswordInput = false;
@@ -7797,8 +8124,9 @@ struct Index {
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               this.shareFixedPassword = this.shareFixedPasswordDraft.trim();
@@ -7852,7 +8180,8 @@ struct Index {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
               this.showShareOtpLengthInput = false;
@@ -7862,8 +8191,9 @@ struct Index {
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               const len = parseInt(this.shareOtpLengthDraft.trim(), 10);
@@ -8000,7 +8330,8 @@ struct Index {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
               this.showRenameDialog = false;
@@ -8010,8 +8341,9 @@ struct Index {
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               const id = this.renameTargetId;
@@ -8075,7 +8407,8 @@ struct Index {
             .type(InputType.Number)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .maxLength(5)
             .onChange((value: string) => {
@@ -8091,7 +8424,8 @@ struct Index {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
               this.showDirectAccessPortDialog = false;
@@ -8101,8 +8435,9 @@ struct Index {
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               this.saveDirectAccessPort();
@@ -8184,7 +8519,8 @@ struct Index {
             .height(44)
             .fontSize(16)
             .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
               this.draftSocks5Proxy = '';
@@ -8195,8 +8531,9 @@ struct Index {
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
-            .fontColor(this.theme_ACCENT_TEXT)
-            .backgroundColor(this.theme_ACCENT)
+            .fontColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
               this.updateSettings({ socks5Proxy: this.draftSocks5Proxy.trim(), httpProxy: this.draftHttpProxy.trim() });
@@ -8291,24 +8628,12 @@ struct Index {
     if (password.length === 0) {
       PreferenceStore.setPeerPassword(peerId, '');
       this.setStatusMessageRaw(`${this.lt('Pwd saved')}`);
-      try {
-        await this.getUIContext().getPromptAction().openToast({
-          message: this.lt('Saved password deleted')
-        });
-      } catch (error) {
-        console.error('toast failed', JSON.stringify(error));
-      }
+      await this.showToast(this.lt('Saved password deleted'));
       return;
     }
     PreferenceStore.setPeerPassword(peerId, password);
     this.setStatusMessage("password_saved");
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message: this.lt('Password saved')
-      });
-    } catch (error) {
-      console.error('toast failed', JSON.stringify(error));
-    }
+    await this.showToast(this.lt('Password saved'));
     this.setStatusMessage("password_saved_continue");
     await this.submitPendingPassword();
   }
@@ -8637,6 +8962,20 @@ struct Index {
       .padding({ left: ThemeConfig.SPACING_MD, right: ThemeConfig.SPACING_MD, bottom: this.avoidNavigationBarHeight })
       .hitTestBehavior(HitTestMode.Transparent)
 
+      if (this.recentMenuSessionId.length > 0 || this.showSortMenu ||
+        this.showConnectTabVisibilityMenu || this.showAddressBookActionsMenu) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .hitTestBehavior(HitTestMode.Default)
+          .onClick(() => {
+            this.closeAllPopupMenus();
+          })
+      }
+
+      if (this.showMultiSelectMenu) {
+        this.buildMultiSelectMenu()
+      }
       if (this.recentMenuSessionId.length > 0) {
         this.buildRecentSessionMenu()
       }
@@ -8703,6 +9042,7 @@ struct Index {
       if (this.showShareOtpLengthInput) {
         this.buildShareOtpLengthInputDialog()
       }
+      this.buildToastOverlay()
     }
     .width('100%')
     .height('100%')

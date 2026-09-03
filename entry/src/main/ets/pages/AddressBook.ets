@@ -1,6 +1,6 @@
 import { AddressBookEntry, AppDataService } from '../services/AppDataService';
 import { AbPeer } from '../services/HttpClient';
-import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor, ToastOverlay } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { CardContainer, EmptyState, PageHeader, SectionTitle, StatusBadge } from '../common/CommonComponents';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
@@ -39,6 +39,9 @@ struct AddressBook {
   @StorageLink('addressBookServerTags') serverTagsJson: string = '[]';
   @StorageLink('addressBookTagColors') tagColorsJson: string = '{}';
   @State accountState: AccountState = this.appState.getAccount();
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
 
   aboutToAppear() {
     this.reloadEntries();
@@ -104,6 +107,12 @@ struct AddressBook {
       }
       .padding({ top: this.avoidStatusBarHeight })
       .backgroundColor(this.themeIsDark ? '#802D3139' : '#80F8FAFC')
+
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
     }
     .width('100%')
     .height('100%')
@@ -135,7 +144,7 @@ struct AddressBook {
         Button(this.lt('Go to Login'))
           .width('100%')
           .height(44)
-          .backgroundColor(this.theme_ACCENT)
+          .backgroundColor(Color.Transparent)
           .fontColor(this.theme_ACCENT_TEXT)
           .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
           .onClick(() => {
@@ -168,7 +177,7 @@ struct AddressBook {
         }
         .layoutWeight(1)
         .height(48)
-        .backgroundColor(this.theme_INPUT_BG)
+        .backgroundColor(Color.Transparent)
         .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
         .padding({ left: 14, right: 14 })
         .alignItems(VerticalAlign.Center)
@@ -177,7 +186,7 @@ struct AddressBook {
           .width(80)
           .height(48)
           .fontSize(13)
-          .backgroundColor(this.theme_ACCENT)
+          .backgroundColor(Color.Transparent)
           .fontColor(this.theme_ACCENT_TEXT)
           .borderRadius(ThemeConfig.BORDER_RADIUS_LARGE)
           .onClick(() => {
@@ -215,7 +224,7 @@ struct AddressBook {
         Button(this.lt('Save'))
           .layoutWeight(1)
           .height(44)
-          .backgroundColor(this.theme_ACCENT)
+          .backgroundColor(Color.Transparent)
           .fontColor(this.theme_ACCENT_TEXT)
           .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
           .onClick(() => {
@@ -225,7 +234,7 @@ struct AddressBook {
         Button(this.lt('Clear'))
           .layoutWeight(1)
           .height(44)
-          .backgroundColor(this.theme_INPUT_BG)
+          .backgroundColor(Color.Transparent)
           .fontColor(this.theme_TEXT_PRIMARY)
           .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
           .border({ width: 1, color: this.theme_BORDER_SOFT })
@@ -244,7 +253,7 @@ struct AddressBook {
   private buildInput(placeholder: string, value: string, onChange: (value: string) => void) {
     TextInput({ placeholder: placeholder, text: value })
       .height(46)
-      .backgroundColor(this.theme_INPUT_BG)
+      .backgroundColor(Color.Transparent)
       .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
       .padding({ left: 14, right: 14 })
       .onChange(onChange)
@@ -326,8 +335,9 @@ struct AddressBook {
         Button(entry.favorite ? this.lt('Favorited') : this.lt('Favorite'))
           .height(34)
           .fontSize(12)
-          .backgroundColor(entry.favorite ? this.theme_ACCENT_SURFACE : this.theme_INPUT_BG)
+          .backgroundColor(Color.Transparent)
           .fontColor(entry.favorite ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+          .border({ width: 1, color: entry.favorite ? this.theme_ACCENT : this.theme_BORDER_SOFT })
           .borderRadius(10)
           .onClick(() => {
             this.appData.toggleFavorite(entry.id);
@@ -390,8 +400,9 @@ struct AddressBook {
     Button(label)
       .height(36)
       .fontSize(12)
-      .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
-      .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(Color.Transparent)
+      .fontColor(active ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+      .border({ width: 1, color: active ? this.theme_ACCENT : this.theme_BORDER_SOFT })
       .borderRadius(12)
       .onClick(action)
   }
@@ -448,7 +459,7 @@ struct AddressBook {
     }
     .layoutWeight(1)
     .height(36)
-    .backgroundColor(this.theme_INPUT_BG)
+    .backgroundColor(Color.Transparent)
     .borderRadius(12)
     .onClick(action)
   }
@@ -513,11 +524,7 @@ struct AddressBook {
             this.appData.removeAddressBookEntry(id);
           }
           this.reloadEntries();
-          try {
-            this.getUIContext().getPromptAction().openToast({
-              message: this.lt('Add failed on server, entry kept locally')
-            });
-          } catch (e) {}
+          void this.showToast(this.lt('Add failed on server, entry kept locally'));
         }
       });
     }
@@ -559,11 +566,7 @@ struct AddressBook {
       if (!success && existing) {
         this.appData.addAddressBookEntry(existing);
         this.reloadEntries();
-        try {
-          this.getUIContext().getPromptAction().openToast({
-            message: this.lt('Delete failed on server, entry kept')
-          });
-        } catch (e) {}
+        void this.showToast(this.lt('Delete failed on server, entry kept'));
       }
     }
   }
@@ -616,6 +619,13 @@ struct AddressBook {
     } catch (error) {
       console.error('router push failed', JSON.stringify(error));
     }
+  }
+
+  private async showToast(message: string): Promise<void> {
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private lt(key: string): string {

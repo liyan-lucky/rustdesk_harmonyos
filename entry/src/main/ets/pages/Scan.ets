@@ -10,6 +10,7 @@ import { I18nService } from '../services/I18nService';
 import { PermissionService, PermissionStatus } from '../services/PermissionService';
 import { ServerConfigCodec, ServerConfigImportResult } from '../services/ServerConfigCodec';
 import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
+import { ToastOverlay } from '../common/CommonComponents';
 
 @Entry
 @Component
@@ -30,6 +31,9 @@ struct Scan {
   @StorageProp('avoidNavigationBarHeight') avoidNavigationBarHeight: number = 0;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
 
   aboutToAppear(): void {
     this.status = this.lt('Waiting for camera...');
@@ -77,7 +81,8 @@ struct Scan {
             .height(44)
             .fontSize(24)
             .fontColor('#FFFFFF')
-            .backgroundColor('#66000000')
+            .backgroundColor(Color.Transparent)
+            .border({ width: 1.5, color: '#99FFFFFF' })
             .borderRadius(22)
             .onClick(() => {
               this.goBack();
@@ -97,7 +102,8 @@ struct Scan {
           }
           .width(44)
           .height(44)
-          .backgroundColor('#66000000')
+          .backgroundColor(Color.Transparent)
+          .border({ width: 1.5, color: '#99FFFFFF' })
           .borderRadius(22)
           .onClick(() => {
             void this.importPhotoQrCode();
@@ -120,6 +126,12 @@ struct Scan {
       .padding({
         top: this.avoidStatusBarHeight,
         bottom: this.avoidNavigationBarHeight + 18
+      })
+
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
       })
     }
     .width('100%')
@@ -203,8 +215,9 @@ struct Scan {
         .height(46)
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#FFFFFF')
-        .backgroundColor('#0071FF')
+        .fontColor('#0071FF')
+        .backgroundColor(Color.Transparent)
+        .border({ width: 1.5, color: '#0071FF' })
         .borderRadius(8)
         .onClick(() => {
           void this.rescan();
@@ -416,11 +429,10 @@ struct Scan {
   }
 
   private async showToast(message: string): Promise<void> {
-    try {
-      await this.getUIContext().getPromptAction().openToast({ message });
-    } catch (error) {
-      console.warn('scan toast failed: ' + JSON.stringify(error));
-    }
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private goBack(): void {

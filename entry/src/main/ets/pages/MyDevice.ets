@@ -1,7 +1,7 @@
 import { AppDataService, LocalDeviceProfile, SettingsState } from '../services/AppDataService';
 import { ClipboardService } from '../services/ClipboardService';
 import { ThemeConfig } from '../common/ThemeConfig';
-import { CardContainer, InfoRow, MenuInfoItem, MenuRowDivider, MenuSectionCard, MenuToggleItem, PageHeader, PrimaryButton, SecondaryButton, SectionTitle, StatusBadge, ToggleSettingItem } from '../common/CommonComponents';
+import { CardContainer, InfoRow, MenuInfoItem, MenuRowDivider, MenuSectionCard, MenuToggleItem, PageHeader, PrimaryButton, SecondaryButton, SectionTitle, StatusBadge, ToggleSettingItem, ToastOverlay } from '../common/CommonComponents';
 import { OfficialCoreState, OfficialRustDeskBridge } from '../services/OfficialRustDeskBridge';
 import { I18nService } from '../services/I18nService';
 import { DeviceIdFormatter } from '../common/DeviceIdFormatter';
@@ -30,6 +30,9 @@ struct MyDevice {
   @State password: string = '';
   @State aliasDraft: string = '';
   @State officialCoreState: OfficialCoreState = this.officialBridge.getCoreState();
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
   aboutToAppear() {
     void this.reloadState();
     this.startRefreshLoop();
@@ -91,6 +94,12 @@ struct MyDevice {
       }
       .width('100%')
       .height('100%')
+
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
     }
     .width('100%')
     .height('100%')
@@ -125,7 +134,7 @@ struct MyDevice {
 
         TextInput({ placeholder: this.lt('Device alias'), text: this.aliasDraft })
           .height(46)
-          .backgroundColor(this.theme_INPUT_BG)
+          .backgroundColor(Color.Transparent)
           .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
           .padding({ left: 14, right: 14 })
           .margin({ left: ThemeConfig.SPACING_LG, right: ThemeConfig.SPACING_LG })
@@ -134,7 +143,7 @@ struct MyDevice {
           Button(this.lt('Save Alias'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_ACCENT)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_ACCENT_TEXT)
             .borderRadius(12)
             .onClick(() => {
@@ -144,7 +153,7 @@ struct MyDevice {
           Button(this.lt('Copy Fingerprint'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY)
             .borderRadius(12)
             .onClick(() => {
@@ -195,7 +204,7 @@ struct MyDevice {
           Button(this.lt('New Password'))
             .width('100%')
             .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_CONTRAST_TEXT)
             .borderRadius(12)
             .onClick(() => {
@@ -283,8 +292,9 @@ struct MyDevice {
       .height(40)
       .fontSize(ThemeConfig.FONT_SIZE_SM)
       .fontWeight(FontWeight.Medium)
-      .backgroundColor(active ? this.theme_ACCENT : this.theme_INPUT_BG)
-      .fontColor(active ? this.theme_ACCENT_TEXT : this.theme_TEXT_PRIMARY)
+      .backgroundColor(Color.Transparent)
+      .fontColor(active ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+      .border({ width: 1, color: active ? this.theme_ACCENT : this.theme_BORDER_SUBTLE })
       .borderRadius(ThemeConfig.BORDER_RADIUS_MEDIUM)
       .onClick(action)
   }
@@ -376,13 +386,14 @@ struct MyDevice {
 
   private async copyText(value: string, message: string): Promise<void> {
     const success: boolean = await this.clipboardService.copyText(value);
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message: success ? message : 'Copy failed'
-      });
-    } catch (error) {
-      console.error('toast failed', JSON.stringify(error));
-    }
+    void this.showToast(success ? message : 'Copy failed');
+  }
+
+  private async showToast(message: string): Promise<void> {
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private navigateToSettings(): void {

@@ -2,7 +2,7 @@ import { AccountService, OAuthProvider, accountService, AccountState } from '../
 import { AppState } from '../services/AppState';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
-import { createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor, getIconColorByIndex, ToastOverlay } from '../common/CommonComponents';
 import { Logger } from '../common/Logger';
 
 type LoginMode = 'oauth' | 'password';
@@ -27,6 +27,9 @@ struct LoginPage {
   @State requireTfa: boolean = false;
   @State showSearchInput: boolean = false;
   @State searchText: string = '';
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
 
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
@@ -81,11 +84,7 @@ struct LoginPage {
   private onAccountChanged(): void {
     if (this.accountState.isLoggedIn && !this.prevLoggedIn) {
       this.isLoading = false;
-      try {
-        this.getUIContext().getPromptAction().openToast({
-          message: this.lt('Login successful')
-        });
-      } catch (e) {}
+      void this.showToast(this.lt('Login successful'));
       this.goBack();
     }
     if (this.accountState.status === 'error' && this.accountState.lastError) {
@@ -132,11 +131,7 @@ struct LoginPage {
     try {
       this.availableProviders = await this.accountService.refreshAvailableProviders();
       if (showFeedback) {
-        try {
-          this.getUIContext().getPromptAction().openToast({
-            message: this.lt(this.accountService.didProvidersSyncSucceed() ? 'Login information synced' : 'Login information sync failed')
-          });
-        } catch (_error) {}
+        void this.showToast(this.lt(this.accountService.didProvidersSyncSucceed() ? 'Login information synced' : 'Login information sync failed'));
       }
     } finally {
       if (this.providersSyncAnimationTimer !== -1) {
@@ -177,91 +172,101 @@ struct LoginPage {
   }
 
   build() {
-    Column() {
+    Stack() {
       Column() {
-        Image($rawfile('app_icon.svg'))
-          .width(80)
-          .height(80)
-          .margin({ bottom: 16 })
+        Column() {
+          Image($rawfile('app_icon.svg'))
+            .width(80)
+            .height(80)
+            .margin({ bottom: 16 })
 
-        Text('RustDesk')
-          .fontSize(28)
-          .fontColor(this.theme_TEXT_PRIMARY)
-          .fontWeight(FontWeight.Bold)
+          Text('RustDesk')
+            .fontSize(28)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .fontWeight(FontWeight.Bold)
 
-        Text(this.lt('Remote Desktop Control'))
-          .fontSize(14)
-          .fontColor(this.theme_TEXT_TERTIARY)
-          .margin({ top: 8, bottom: 32 })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .padding({ top: 32, bottom: 24 })
-      .margin({ top: this.avoidStatusBarHeight + 20 })
-      .backgroundColor(this.themeIsDark ? '#08FFFFFF' : '#08FFFFFF')
-      .borderRadius(20)
-
-      Row() {
-        Row({ space: 16 }) {
-          this.buildModeTab(this.lt('OAuth Login'), 'oauth')
-          this.buildModeTab(this.lt('Password Login'), 'password')
+          Text(this.lt('Remote Desktop Control'))
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_TERTIARY)
+            .margin({ top: 8, bottom: 32 })
         }
-        .layoutWeight(1)
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .padding({ top: 32, bottom: 24 })
+        .margin({ top: this.avoidStatusBarHeight + 20 })
+        .backgroundColor(this.themeIsDark ? '#08FFFFFF' : '#08FFFFFF')
+        .borderRadius(20)
 
-        Row({ space: 14 }) {
-          this.buildLoginSearchAnchor()
+        Row() {
+          Row({ space: 16 }) {
+            this.buildModeTab(this.lt('OAuth Login'), 'oauth')
+            this.buildModeTab(this.lt('Password Login'), 'password')
+          }
+          .layoutWeight(1)
 
-          Image($rawfile('refresh.svg'))
-            .width(18)
-            .height(18)
-            .colorFilter(createIconColorFilterForSrc('refresh.svg', this.iconColorMode))
-            .rotate({ x: 0, y: 0, z: 1, angle: this.providersSyncAngle })
-            .enabled(!this.providersSyncing)
-            .accessibilityText(this.lt('Sync now'))
-            .onClick(() => void this.syncProviders())
+          Row({ space: 14 }) {
+            this.buildLoginSearchAnchor()
+
+            Image($rawfile('refresh.svg'))
+              .width(18)
+              .height(18)
+              .colorFilter(createIconColorFilterForSrc('refresh.svg', this.iconColorMode))
+              .rotate({ x: 0, y: 0, z: 1, angle: this.providersSyncAngle })
+              .enabled(!this.providersSyncing)
+              .accessibilityText(this.lt('Sync now'))
+              .onClick(() => void this.syncProviders())
+          }
         }
+        .width('100%')
+        .padding({ left: 12, right: 12 })
+        .margin({ bottom: 16 })
+
+        this.buildApiNetworkStatus()
+
+        if (this.loginMode === 'oauth') {
+          this.buildOAuthLogin()
+        } else {
+          this.buildPasswordLogin()
+        }
+
+        if (this.errorMessage.length > 0) {
+          Text(this.errorMessage)
+            .fontSize(12)
+            .fontColor(this.theme_ERROR_TEXT)
+            .margin({ top: 16 })
+            .padding({ left: 12, right: 12 })
+        }
+
+        Blank()
+
+        Row() {
+          Text(this.lt('Login agreement'))
+            .fontSize(12)
+            .fontColor(this.theme_TEXT_TERTIARY)
+          Text(this.lt('Privacy Policy'))
+            .fontSize(12)
+            .fontColor(this.theme_ACCENT)
+            .onClick(() => this.openUrl('https://rustdesk.com/privacy'))
+          Text(this.lt('and'))
+            .fontSize(12)
+            .fontColor(this.theme_TEXT_TERTIARY)
+          Text(this.lt('Terms of Service'))
+            .fontSize(12)
+            .fontColor(this.theme_ACCENT)
+            .onClick(() => this.openUrl('https://rustdesk.com/terms'))
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .margin({ bottom: 24 })
       }
       .width('100%')
-      .padding({ left: 12, right: 12 })
-      .margin({ bottom: 16 })
+      .height('100%')
 
-      this.buildApiNetworkStatus()
-
-      if (this.loginMode === 'oauth') {
-        this.buildOAuthLogin()
-      } else {
-        this.buildPasswordLogin()
-      }
-
-      if (this.errorMessage.length > 0) {
-        Text(this.errorMessage)
-          .fontSize(12)
-          .fontColor(this.theme_ERROR_TEXT)
-          .margin({ top: 16 })
-          .padding({ left: 12, right: 12 })
-      }
-
-      Blank()
-
-      Row() {
-        Text(this.lt('Login agreement'))
-          .fontSize(12)
-          .fontColor(this.theme_TEXT_TERTIARY)
-        Text(this.lt('Privacy Policy'))
-          .fontSize(12)
-          .fontColor(this.theme_ACCENT)
-          .onClick(() => this.openUrl('https://rustdesk.com/privacy'))
-        Text(this.lt('and'))
-          .fontSize(12)
-          .fontColor(this.theme_TEXT_TERTIARY)
-        Text(this.lt('Terms of Service'))
-          .fontSize(12)
-          .fontColor(this.theme_ACCENT)
-          .onClick(() => this.openUrl('https://rustdesk.com/terms'))
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .margin({ bottom: 24 })
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
     }
     .width('100%')
     .height('100%')
@@ -349,7 +354,7 @@ struct LoginPage {
           .fontSize(14)
           .fontColor(this.theme_TEXT_PRIMARY)
           .placeholderColor(this.theme_TEXT_TERTIARY)
-          .backgroundColor(this.theme_CARD_BG)
+          .backgroundColor(Color.Transparent)
           .borderRadius(8)
           .padding({ left: 10, right: 10 })
           .id('login-search-input')
@@ -374,8 +379,8 @@ struct LoginPage {
   @Builder
   private buildOAuthLogin() {
     Column({ space: 12 }) {
-      ForEach(this.filterProviders(this.availableProviders), (provider: OAuthProvider) => {
-        this.buildProviderButton(provider)
+      ForEach(this.filterProviders(this.availableProviders), (provider: OAuthProvider, index: number) => {
+        this.buildProviderButton(provider, index)
       }, (provider: OAuthProvider) => provider.id)
 
       if (this.filterProviders(this.availableProviders).length === 0) {
@@ -395,9 +400,9 @@ struct LoginPage {
         }.width('100%').justifyContent(FlexAlign.Center).margin({ top: 16 })
 
         Row({ space: 12 }) {
-          Button(this.lt('Reopen browser')).height(36).backgroundColor(this.theme_CARD_BG)
+          Button(this.lt('Reopen browser')).height(36).backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY).onClick(() => void this.accountService.reopenBrowser())
-          Button(this.lt('Cancel')).height(36).backgroundColor(this.theme_CARD_BG)
+          Button(this.lt('Cancel')).height(36).backgroundColor(Color.Transparent)
             .fontColor(this.theme_ERROR_TEXT).onClick(() => this.accountService.cancelLogin())
         }
       }
@@ -408,18 +413,19 @@ struct LoginPage {
   }
 
   @Builder
-  private buildProviderButton(provider: OAuthProvider) {
+  private buildProviderButton(provider: OAuthProvider, index: number = 0) {
     Button() {
       Row() {
         Image($rawfile(provider.icon)).width(24).height(24).colorFilter(createIconColorFilterForSrc(provider.icon, this.iconColorMode))
         Text(`${this.lt('Login with')} ${provider.name}`)
-          .fontSize(16).fontColor(this.theme_CONTRAST_TEXT).margin({ left: 12 }).layoutWeight(1)
+          .fontSize(16).fontColor(getIconColorByIndex(index)).margin({ left: 12 }).layoutWeight(1)
         if (this.isLoading && this.selectedProvider === provider.id) {
-          LoadingProgress().width(20).height(20).color(this.theme_CONTRAST_TEXT)
+          LoadingProgress().width(20).height(20).color(getIconColorByIndex(index))
         }
       }.width('100%').padding({ left: 16, right: 16 })
     }
-    .width('100%').height(52).backgroundColor(provider.color).borderRadius(8)
+    .width('100%').height(52).backgroundColor(Color.Transparent)
+    .border({ width: 1.5, color: getIconColorByIndex(index) }).borderRadius(8)
     .enabled(!this.isLoading && !this.isPollingOAuth)
     .onClick(() => void this.handleOAuthLogin(provider.id))
   }
@@ -449,8 +455,8 @@ struct LoginPage {
         .height(48).type(InputType.Password).backgroundColor(this.theme_INPUT_BG).borderRadius(8)
         .onChange((v: string) => this.password = v)
       Button(this.isLoading ? this.lt('Logging in...') : this.lt('Login'))
-        .width('100%').height(48).backgroundColor(this.theme_ACCENT)
-        .fontColor(this.theme_ACCENT_TEXT).borderRadius(8)
+        .width('100%').height(48).backgroundColor(Color.Transparent)
+        .fontColor(this.theme_ACCENT).border({ width: 1.5, color: this.theme_ACCENT }).borderRadius(8)
         .enabled(!this.isLoading && this.username.length > 0 && this.password.length > 0)
         .onClick(() => void this.handlePasswordLogin())
     }
@@ -466,9 +472,9 @@ struct LoginPage {
         .height(48).backgroundColor(this.theme_INPUT_BG).borderRadius(8)
         .onChange((v: string) => this.verifyCode = v)
       Row({ space: 12 }) {
-        Button(this.lt('Verify')).layoutWeight(1).height(48).backgroundColor(this.theme_ACCENT)
-          .fontColor(this.theme_ACCENT_TEXT).borderRadius(8).onClick(() => void this.handleEmailVerify())
-        Button(this.lt('Cancel')).layoutWeight(1).height(48).backgroundColor(this.theme_CARD_BG)
+        Button(this.lt('Verify')).layoutWeight(1).height(48).backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT).border({ width: 1.5, color: this.theme_ACCENT }).borderRadius(8).onClick(() => void this.handleEmailVerify())
+        Button(this.lt('Cancel')).layoutWeight(1).height(48).backgroundColor(Color.Transparent)
           .fontColor(this.theme_TEXT_PRIMARY).borderRadius(8).onClick(() => this.resetForm())
       }
     }
@@ -483,9 +489,9 @@ struct LoginPage {
         .height(48).backgroundColor(this.theme_INPUT_BG).borderRadius(8)
         .onChange((v: string) => this.verifyCode = v)
       Row({ space: 12 }) {
-        Button(this.lt('Verify')).layoutWeight(1).height(48).backgroundColor(this.theme_ACCENT)
-          .fontColor(this.theme_ACCENT_TEXT).borderRadius(8).onClick(() => void this.handleTfaVerify())
-        Button(this.lt('Cancel')).layoutWeight(1).height(48).backgroundColor(this.theme_CARD_BG)
+        Button(this.lt('Verify')).layoutWeight(1).height(48).backgroundColor(Color.Transparent)
+          .fontColor(this.theme_ACCENT).border({ width: 1.5, color: this.theme_ACCENT }).borderRadius(8).onClick(() => void this.handleTfaVerify())
+        Button(this.lt('Cancel')).layoutWeight(1).height(48).backgroundColor(Color.Transparent)
           .fontColor(this.theme_TEXT_PRIMARY).borderRadius(8).onClick(() => this.resetForm())
       }
     }
@@ -559,6 +565,13 @@ struct LoginPage {
     try {
       this.getUIContext().getRouter().back();
     } catch (e) {}
+  }
+
+  private async showToast(message: string): Promise<void> {
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private lt(key: string): string {

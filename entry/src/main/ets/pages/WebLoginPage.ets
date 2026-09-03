@@ -4,6 +4,7 @@ import { AppState } from '../services/AppState';
 import { HttpClient, AuthBody } from '../services/HttpClient';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
+import { ToastOverlay } from '../common/CommonComponents';
 import { NativeRustDeskBridge } from '../services/NativeRustDeskBridge';
 import { PreferenceStore } from '../services/PreferenceStore';
 
@@ -28,12 +29,16 @@ struct WebLoginPage {
   @State pollCount: number = 0;
   @State pollTimer: number = -1;
   @State webController: webview.WebviewController = new webview.WebviewController();
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
 
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
   @StorageProp('theme_GRAY_BG') theme_GRAY_BG: string = '#171A22';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
   @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#AAB2C5';
+  @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2D3139';
   @StorageProp('themeIsDark') themeIsDark: boolean = true;
   @StorageProp('avoidStatusBarHeight') avoidStatusBarHeight: number = 0;
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
@@ -62,12 +67,14 @@ struct WebLoginPage {
   }
 
   build() {
-    Column() {
-      Row() {
+    Stack() {
+      Column() {
+        Row() {
         Button(this.lt('Back'))
           .height(36)
-          .backgroundColor(this.theme_CARD_BG)
+          .backgroundColor(Color.Transparent)
           .fontColor(this.theme_TEXT_PRIMARY)
+          .border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .onClick(() => this.goBack())
 
         Text(this.lt('GitHub Login'))
@@ -132,7 +139,15 @@ struct WebLoginPage {
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme_GRAY_BG)
-  }
+
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
+    }
+    .width('100%')
+    .height('100%')
 
   private startPolling(): void {
     if (this.pollTimer !== -1) {
@@ -208,14 +223,15 @@ struct WebLoginPage {
     });
 
     await this.accountService.fetchAddressBook();
-
-    try {
-      await this.getUIContext().getPromptAction().openToast({
-        message: this.lt('Login successful')
-      });
-    } catch (e) {}
-
+    void this.showToast(this.lt('Login successful'));
     this.goBack();
+  }
+
+  private async showToast(message: string): Promise<void> {
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private goBack(): void {

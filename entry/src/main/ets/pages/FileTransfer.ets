@@ -1,5 +1,5 @@
 import { AppDataService, TransferTask } from '../services/AppDataService';
-import { PageHeader, createIconColorFilterForSrc, resolveIconFillColor } from '../common/CommonComponents';
+import { PageHeader, createIconColorFilterForSrc, resolveIconFillColor, ToastOverlay } from '../common/CommonComponents';
 import { ThemeConfig } from '../common/ThemeConfig';
 import {
   FileInfo,
@@ -112,6 +112,9 @@ struct FileTransfer {
   @StorageProp('theme_ACCENT_SURFACE') theme_ACCENT_SURFACE: string = '#1A2742';
   @StorageProp('i18nVersion') @Watch('onI18nVersionChanged') i18nRefresh: number = 0;
   @State i18nVersion: number = 0;
+  @State toastMessage: string = '';
+  @State toastVisible: boolean = false;
+  @State toastColorOffset: number = 0;
   @StorageProp('theme_ACCENT_TEXT') theme_ACCENT_TEXT: string = '#FFFFFF';
   @StorageProp('theme_BORDER_SUBTLE') theme_BORDER_SUBTLE: string = '#2C3343';
   @StorageProp('theme_CARD_BG') theme_CARD_BG: string = '#1E232F';
@@ -173,6 +176,11 @@ struct FileTransfer {
       if (this.showRenameDialog && this.itemMenuEntry !== null) {
         this.buildRenameDialog()
       }
+      ToastOverlay({
+        toastMessage: this.toastMessage,
+        toastVisible: this.toastVisible,
+        toastColorOffset: this.toastColorOffset
+      })
     }
     .width('100%')
     .height('100%')
@@ -687,7 +695,7 @@ struct FileTransfer {
 
         TextInput({ placeholder: this.lt('New folder name'), text: this.newFolderName })
           .height(42)
-          .backgroundColor(this.theme_INPUT_BG)
+          .backgroundColor(Color.Transparent)
           .border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .borderRadius(8)
           .padding({ left: 14, right: 14 })
@@ -699,7 +707,7 @@ struct FileTransfer {
           Button(this.lt('Cancel'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY)
             .onClick(() => {
               this.showNewFolderDialog = false;
@@ -707,8 +715,9 @@ struct FileTransfer {
           Button(this.lt('Create'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme_ACCENT)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .onClick(() => {
               this.showNewFolderDialog = false;
               void this.createFolder();
@@ -739,7 +748,7 @@ struct FileTransfer {
 
         TextInput({ text: this.renameDraft })
           .height(42)
-          .backgroundColor(this.theme_INPUT_BG)
+          .backgroundColor(Color.Transparent)
           .border({ width: 1, color: this.theme_BORDER_SUBTLE })
           .borderRadius(8)
           .padding({ left: 14, right: 14 })
@@ -751,7 +760,7 @@ struct FileTransfer {
           Button(this.lt('Cancel'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY)
             .onClick(() => {
               this.showRenameDialog = false;
@@ -759,8 +768,9 @@ struct FileTransfer {
           Button(this.lt('Rename'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme_ACCENT)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .onClick(() => {
               this.showRenameDialog = false;
               void this.renameEntry();
@@ -806,20 +816,22 @@ struct FileTransfer {
           Button(this.lt('Replace'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_ACCENT)
-            .fontColor(this.theme_ACCENT_TEXT)
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme_ACCENT)
+            .border({ width: 1.5, color: this.theme_ACCENT })
             .onClick(() => this.respondToOverride('replace'))
           Button(this.lt('Skip'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_INPUT_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_TEXT_PRIMARY)
             .onClick(() => this.respondToOverride('skip'))
           Button(this.lt('Cancel'))
             .layoutWeight(1)
             .height(40)
-            .backgroundColor(this.theme_ERROR_BG)
+            .backgroundColor(Color.Transparent)
             .fontColor(this.theme_ERROR_TEXT)
+            .border({ width: 1.5, color: this.theme_ERROR_TEXT })
             .onClick(() => this.respondToOverride('cancel'))
         }
         .width('100%')
@@ -1196,11 +1208,10 @@ struct FileTransfer {
   }
 
   private async showToast(message: string): Promise<void> {
-    try {
-      await this.getUIContext().getPromptAction().openToast({ message });
-    } catch (error) {
-      console.error('FileTransfer toast failed', JSON.stringify(error));
-    }
+    this.toastColorOffset = (this.toastColorOffset + 1) % 7;
+    this.toastMessage = message;
+    this.toastVisible = true;
+    setTimeout(() => { this.toastVisible = false; }, 2500);
   }
 
   private lt(key: string): string {
