@@ -84,6 +84,8 @@ const ICON_COLOR_MAP: Record<string, string> = {
   'insecure.svg': '#E18428', 'keyboard.svg': '#7C5CE5', 'keyboard_mouse.svg': '#0F9D8A',
   'login.svg': '#2E9B58', 'content_copy.svg': '#1976C9', 'content_paste.svg': '#7C5CE5',
   'copy.svg': '#1976C9', 'file_export.svg': '#0F9D8A',
+  'share_lock.svg': '#D84E78', 'share_hand.svg': '#0F9D8A', 'share_key.svg': '#E18428',
+  'share_otp.svg': '#7C5CE5', 'share_numeric.svg': '#1976C9',
   'android.svg': '#2E9B58', 'linux.svg': '#E18428',
   'history_filled.svg': '#D84E78', 'star_filled.svg': '#E18428',
   'actions.svg': '#7C5CE5', 'cursor-pointer.svg': '#1976C9',

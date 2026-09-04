@@ -3225,6 +3225,7 @@ export class NativeRustDeskBridge {
 
   static mainGetOption(key: string): string {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[key: string], string>(
       nativeModule,
       ['mainGetOption', 'main_get_option', 'rustdesk_bridge_main_get_option']
@@ -3235,6 +3236,7 @@ export class NativeRustDeskBridge {
 
   static mainSetOption(key: string, value: string): void {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[key: string, value: string], void>(
       nativeModule,
       ['mainSetOption', 'main_set_option', 'rustdesk_bridge_main_set_option']
@@ -3324,6 +3326,7 @@ export class NativeRustDeskBridge {
 
   static mainGetTemporaryPassword(): string {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[], string>(
       nativeModule,
       ['mainGetTemporaryPassword', 'main_get_temporary_password', 'rustdesk_bridge_main_get_temporary_password']
@@ -3338,6 +3341,7 @@ export class NativeRustDeskBridge {
 
   static mainSetPermanentPasswordWithResult(password: string): boolean {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[password: string], boolean>(
       nativeModule,
       ['mainSetPermanentPasswordWithResult', 'main_set_permanent_password_with_result', 'rustdesk_bridge_main_set_permanent_password_with_result']
@@ -3348,6 +3352,7 @@ export class NativeRustDeskBridge {
 
   static mainUpdateTemporaryPassword(): void {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[], void>(
       nativeModule,
       ['mainUpdateTemporaryPassword', 'main_update_temporary_password', 'rustdesk_bridge_main_update_temporary_password']
@@ -3878,6 +3883,7 @@ export class NativeRustDeskBridge {
 
   static cmInit(): void {
     const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
     const fn = NativeRustDeskBridge.resolveFunction<[], void>(
       nativeModule,
       ['cmInit', 'cm_init', 'rustdesk_bridge_cm_init']
@@ -3906,14 +3912,14 @@ export class NativeRustDeskBridge {
     try { return fn(length) || ''; } catch { return ''; }
   }
 
-  static cmGetClientsLength(): any {
+  static cmGetClientsLength(): number {
     const nativeModule = NativeRustDeskBridge.getModule();
-    const fn = NativeRustDeskBridge.resolveFunction<[], any>(
+    const fn = NativeRustDeskBridge.resolveFunction<[], number>(
       nativeModule,
       ['cmGetClientsLength', 'cm_get_clients_length', 'rustdesk_bridge_cm_get_clients_length']
     );
-    if (!fn) return undefined;
-    try { return fn() || undefined; } catch { return undefined; }
+    if (!fn) return 0;
+    try { return fn() || 0; } catch { return 0; }
   }
 
   static cmSendChat(conn_id: number, msg: string): void {
@@ -3944,6 +3950,16 @@ export class NativeRustDeskBridge {
     );
     if (!fn) return;
     try { fn(conn_id); } catch { /* ignore */ }
+  }
+
+  static forceCloseAllConnections(): number {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    const fn = NativeRustDeskBridge.resolveFunction<[], number>(
+      nativeModule,
+      ['forceCloseAllConnections']
+    );
+    if (!fn) return 0;
+    try { return fn() as number; } catch { return 0; }
   }
 
   static cmRemoveDisconnectedConnection(conn_id: number): void {

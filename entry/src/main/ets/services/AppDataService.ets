@@ -805,10 +805,18 @@ export class AppDataService {
   }
 
   private createTemporaryPassword(): string {
-    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const otpLengthStr = NativeRustDeskBridge.mainGetOption('temporary-password-length').trim();
+    const otpNumericStr = NativeRustDeskBridge.mainGetOption('allow-numeric-one-time-password').trim().toUpperCase();
+    let otpLength = 6;
+    const len = parseInt(otpLengthStr, 10);
+    if (len === 8 || len === 10) otpLength = len;
+    const numericOnly = otpNumericStr === 'Y' || otpNumericStr === 'YES' || otpNumericStr === 'TRUE' || otpNumericStr === '1';
+    const digits = '0123456789';
+    const alphanumeric = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const charset = numericOnly ? digits : alphanumeric;
     let result = '';
-    for (let index = 0; index < 6; index++) {
-      result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    for (let index = 0; index < otpLength; index++) {
+      result += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     return result;
   }
@@ -817,8 +825,6 @@ export class AppDataService {
     if (this.password.trim().length === 0) {
       return;
     }
-    NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
-    NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
     NativeRustDeskBridge.setLocalOption('temporary-password', this.password);
   }
 

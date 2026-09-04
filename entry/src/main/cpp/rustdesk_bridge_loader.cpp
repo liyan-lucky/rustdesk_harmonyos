@@ -2623,10 +2623,10 @@ napi_value CmCheckClientsLength(napi_env env, napi_callback_info info) {
 }
 
 napi_value CmGetClientsLength(napi_env env, napi_callback_info info) {
-  rustdesk_bridge_cm_get_clients_length();
-  napi_value undefined = nullptr;
-  napi_get_undefined(env, &undefined);
-  return undefined;
+  unsigned long long length = rustdesk_bridge_cm_get_clients_length();
+  napi_value result = nullptr;
+  napi_create_int64(env, static_cast<int64_t>(length), &result);
+  return result;
 }
 
 napi_value CmSendChat(napi_env env, napi_callback_info info) {
@@ -2667,6 +2667,18 @@ napi_value CmCloseConnection(napi_env env, napi_callback_info info) {
   napi_value undefined = nullptr;
   napi_get_undefined(env, &undefined);
   return undefined;
+}
+
+napi_value ForceCloseAllConnections(napi_env env, napi_callback_info info) {
+  (void)info;
+  unsigned long long length = rustdesk_bridge_cm_get_clients_length();
+  for (unsigned long long i = 0; i < length; i++) {
+    rustdesk_bridge_cm_close_connection(static_cast<int>(i));
+  }
+  rustdesk_bridge_main_stop_service();
+  napi_value result = nullptr;
+  napi_create_int64(env, static_cast<int64_t>(length), &result);
+  return result;
 }
 
 napi_value CmRemoveDisconnectedConnection(napi_env env, napi_callback_info info) {
@@ -4388,6 +4400,7 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"cmSendChat", nullptr, CmSendChat, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cmLoginRes", nullptr, CmLoginRes, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cmCloseConnection", nullptr, CmCloseConnection, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"forceCloseAllConnections", nullptr, ForceCloseAllConnections, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cmRemoveDisconnectedConnection", nullptr, CmRemoveDisconnectedConnection, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cmCheckClickTime", nullptr, CmCheckClickTime, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cmGetClickTime", nullptr, CmGetClickTime, nullptr, nullptr, nullptr, napi_default, nullptr},

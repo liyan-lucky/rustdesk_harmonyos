@@ -89,6 +89,39 @@ interface PeerInfoCacheEntry {
   cachedAt: number;
 }
 
+interface ShareRadioItemParams {
+  label: string;
+  selected: boolean;
+  onTap: () => void;
+  iconSrc: string;
+}
+
+interface ShareListItemParams {
+  label: string;
+  value: string;
+  onTap: () => void;
+  iconSrc: string;
+}
+
+interface CmClientInfo {
+  id: number;
+  name: string;
+  peer_id: string;
+  state: string;
+  is_file_transfer: boolean;
+  authorized: boolean;
+  user_name: string;
+  platform: string;
+}
+
+interface ActiveConnectionInfo {
+  connId: number;
+  peerName: string;
+  peerId: string;
+  platform: string;
+  isFileTransfer: boolean;
+}
+
 const ALL_TABS: ConnectPeerTab[] = ['recent', 'favorites', 'discovered', 'addressBook', 'account', 'core'];
 
 function loadVisibleTabs(): Set<ConnectPeerTab> {
@@ -143,8 +176,18 @@ struct Index {
     AppStorage.setOrCreate<boolean>('coreReady', this.officialCoreState.coreReady);
     this.nativeBridgeSummary = NativeRustDeskBridge.getRuntimeLogSummary();
     this.syncPendingConnectionUi(this.officialCoreState);
+    console.info(`[CM] bridgeListener: kind=${event.kind} peerId=${event.peerId} detail=${event.detail.substring(0, 200)}`);
     if (event.kind === 'peer-info') {
       this.refreshRecentSessionFromPeerInfo(event.peerId, event.detail);
+    }
+    if (event.kind === 'incoming-connection' && this.shareAccessMode === 'click') {
+      this.handleIncomingConnectionRequest(event.detail);
+    }
+    if (event.kind === 'login-authorized') {
+      this.handleIncomingAuthorized(event.peerId, event.detail);
+    }
+    if (event.kind === 'connection-closed' || event.kind === 'session-closed' || event.kind === 'closed') {
+      this.handleIncomingDisconnected(event.peerId, event.detail);
     }
     if (prevReady !== this.officialCoreState.coreReady) {
       this.refreshCoreDetailInfo();
@@ -649,10 +692,25 @@ struct Index {
   @State shareFixedPasswordConfigured: boolean = false;
   private shareFixedPasswordDirty: boolean = false;
   @State shareOtpLength: number = 6;
-  @State shareOtpLengthDraft: string = '6';
   @State shareOtpNumeric: boolean = false;
   @State showShareFixedPasswordInput: boolean = false;
   @State showShareOtpLengthInput: boolean = false;
+  @State showCmApproveDialog: boolean = false;
+  @State cmPendingConnId: number = 0;
+  @State cmPendingPeerName: string = '';
+  @State cmPendingPeerId: string = '';
+  @State cmClientsJson: string = '[]';
+  private cmPollTimer: number = -1;
+  private cmLastClientsLength: number = 0;
+  private cmPollCount: number = 0;
+  private cmPrevAuthorizedConnIds: Set<number> = new Set();
+  private cmApprovedPeerIds: Set<string> = new Set();
+  private cmAuthorizedClientInfo: Map<number, string[]> = new Map();
+  @State showConnectionEventToast: boolean = false;
+  @State connectionEventMessage: string = '';
+  private connectionEventToastTimer: number = -1;
+  @State activeIncomingConnections: ActiveConnectionInfo[] = [];
+  private nextEventConnId: number = 1000;
   @State nativeBridgeSummary: string = NativeRustDeskBridge.getRuntimeLogSummary();
   @State showPasswordDialog: boolean = false;
   @State showServerDialog: boolean = false;
@@ -793,6 +851,7 @@ struct Index {
     this.chatService.removeEventListener(this.chatEventListener);
     this.chatService.addEventListener(this.chatEventListener);
     this.syncDraftServers();
+    this.loadShareSettings();
     void this.refreshDirectAccessState();
     this.themeMode = ThemeManager.resolveMode(this.settings.theme);
     ThemeManager.getInstance().applyStoredTheme(this.settings.theme);
@@ -1081,18 +1140,10 @@ struct Index {
               .layoutWeight(1)
 
             Row() {
-              Column({ space: 4 }) {
-                Circle({ width: 4, height: 4 })
-                  .fill(this.theme_TEXT_PRIMARY)
-                Circle({ width: 4, height: 4 })
-                  .fill(this.theme_TEXT_PRIMARY)
-                Circle({ width: 4, height: 4 })
-                  .fill(this.theme_TEXT_PRIMARY)
-              }
-              .width(36)
-              .height(36)
-              .justifyContent(FlexAlign.Center)
-              .alignItems(HorizontalAlign.Center)
+              Image($rawfile('dots_vertical.svg'))
+                .width(20)
+                .height(20)
+                .colorFilter(createIconColorFilterForSrc('dots_vertical.svg', this.iconColorMode))
             }
             .width(36)
             .height(36)
@@ -3565,7 +3616,7 @@ struct Index {
             this.getShareDisplayId(),
             this.lt('Device ID copied')
           )
-          if (this.oneTimePassword.length > 0) {
+          if (this.oneTimePassword.length > 0 && this.shareAccessMode !== 'click') {
             this.buildCopyableInfoRow(
               this.lt('One-time password'),
               this.oneTimePassword,
@@ -3610,6 +3661,10 @@ struct Index {
       }
       .width('100%')
       .padding({ top: ThemeConfig.SPACING_XL, bottom: ThemeConfig.SPACING_XL })
+    }
+
+    if (this.activeIncomingConnections.length > 0) {
+      this.buildActiveConnectionsCard()
     }
   }
 
@@ -3880,6 +3935,68 @@ struct Index {
       .position({ x: '10%', y: this.screenHeight - 110 - this.avoidNavigationBarHeight })
       .zIndex(100)
       .animation({ duration: 200, curve: Curve.EaseInOut })
+    }
+  }
+
+  @Builder
+  private buildConnectionEventToast() {
+    if (this.showConnectionEventToast) {
+      Row() {
+        Text(this.connectionEventMessage)
+          .fontSize(14)
+          .fontColor(this.theme_ACCENT)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+      .border({ width: 1.5, color: this.theme_ACCENT, style: BorderStyle.Solid })
+      .borderRadius(8)
+      .backgroundColor(this.theme_CARD_BG)
+      .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
+      .position({ x: '10%', y: 80 })
+      .zIndex(101)
+      .animation({ duration: 200, curve: Curve.EaseInOut })
+    }
+  }
+
+  @Builder
+  private buildActiveConnectionsCard() {
+    if (this.activeIncomingConnections.length > 0) {
+      CardContainer() {
+        Column({ space: 8 }) {
+          ForEach(this.activeIncomingConnections, (conn: ActiveConnectionInfo) => {
+            Row({ space: 8 }) {
+              Column({ space: 2 }) {
+                Text(conn.peerName)
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(this.theme_TEXT_PRIMARY)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                Text(this.formatId(conn.peerId))
+                  .fontSize(12)
+                  .fontColor(this.theme_TEXT_SECONDARY)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              Button(this.lt('Disconnect'))
+                .height(32)
+                .fontSize(12)
+                .fontColor(this.theme_ACCENT)
+                .backgroundColor(Color.Transparent)
+                .border({ width: 1, color: this.theme_ACCENT })
+                .borderRadius(6)
+                .onClick(() => {
+                  this.disconnectIncomingConnection(conn.connId);
+                })
+            }
+            .width('100%')
+            .padding({ left: 4, right: 4, top: 8, bottom: 8 })
+          }, (conn: ActiveConnectionInfo) => `${conn.connId}`)
+        }
+        .width('100%')
+      }
     }
   }
 
@@ -4780,6 +4897,15 @@ struct Index {
       if (this.officialCoreState.coreReady && incomingStateMismatch) {
         void this.ensureIncomingServiceEnabled();
       }
+      if (this.officialCoreState.coreReady && this.settings.serviceEnabled &&
+        this.officialCoreState.incomingReady && this.isNativeScreenCaptureRunning() &&
+        this.cmPollTimer < 0) {
+        console.info('[CM] refreshState: service running but CM polling not started, starting now');
+        this.startCmPolling();
+      }
+      if (this.settings.serviceEnabled && this.cmPollTimer < 0) {
+        console.info(`[CM] refreshState: CM polling NOT started - coreReady=${this.officialCoreState.coreReady} serviceEnabled=${this.settings.serviceEnabled} incomingReady=${this.officialCoreState.incomingReady} captureRunning=${this.isNativeScreenCaptureRunning()} cmPollTimer=${this.cmPollTimer}`);
+      }
       if (previousServiceEnabled !== this.settings.serviceEnabled ||
         previousIncomingReady !== this.officialCoreState.incomingReady ||
         previousCaptureActive !== this.isNativeScreenCaptureRunning() ||
@@ -5130,6 +5256,7 @@ struct Index {
     this.syncDraftServers();
     this.setStatusMessage("server_updated");
     void this.refreshState();
+    void this.checkServerConnectionStatus();
   }
 
   private applyPublicServerPreset(): void {
@@ -5192,6 +5319,8 @@ struct Index {
     this.syncDraftServers();
     this.setStatusMessage('server_config_imported');
     await this.showToast(this.lt('server_config_imported'));
+    void this.refreshState();
+    void this.checkServerConnectionStatus();
   }
 
   private startRefreshLoop(): void {
@@ -5560,7 +5689,7 @@ struct Index {
   }
 
   private async performToggleIncomingService(enabled: boolean): Promise<void> {
-    hilog.info(0xA03D00, 'SHARE', 'toggleIncomingService: enabled=%{public}s', String(enabled));
+    console.info(`[SHARE] toggleIncomingService: enabled=${String(enabled)}`);
     if (!enabled) {
       ScreenCaptureService.getInstance().stopCapture();
       NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'N');
@@ -5576,6 +5705,7 @@ struct Index {
       this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.localDevice, this.officialCoreState);
       this.nativeBridgeSummary = NativeRustDeskBridge.getRuntimeLogSummary();
       this.setStatusMessage("share_stopped");
+      this.stopCmPolling();
       this.shareUiVersion++;
       setTimeout(() => {
         void this.refreshState();
@@ -5589,6 +5719,9 @@ struct Index {
       return;
     }
 
+    this.loadShareSettings();
+    NativeRustDeskBridge.cmInit();
+    hilog.info(0xA03D00, 'SHARE', 'cmInit called before setIncomingServiceEnabled');
     NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'Y');
     NativeRustDeskBridge.setLocalOption('direct-server', this.settings.enableDirectIp ? 'Y' : 'N');
     this.settings = this.appData.updateSettings({
@@ -5635,6 +5768,7 @@ struct Index {
       this.setStatusMessage("share_requested");
     }
     this.shareUiVersion++;
+    this.startCmPolling();
     setTimeout(() => {
       void this.refreshState();
     }, 500);
@@ -5701,9 +5835,418 @@ struct Index {
     if (normalizedPassword.length === 0) {
       return;
     }
-    NativeRustDeskBridge.setLocalOption('verification-method', 'use-temporary-password');
-    NativeRustDeskBridge.setLocalOption('approve-mode', 'password');
     NativeRustDeskBridge.setLocalOption('temporary-password', normalizedPassword);
+  }
+
+  private startCmPolling(): void {
+    this.stopCmPolling();
+    this.cmLastClientsLength = -1;
+    const approveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+    const verificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
+    console.info(`[CM] startCmPolling: approve-mode=${approveMode} verification-method=${verificationMethod}`);
+    if (!approveMode) {
+      const localApproveMode = NativeRustDeskBridge.getLocalOption('approve-mode').trim();
+      if (localApproveMode) {
+        NativeRustDeskBridge.mainSetOption('approve-mode', localApproveMode);
+        hilog.info(0xA03D00, 'CM', 'restored approve-mode from local: %{public}s', localApproveMode);
+      }
+    }
+    if (!verificationMethod) {
+      const localVerificationMethod = NativeRustDeskBridge.getLocalOption('verification-method').trim();
+      if (localVerificationMethod) {
+        NativeRustDeskBridge.mainSetOption('verification-method', localVerificationMethod);
+        hilog.info(0xA03D00, 'CM', 'restored verification-method from local: %{public}s', localVerificationMethod);
+      }
+    }
+    setTimeout(() => {
+      NativeRustDeskBridge.cmInit();
+      const clientsState = NativeRustDeskBridge.cmGetClientsState();
+      const clientsLength = NativeRustDeskBridge.cmGetClientsLength();
+      const approveModeAfterInit = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+      const allOptions = NativeRustDeskBridge.mainGetOptions();
+      console.info(`[CM] cmInit called: approve-mode=${approveModeAfterInit} clientsLength=${clientsLength} clientsState=${clientsState} allOptions=${allOptions}`);
+    }, 1000);
+    this.cmPollTimer = setInterval(() => {
+      this.pollCmState();
+    }, 200);
+  }
+
+  private stopCmPolling(): void {
+    if (this.cmPollTimer >= 0) {
+      clearInterval(this.cmPollTimer);
+      this.cmPollTimer = -1;
+    }
+    this.cmPrevAuthorizedConnIds.clear();
+    this.cmAuthorizedClientInfo.clear();
+    this.activeIncomingConnections = [];
+  }
+
+  private pollCmState(): void {
+    const currentLength: number = NativeRustDeskBridge.cmGetClientsLength() as number;
+    const stateJson = NativeRustDeskBridge.cmGetClientsState();
+    if (!stateJson || stateJson === '[]') {
+      if (this.cmPollCount % 50 === 0) {
+        console.info(`[CM] pollCmState: no clients (empty), cmPollCount=${this.cmPollCount}, clientsLength=${currentLength}`);
+      }
+      this.cmPollCount++;
+      return;
+    }
+    if (currentLength !== this.cmLastClientsLength) {
+      this.cmLastClientsLength = currentLength;
+      console.info(`[CM] clientsLength=${currentLength} stateJson=${stateJson}`);
+    }
+    this.cmClientsJson = stateJson;
+    try {
+      const clients = JSON.parse(stateJson) as CmClientInfo[];
+      const currentAuthorizedConnIds: Set<number> = new Set();
+      for (const client of clients) {
+        const isPending = !client.authorized ||
+          client.state === 'unauthorized' ||
+          client.state === 'pending' ||
+          client.state === 'waiting';
+        if (isPending) {
+          this.cmPendingConnId = client.id;
+          this.cmPendingPeerName = client.name || client.peer_id || '';
+          this.cmPendingPeerId = client.peer_id || '';
+          if (!this.showCmApproveDialog) {
+            this.showCmApproveDialog = true;
+            console.info(`[CM] pending approve: connId=${client.id} name=${this.cmPendingPeerName} peerId=${this.cmPendingPeerId} state=${client.state} authorized=${String(client.authorized)}`);
+          }
+          break;
+        }
+        if (client.authorized) {
+          currentAuthorizedConnIds.add(client.id);
+          const peerName = client.name || client.peer_id || '';
+          const peerId = client.peer_id || '';
+          this.cmAuthorizedClientInfo.set(client.id, [peerName, peerId]);
+          if (!this.cmPrevAuthorizedConnIds.has(client.id)) {
+            this.showConnectionEvent(`${this.lt('Connected by')} ${peerName} (${peerId})`);
+            console.info(`[CM] connected: connId=${client.id} name=${peerName} peerId=${peerId}`);
+          }
+        }
+      }
+      const disconnectedIds: number[] = [];
+      this.cmPrevAuthorizedConnIds.forEach((connId: number) => {
+        if (!currentAuthorizedConnIds.has(connId)) {
+          disconnectedIds.push(connId);
+        }
+      });
+      for (const connId of disconnectedIds) {
+        this.onClientDisconnected(connId);
+      }
+      this.cmPrevAuthorizedConnIds = currentAuthorizedConnIds;
+      const activeList: ActiveConnectionInfo[] = [];
+      currentAuthorizedConnIds.forEach((connId: number) => {
+        const info = this.cmAuthorizedClientInfo.get(connId);
+        if (info) {
+          activeList.push({
+            connId: connId,
+            peerName: info[0],
+            peerId: info[1],
+            platform: '',
+            isFileTransfer: false
+          });
+        }
+      });
+      this.activeIncomingConnections = activeList;
+    } catch {
+      // JSON parse error, ignore
+    }
+  }
+
+  private cmApproveConnection(connId: number, accept: boolean): void {
+    this.showCmApproveDialog = false;
+    if (accept) {
+      this.cmApprovedPeerIds.add(this.cmPendingPeerName);
+      console.info(`[CM] cmApproveConnection: added ${this.cmPendingPeerName} to approved peers`);
+      this.activeIncomingConnections.push({
+        connId: connId,
+        peerName: this.cmPendingPeerName,
+        peerId: this.cmPendingPeerId,
+        platform: '',
+        isFileTransfer: false
+      });
+      this.showConnectionEvent(`${this.lt('Connected by')} ${this.cmPendingPeerName} (${this.cmPendingPeerId})`);
+      console.info(`[CM] cmApproveConnection: accepted connId=${connId}`);
+      void this.performToggleIncomingService(true);
+    } else {
+      this.cmApprovedPeerIds.delete(this.cmPendingPeerName);
+      console.info(`[CM] cmApproveConnection: removed ${this.cmPendingPeerName} from approved peers`);
+      console.info(`[CM] cmApproveConnection: rejected connId=${connId}`);
+      this.removeActiveIncomingConnection(connId);
+      setTimeout(() => {
+        console.info('[CM] cmApproveConnection: restarting service after reject');
+        void this.performToggleIncomingService(true);
+      }, 1000);
+    }
+  }
+
+  private disconnectIncomingConnection(connId: number): void {
+    console.info(`[CM] disconnectIncomingConnection: connId=${connId}`);
+    ScreenCaptureService.getInstance().stopCapture();
+    console.info('[CM] screen capture stopped for disconnect');
+    NativeRustDeskBridge.mainStopService();
+    console.info('[CM] mainStopService called for disconnect');
+    this.removeActiveIncomingConnection(connId);
+    setTimeout(() => {
+      console.info('[CM] reconnecting incoming service after disconnect');
+      void this.performToggleIncomingService(true);
+    }, 1000);
+  }
+
+  private removeActiveIncomingConnection(connId: number): void {
+    const index = this.activeIncomingConnections.findIndex((c: ActiveConnectionInfo) => c.connId === connId);
+    if (index >= 0) {
+      const info = this.activeIncomingConnections[index];
+      this.activeIncomingConnections.splice(index, 1);
+      this.showConnectionEvent(`${this.lt('Disconnected from')} ${info.peerName} (${info.peerId})`);
+      hilog.info(0xA03D00, 'CM', 'incoming disconnected: connId=%{public}d name=%{public}s', connId, info.peerName);
+      this.refreshOneTimePasswordAfterDisconnect();
+    }
+  }
+
+  private handleIncomingConnectionRequest(detail: string): void {
+    console.info(`[CM] incoming-connection event: detail=${detail}`);
+    if (this.isConnecting || this.pendingPeerId.trim().length > 0 || !this.settings.serviceEnabled) {
+      console.info('[CM] incoming-connection: ignored (connecting or service disabled)');
+      return;
+    }
+    if (this.showCmApproveDialog) {
+      console.info('[CM] incoming-connection: approve dialog already showing, ignoring');
+      return;
+    }
+    let peerName = '';
+    let peerId = '';
+    try {
+      const match = detail.match(/from\s+\[?([^\]]+)\]?:/);
+      if (match) {
+        peerName = match[1];
+      }
+    } catch {
+      // ignore parse error
+    }
+    if (this.cmApprovedPeerIds.has(peerName)) {
+      console.info(`[CM] incoming-connection: peer ${peerName} already approved, allowing connection`);
+      return;
+    }
+    this.cmPendingConnId = this.nextEventConnId;
+    this.nextEventConnId++;
+    this.cmPendingPeerName = peerName.length > 0 ? peerName : 'Unknown';
+    this.cmPendingPeerId = peerId;
+    this.showCmApproveDialog = true;
+    console.info(`[CM] incoming-connection: showing approve dialog, connId=${this.cmPendingConnId}, peerName=${this.cmPendingPeerName}`);
+    ScreenCaptureService.getInstance().stopCapture();
+    console.info('[CM] incoming-connection: screen capture stopped to prevent frame transmission');
+    NativeRustDeskBridge.mainStopService();
+    console.info('[CM] incoming-connection: mainStopService called to block connection');
+  }
+
+  private handleIncomingAuthorized(peerId: string, detail: string): void {
+    console.info(`[CM] login-authorized event: peerId=${peerId} detail=${detail}`);
+    if (this.isConnecting || this.pendingPeerId.trim().length > 0 || !this.settings.serviceEnabled) {
+      return;
+    }
+    let normalizedId = peerId.trim();
+    let peerName = '';
+    if (normalizedId.length === 0) {
+      try {
+        const parsed = JSON.parse(detail) as Record<string, string>;
+        normalizedId = parsed['id'] || parsed['peer_id'] || '';
+        peerName = parsed['name'] || parsed['peer_name'] || parsed['user_name'] || '';
+      } catch {
+        const idIdx = detail.indexOf('id=');
+        if (idIdx >= 0) {
+          const idPart = detail.substring(idIdx + 3).trim();
+          const spaceIdx = idPart.indexOf(' ');
+          normalizedId = spaceIdx >= 0 ? idPart.substring(0, spaceIdx) : idPart;
+        }
+        const nameIdx = detail.indexOf('name=');
+        if (nameIdx >= 0) {
+          peerName = detail.substring(nameIdx + 5).trim();
+        }
+      }
+    } else {
+      try {
+        const parsed = JSON.parse(detail) as Record<string, string>;
+        peerName = parsed['name'] || parsed['peer_name'] || parsed['user_name'] || '';
+      } catch {
+        const nameIdx = detail.indexOf('name=');
+        if (nameIdx >= 0) {
+          peerName = detail.substring(nameIdx + 5).trim();
+        }
+      }
+    }
+    if (normalizedId.length === 0) {
+      return;
+    }
+    if (this.activeIncomingConnections.some((c: ActiveConnectionInfo) => c.peerId === normalizedId)) {
+      return;
+    }
+    let realConnId = -1;
+    try {
+      const stateJson = NativeRustDeskBridge.cmGetClientsState();
+      hilog.info(0xA03D00, 'CM', 'login-authorized: cmGetClientsState=%{public}s', stateJson);
+      if (stateJson && stateJson !== '[]') {
+        const clients = JSON.parse(stateJson) as CmClientInfo[];
+        for (const client of clients) {
+          if (client.peer_id === normalizedId || client.name === peerName) {
+            realConnId = client.id;
+            break;
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    if (realConnId < 0) {
+      realConnId = this.nextEventConnId;
+      this.nextEventConnId++;
+    }
+    hilog.info(0xA03D00, 'CM', 'login-authorized: realConnId=%{public}d peerName=%{public}s peerId=%{public}s',
+      realConnId, peerName, normalizedId);
+    if (this.shareAccessMode === 'click') {
+      if (this.cmApprovedPeerIds.has(peerName) || this.cmApprovedPeerIds.has(normalizedId)) {
+        console.info(`[CM] login-authorized: peer ${peerName}/${normalizedId} already approved, adding to active connections`);
+        this.activeIncomingConnections.push({
+          connId: realConnId,
+          peerName: peerName.length > 0 ? peerName : normalizedId,
+          peerId: normalizedId,
+          platform: '',
+          isFileTransfer: false
+        });
+        this.showConnectionEvent(`${this.lt('Connected by')} ${peerName} (${normalizedId})`);
+        return;
+      }
+      if (this.showCmApproveDialog) {
+        console.info('[CM] login-authorized: approve dialog already showing from incoming-connection, updating peer info');
+        this.cmPendingPeerName = peerName.length > 0 ? peerName : normalizedId;
+        this.cmPendingPeerId = normalizedId;
+        return;
+      }
+      this.cmPendingConnId = realConnId;
+      this.cmPendingPeerName = peerName.length > 0 ? peerName : normalizedId;
+      this.cmPendingPeerId = normalizedId;
+      this.showCmApproveDialog = true;
+      console.info(`[CM] login-authorized: showing approve dialog for click mode, connId=${realConnId}`);
+      return;
+    }
+    this.activeIncomingConnections.push({
+      connId: realConnId,
+      peerName: peerName.length > 0 ? peerName : normalizedId,
+      peerId: normalizedId,
+      platform: '',
+      isFileTransfer: false
+    });
+    this.showConnectionEvent(`${this.lt('Connected by')} ${peerName} (${normalizedId})`);
+  }
+
+  private handleIncomingDisconnected(peerId: string, detail: string): void {
+    let normalizedId = peerId.trim();
+    if (normalizedId.length === 0) {
+      try {
+        const parsed = JSON.parse(detail) as Record<string, string>;
+        normalizedId = parsed['id'] || parsed['peer_id'] || '';
+      } catch {
+        const idIdx = detail.indexOf('id=');
+        if (idIdx >= 0) {
+          const idPart = detail.substring(idIdx + 3).trim();
+          const spaceIdx = idPart.indexOf(' ');
+          normalizedId = spaceIdx >= 0 ? idPart.substring(0, spaceIdx) : idPart;
+        }
+      }
+    }
+    if (normalizedId.length === 0) {
+      return;
+    }
+    const index = this.activeIncomingConnections.findIndex((c: ActiveConnectionInfo) => c.peerId === normalizedId);
+    if (index < 0) {
+      return;
+    }
+    const info = this.activeIncomingConnections[index];
+    this.activeIncomingConnections.splice(index, 1);
+    this.showConnectionEvent(`${this.lt('Disconnected from')} ${info.peerName} (${info.peerId})`);
+    hilog.info(0xA03D00, 'CM', 'incoming disconnected via event: peerId=%{public}s detail=%{public}s', normalizedId, detail);
+    this.refreshOneTimePasswordAfterDisconnect();
+  }
+
+  private showConnectionEvent(message: string): void {
+    this.connectionEventMessage = message;
+    this.showConnectionEventToast = true;
+    if (this.connectionEventToastTimer !== -1) {
+      clearTimeout(this.connectionEventToastTimer);
+    }
+    this.connectionEventToastTimer = setTimeout(() => {
+      this.showConnectionEventToast = false;
+      this.connectionEventToastTimer = -1;
+    }, 3500);
+  }
+
+  private onClientDisconnected(connId: number): void {
+    hilog.info(0xA03D00, 'CM', 'disconnected: connId=%{public}d', connId);
+    const info = this.cmAuthorizedClientInfo.get(connId);
+    const peerName = info ? info[0] : '';
+    const peerId = info ? info[1] : '';
+    this.cmAuthorizedClientInfo.delete(connId);
+    this.showConnectionEvent(`${this.lt('Disconnected from')} ${peerName} (${peerId})`);
+    this.refreshOneTimePasswordAfterDisconnect();
+  }
+
+  private refreshOneTimePasswordAfterDisconnect(): void {
+    if (this.sharePasswordType === 'fixed') {
+      return;
+    }
+    const otpLength = this.shareOtpLength;
+    const numericOnly = this.shareOtpNumeric;
+    const newPassword = this.generateOtpPassword(otpLength, numericOnly);
+    this.oneTimePassword = newPassword;
+    this.appData.setPassword(newPassword);
+    NativeRustDeskBridge.setLocalOption('temporary-password', newPassword);
+    hilog.info(0xA03D00, 'CM', 'OTP refreshed after disconnect: length=%{public}d numeric=%{public}s',
+      otpLength, numericOnly.toString());
+  }
+
+  private async checkServerConnectionStatus(): Promise<void> {
+    await this.showToast(this.lt('Connecting to server...'));
+    await new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), 2500);
+    });
+    await this.refreshState();
+    const connectStatusJson = NativeRustDeskBridge.mainGetConnectStatus();
+    hilog.info(0xA03D00, 'SHARE', 'checkServerConnectionStatus: connectStatusJson=%{public}s coreReady=%{public}s incomingReady=%{public}s sessionStage=%{public}s',
+      connectStatusJson, String(this.officialCoreState.coreReady), String(this.officialCoreState.incomingReady), this.officialCoreState.sessionStage);
+    let isConnected = false;
+    if (connectStatusJson) {
+      try {
+        const statusObj = JSON.parse(connectStatusJson) as Record<string, string>;
+        const status = statusObj['status'] || '';
+        hilog.info(0xA03D00, 'SHARE', 'checkServerConnectionStatus: status=%{public}s', status);
+        if (status.toLowerCase() === 'connected' || status.toLowerCase() === 'ready') {
+          isConnected = true;
+        }
+      } catch {
+        // JSON parse error
+      }
+    }
+    if (!isConnected && this.officialCoreState.coreReady) {
+      isConnected = true;
+    }
+    if (isConnected) {
+      await this.showToast(this.lt('Server connected'));
+    } else {
+      await this.showToast(this.lt('Server connection failed'));
+    }
+  }
+
+  private generateOtpPassword(length: number, numericOnly: boolean): string {
+    const digits = '0123456789';
+    const alphanumeric = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const charset = numericOnly ? digits : alphanumeric;
+    let password = '';
+    for (let i = 0; i < length; i++) {
+      const index = Math.floor(Math.random() * charset.length);
+      password += charset.charAt(index);
+    }
+    return password;
   }
 
   private async syncAddressBookFromServer(showToast: boolean = false): Promise<void> {
@@ -5781,6 +6324,7 @@ struct Index {
         NativeRustDeskBridge.setLocalOption('direct-server', this.settings.enableDirectIp ? 'Y' : 'N');
         NativeRustDeskBridge.setLocalOption('enable-screen-capture', 'Y');
         if (this.officialCoreState.incomingReady && this.isNativeScreenCaptureRunning()) {
+          this.startCmPolling();
           return;
         }
         if (!this.isNativeScreenCaptureRunning()) {
@@ -5793,6 +6337,7 @@ struct Index {
         this.localDevice = this.officialBridge.buildLocalDeviceProfile(this.appData.getLocalDevice(), this.officialCoreState);
         this.nativeBridgeSummary = NativeRustDeskBridge.getRuntimeLogSummary();
         this.shareUiVersion++;
+        this.startCmPolling();
         return;
       }
       if (this.officialCoreState.incomingReady || this.isNativeScreenCaptureRunning()) {
@@ -8040,99 +8585,82 @@ struct Index {
           .width('100%')
           .padding({ bottom: 2 })
 
-        this.buildShareRadioItem(this.lt('Password only access'), this.shareAccessMode === 'password', () => {
+        this.buildShareRadioItem({ label: this.lt('Password only access'), selected: this.shareAccessMode === 'password', onTap: () => {
           this.shareAccessMode = 'password';
-        })
-        this.buildShareRadioItem(this.lt('Click only access'), this.shareAccessMode === 'click', () => {
+          this.saveShareSettings();
+        }, iconSrc: 'share_lock.svg' })
+        this.buildShareRadioItem({ label: this.lt('Click only access'), selected: this.shareAccessMode === 'click', onTap: () => {
           this.shareAccessMode = 'click';
-        })
-        this.buildShareRadioItem(this.lt('Password or click access'), this.shareAccessMode === 'both', () => {
+          this.saveShareSettings();
+        }, iconSrc: 'share_hand.svg' })
+        this.buildShareRadioItem({ label: this.lt('Password or click access'), selected: this.shareAccessMode === 'both', onTap: () => {
           this.shareAccessMode = 'both';
-        })
+          this.saveShareSettings();
+        }, iconSrc: 'share_key.svg' })
 
         Divider()
           .color(this.theme_BORDER_SUBTLE)
           .margin({ top: 3, bottom: 3 })
 
-        Text(this.lt('Password Settings'))
-          .fontSize(11)
-          .fontColor(this.theme_TEXT_SECONDARY)
+        if (this.shareAccessMode !== 'click') {
+          Text(this.lt('Password Settings'))
+            .fontSize(11)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .width('100%')
+            .padding({ bottom: 2 })
+
+          this.buildShareListItem({ label: this.lt('Set fixed password'), value: this.shareFixedPasswordConfigured ? '******' : this.lt('Not set'), onTap: () => {
+            this.shareFixedPasswordDraft = '';
+            this.showShareFixedPasswordInput = true;
+          }, iconSrc: 'share_key.svg' })
+          this.buildShareListItem({ label: this.lt('One-time password length'), value: `${this.shareOtpLength}`, onTap: () => {
+            this.showShareOtpLengthInput = true;
+          }, iconSrc: 'share_otp.svg' })
+
+          Row() {
+            Image($rawfile('share_numeric.svg'))
+              .width(16)
+              .height(16)
+              .colorFilter(createIconColorFilterForSrc('share_numeric.svg', this.iconColorMode))
+              .margin({ right: 6 })
+            Text(this.lt('One-time password numeric'))
+              .fontSize(12)
+              .fontColor(this.theme_TEXT_PRIMARY)
+              .layoutWeight(1)
+            Toggle({ type: ToggleType.Switch, isOn: this.shareOtpNumeric })
+              .selectedColor(this.theme_ACCENT)
+              .onChange((isOn: boolean) => {
+                this.shareOtpNumeric = isOn;
+                this.saveShareSettings();
+              })
+          }
           .width('100%')
-          .padding({ bottom: 2 })
+          .height(28)
+          .padding({ left: 8, right: 8 })
 
-        this.buildShareListItem(this.lt('Set fixed password'), this.shareFixedPasswordConfigured ? '******' : this.lt('Not set'), () => {
-          this.shareFixedPasswordDraft = '';
-          this.showShareFixedPasswordInput = true;
-        })
-        this.buildShareListItem(this.lt('One-time password length'), `${this.shareOtpLength}`, () => {
-          this.shareOtpLengthDraft = `${this.shareOtpLength}`;
-          this.showShareOtpLengthInput = true;
-        })
+          Divider()
+            .color(this.theme_BORDER_SUBTLE)
+            .margin({ top: 3, bottom: 3 })
 
-        Row() {
-          Text(this.lt('One-time password numeric'))
-            .fontSize(12)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .layoutWeight(1)
-          Toggle({ type: ToggleType.Switch, isOn: this.shareOtpNumeric })
-            .selectedColor(this.theme_ACCENT)
-            .onChange((isOn: boolean) => {
-              this.shareOtpNumeric = isOn;
-            })
+          Text(this.lt('Password Type'))
+            .fontSize(11)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .width('100%')
+            .padding({ bottom: 2 })
+
+          this.buildShareRadioItem({ label: this.lt('Use one-time password'), selected: this.sharePasswordType === 'temporary', onTap: () => {
+            this.sharePasswordType = 'temporary';
+            this.saveShareSettings();
+          }, iconSrc: 'share_otp.svg' })
+          this.buildShareRadioItem({ label: this.lt('Use fixed password'), selected: this.sharePasswordType === 'fixed', onTap: () => {
+            this.sharePasswordType = 'fixed';
+            this.saveShareSettings();
+          }, iconSrc: 'share_key.svg' })
+          this.buildShareRadioItem({ label: this.lt('Use both passwords'), selected: this.sharePasswordType === 'both', onTap: () => {
+            this.sharePasswordType = 'both';
+            this.saveShareSettings();
+          }, iconSrc: 'share_lock.svg' })
         }
-        .width('100%')
-        .height(28)
-        .padding({ left: 8, right: 8 })
-
-        Divider()
-          .color(this.theme_BORDER_SUBTLE)
-          .margin({ top: 3, bottom: 3 })
-
-        Text(this.lt('Password Type'))
-          .fontSize(11)
-          .fontColor(this.theme_TEXT_SECONDARY)
-          .width('100%')
-          .padding({ bottom: 2 })
-
-        this.buildShareRadioItem(this.lt('Use one-time password'), this.sharePasswordType === 'temporary', () => {
-          this.sharePasswordType = 'temporary';
-        })
-        this.buildShareRadioItem(this.lt('Use fixed password'), this.sharePasswordType === 'fixed', () => {
-          this.sharePasswordType = 'fixed';
-        })
-        this.buildShareRadioItem(this.lt('Use both passwords'), this.sharePasswordType === 'both', () => {
-          this.sharePasswordType = 'both';
-        })
-
-        Row({ space: 8 }) {
-          Button(this.lt('Cancel'))
-            .layoutWeight(1)
-            .height(28)
-            .fontSize(12)
-            .fontColor(this.theme_TEXT_PRIMARY)
-            .backgroundColor(Color.Transparent)
-            .border({ width: 1, color: this.theme_BORDER_SUBTLE })
-            .borderRadius(6)
-            .onClick(() => {
-              this.showShareSettingsDialog = false;
-            })
-
-          Button(this.lt('OK'))
-            .layoutWeight(1)
-            .height(28)
-            .fontSize(12)
-            .fontColor(this.theme_ACCENT)
-            .backgroundColor(Color.Transparent)
-            .border({ width: 1.5, color: this.theme_ACCENT })
-            .borderRadius(6)
-            .onClick(() => {
-              if (this.saveShareSettings()) {
-                this.showShareSettingsDialog = false;
-              }
-            })
-        }
-        .width('100%')
-        .margin({ top: 8 })
       }
       .width('58%')
       .constraintSize({ maxHeight: '80%' })
@@ -8141,7 +8669,6 @@ struct Index {
       .backgroundColor(this.theme_CARD_BG)
       .borderRadius(12)
       .shadow({ radius: 12, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
-      .hitTestBehavior(HitTestMode.Block)
       .onClick(() => {})
     }
     .width('100%')
@@ -8153,13 +8680,20 @@ struct Index {
   }
 
   @Builder
-  private buildShareRadioItem(label: string, selected: boolean, onTap: () => void) {
+  private buildShareRadioItem($$: ShareRadioItemParams) {
     Row() {
-      Text(label)
+      if ($$.iconSrc.length > 0) {
+        Image($rawfile($$.iconSrc))
+          .width(16)
+          .height(16)
+          .colorFilter(createIconColorFilterForSrc($$.iconSrc, this.iconColorMode))
+          .margin({ right: 6 })
+      }
+      Text($$.label)
         .fontSize(12)
-        .fontColor(selected ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+        .fontColor($$.selected ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
-      if (selected) {
+      if ($$.selected) {
         Image($rawfile('checkbox-checked.svg'))
           .width(16)
           .height(16)
@@ -8174,17 +8708,24 @@ struct Index {
     .width('100%')
     .height(28)
     .padding({ left: 8, right: 8 })
-    .onClick(() => { onTap(); })
+    .onClick(() => { $$.onTap(); })
   }
 
   @Builder
-  private buildShareListItem(label: string, value: string, onTap: () => void) {
+  private buildShareListItem($$: ShareListItemParams) {
     Row() {
-      Text(label)
+      if ($$.iconSrc.length > 0) {
+        Image($rawfile($$.iconSrc))
+          .width(16)
+          .height(16)
+          .colorFilter(createIconColorFilterForSrc($$.iconSrc, this.iconColorMode))
+          .margin({ right: 6 })
+      }
+      Text($$.label)
         .fontSize(12)
         .fontColor(this.theme_TEXT_PRIMARY)
         .layoutWeight(1)
-      Text(value)
+      Text($$.value)
         .fontSize(11)
         .fontColor(this.theme_TEXT_SECONDARY)
         .margin({ right: 4 })
@@ -8195,7 +8736,7 @@ struct Index {
     .width('100%')
     .height(28)
     .padding({ left: 8, right: 8 })
-    .onClick(() => { onTap(); })
+    .onClick(() => { $$.onTap(); })
   }
 
   @Builder
@@ -8244,6 +8785,7 @@ struct Index {
               this.shareFixedPasswordConfigured = this.shareFixedPassword.length > 0;
               this.shareFixedPasswordDirty = true;
               this.showShareFixedPasswordInput = false;
+              this.saveShareSettings();
             })
         }
         .width('100%')
@@ -8265,28 +8807,93 @@ struct Index {
   }
 
   @Builder
-  private buildShareOtpLengthInputDialog() {
+  private buildShareOtpLengthDialog() {
     Column() {
-      Column({ space: 20 }) {
+      Column({ space: 12 }) {
         Text(this.lt('One-time password length'))
-          .fontSize(20)
+          .fontSize(16)
           .fontWeight(FontWeight.Bold)
           .fontColor(this.theme_TEXT_PRIMARY)
 
-        TextInput({ text: this.shareOtpLengthDraft, placeholder: '6' })
-          .width('100%')
-          .height(48)
-          .fontSize(16)
-          .fontColor(this.theme_TEXT_PRIMARY)
-          .backgroundColor(this.theme_INPUT_BG)
-          .borderRadius(8)
-          .type(InputType.Number)
-          .onChange((value: string) => {
-            this.shareOtpLengthDraft = value;
+        Row() {
+          Slider({
+            value: this.shareOtpLength,
+            min: 6,
+            max: 10,
+            step: 2,
+            style: SliderStyle.InSet
           })
+            .layoutWeight(1)
+            .height(28)
+            .selectedColor(this.theme_ACCENT)
+            .trackColor(this.theme_BORDER_SUBTLE)
+            .onChange((value: number) => {
+              const len = Math.round(value);
+              if (len === 6 || len === 8 || len === 10) {
+                this.shareOtpLength = len;
+              }
+            })
+          Text(`${this.shareOtpLength}`)
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.theme_ACCENT)
+            .width(30)
+            .textAlign(TextAlign.Center)
+        }
+        .width('100%')
+      }
+      .width('70%')
+      .padding(20)
+      .backgroundColor(this.theme_CARD_BG)
+      .borderRadius(16)
+      .shadow({ radius: 20, color: this.theme_SHADOW_COLOR, offsetX: 0, offsetY: 4 })
+      .onClick(() => {})
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(this.theme_DIALOG_OVERLAY)
+    .justifyContent(FlexAlign.Center)
+    .onClick(() => {
+      this.showShareOtpLengthInput = false;
+      this.saveShareSettings();
+    })
+  }
+
+  @Builder
+  private buildCmApproveDialog() {
+    Column() {
+      Column({ space: 16 }) {
+        Text(this.lt('Incoming Connection Request'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.theme_TEXT_PRIMARY)
+
+        Row() {
+          Text(this.lt('Name'))
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .width(60)
+          Text(this.cmPendingPeerName)
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .layoutWeight(1)
+        }
+        .width('100%')
+
+        Row() {
+          Text(this.lt('ID'))
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_SECONDARY)
+            .width(60)
+          Text(this.cmPendingPeerId)
+            .fontSize(14)
+            .fontColor(this.theme_TEXT_PRIMARY)
+            .layoutWeight(1)
+        }
+        .width('100%')
 
         Row({ space: 12 }) {
-          Button(this.lt('Cancel'))
+          Button(this.lt('Reject'))
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
@@ -8295,10 +8902,10 @@ struct Index {
             .border({ width: 1, color: this.theme_BORDER_SUBTLE })
             .borderRadius(8)
             .onClick(() => {
-              this.showShareOtpLengthInput = false;
+              this.cmApproveConnection(this.cmPendingConnId, false);
             })
 
-          Button(this.lt('OK'))
+          Button(this.lt('Accept'))
             .layoutWeight(1)
             .height(44)
             .fontSize(16)
@@ -8307,13 +8914,7 @@ struct Index {
             .border({ width: 1.5, color: this.theme_ACCENT })
             .borderRadius(8)
             .onClick(() => {
-              const len = parseInt(this.shareOtpLengthDraft.trim(), 10);
-              if (len === 6 || len === 8 || len === 10) {
-                this.shareOtpLength = len;
-                this.showShareOtpLengthInput = false;
-              } else {
-                this.setStatusMessageRaw(this.lt('One-time password length must be 6, 8 or 10'));
-              }
+              this.cmApproveConnection(this.cmPendingConnId, true);
             })
         }
         .width('100%')
@@ -8329,16 +8930,43 @@ struct Index {
     .height('100%')
     .backgroundColor(this.theme_DIALOG_OVERLAY)
     .justifyContent(FlexAlign.Center)
-    .onClick(() => {
-      this.showShareOtpLengthInput = false;
-    })
+    .onClick(() => {})
   }
 
   private loadShareSettings(): void {
-    const approveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
-    const verificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
-    const otpLengthStr = NativeRustDeskBridge.mainGetOption('temporary-password-length').trim();
-    const otpNumericStr = NativeRustDeskBridge.mainGetOption('allow-numeric-one-time-password').trim().toUpperCase();
+    let approveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+    if (!approveMode) {
+      approveMode = NativeRustDeskBridge.getLocalOption('approve-mode').trim();
+      if (approveMode) {
+        NativeRustDeskBridge.mainSetOption('approve-mode', approveMode);
+        hilog.info(0xA03D00, 'SHARE', 'restored approve-mode to main: %{public}s', approveMode);
+      }
+    }
+    let verificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
+    if (!verificationMethod) {
+      verificationMethod = NativeRustDeskBridge.getLocalOption('verification-method').trim();
+      if (verificationMethod) {
+        NativeRustDeskBridge.mainSetOption('verification-method', verificationMethod);
+        hilog.info(0xA03D00, 'SHARE', 'restored verification-method to main: %{public}s', verificationMethod);
+      }
+    }
+    let otpLengthStr = NativeRustDeskBridge.mainGetOption('temporary-password-length').trim();
+    if (!otpLengthStr) {
+      otpLengthStr = NativeRustDeskBridge.getLocalOption('temporary-password-length').trim();
+      if (otpLengthStr) {
+        NativeRustDeskBridge.mainSetOption('temporary-password-length', otpLengthStr);
+      }
+    }
+    let otpNumericStr = NativeRustDeskBridge.mainGetOption('allow-numeric-one-time-password').trim().toUpperCase();
+    if (!otpNumericStr) {
+      otpNumericStr = NativeRustDeskBridge.getLocalOption('allow-numeric-one-time-password').trim().toUpperCase();
+      if (otpNumericStr) {
+        NativeRustDeskBridge.mainSetOption('allow-numeric-one-time-password', otpNumericStr);
+      }
+    }
+    const allOptions = NativeRustDeskBridge.mainGetOptions();
+    hilog.info(0xA03D00, 'SHARE', 'loadShareSettings: approve-mode=%{public}s verification-method=%{public}s allOptions=%{public}s',
+      approveMode, verificationMethod, allOptions);
 
     if (approveMode === 'click') {
       this.shareAccessMode = 'click';
@@ -8351,11 +8979,15 @@ struct Index {
     this.shareFixedPassword = '';
     this.shareFixedPasswordDraft = '';
     this.shareFixedPasswordDirty = false;
-    this.shareFixedPasswordConfigured = NativeRustDeskBridge.mainGetCommon('permanent-password-set').trim() === 'true';
+    const permPwdSet = NativeRustDeskBridge.mainGetCommon('permanent-password-set').trim();
+    const permPwdOption = NativeRustDeskBridge.mainGetOption('permanent-password').trim();
+    const permPwdLocal = NativeRustDeskBridge.getLocalOption('permanent-password').trim();
+    hilog.info(0xA03D00, 'SHARE', 'loadShareSettings: permanent-password-set=%{public}s permPwdOption=%{public}s permPwdLocal=%{public}s',
+      permPwdSet, permPwdOption.length > 0 ? 'has-value' : 'empty', permPwdLocal.length > 0 ? 'has-value' : 'empty');
+    this.shareFixedPasswordConfigured = permPwdSet === 'true' || permPwdOption.length > 0 || permPwdLocal.length > 0;
 
     const len = parseInt(otpLengthStr, 10);
     this.shareOtpLength = len === 8 || len === 10 ? len : 6;
-    this.shareOtpLengthDraft = `${this.shareOtpLength}`;
 
     this.shareOtpNumeric = otpNumericStr === 'Y' || otpNumericStr === 'YES' || otpNumericStr === 'TRUE' || otpNumericStr === '1';
 
@@ -8373,15 +9005,21 @@ struct Index {
   private saveShareSettings(): boolean {
     if (this.sharePasswordType !== 'temporary' && !this.shareFixedPasswordConfigured) {
       this.setStatusMessageRaw(this.lt('Please set a fixed password first'));
+      this.shareUiVersion++;
       return false;
     }
 
     if (this.shareFixedPasswordDirty) {
-      if (!NativeRustDeskBridge.mainSetPermanentPasswordWithResult(this.shareFixedPassword)) {
-        this.setStatusMessageRaw(this.lt('Failed to set fixed password'));
-        return false;
+      hilog.info(0xA03D00, 'SHARE', 'saving fixed password: length=%{public}d', this.shareFixedPassword.length);
+      const setResult = NativeRustDeskBridge.mainSetPermanentPasswordWithResult(this.shareFixedPassword);
+      hilog.info(0xA03D00, 'SHARE', 'mainSetPermanentPasswordWithResult=%{public}s', String(setResult));
+      NativeRustDeskBridge.setLocalOption('permanent-password', this.shareFixedPassword);
+      if (!setResult) {
+        NativeRustDeskBridge.mainSetOption('permanent-password', this.shareFixedPassword);
+        hilog.info(0xA03D00, 'SHARE', 'fallback: set permanent-password via mainSetOption');
       }
       this.shareFixedPasswordDirty = false;
+      this.shareFixedPasswordConfigured = true;
     }
 
     const approveMode = this.shareAccessMode === 'click' ? 'click' :
@@ -8396,22 +9034,28 @@ struct Index {
     NativeRustDeskBridge.mainSetOption('temporary-password-length', `${this.shareOtpLength}`);
     NativeRustDeskBridge.mainSetOption('allow-numeric-one-time-password', this.shareOtpNumeric ? 'Y' : 'N');
 
+    const verifyApproveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
+    const verifyVerificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
+    const allOptions = NativeRustDeskBridge.mainGetOptions();
+    hilog.info(0xA03D00, 'SHARE', 'after set: approve-mode=%{public}s verification-method=%{public}s allOptions=%{public}s',
+      verifyApproveMode, verifyVerificationMethod, allOptions);
+
+    NativeRustDeskBridge.setLocalOption('approve-mode', approveMode);
+    NativeRustDeskBridge.setLocalOption('verification-method', verificationMethod);
+    NativeRustDeskBridge.setLocalOption('temporary-password-length', `${this.shareOtpLength}`);
+    NativeRustDeskBridge.setLocalOption('allow-numeric-one-time-password', this.shareOtpNumeric ? 'Y' : 'N');
+
     const otpChanged = oldOtpLength !== `${this.shareOtpLength}` ||
       (oldOtpNumeric === 'Y') !== this.shareOtpNumeric;
     if (otpChanged) {
-      NativeRustDeskBridge.mainUpdateTemporaryPassword();
-      this.oneTimePassword = NativeRustDeskBridge.mainGetTemporaryPassword();
-      this.shareUiVersion++;
-    }
-
-    const savedApproveMode = NativeRustDeskBridge.mainGetOption('approve-mode').trim();
-    const savedVerificationMethod = NativeRustDeskBridge.mainGetOption('verification-method').trim();
-    if (savedApproveMode !== approveMode || savedVerificationMethod !== verificationMethod) {
-      this.setStatusMessageRaw(this.lt('Failed to save share settings'));
-      return false;
+      const newPwd = this.generateOtpPassword(this.shareOtpLength, this.shareOtpNumeric);
+      NativeRustDeskBridge.setLocalOption('temporary-password', newPwd);
+      this.oneTimePassword = newPwd;
+      this.appData.setPassword(newPwd);
     }
 
     this.setStatusMessageRaw(this.lt('Share settings saved'));
+    this.shareUiVersion++;
     return true;
   }
 
@@ -9157,9 +9801,13 @@ struct Index {
         this.buildShareFixedPasswordInputDialog()
       }
       if (this.showShareOtpLengthInput) {
-        this.buildShareOtpLengthInputDialog()
+        this.buildShareOtpLengthDialog()
+      }
+      if (this.showCmApproveDialog) {
+        this.buildCmApproveDialog()
       }
       this.buildToastOverlay()
+      this.buildConnectionEventToast()
     }
     .width('100%')
     .height('100%')
