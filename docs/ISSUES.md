@@ -1,5 +1,84 @@
 # 问题整理
 
+## 2026-09-05 审批流程 v9.7 代码审议 — 三个暗含 Bug
+
+### Bug 1（严重）：非 click 模式下画面永久暂停
+
+**现象**：在密码模式或双重模式下，第一次连接后画面永久暂停，远程客户端只能看到黑色画面。
+
+**根因**：`PullSessionEventsJson`（C++ 层）在检测到 `login-authorized` 事件时自动设置 `paused = true`。但 `handleIncomingAuthorized` 的非 click 模式分支（`Index.ets:6129-6137`）只添加连接记录，没有调用 `resumeNativeScreenCapture()`。结果：自动暂停后无人恢复，画面永久暂停。
+
+**修复**：在 `handleIncomingAuthorized` 非 click 模式分支末尾添加 `NativeRustDeskBridge.resumeNativeScreenCapture()`。
+
+### Bug 2（严重）：click 模式下 `login-authorized` 触发重复审批对话框
+
+**现象**：click 模式下，用户通过 `incoming-connection` 事件批准连接后，`login-authorized` 事件会弹出第二个审批对话框。
+
+**根因**：`handleIncomingConnectionRequest` 中 `peerId` 始终为空字符串（从未从 `detail` 中提取）。用户批准后 `activeIncomingConnections` 中存储的 `peerId` 为 `''`。当 `login-authorized` 事件到达时，`handleIncomingAuthorized` 中的 `activeIncomingConnections.some(c => c.peerId === normalizedId)` 检查无法匹配（`'' !== normalizedId`），导致继续弹出第二个对话框。
+
+**修复**：
+1. 在 `handleIncomingAuthorized` 的重复检测中增加 `c.peerName === peerName` 条件
+2. 检测到重复时调用 `resumeNativeScreenCapture()` 恢复画面
+3. 在 `handleIncomingConnectionRequest` 中添加 `peerId` 的正则提取（`/id[=:]\s*(\d+)/`）
+
+### Bug 3（中等）：`handleIncomingConnectionRequest` 未提取 `peerId`
+
+**现象**：`cmPendingPeerId` 始终为空字符串，`activeIncomingConnections` 中存储的 `peerId` 也为空。
+
+**根因**：`handleIncomingConnectionRequest` 中 `peerId` 初始化为 `''` 后从未被赋值。只提取了 `peerName`（通过 `/from\s+\[?([^\]]+)\]?:/` 正则），没有提取 `peerId`。
+
+**修复**：添加 `/id[=:]\s*(\d+)/` 正则尝试从 `detail` 中提取 `peerId`。
+
+## 2026-09-05 审批流程 v9 方案 — 审批前画面传输与断开连接无效
+
+### 核心问题
+
+1. **审批对话框弹出前画面已在传输**：选择"只允许点击访问"模式时，连接在用户审批前就已建立，对方已经能看到实时画面
+2. **断开连接无效**：点击"拒绝"后对方画面没有断开
+
+### v9 方案架构
+
+在 C++ 层 `NativeScreenCaptureState` 添加 `paused` 原子标志，drain loop 在 `paused=true` 时推送黑色画面帧，在 `paused=false` 时推送真实画面帧。
+
+**审批流程**：
+- 服务启动时（click 模式）：`pauseNativeScreenCapture()` → 默认暂停，推送黑色画面
+- 审批对话框弹出时：`pauseNativeScreenCapture()` → 暂停画面推送
+- 接受连接：`resumeNativeScreenCapture()` → 恢复画面推送
+- 拒绝连接：`pauseNativeScreenCapture()` → 保持暂停，对方看到黑色画面
+- 断开连接：`pauseNativeScreenCapture()` → 保持暂停，对方看到黑色画面
+
+### C++ 层关键改进
+
+1. `NativeScreenCaptureState` 新增 `paused` 原子标志
+2. `NativeScreenCaptureDrainLoop` — `paused=true` 时推送一帧黑色画面（只推送一次），`paused=false` 时推送真实画面
+3. `PauseNativeScreenCapture` / `ResumeNativeScreenCapture` NAPI 函数
+4. `PullSessionEventsJson` 自动暂停 — 检测到 `incoming-connection` 或 `login-authorized` 事件时自动设置 `paused=true`
+5. `NativeScreenCaptureStart()` 不再重置 `paused` 标志 — 保持之前的暂停状态
+
+### JS 层关键改进
+
+1. `performToggleIncomingService` 中 click 模式默认暂停
+2. `cmApproveConnection` 接受：`resumeNativeScreenCapture()`
+3. `cmApproveConnection` 拒绝：`pauseNativeScreenCapture()`
+4. `disconnectIncomingConnection`：`pauseNativeScreenCapture()`
+5. 移除 `cmApprovedPeerIds` 自动跳过逻辑 — 每次连接都弹出审批对话框
+
+### v9.7 用户测试反馈
+
+1. **第一次审批前还是会看到一瞬间画面** — `PullSessionEventsJson` 自动暂停的时机不够早
+2. **第二次审批时不会有画面，已被黑色画面填充** — 自动暂停在第二次生效了
+3. **接受后画面恢复正常** — `resumeNativeScreenCapture()` 工作正常
+4. **拒绝/断开后对方看到黑色画面** — `pauseNativeScreenCapture()` 工作正常，但连接没有真正断开
+5. **断开流程没有处理好** — 对方画面一直黑色等待，直到超时或重新拉起访问申请
+
+### 核心架构发现
+
+1. `mainStopService()` 只停止服务监听，不断开已有连接
+2. `setIncomingServiceEnabled(true, ...)` 不会重启 ScreenCapture，`paused` 标志不会被重置
+3. `forceCloseAllConnections` 在 HarmonyOS 上不工作 — `cm_get_clients_length()` 返回 0
+4. 所有 CM 函数在 HarmonyOS 上都不工作：`cmGetClientsState()` 始终返回 `"[]"`，`cmGetClientsLength()` 返回 0，`cmLoginRes` 不工作，`cmCloseConnection` 不工作
+5. `NativeScreenCaptureStart()` 内部会先调用 `StopInternal()` 清理旧状态，但不会重置 `paused` 标志
+
 ## 2026-08-22 会话剪贴板开关与远端回传未关联
 
 - 根因：页面进入和 `session-connected` 各调用一次 `sessionToggleOption('enable-clipboard')`。该接口执行状态反转，两次调用可能刚开启又关闭；菜单本身却维护 `disable-clipboard=Y/N`，形成两套冲突状态。

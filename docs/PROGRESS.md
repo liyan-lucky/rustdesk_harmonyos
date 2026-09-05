@@ -1,5 +1,56 @@
 # 功能进度与优化方向
 
+## 2026-09-05 审批流程 v9.7 + 代码审议 Bug 修复
+
+### v9 方案实现
+
+在 C++ 层添加 `paused` 原子标志控制画面推送，实现审批前画面不传输的功能：
+
+1. **C++ 层**（`rustdesk_bridge_loader.cpp`）：
+   - `NativeScreenCaptureState` 添加 `paused` 原子标志
+   - `NativeScreenCaptureDrainLoop` 暂停时推送一帧黑色画面（只推送一次），恢复时推送真实画面
+   - `PauseNativeScreenCapture` / `ResumeNativeScreenCapture` NAPI 函数
+   - `PullSessionEventsJson` 自动暂停 — 检测到 `incoming-connection` 或 `login-authorized` 事件时自动设置 `paused=true`
+   - `NativeScreenCaptureStart()` 不再重置 `paused` 标志
+
+2. **TypeScript 层**：
+   - `NativeRustDeskBridge.ts` 添加 `pauseNativeScreenCapture` / `resumeNativeScreenCapture` 接口
+   - `librustdesk_bridge.d.ts` 和 `index.d.ts` 类型声明更新
+
+3. **ArkTS 层**（`Index.ets`）：
+   - `performToggleIncomingService` click 模式默认暂停，非 click 模式确保恢复
+   - `handleIncomingConnectionRequest`：弹出审批对话框 + `pauseNativeScreenCapture()`
+   - `cmApproveConnection` 接受：`resumeNativeScreenCapture()`；拒绝：`pauseNativeScreenCapture()`
+   - `disconnectIncomingConnection`：`pauseNativeScreenCapture()`
+   - `handleIncomingAuthorized`：`pauseNativeScreenCapture()`（click 模式）
+   - 移除 `cmApprovedPeerIds` 自动跳过逻辑
+
+### 代码审议 Bug 修复（3 个）
+
+1. **非 click 模式画面永久暂停**（严重）：`handleIncomingAuthorized` 非 click 模式分支没有调用 `resumeNativeScreenCapture()`。`PullSessionEventsJson` 自动暂停后无人恢复。修复：添加 `resumeNativeScreenCapture()`。
+
+2. **click 模式重复审批对话框**（严重）：`handleIncomingConnectionRequest` 中 `peerId` 始终为空，`handleIncomingAuthorized` 的重复检测无法匹配。修复：增加 `peerName` 匹配条件 + 检测到重复时恢复画面 + 从 `detail` 中提取 `peerId`。
+
+3. **`peerId` 未提取**（中等）：`handleIncomingConnectionRequest` 中 `peerId` 从未从 `detail` 中提取。修复：添加 `/id[=:]\s*(\d+)/` 正则提取。
+
+### v9.7 用户测试反馈
+
+- 第一次审批前仍有一瞬间看到真实画面（`PullSessionEventsJson` 自动暂停时机不够早）
+- 第二次审批时已被黑色画面填充（自动暂停生效）
+- 接受后画面恢复正常
+- 拒绝/断开后对方看到黑色画面（但连接没有真正断开，需等待超时）
+
+### 已知遗留问题（用户接受现状）
+
+1. 第一次审批前仍有一瞬间看到真实画面
+2. 断开连接后对方画面一直黑色等待，连接没有真正断开
+3. CM 接口在 HarmonyOS 上完全不工作（`cmLoginRes`、`cmCloseConnection`、`forceCloseAllConnections` 都无效）
+
+### 构建验证
+
+- 版本 `0.35.15 (1000314)`，构建通过
+- 修改文件：`rustdesk_bridge_loader.cpp`、`NativeRustDeskBridge.ts`、`librustdesk_bridge.d.ts`、`index.d.ts`、`Index.ets`
+
 ## 2026-08-21 空格输入、菜单跳转、工具栏折叠、剪贴板同步、在线状态修复
 
 ### 已修复

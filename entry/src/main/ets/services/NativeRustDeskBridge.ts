@@ -151,6 +151,8 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture?: () => boolean;
   isNativeScreenCaptureActive?: () => boolean;
   getNativeScreenCaptureStats?: () => string;
+  pauseNativeScreenCapture?: () => boolean;
+  resumeNativeScreenCapture?: () => boolean;
   requestInputInjectionAuthorization?: () => number;
   getInputInjectionAuthorizationStatus?: () => number;
   cancelInputInjectionAuthorization?: () => void;
@@ -1656,6 +1658,42 @@ export class NativeRustDeskBridge {
     } catch (error) {
       hilog.error(0xA03D00, 'NativeBridge', 'getNativeScreenCaptureStats failed: ' + NativeRustDeskBridge.describeError(error));
       return '{}';
+    }
+  }
+
+  static pauseNativeScreenCapture(): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
+      nativeModule,
+      ['pauseNativeScreenCapture', 'pause_native_screen_capture']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn() === true;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'pauseNativeScreenCapture failed: ' + NativeRustDeskBridge.describeError(error));
+      return false;
+    }
+  }
+
+  static resumeNativeScreenCapture(): boolean {
+    const nativeModule = NativeRustDeskBridge.getModule();
+    NativeRustDeskBridge.ensureRuntimeInitialized(nativeModule);
+    const fn = NativeRustDeskBridge.resolveFunction<[], boolean>(
+      nativeModule,
+      ['resumeNativeScreenCapture', 'resume_native_screen_capture']
+    );
+    if (!fn) {
+      return false;
+    }
+    try {
+      return fn() === true;
+    } catch (error) {
+      hilog.error(0xA03D00, 'NativeBridge', 'resumeNativeScreenCapture failed: ' + NativeRustDeskBridge.describeError(error));
+      return false;
     }
   }
 

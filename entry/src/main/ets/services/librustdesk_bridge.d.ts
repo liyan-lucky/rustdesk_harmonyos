@@ -56,6 +56,8 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture?(): boolean;
   isNativeScreenCaptureActive?(): boolean;
   getNativeScreenCaptureStats?(): string;
+  pauseNativeScreenCapture?(): boolean;
+  resumeNativeScreenCapture?(): boolean;
   requestInputInjectionAuthorization?(): number;
   getInputInjectionAuthorizationStatus?(): number;
   cancelInputInjectionAuthorization?(): void;
@@ -118,6 +120,8 @@ export interface NativeBridgeModule {
   stopNativeScreenCapture(): boolean;
   isNativeScreenCaptureActive(): boolean;
   getNativeScreenCaptureStats(): string;
+  pauseNativeScreenCapture(): boolean;
+  resumeNativeScreenCapture(): boolean;
   requestInputInjectionAuthorization(): number;
   getInputInjectionAuthorizationStatus(): number;
   cancelInputInjectionAuthorization(): void;

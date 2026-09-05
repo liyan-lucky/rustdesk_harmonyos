@@ -5739,6 +5739,13 @@ struct Index {
         await ScreenCaptureService.getInstance().startCapture();
       }
       hilog.info(0xA03D00, 'SHARE', 'startCapture succeeded for linked incoming service');
+      if (this.shareAccessMode === 'click') {
+        NativeRustDeskBridge.pauseNativeScreenCapture();
+        console.info('[SHARE] click mode: paused screen capture on service start');
+      } else {
+        NativeRustDeskBridge.resumeNativeScreenCapture();
+        console.info('[SHARE] non-click mode: resumed screen capture on service start');
+      }
       await this.sleep(260);
       this.officialCoreState = await this.officialBridge.setIncomingServiceEnabled(true, this.settings);
       await this.sleep(180);
@@ -5956,6 +5963,7 @@ struct Index {
 
   private cmApproveConnection(connId: number, accept: boolean): void {
     this.showCmApproveDialog = false;
+    console.info(`[CM] cmApproveConnection: connId=${connId} accept=${accept}`);
     if (accept) {
       this.cmApprovedPeerIds.add(this.cmPendingPeerName);
       console.info(`[CM] cmApproveConnection: added ${this.cmPendingPeerName} to approved peers`);
@@ -5967,31 +5975,22 @@ struct Index {
         isFileTransfer: false
       });
       this.showConnectionEvent(`${this.lt('Connected by')} ${this.cmPendingPeerName} (${this.cmPendingPeerId})`);
-      console.info(`[CM] cmApproveConnection: accepted connId=${connId}`);
-      void this.performToggleIncomingService(true);
+      NativeRustDeskBridge.resumeNativeScreenCapture();
+      console.info('[CM] cmApproveConnection: resumeNativeScreenCapture() called');
     } else {
-      this.cmApprovedPeerIds.delete(this.cmPendingPeerName);
-      console.info(`[CM] cmApproveConnection: removed ${this.cmPendingPeerName} from approved peers`);
-      console.info(`[CM] cmApproveConnection: rejected connId=${connId}`);
+      this.cmApprovedPeerIds.clear();
+      console.info('[CM] cmApproveConnection: cleared all approved peers');
       this.removeActiveIncomingConnection(connId);
-      setTimeout(() => {
-        console.info('[CM] cmApproveConnection: restarting service after reject');
-        void this.performToggleIncomingService(true);
-      }, 1000);
+      NativeRustDeskBridge.pauseNativeScreenCapture();
+      console.info('[CM] cmApproveConnection: pauseNativeScreenCapture() called after reject, showing black screen');
     }
   }
 
   private disconnectIncomingConnection(connId: number): void {
     console.info(`[CM] disconnectIncomingConnection: connId=${connId}`);
-    ScreenCaptureService.getInstance().stopCapture();
-    console.info('[CM] screen capture stopped for disconnect');
-    NativeRustDeskBridge.mainStopService();
-    console.info('[CM] mainStopService called for disconnect');
     this.removeActiveIncomingConnection(connId);
-    setTimeout(() => {
-      console.info('[CM] reconnecting incoming service after disconnect');
-      void this.performToggleIncomingService(true);
-    }, 1000);
+    NativeRustDeskBridge.pauseNativeScreenCapture();
+    console.info('[CM] disconnectIncomingConnection: pauseNativeScreenCapture() called, showing black screen');
   }
 
   private removeActiveIncomingConnection(connId: number): void {
@@ -6022,12 +6021,15 @@ struct Index {
       if (match) {
         peerName = match[1];
       }
+      const idMatch = detail.match(/id[=:]\s*(\d+)/);
+      if (idMatch) {
+        peerId = idMatch[1];
+      }
     } catch {
       // ignore parse error
     }
     if (this.cmApprovedPeerIds.has(peerName)) {
-      console.info(`[CM] incoming-connection: peer ${peerName} already approved, allowing connection`);
-      return;
+      console.info(`[CM] incoming-connection: peer ${peerName} previously approved, but still showing dialog for click mode`);
     }
     this.cmPendingConnId = this.nextEventConnId;
     this.nextEventConnId++;
@@ -6035,10 +6037,8 @@ struct Index {
     this.cmPendingPeerId = peerId;
     this.showCmApproveDialog = true;
     console.info(`[CM] incoming-connection: showing approve dialog, connId=${this.cmPendingConnId}, peerName=${this.cmPendingPeerName}`);
-    ScreenCaptureService.getInstance().stopCapture();
-    console.info('[CM] incoming-connection: screen capture stopped to prevent frame transmission');
-    NativeRustDeskBridge.mainStopService();
-    console.info('[CM] incoming-connection: mainStopService called to block connection');
+    NativeRustDeskBridge.pauseNativeScreenCapture();
+    console.info('[CM] incoming-connection: pauseNativeScreenCapture() called');
   }
 
   private handleIncomingAuthorized(peerId: string, detail: string): void {
@@ -6079,7 +6079,9 @@ struct Index {
     if (normalizedId.length === 0) {
       return;
     }
-    if (this.activeIncomingConnections.some((c: ActiveConnectionInfo) => c.peerId === normalizedId)) {
+    if (this.activeIncomingConnections.some((c: ActiveConnectionInfo) =>
+      c.peerId === normalizedId || c.peerName === peerName)) {
+      NativeRustDeskBridge.resumeNativeScreenCapture();
       return;
     }
     let realConnId = -1;
@@ -6106,19 +6108,11 @@ struct Index {
       realConnId, peerName, normalizedId);
     if (this.shareAccessMode === 'click') {
       if (this.cmApprovedPeerIds.has(peerName) || this.cmApprovedPeerIds.has(normalizedId)) {
-        console.info(`[CM] login-authorized: peer ${peerName}/${normalizedId} already approved, adding to active connections`);
-        this.activeIncomingConnections.push({
-          connId: realConnId,
-          peerName: peerName.length > 0 ? peerName : normalizedId,
-          peerId: normalizedId,
-          platform: '',
-          isFileTransfer: false
-        });
-        this.showConnectionEvent(`${this.lt('Connected by')} ${peerName} (${normalizedId})`);
-        return;
+        console.info(`[CM] login-authorized: peer ${peerName}/${normalizedId} previously approved, but still showing dialog for click mode`);
       }
       if (this.showCmApproveDialog) {
-        console.info('[CM] login-authorized: approve dialog already showing from incoming-connection, updating peer info');
+        console.info('[CM] login-authorized: approve dialog already showing from incoming-connection, updating peer info and connId');
+        this.cmPendingConnId = realConnId;
         this.cmPendingPeerName = peerName.length > 0 ? peerName : normalizedId;
         this.cmPendingPeerId = normalizedId;
         return;
@@ -6128,6 +6122,8 @@ struct Index {
       this.cmPendingPeerId = normalizedId;
       this.showCmApproveDialog = true;
       console.info(`[CM] login-authorized: showing approve dialog for click mode, connId=${realConnId}`);
+      NativeRustDeskBridge.pauseNativeScreenCapture();
+      console.info('[CM] login-authorized: pauseNativeScreenCapture() called');
       return;
     }
     this.activeIncomingConnections.push({
@@ -6138,6 +6134,7 @@ struct Index {
       isFileTransfer: false
     });
     this.showConnectionEvent(`${this.lt('Connected by')} ${peerName} (${normalizedId})`);
+    NativeRustDeskBridge.resumeNativeScreenCapture();
   }
 
   private handleIncomingDisconnected(peerId: string, detail: string): void {

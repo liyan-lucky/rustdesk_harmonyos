@@ -1,6 +1,6 @@
 # 新对话交接入口
 
-> 更新时间：2026-08-22
+> 更新时间：2026-09-05
 > 本文件是新对话的第一入口。读取本文件后，按"必读顺序"读取其他文档。
 
 ## 当前项目状态
@@ -8,12 +8,37 @@
 - **项目**：RustDesk HarmonyOS 客户端（`com.open.rundesk`），第三方兼容客户端，非官方发布
 - **工作区**：`E:\Visual_Studio_Code\11_Rustdesk_harmonyos`
 - **核心库**：`E:\Visual_Studio_Code\13_librustdesk_core`（独立仓库，staticlib + CMake 链接）
-- **当前真机**：USB/HDC `2NX0224429035123`；最近无线地址 `192.168.0.108:36169`（无线端口可能重连后变化）
+- **当前真机**：USB/HDC `2NX0224429035123`；最近无线地址 `192.168.8.152:36169`（无线端口可能重连后变化）
 - **用户主题**：暗色主题
 - **核心架构**：ArkTS Stage UI → C++ NAPI → Rust C ABI staticlib
 - **包名**：`com.open.rundesk`，AGPL-3.0-only
 
 ## 最近完成的工作
+
+### 2026-09-05 审批流程 v9.7 + 代码审议 Bug 修复
+
+1. **审批前画面控制（v9 方案）**：在 C++ 层 `NativeScreenCaptureState` 添加 `paused` 原子标志，drain loop 在 `paused=true` 时推送黑色画面帧，`paused=false` 时推送真实画面帧。实现了审批对话框弹出前画面不传输的核心需求。
+2. **C++ 层关键改进**：
+   - `NativeScreenCaptureDrainLoop` 暂停时推送一帧黑色画面（只推送一次）
+   - `PauseNativeScreenCapture` / `ResumeNativeScreenCapture` NAPI 函数
+   - `PullSessionEventsJson` 自动暂停（检测到 `incoming-connection` 或 `login-authorized` 事件时）
+   - `NativeScreenCaptureStart()` 不再重置 `paused` 标志
+3. **ArkTS 层审批流程**：
+   - `performToggleIncomingService` click 模式默认暂停
+   - `cmApproveConnection` 接受/拒绝分别恢复/暂停画面
+   - `disconnectIncomingConnection` 暂停画面
+   - 移除 `cmApprovedPeerIds` 自动跳过逻辑
+4. **代码审议修复 3 个暗含 Bug**：
+   - **非 click 模式画面永久暂停**（严重）：`handleIncomingAuthorized` 非 click 模式分支没有调用 `resumeNativeScreenCapture()`，修复后添加
+   - **click 模式重复审批对话框**（严重）：`peerId` 始终为空导致重复检测失败，修复后增加 `peerName` 匹配 + 恢复画面
+   - **`peerId` 未提取**（中等）：`handleIncomingConnectionRequest` 中添加 `/id[=:]\s*(\d+)/` 正则提取 `peerId`
+5. **构建验证**：版本 `0.35.15 (1000314)`，构建通过
+
+### v9.7 已知遗留问题（用户接受现状）
+
+1. **第一次审批前仍有一瞬间真实画面** — `PullSessionEventsJson` 自动暂停时机不够早
+2. **断开连接后对方画面一直黑色等待** — CM 接口在 HarmonyOS 上不工作，无法真正断开连接
+3. **所有 CM 函数在 HarmonyOS 上不工作** — `cmLoginRes`、`cmCloseConnection`、`forceCloseAllConnections` 都无效
 
 ### 2026-08-22 0.35.11 功能收口
 

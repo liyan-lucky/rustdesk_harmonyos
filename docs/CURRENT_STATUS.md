@@ -1,6 +1,14 @@
 # 当前仓库状态
 
-更新时间：2026-08-22
+更新时间：2026-09-05
+
+## 审批流程 v9.7
+
+- **审批前画面控制**：在 C++ 层 `NativeScreenCaptureState` 添加 `paused` 原子标志，drain loop 在 `paused=true` 时推送黑色画面帧，`paused=false` 时推送真实画面帧
+- **click 模式**：服务启动时默认暂停；审批对话框弹出时暂停；接受后恢复；拒绝/断开后保持暂停
+- **非 click 模式**：服务启动时恢复；`login-authorized` 事件后自动恢复画面推送
+- **自动暂停**：`PullSessionEventsJson` 在 C++ 层检测到 `incoming-connection` 或 `login-authorized` 事件时自动设置 `paused=true`
+- **已知遗留**：第一次审批前仍有一瞬间真实画面泄漏；断开连接后对方画面一直黑色等待（CM 接口在 HarmonyOS 上不工作，无法真正断开连接）
 
 ## 设备信息同步
 
@@ -20,7 +28,7 @@
 - UI：ArkTS / ArkUI Stage 模型。
 - Native：C++ NAPI → Rust C ABI。
 - Core：从 `liyan-lucky/librustdesk_core` Release 下载并链接双架构 `librustdesk_core.a`。
-- 当前维护构建：`0.35.11` / `versionCode 1000310`，于 `2026-08-22` 使用 DevEco 调试签名完成构建与安装验证。
+- 当前维护构建：`0.35.15` / `versionCode 1000314`，于 `2026-09-05` 使用 DevEco 调试签名完成构建验证。
 - arm64 Core：`140149676` bytes，SHA256 `B0A80CF0C2B166336DB4B0CEDFA163A1E500CB6B72882FDF2E1CD701721882D3`；源码提交 `b8dab7e`。
 - x86_64 Core：`130840066` bytes，SHA256 `2199D151CD6C2900BD1FB489561F6C7716314147DF2F87F542178134C4482476`。
 - 本次验证设备：USB/HDC `2NX0224429035123`（arm64）；最近无线调试地址为 `192.168.0.108:36169`。

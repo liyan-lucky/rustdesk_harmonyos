@@ -41,6 +41,8 @@ export const startNativeScreenCapture: (width: number, height: number, frameRate
 export const stopNativeScreenCapture: () => boolean;
 export const isNativeScreenCaptureActive: () => boolean;
 export const getNativeScreenCaptureStats: () => string;
+export const pauseNativeScreenCapture: () => boolean;
+export const resumeNativeScreenCapture: () => boolean;
 export const requestInputInjectionAuthorization: () => number;
 export const getInputInjectionAuthorizationStatus: () => number;
 export const cancelInputInjectionAuthorization: () => void;

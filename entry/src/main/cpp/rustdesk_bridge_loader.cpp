@@ -113,6 +113,7 @@ struct NativeScreenCaptureState {
   std::thread worker;
   std::atomic_bool running{false};
   std::atomic_bool video_buffer_ready{false};
+  std::atomic_bool paused{false};
   bool active = false;
   int width = 0;
   int height = 0;
@@ -207,6 +208,8 @@ const char *NativeScreenCaptureFormatName(int32_t format) {
 
 void NativeScreenCaptureDrainLoop(OH_AVScreenCapture *capture, int frame_rate) {
   const int sleep_ms = frame_rate > 0 ? std::max(16, 1000 / frame_rate) : 100;
+  std::vector<unsigned char> black_frame;
+  bool black_frame_sent = false;
   while (g_native_screen_capture.running.load() && !g_native_screen_capture.video_buffer_ready.load()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
@@ -216,43 +219,71 @@ void NativeScreenCaptureDrainLoop(OH_AVScreenCapture *capture, int frame_rate) {
     OH_Rect region = {};
     OH_NativeBuffer *buffer = OH_AVScreenCapture_AcquireVideoBuffer(capture, &fence, &timestamp, &region);
     if (buffer != nullptr) {
-      OH_NativeBuffer_Config buffer_config = {};
-      OH_NativeBuffer_GetConfig(buffer, &buffer_config);
-      void *mapped = nullptr;
-      bool core_push_ok = false;
-      uint64_t payload_bytes = 0;
-      if (OH_NativeBuffer_Map(buffer, &mapped) == 0 && mapped != nullptr) {
+      if (g_native_screen_capture.paused.load()) {
+        OH_NativeBuffer_Config buffer_config = {};
+        OH_NativeBuffer_GetConfig(buffer, &buffer_config);
         const int32_t width = buffer_config.width > 0 ? buffer_config.width : 0;
         const int32_t height = buffer_config.height > 0 ? buffer_config.height : 0;
         const int32_t stride = buffer_config.stride > 0 ? buffer_config.stride : width * 4;
         if (width > 0 && height > 0 && stride > 0) {
-          payload_bytes = static_cast<uint64_t>(stride) * static_cast<uint64_t>(height);
-          core_push_ok = rustdesk_bridge_update_incoming_screen_frame(
-            width,
-            height,
-            stride,
-            static_cast<long long>(timestamp),
-            NativeScreenCaptureFormatName(buffer_config.format),
-            static_cast<const unsigned char *>(mapped),
-            static_cast<unsigned long long>(payload_bytes)) != 0;
+          const uint64_t payload_bytes = static_cast<uint64_t>(stride) * static_cast<uint64_t>(height);
+          if (black_frame.size() != payload_bytes) {
+            black_frame.assign(static_cast<size_t>(payload_bytes), 0);
+            black_frame_sent = false;
+          }
+          if (!black_frame_sent) {
+            rustdesk_bridge_update_incoming_screen_frame(
+              width,
+              height,
+              stride,
+              static_cast<long long>(timestamp),
+              NativeScreenCaptureFormatName(buffer_config.format),
+              black_frame.data(),
+              static_cast<unsigned long long>(payload_bytes));
+            black_frame_sent = true;
+          }
         }
-        OH_NativeBuffer_Unmap(buffer);
-      }
-      {
-        std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
-        g_native_screen_capture.frame_count += 1;
-        if (core_push_ok) {
-          g_native_screen_capture.core_frame_count += 1;
+        OH_AVScreenCapture_ReleaseVideoBuffer(capture);
+      } else {
+        black_frame_sent = false;
+        OH_NativeBuffer_Config buffer_config = {};
+        OH_NativeBuffer_GetConfig(buffer, &buffer_config);
+        void *mapped = nullptr;
+        bool core_push_ok = false;
+        uint64_t payload_bytes = 0;
+        if (OH_NativeBuffer_Map(buffer, &mapped) == 0 && mapped != nullptr) {
+          const int32_t width = buffer_config.width > 0 ? buffer_config.width : 0;
+          const int32_t height = buffer_config.height > 0 ? buffer_config.height : 0;
+          const int32_t stride = buffer_config.stride > 0 ? buffer_config.stride : width * 4;
+          if (width > 0 && height > 0 && stride > 0) {
+            payload_bytes = static_cast<uint64_t>(stride) * static_cast<uint64_t>(height);
+            core_push_ok = rustdesk_bridge_update_incoming_screen_frame(
+              width,
+              height,
+              stride,
+              static_cast<long long>(timestamp),
+              NativeScreenCaptureFormatName(buffer_config.format),
+              static_cast<const unsigned char *>(mapped),
+              static_cast<unsigned long long>(payload_bytes)) != 0;
+          }
+          OH_NativeBuffer_Unmap(buffer);
         }
-        g_native_screen_capture.last_core_push_ok = core_push_ok;
-        g_native_screen_capture.last_payload_bytes = payload_bytes;
-        g_native_screen_capture.last_timestamp = timestamp;
-        g_native_screen_capture.last_buffer_format = buffer_config.format;
-        g_native_screen_capture.last_buffer_stride = buffer_config.stride;
-        if (buffer_config.width > 0) g_native_screen_capture.width = buffer_config.width;
-        if (buffer_config.height > 0) g_native_screen_capture.height = buffer_config.height;
+        {
+          std::lock_guard<std::mutex> lock(g_native_screen_capture.mutex);
+          g_native_screen_capture.frame_count += 1;
+          if (core_push_ok) {
+            g_native_screen_capture.core_frame_count += 1;
+          }
+          g_native_screen_capture.last_core_push_ok = core_push_ok;
+          g_native_screen_capture.last_payload_bytes = payload_bytes;
+          g_native_screen_capture.last_timestamp = timestamp;
+          g_native_screen_capture.last_buffer_format = buffer_config.format;
+          g_native_screen_capture.last_buffer_stride = buffer_config.stride;
+          if (buffer_config.width > 0) g_native_screen_capture.width = buffer_config.width;
+          if (buffer_config.height > 0) g_native_screen_capture.height = buffer_config.height;
+        }
+        OH_AVScreenCapture_ReleaseVideoBuffer(capture);
       }
-      OH_AVScreenCapture_ReleaseVideoBuffer(capture);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
   }
@@ -569,6 +600,13 @@ napi_value InitializeRuntime(napi_env env, napi_callback_info info) {
 napi_value PullSessionEvents(napi_env env, napi_callback_info info) {
   (void)info;
   const char *events = rustdesk_bridge_pull_session_events();
+  std::string eventsStr(events);
+  if (eventsStr.find("incoming-connection") != std::string::npos ||
+      eventsStr.find("login-authorized") != std::string::npos) {
+    g_native_screen_capture.paused.store(true);
+    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,
+                 "PullSessionEvents: auto-paused screen capture due to incoming connection event");
+  }
   return MakeString(env, CopyOwnedString(events));
 }
 
@@ -922,6 +960,20 @@ napi_value GetNativeScreenCaptureStats(napi_env env, napi_callback_info info) {
   return MakeString(env, NativeScreenCaptureStatsJson());
 }
 
+napi_value PauseNativeScreenCapture(napi_env env, napi_callback_info info) {
+  (void)info;
+  g_native_screen_capture.paused.store(true);
+  OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG, "Native screen capture paused");
+  return MakeBool(env, true);
+}
+
+napi_value ResumeNativeScreenCapture(napi_env env, napi_callback_info info) {
+  (void)info;
+  g_native_screen_capture.paused.store(false);
+  OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG, "Native screen capture resumed");
+  return MakeBool(env, true);
+}
+
 napi_value RequestInputInjectionAuthorization(napi_env env, napi_callback_info info) {
   (void)info;
   napi_value result = nullptr;
@@ -1238,7 +1290,15 @@ napi_value GetCoreSnapshotJson(napi_env env, napi_callback_info info) {
 }
 
 napi_value PullSessionEventsJson(napi_env env, napi_callback_info info) {
-  return MakeString(env, CopyOwnedText(rustdesk_bridge_pull_session_events_json()));
+  const char *raw = rustdesk_bridge_pull_session_events_json();
+  std::string events(raw);
+  if (events.find("incoming-connection") != std::string::npos ||
+      events.find("login-authorized") != std::string::npos) {
+    g_native_screen_capture.paused.store(true);
+    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, LOG_TAG,
+                 "PullSessionEventsJson: auto-paused screen capture due to incoming connection event");
+  }
+  return MakeString(env, CopyOwnedText(events.c_str()));
 }
 
 napi_value PullAudioFramesJson(napi_env env, napi_callback_info info) {
@@ -4209,6 +4269,8 @@ static napi_value Init(napi_env env, napi_value exports) {
     {"stopNativeScreenCapture", nullptr, StopNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"isNativeScreenCaptureActive", nullptr, IsNativeScreenCaptureActive, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"getNativeScreenCaptureStats", nullptr, GetNativeScreenCaptureStats, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"pauseNativeScreenCapture", nullptr, PauseNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
+    {"resumeNativeScreenCapture", nullptr, ResumeNativeScreenCapture, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"requestInputInjectionAuthorization", nullptr, RequestInputInjectionAuthorization, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"getInputInjectionAuthorizationStatus", nullptr, GetInputInjectionAuthorizationStatus, nullptr, nullptr, nullptr, napi_default, nullptr},
     {"cancelInputInjectionAuthorization", nullptr, CancelInputInjectionAuthorization, nullptr, nullptr, nullptr, napi_default, nullptr},
