@@ -767,6 +767,7 @@ export class AccountService {
     PreferenceStore.setAccountToken('');
     PreferenceStore.setAccountUserInfo('');
     PreferenceStore.setAccountUsersCache('');
+    PreferenceStore.setLoginProvidersCache('');
     AppStorage.setOrCreate<string>('accessibleUsers', '[]');
     AppStorage.setOrCreate<string>('accessibleUsersError', '');
     AppStorage.setOrCreate<number>('accessibleUsersStatusCode', 0);

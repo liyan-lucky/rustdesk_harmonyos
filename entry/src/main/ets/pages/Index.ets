@@ -3047,6 +3047,16 @@ struct Index {
       NativeRustDeskBridge.readSnapshot(serverConfig.idServer);
     if (snapshot && snapshot.coreReady) {
       this.coreLoadStatus = this.lt('Core started');
+      if (this.settings.serviceEnabled) {
+        try {
+          NativeRustDeskBridge.mainStartService(true, serverConfig.idServer, serverConfig.relayServer, serverConfig.apiServer, serverConfig.key);
+          Logger.info('CONN', `startCoreRuntime: mainStartService called server=${serverConfig.idServer} relay=${serverConfig.relayServer} api=${serverConfig.apiServer}`);
+        } catch (e) {
+          Logger.error('CONN', `startCoreRuntime: mainStartService failed: ${JSON.stringify(e)}`);
+        }
+      } else {
+        Logger.info('CONN', 'startCoreRuntime: serviceEnabled=false, skipping mainStartService');
+      }
       void this.refreshState();
     } else {
       this.coreLoadStatus = this.lt('Start failed, check server config');
@@ -5259,6 +5269,7 @@ struct Index {
     });
     Logger.debug('SETTINGS', `applyDraftServers: after save, settings.apiServer="${this.settings.apiServer}"`);
     NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
+    this.accountService.syncApiServerFromSettings();
     this.syncDraftServers();
     this.setStatusMessage("server_updated");
     void this.refreshState();
@@ -5320,6 +5331,7 @@ struct Index {
       (config.apiServer !== null && config.apiServer.trim() !== currentSettings.apiServer.trim()) ||
       (config.key !== null && config.key.trim() !== currentSettings.key.trim());
     if (serverChanged) {
+      this.accountService.cancelLogin();
       this.accountService.clearLoginState('server config imported');
     }
     this.settings = this.appData.updateSettings({
@@ -5329,6 +5341,7 @@ struct Index {
       key: config.key !== null ? config.key : currentSettings.key
     });
     NativeRustDeskBridge.setLocalOption('key', this.settings.key.trim());
+    this.accountService.syncApiServerFromSettings();
     this.syncDraftServers();
     this.setStatusMessage('server_config_imported');
     await this.showToast(this.lt('server_config_imported'));
@@ -6228,18 +6241,24 @@ struct Index {
     let isConnected = false;
     if (connectStatusJson) {
       try {
-        const statusObj = JSON.parse(connectStatusJson) as Record<string, string>;
-        const status = statusObj['status'] || '';
-        hilog.info(0xA03D00, 'SHARE', 'checkServerConnectionStatus: status=%{public}s', status);
-        if (status.toLowerCase() === 'connected' || status.toLowerCase() === 'ready') {
+        const statusObj = JSON.parse(connectStatusJson) as Record<string, Object>;
+        const status = (statusObj['status'] as string ?? '').toLowerCase();
+        const mediatorRegistered = statusObj['mediatorRegistered'] === true;
+        hilog.info(0xA03D00, 'SHARE', 'checkServerConnectionStatus: status=%{public}s mediatorRegistered=%{public}s',
+          status, String(mediatorRegistered));
+        if (status === 'connected' || mediatorRegistered) {
           isConnected = true;
         }
       } catch {
         // JSON parse error
       }
     }
-    if (!isConnected && this.officialCoreState.coreReady) {
-      isConnected = true;
+    if (!isConnected) {
+      this.accountService.syncApiServerFromSettings();
+      await this.syncLoginProviders(false);
+      if (this.apiNetworkStatus === 'online') {
+        isConnected = true;
+      }
     }
     if (isConnected) {
       await this.showToast(this.lt('Server connected'));
@@ -9456,7 +9475,7 @@ struct Index {
     const monitorId = ++this.pendingConnectionMonitorId;
     const initialState = this.officialBridge.getCoreState();
     this.officialCoreState = initialState;
-    for (let i = 0; i < 600; i += 1) {
+    for (let i = 0; i < 200; i += 1) {
       await this.sleep(150);
       if (monitorId !== this.pendingConnectionMonitorId || this.pendingPeerId.trim() !== peerId) {
         return;
@@ -9519,7 +9538,12 @@ struct Index {
       return;
     }
     if (monitorId === this.pendingConnectionMonitorId && this.pendingPeerId.trim() === peerId) {
-      this.setStatusMessage("connection_still");
+      this.isConnecting = false;
+      this.showPasswordDialog = false;
+      this.setStatusMessageRaw(this.lt('Connection timed out. The remote device may be offline or unreachable.'));
+      this.pendingPeerId = '';
+      this.pendingConnectionRetryCount = 0;
+      this.pendingConnectionInactivePollCount = 0;
     }
   }
 
