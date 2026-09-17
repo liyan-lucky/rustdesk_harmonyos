@@ -5511,9 +5511,10 @@ struct Index {
 
     this.clearNativePeerPassword(targetId, this.pendingTransportTarget);
 
-    hilog.info(0xA03D00, 'CONN', `[handleConnect] parallel: no saved password for ${targetId}, showing password dialog + empty-password connect`);
-    this.showConnectPasswordDialog(targetId, true);
+    hilog.info(0xA03D00, 'CONN', `[handleConnect] no saved password for ${targetId}, connecting first, password dialog on demand`);
+    this.setStatusMessage("connecting", targetId);
     void this.initiateBackgroundConnection(this.pendingTransportTarget, targetId);
+    void this.monitorConnectionWhileWaiting();
     } catch (error) {
       Logger.error('CONN', `handleConnect failed: ${JSON.stringify(error)}`);
       this.isConnecting = false;
