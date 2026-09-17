@@ -1,5 +1,20 @@
 # 功能进度与优化方向
 
+## 2026-09-17 登录态清除 + 密码弹窗防护 + 多显示器切换
+
+### 已修复
+
+1. **切换 API 服务器清除登录态**（`Index.ets`、`AccountService.ets`）：`applyDraftServers` 和 `importServerConfig` 在 API 服务器变化时调用 `clearLoginState`，清除旧 token/user_info/地址簿缓存
+2. **登录成功 user 缺失时清空旧 user_info**（`AccountService.ets`、`WebLoginPage.ets`）：三处登录成功回调改为无条件写入 user_info（缺失时写空字符串）
+3. **密码弹窗重入防护**（`Index.ets`）：`showConnectPasswordDialog` 在弹窗已显示且同一 peerId 且非 proactive 时直接 return，保留用户正在输入的密码；bridgeListener 和 monitorConnectionWhileWaiting 的密码错误分支在弹窗已显示时不再清空 `pendingPassword`
+4. **`shouldPromptForPassword` 收紧**（`Index.ets`）：移除过宽的 `auth` 匹配
+5. **多显示器切换**（`RemoteControl.ets`）：显示菜单最上方添加显示器切换区块（多显示器才显示），消费 `displays` 事件解析 JSON 数组，onClick 调用 `sessionSwitchDisplay`
+
+### 构建验证
+
+- 版本 `0.35.15 (1000314)`，构建通过
+- 修改文件：`Index.ets`、`AccountService.ets`、`WebLoginPage.ets`、`RemoteControl.ets`
+
 ## 2026-09-05 审批流程 v9.7 + 代码审议 Bug 修复
 
 ### v9 方案实现

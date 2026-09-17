@@ -90,6 +90,14 @@ interface PanelHeaderAction {
   action: () => void;
 }
 
+interface RemoteDisplayInfo {
+  index: number;
+  width: number;
+  height: number;
+  name: string;
+  online: boolean;
+}
+
 function base64ToArrayBuffer(base64Str: string): ArrayBuffer {
   const base64Helper = new util.Base64Helper();
   const uint8Arr: Uint8Array = base64Helper.decodeSync(base64Str);
@@ -125,6 +133,7 @@ struct RemoteControl {
   private remoteDisplayOriginY: number = 0;
   private remoteDisplayScale: number = 1;
   private currentRemoteDisplay: number = 0;
+  @State remoteDisplays: RemoteDisplayInfo[] = [];
   private peerPlatform: string = '';
   private lastFrameUpdatedAt: number = 0;
   private lastVideoRefreshRequestAt: number = 0;
@@ -757,6 +766,7 @@ struct RemoteControl {
     this.remoteDisplayOriginY = 0;
     this.remoteDisplayScale = 1;
     this.currentRemoteDisplay = 0;
+    this.remoteDisplays = [];
     this.connectionLatency = 0;
     this.connectionFps = 0;
     this.connectionRecvSpeed = '--';
@@ -2050,6 +2060,41 @@ struct RemoteControl {
 
       Scroll() {
         Column({ space: 0 }) {
+          if (this.remoteDisplays.length > 1) {
+            Column() {
+              Text(this.lt('Monitor'))
+                .fontSize(12)
+                .fontColor(this.theme_TEXT_SECONDARY)
+                .width('100%')
+                .padding({ left: 16, right: 16, top: 10 })
+              ForEach(this.remoteDisplays, (item: RemoteDisplayInfo) => {
+                Row({ space: 8 }) {
+                  Text(`${this.lt('Monitor')} ${item.index + 1}`)
+                    .fontSize(14)
+                    .fontColor(this.currentRemoteDisplay === item.index ? this.theme_ACCENT : this.theme_TEXT_PRIMARY)
+                    .layoutWeight(1)
+                  if (item.width > 0 && item.height > 0) {
+                    Text(`${item.width}×${item.height}`)
+                      .fontSize(12)
+                      .fontColor(this.theme_TEXT_TERTIARY)
+                  }
+                  Image($rawfile(this.currentRemoteDisplay === item.index ? 'checkbox-checked.svg' : 'checkbox-unchecked.svg'))
+                    .width(16)
+                    .height(16)
+                    .fillColor(this.currentRemoteDisplay === item.index ? this.theme_ACCENT : this.theme_TEXT_TERTIARY)
+                }
+                .width('100%')
+                .height(40)
+                .padding({ left: 16, right: 16 })
+                .onClick(() => {
+                  this.switchRemoteDisplay(item.index);
+                })
+              }, (item: RemoteDisplayInfo) => `display-${item.index}`)
+            }
+            .width('100%')
+            .border({ width: { bottom: 0.5 }, color: this.theme_BORDER_SUBTLE })
+          }
+
           Row({ space: 12 }) {
             Text(this.lt('Zoom Mode'))
               .fontSize(14)
@@ -4525,6 +4570,65 @@ struct RemoteControl {
     }
   }
 
+  private parseRemoteDisplays(detail: string): void {
+    console.info(`[RemoteControl] displays event: ${detail.substring(0, 400)}`);
+    const trimmed = detail.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    const displays: RemoteDisplayInfo[] = [];
+    try {
+      const jsonStart = trimmed.indexOf('[');
+      if (jsonStart >= 0) {
+        const arr = JSON.parse(trimmed.substring(jsonStart)) as Record<string, Object>[];
+        for (let i = 0; i < arr.length; i += 1) {
+          const item = arr[i];
+          const width = Number(item['width'] ?? 0);
+          const height = Number(item['height'] ?? 0);
+          if (width <= 0 || height <= 0) {
+            continue;
+          }
+          const indexValue = Number(item['index'] ?? i);
+          displays.push({
+            index: Number.isFinite(indexValue) ? indexValue : i,
+            width: width,
+            height: height,
+            name: String(item['name'] ?? ''),
+            online: String(item['online'] ?? 'true') !== 'false'
+          });
+        }
+      } else {
+        const parts = trimmed.split(';');
+        for (let i = 0; i < parts.length; i += 1) {
+          const sizeMatch = parts[i].match(/(\d{2,5})\s*[xX×]\s*(\d{2,5})/);
+          if (sizeMatch) {
+            displays.push({
+              index: i,
+              width: Number(sizeMatch[1]),
+              height: Number(sizeMatch[2]),
+              name: '',
+              online: true
+            });
+          }
+        }
+      }
+    } catch {
+      console.warn(`[RemoteControl] displays event parse failed: ${trimmed.substring(0, 100)}`);
+    }
+    this.remoteDisplays = displays;
+    console.info(`[RemoteControl] remote displays parsed: count=${displays.length}`);
+  }
+
+  private switchRemoteDisplay(index: number): void {
+    console.info(`[RemoteControl] switchRemoteDisplay: ${this.currentRemoteDisplay} -> ${index}`);
+    const ok = NativeRustDeskBridge.sessionSwitchDisplay(index);
+    if (ok) {
+      this.currentRemoteDisplay = index;
+      this.lastVideoRefreshRequestAt = 0;
+      this.maybeRequestVideoRefresh(true);
+    }
+  }
+
   private captureBridgeEvent(event: OfficialSessionEvent): void {
     this.lastBridgeActivityAt = Date.now();
     if (event.kind === 'display') {
@@ -4548,6 +4652,11 @@ struct RemoteControl {
       if (event.kind === 'current-display') {
         this.currentRemoteDisplay = this.parseLooseNumber(event.detail, this.currentRemoteDisplay);
       }
+      return;
+    }
+
+    if (event.kind === 'displays') {
+      this.parseRemoteDisplays(event.detail);
       return;
     }
 
@@ -6603,6 +6712,7 @@ struct RemoteControl {
     this.remoteDisplayOriginY = 0;
     this.remoteDisplayScale = 1;
     this.currentRemoteDisplay = 0;
+    this.remoteDisplays = [];
     this.connectionLatency = 0;
     this.connectionFps = 0;
     this.connectionRecvSpeed = '--';

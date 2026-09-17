@@ -1,6 +1,6 @@
 # 新对话交接入口
 
-> 更新时间：2026-09-05
+> 更新时间：2026-09-17
 > 本文件是新对话的第一入口。读取本文件后，按"必读顺序"读取其他文档。
 
 ## 当前项目状态
@@ -14,6 +14,15 @@
 - **包名**：`com.open.rundesk`，AGPL-3.0-only
 
 ## 最近完成的工作
+
+### 2026-09-17 登录态清除 + 密码弹窗防护 + 多显示器切换
+
+1. **切换 API 服务器清除登录态**：`applyDraftServers` 和 `importServerConfig` 在 API 服务器变化时调用 `clearLoginState`，清除旧 token/user_info/地址簿缓存
+2. **登录成功 user 缺失时清空旧 user_info**：三处登录成功回调（`AccountService.handleLoginSuccess`、`startOidcPolling`、`WebLoginPage.handleLoginSuccess`）改为无条件写入 user_info
+3. **密码弹窗重入防护**：`showConnectPasswordDialog` 在弹窗已显示且同一 peerId 且非 proactive 时直接 return，保留用户正在输入的密码；bridgeListener 和 monitorConnectionWhileWaiting 的密码错误分支在弹窗已显示时不再清空 `pendingPassword`
+4. **`shouldPromptForPassword` 收紧**：移除过宽的 `auth` 匹配
+5. **多显示器切换**：显示菜单最上方添加显示器切换区块（`remoteDisplays.length > 1` 才显示），消费 `displays` 事件解析 JSON 数组，onClick 调用 `sessionSwitchDisplay` + `maybeRequestVideoRefresh(true)`
+6. **构建验证**：版本 `0.35.15 (1000314)`，构建通过
 
 ### 2026-09-05 审批流程 v9.7 + 代码审议 Bug 修复
 

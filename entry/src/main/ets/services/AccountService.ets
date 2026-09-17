@@ -352,11 +352,9 @@ export class AccountService {
           const user = authBody.user;
           NativeRustDeskBridge.setLocalOption('access_token', token);
           PreferenceStore.setAccountToken(token);
-          if (user) {
-            const userInfoJson = JSON.stringify(user);
-            NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
-            PreferenceStore.setAccountUserInfo(userInfoJson);
-          }
+          const userInfoJson = user ? JSON.stringify(user) : '';
+          NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
+          PreferenceStore.setAccountUserInfo(userInfoJson);
           this.appState.setAccount({
             isLoggedIn: true,
             username: user?.name ?? '',
@@ -440,11 +438,9 @@ export class AccountService {
 
     NativeRustDeskBridge.setLocalOption('access_token', access_token);
     PreferenceStore.setAccountToken(access_token);
-    if (user) {
-      const userInfoJson = JSON.stringify(user);
-      NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
-      PreferenceStore.setAccountUserInfo(userInfoJson);
-    }
+    const userInfoJson = user ? JSON.stringify(user) : '';
+    NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
+    PreferenceStore.setAccountUserInfo(userInfoJson);
 
     this.appState.setAccount({
       isLoggedIn: true,
@@ -757,7 +753,7 @@ export class AccountService {
     this.clearLoginState('user logout');
   }
 
-  private clearLoginState(reason: string): void {
+  clearLoginState(reason: string): void {
     if (this.clearingLoginState) {
       return;
     }

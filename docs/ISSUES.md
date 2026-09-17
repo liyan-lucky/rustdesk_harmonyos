@@ -1,5 +1,57 @@
 # 问题整理
 
+## 2026-09-17 登录态残留 + 密码弹窗循环重试 + 多显示器切换
+
+### 问题 1：切换 API 服务器后登录信息保持上一个账户
+
+**现象**：切换 API 服务器后，登录信息（账号名、token、用户信息）仍然是上一个账户的。
+
+**根因**：`Index.ets:5243` `applyDraftServers` 在切换 API 服务器时只调用 `accountService.cancelLogin()`（取消进行中的 OAuth 轮询），不调用 `clearLoginState`。结果旧 `access_token`/`user_info` 完整保留，`HttpClient` 每次请求仍带旧 token。`importServerConfig`（5299 行）同样不清除。
+
+**修复**：
+1. `AccountService.ets:760` `clearLoginState` 从 `private` 改为 `public`
+2. `Index.ets:5247` `applyDraftServers` 切换 API 服务器时调用 `this.accountService.clearLoginState('api server switched')`
+3. `Index.ets:5312` `importServerConfig` 导入不同 API 服务器时同样调用
+
+### 问题 2：登录成功但响应缺 user 时旧 user_info 拖留
+
+**现象**：服务器只返回 `access_token` 不返回 `user` 时，新 token 与上一个账户的 `user_info` 共存，UI 显示旧账户名/头像。
+
+**根因**：`AccountService.ets:443` `handleLoginSuccess` 中 `if (user) { ... }` 条件导致 user 缺失时跳过写入，旧 user_info 拖留。`startOidcPolling`（355 行）和 `WebLoginPage.ets:207` 同样结构。
+
+**修复**：三处都改为无条件写入 `user_info`（user 缺失时写空字符串，清除旧值）。
+
+### 问题 3：连接设备时密码输入循环重试，无法正常输入
+
+**现象**：点击连接设备时提示需要输入密码，但一直在重复重试需要输入新密码，导致密码根本无法正常输入。
+
+**根因**（多重）：
+1. **`handleConnect` 并行设计**（`Index.ets:5506-5507`）：无保存密码时弹窗 + 空密码连接同时启动，空密码连接必然失败并触发密码要求事件
+2. **弹窗重置用户输入**（`Index.ets:9366`）：每次 `showConnectPasswordDialog` 被调用都执行 `this.pendingPassword = savedPassword`（空），用户正在输入的密码立即被清空
+3. **三条路径重复触发同一弹窗**：bridgeListener msgbox 分支（248 行）、session-error 分支（228 行）、monitorConnectionWhileWaiting 轮询（9462 行），且 msgbox 事件不去重
+4. **`shouldPromptForPassword` 匹配过宽**（`Index.ets:9680`）：`normalized.includes('auth')` 匹配任何含 "auth" 的错误文本
+
+**修复**：
+1. `showConnectPasswordDialog`（9353 行）添加重入防护：弹窗已显示且同一 peerId 且非 proactive 时直接 return，保留用户输入
+2. bridgeListener 的 session-error 分支（237 行）和 re-input-password 分支（256 行）：`pendingPassword = ''` 和 `showConnectPasswordDialog` 包在 `!this.showPasswordDialog` 条件里
+3. `monitorConnectionWhileWaiting`（9465 行）同样防护
+4. `shouldPromptForPassword` 移除 `normalized.includes('auth')` 过宽匹配
+
+### 问题 4：多显示器切换
+
+**现象**：被访问端有多个显示器时，无法在会话菜单中切换不同显示器显示。
+
+**根因**：`sessionSwitchDisplay` 桥接函数四层（C ABI / Rust / NAPI / TS）已齐备但无任何调用者。Rust 层 `set_displays` 回调（`core.rs:1218`）已推送 `kind="displays"` 事件（JSON 数组格式），但 App 层没有 `kind === 'displays'` 的处理代码。
+
+**修复**：
+1. `RemoteControl.ets` 定义 `RemoteDisplayInfo` 接口 + `@State remoteDisplays` 状态
+2. `captureBridgeEvent` 添加 `kind === 'displays'` 分支，解析 JSON 数组（含 x/y/width/height/name/online 等字段，数组下标即显示器序号）
+3. `buildDisplayMenuPanel` 在最上方（header 之后、Zoom Mode 之前）添加显示器切换区块，`remoteDisplays.length > 1` 时才显示
+4. 每个显示器按钮显示"显示器 N"+分辨率+选中勾选图标，onClick 调用 `switchRemoteDisplay(index)`
+5. `switchRemoteDisplay` 调用 `NativeRustDeskBridge.sessionSwitchDisplay(index)` + `maybeRequestVideoRefresh(true)`
+6. 两个会话重置点（759 行、6605 行）清空 `remoteDisplays`
+7. 切换后画布/分辨率自适应复用现有 `display` 事件 + 帧驱动闭环，无需新增逻辑
+
 ## 2026-09-05 审批流程 v9.7 代码审议 — 三个暗含 Bug
 
 ### Bug 1（严重）：非 click 模式下画面永久暂停

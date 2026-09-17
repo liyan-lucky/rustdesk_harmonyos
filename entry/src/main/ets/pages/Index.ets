@@ -234,8 +234,11 @@ struct Index {
         PreferenceStore.setPeerPassword(pendingPeerId, '');
         this.autoSubmittedSavedPasswordPeerId = '';
         this.isConnecting = false;
-        this.pendingPassword = '';
-        this.showConnectPasswordDialog(pendingPeerId, false);
+        this.pendingConnectionInactivePollCount = 0;
+        if (!this.showPasswordDialog) {
+          this.pendingPassword = '';
+          this.showConnectPasswordDialog(pendingPeerId, false);
+        }
         return;
       }
       if (!isPasswordError) {
@@ -253,9 +256,11 @@ struct Index {
         PreferenceStore.setPeerPassword(pendingPeerId, '');
         this.autoSubmittedSavedPasswordPeerId = '';
         this.isConnecting = false;
-        this.pendingPassword = '';
         this.pendingConnectionInactivePollCount = 0;
-        this.showConnectPasswordDialog(pendingPeerId, false);
+        if (!this.showPasswordDialog) {
+          this.pendingPassword = '';
+          this.showConnectPasswordDialog(pendingPeerId, false);
+        }
         return;
       }
       if (detailLower.includes('type=input-password') && pendingPeerId.length > 0 && !this.showPasswordDialog) {
@@ -5244,6 +5249,7 @@ struct Index {
     Logger.debug('SETTINGS', `applyDraftServers: draftApiServer="${this.draftApiServer}", draftIdServer="${this.draftIdServer}"`);
     if (this.draftApiServer.trim() !== this.settings.apiServer.trim()) {
       this.accountService.cancelLogin();
+      this.accountService.clearLoginState('api server switched');
     }
     this.settings = this.appData.updateSettings({
       idServer: this.draftIdServer.trim(),
@@ -5309,6 +5315,9 @@ struct Index {
       return;
     }
     const currentSettings = this.appData.getSettings();
+    if (config.apiServer !== null && config.apiServer.trim() !== currentSettings.apiServer.trim()) {
+      this.accountService.clearLoginState('api server imported');
+    }
     this.settings = this.appData.updateSettings({
       idServer: config.idServer !== null ? config.idServer : currentSettings.idServer,
       relayServer: config.relayServer !== null ? config.relayServer : currentSettings.relayServer,
@@ -9363,6 +9372,10 @@ struct Index {
       void this.submitPendingPassword();
       return;
     }
+    if (this.showPasswordDialog && this.pendingPeerId === peerId && !proactive) {
+      hilog.info(0xA03D00, 'CONN', `[showConnectPasswordDialog] dialog already showing for ${peerId}, keep user input`);
+      return;
+    }
     this.pendingPassword = savedPassword;
     this.showPasswordDialog = true;
     hilog.info(0xA03D00, 'CONN', `[showConnectPasswordDialog] showPasswordDialog set to TRUE`);
@@ -9468,7 +9481,10 @@ struct Index {
           this.autoSubmittedSavedPasswordPeerId = '';
           this.isConnecting = false;
           this.pendingConnectionInactivePollCount = 0;
-          this.showConnectPasswordDialog(peerId, false);
+          if (!this.showPasswordDialog) {
+            this.pendingPassword = '';
+            this.showConnectPasswordDialog(peerId, false);
+          }
           return;
         }
         this.pendingConnectionInactivePollCount += 1;
@@ -9683,8 +9699,7 @@ struct Index {
       errorMsg.includes('认证') ||
       normalized.includes('password') ||
       normalized.includes('input-password') ||
-      normalized.includes('re-input-password') ||
-      normalized.includes('auth');
+      normalized.includes('re-input-password');
   }
 
   build() {

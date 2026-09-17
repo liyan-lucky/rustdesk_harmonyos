@@ -204,11 +204,9 @@ struct WebLoginPage {
 
     NativeRustDeskBridge.setLocalOption('access_token', access_token);
     PreferenceStore.setAccountToken(access_token);
-    if (user) {
-      const userInfoJson = JSON.stringify(user);
-      NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
-      PreferenceStore.setAccountUserInfo(userInfoJson);
-    }
+    const userInfoJson = user ? JSON.stringify(user) : '';
+    NativeRustDeskBridge.setLocalOption('user_info', userInfoJson);
+    PreferenceStore.setAccountUserInfo(userInfoJson);
 
     this.appState.setAccount({
       isLoggedIn: true,
