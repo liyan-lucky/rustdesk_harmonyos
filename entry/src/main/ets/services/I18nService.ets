@@ -1280,7 +1280,7 @@ export class I18nService {
     this.translations.set('Allow Recording Sessions', '允许录制会话');
     this.translations.set('Auto Close Inactive Sessions', '自动关闭非活跃会话');
     this.translations.set('Check Updates On Startup', '启动时检查更新');
-    this.translations.set('Debug Keep Screen Awake', '调试时保持亮屏');
+    this.translations.set('Keep Screen Awake', '屏幕常亮');
     this.translations.set('Verbose Connection Log', '详细连接日志');
     this.translations.set('Debug Mode', '调试模式');
     this.translations.set('Debug Mode Enabled', '调试模式已开启');

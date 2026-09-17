@@ -25,7 +25,7 @@ struct AddressBook {
   private accountService: AccountService = AccountService.getInstance();
   private static hasFetchedAddressBook: boolean = false;
 
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State query: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State query: string = '';
   @State currentFilter: AddressFilter = 'all';
   @State entries: AddressBookEntry[] = [];
   @State entriesTick: number = 0;

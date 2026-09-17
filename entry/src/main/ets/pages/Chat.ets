@@ -25,7 +25,7 @@ struct Chat {
   private chatScroller: Scroller = new Scroller();
   private scrollTimers: number[] = [];
 
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State deviceId: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State deviceId: string = '';
   @State deviceName: string = '';
   @State draft: string = '';
   @State messages: ChatMessage[] = [];

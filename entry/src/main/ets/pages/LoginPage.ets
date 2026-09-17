@@ -2,7 +2,7 @@ import { AccountService, OAuthProvider, accountService, AccountState } from '../
 import { AppState } from '../services/AppState';
 import { ThemeConfig } from '../common/ThemeConfig';
 import { I18nService } from '../services/I18nService';
-import { createIconColorFilterForSrc, resolveIconFillColor, getIconColorByIndex, ToastOverlay } from '../common/CommonComponents';
+import { createIconColorFilterForSrc, resolveIconFillColor, getIconColorByIndex, resolveIconColor, ToastOverlay } from '../common/CommonComponents';
 import { Logger } from '../common/Logger';
 
 type LoginMode = 'oauth' | 'password';
@@ -13,7 +13,7 @@ struct LoginPage {
   private accountService: AccountService = AccountService.getInstance();
   private appState: AppState = AppState.getInstance();
 
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State loginMode: LoginMode = 'oauth';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State loginMode: LoginMode = 'oauth';
   @State selectedProvider: string = 'github';
   @State availableProviders: OAuthProvider[] = [];
   @State providersSyncing: boolean = false;
@@ -418,14 +418,14 @@ struct LoginPage {
       Row() {
         Image($rawfile(provider.icon)).width(24).height(24).colorFilter(createIconColorFilterForSrc(provider.icon, this.iconColorMode))
         Text(`${this.lt('Login with')} ${provider.name}`)
-          .fontSize(16).fontColor(getIconColorByIndex(index)).margin({ left: 12 }).layoutWeight(1)
+          .fontSize(16).fontColor(resolveIconColor(getIconColorByIndex(index), this.iconColorMode)).margin({ left: 12 }).layoutWeight(1)
         if (this.isLoading && this.selectedProvider === provider.id) {
-          LoadingProgress().width(20).height(20).color(getIconColorByIndex(index))
+          LoadingProgress().width(20).height(20).color(resolveIconColor(getIconColorByIndex(index), this.iconColorMode))
         }
       }.width('100%').padding({ left: 16, right: 16 })
     }
     .width('100%').height(52).backgroundColor(Color.Transparent)
-    .border({ width: 1.5, color: getIconColorByIndex(index) }).borderRadius(8)
+    .border({ width: 1.5, color: resolveIconColor(getIconColorByIndex(index), this.iconColorMode) }).borderRadius(8)
     .enabled(!this.isLoading && !this.isPollingOAuth)
     .onClick(() => void this.handleOAuthLogin(provider.id))
   }

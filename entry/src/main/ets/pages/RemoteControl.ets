@@ -117,7 +117,7 @@ struct RemoteControl {
   private chatService: ChatService = ChatService.getInstance();
   private audioRenderer: audio.AudioRenderer | null = null;
   private remoteAudioEnabled: boolean = false;
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State renderedFrame: image.PixelMap | null = null;
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State renderedFrame: image.PixelMap | null = null;
   private renderedFrameWidth: number = 0;
   private renderedFrameHeight: number = 0;
   private renderedFrameFormat: string = '';
@@ -895,6 +895,10 @@ struct RemoteControl {
 
   private resolveSessionMenuBackground(): string {
     return this.themeIsDark ? this.theme_MENU_BG : '#FFFFFFFF';
+  }
+
+  private resolveAccentColor(): string {
+    return this.iconColorMode === 'colorful' ? this.theme_ACCENT : '#667085';
   }
 
   private resolveToolbarIconColor(selected: boolean = false): string {
@@ -2131,7 +2135,7 @@ struct RemoteControl {
                 step: 10,
                 style: SliderStyle.OutSet
               })
-                .selectedColor(this.theme_ACCENT)
+                .selectedColor(this.resolveAccentColor())
                 .trackColor(this.theme_BORDER_SOFT)
                 .width('100%')
                 .padding({ left: 16, right: 16 })
@@ -2175,7 +2179,7 @@ struct RemoteControl {
                 step: this.showMoreBitrate ? 10 : 5,
                 style: SliderStyle.OutSet
               })
-                .selectedColor(this.theme_ACCENT)
+                .selectedColor(this.resolveAccentColor())
                 .trackColor(this.theme_BORDER_SOFT)
                 .width('100%')
                 .padding({ left: 16, right: 16 })
@@ -2187,7 +2191,7 @@ struct RemoteControl {
               Row() {
                 Checkbox()
                   .select(this.showMoreBitrate)
-                  .selectedColor(this.theme_ACCENT)
+                  .selectedColor(this.resolveAccentColor())
                   .onChange((checked: boolean) => { this.showMoreBitrate = checked; if (this.customBitrate > 100 && !checked) { this.customBitrate = 100; } })
                 Text(this.lt('More'))
                   .fontSize(12)
@@ -2215,7 +2219,7 @@ struct RemoteControl {
                 step: 5,
                 style: SliderStyle.OutSet
               })
-                .selectedColor(this.theme_ACCENT)
+                .selectedColor(this.resolveAccentColor())
                 .trackColor(this.theme_BORDER_SOFT)
                 .width('100%')
                 .padding({ left: 16, right: 16 })
@@ -2286,7 +2290,7 @@ struct RemoteControl {
                 step: 0.1,
                 style: SliderStyle.OutSet
               })
-                .selectedColor(this.theme_ACCENT)
+                .selectedColor(this.resolveAccentColor())
                 .trackColor(this.theme_BORDER_SOFT)
                 .width('100%')
                 .padding({ left: 16, right: 16 })
@@ -2710,7 +2714,7 @@ struct RemoteControl {
       Row() {
         Slider({ value: this.mouseSensitivity, min: 1, max: 20, step: 1, style: SliderStyle.OutSet })
           .layoutWeight(1)
-          .selectedColor(this.theme_ACCENT)
+          .selectedColor(this.resolveAccentColor())
           .onChange((v: number, mode: SliderChangeMode) => {
             if (mode === SliderChangeMode.Moving) { this.mouseSensitivity = Math.round(v); }
             if (mode === SliderChangeMode.End) { this.mouseSensitivity = Math.round(v); NativeRustDeskBridge.setLocalOption('mouse-sensitivity', String(this.mouseSensitivity)); }
@@ -2732,7 +2736,7 @@ struct RemoteControl {
       Row() {
         Slider({ value: this.mouseScrollSpeed, min: 1, max: 10, step: 1, style: SliderStyle.OutSet })
           .layoutWeight(1)
-          .selectedColor(this.theme_ACCENT)
+          .selectedColor(this.resolveAccentColor())
           .onChange((v: number, mode: SliderChangeMode) => {
             if (mode === SliderChangeMode.Moving) { this.mouseScrollSpeed = Math.round(v); }
             if (mode === SliderChangeMode.End) { this.mouseScrollSpeed = Math.round(v); NativeRustDeskBridge.setLocalOption('mouse-scroll-speed', String(this.mouseScrollSpeed)); }
@@ -2754,7 +2758,7 @@ struct RemoteControl {
       Row() {
         Slider({ value: this.joystickSpeed, min: 0.1, max: 20, step: 0.1, style: SliderStyle.OutSet })
           .layoutWeight(1)
-          .selectedColor(this.theme_ACCENT)
+          .selectedColor(this.resolveAccentColor())
           .onChange((v: number, mode: SliderChangeMode) => {
             if (mode === SliderChangeMode.Moving) { this.joystickSpeed = Math.round(v * 10) / 10; }
             if (mode === SliderChangeMode.End) { this.joystickSpeed = Math.round(v * 10) / 10; NativeRustDeskBridge.setLocalOption('joystick-speed', String(this.joystickSpeed)); }
@@ -2776,7 +2780,7 @@ struct RemoteControl {
       Row() {
         Slider({ value: this.cursorIconSize, min: 16, max: 64, step: 2, style: SliderStyle.OutSet })
           .layoutWeight(1)
-          .selectedColor(this.theme_ACCENT)
+          .selectedColor(this.resolveAccentColor())
           .onChange((v: number, mode: SliderChangeMode) => {
             if (mode === SliderChangeMode.Moving) { this.cursorIconSize = Math.round(v); }
             if (mode === SliderChangeMode.End) { this.cursorIconSize = Math.round(v); NativeRustDeskBridge.setLocalOption('cursor-icon-size', String(this.cursorIconSize)); }
@@ -2851,7 +2855,7 @@ struct RemoteControl {
 
       Slider({ value: this.touchPopupDurVal, min: 100, max: 2000, step: 50, style: SliderStyle.OutSet })
         .width('100%')
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveAccentColor())
         .onChange((v: number, mode: SliderChangeMode) => {
           if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupDurVal = Math.round(v); onDurationChange(Math.round(v)); }
         });
@@ -2869,7 +2873,7 @@ struct RemoteControl {
 
       Slider({ value: this.touchPopupSpdVal, min: 1, max: 20, step: 1, style: SliderStyle.OutSet })
         .width('100%')
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveAccentColor())
         .onChange((v: number, mode: SliderChangeMode) => {
           if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupSpdVal = Math.round(v); onSpeedChange(Math.round(v)); }
         });
@@ -2897,7 +2901,7 @@ struct RemoteControl {
 
       Slider({ value: this.touchPopupDurVal, min: min, max: max, step: step, style: SliderStyle.OutSet })
         .width('100%')
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveAccentColor())
         .onChange((v: number, mode: SliderChangeMode) => {
           if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) { this.touchPopupDurVal = Math.round(v); onChange(Math.round(v)); }
         });
@@ -6809,7 +6813,7 @@ struct RadioOptionItem {
         Image($rawfile(this.icon))
           .width(18)
           .height(18)
-          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "colorful"))
+          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "#667085"))
       }
 
       Text(this.label)
@@ -6860,7 +6864,7 @@ struct CheckboxOptionItem {
         Image($rawfile(this.icon))
           .width(18)
           .height(18)
-          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "colorful"))
+          .colorFilter(createIconColorFilterForSrc(this.icon, AppStorage.get<string>("iconColorMode") || "#667085"))
       }
 
       Text(this.label)
@@ -6905,6 +6909,11 @@ struct SliderOptionItem {
   @StorageProp('theme_ACCENT') theme_ACCENT: string = '#0071FF';
   @StorageProp('theme_TEXT_PRIMARY') theme_TEXT_PRIMARY: string = '#F8FAFC';
   @StorageProp('theme_TEXT_SECONDARY') theme_TEXT_SECONDARY: string = '#A0AABF';
+  @StorageProp('iconColorMode') iconColorMode: string = '#667085';
+
+  private resolveAccentColor(): string {
+    return this.iconColorMode === 'colorful' ? this.theme_ACCENT : '#667085';
+  }
 
   build() {
     Column({ space: 4 }) {
@@ -6927,7 +6936,7 @@ struct SliderOptionItem {
         style: SliderStyle.OutSet
       })
         .width('100%')
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveAccentColor())
         .onChange((v: number, mode: SliderChangeMode) => {
           if (mode === SliderChangeMode.Moving || mode === SliderChangeMode.End) {
             this.onChange(Math.round(v));

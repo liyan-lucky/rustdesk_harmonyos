@@ -2,6 +2,14 @@
 
 更新时间：2026-09-17
 
+## UI 颜色优化（2026-09-17）
+
+- **默认图标颜色改为灰色**（`#667085`）：首次安装时所有图标以灰色显示，用户手动切换到多彩模式才显示彩色
+- **TAB 选中/未选中颜色区分**：灰色模式下选中用主题蓝色（`#0071FF`），未选中用灰色（`#667085`）
+- **开关颜色跟随图标颜色**：多彩模式下每个 Toggle 颜色匹配对应图标颜色；灰色模式下统一灰色。新增 `resolveToggleColor(icon)` 方法
+- **Toast 颜色响应式**：修复 `resolveIconFillColor` 非响应式问题，改用 `@StorageLink`/`@StorageProp` 传入 `iconColorMode`
+- **"屏幕常亮"**：从"调试时保持亮屏"重命名，默认关闭
+
 ## 登录态与密码认证
 
 - 切换 API 服务器时自动清除旧登录态（token、user_info、地址簿缓存），避免上一个账户信息残留
@@ -42,7 +50,7 @@
 - UI：ArkTS / ArkUI Stage 模型。
 - Native：C++ NAPI → Rust C ABI。
 - Core：从 `liyan-lucky/librustdesk_core` Release 下载并链接双架构 `librustdesk_core.a`。
-- 当前维护构建：`0.35.15` / `versionCode 1000314`，于 `2026-09-05` 使用 DevEco 调试签名完成构建验证。
+- 当前维护构建：`0.35.23` / `versionCode 1000322`，于 `2026-09-17` 使用 DevEco 调试签名完成构建验证。
 - arm64 Core：`140149676` bytes，SHA256 `B0A80CF0C2B166336DB4B0CEDFA163A1E500CB6B72882FDF2E1CD701721882D3`；源码提交 `b8dab7e`。
 - x86_64 Core：`130840066` bytes，SHA256 `2199D151CD6C2900BD1FB489561F6C7716314147DF2F87F542178134C4482476`。
 - 本次验证设备：USB/HDC `2NX0224429035123`（arm64）；最近无线调试地址为 `192.168.0.108:36169`。

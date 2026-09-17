@@ -23,7 +23,7 @@ export default class EntryAbility extends UIAbility {
     const settings = AppDataService.getInstance().getSettings();
     this.initColorMode();
     ThemeManager.getInstance().applyStoredTheme(settings.theme);
-    ThemeManager.getInstance().setIconColorMode(settings.iconColorMode ?? 'colorful');
+    ThemeManager.getInstance().setIconColorMode(settings.iconColorMode ?? '#667085');
     I18nService.getInstance();
   }
 

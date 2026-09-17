@@ -13,8 +13,8 @@ import {
   SecondaryButton,
   SectionTitle,
   StatusBadge,
-  createIconColorFilterForSrc, createIconColorFilterByIndex, createIconColorFilter, resolveIconFillColor,
-  ICON_DEFAULT_COLORS, getIconColorByIndex
+  createIconColorFilterForSrc, createIconColorFilterByIndex, createIconColorFilter, resolveIconFillColor, resolveIconColor,
+  ICON_DEFAULT_COLORS, getIconColorByIndex, getIconColor
 } from '../common/CommonComponents';
 import { OfficialCoreState, OfficialRustDeskBridge, OfficialSessionEvent, OnlineStatusResult } from '../services/OfficialRustDeskBridge';
 import { CoreLoaderService } from '../services/CoreLoaderService';
@@ -674,7 +674,7 @@ struct Index {
   @StorageLink('accessibleUsersLoading') accessibleUsersLoading: boolean = false;
   @StorageLink('accessibleUsersError') accessibleUsersError: string = '';
   @StorageLink('accessibleUsersStatusCode') accessibleUsersStatusCode: number = 0;
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';
   @State accountRefreshTick: number = 0;
   private accountPageSyncTimer: number = -1;
   private readonly ACCOUNT_PAGE_SYNC_INTERVAL: number = 60000;
@@ -2565,7 +2565,7 @@ struct Index {
           this.buildSettingsToggleSettingRow(this.lt('Check Updates On Startup'), this.settings.checkUpdatesOnStartup, (value: boolean) => {
             this.updateSettings({ checkUpdatesOnStartup: value });
           }, '', false, 'settings_update.svg', true)
-          this.buildSettingsToggleSettingRow(this.lt('Debug Keep Screen Awake'), this.settings.debugKeepScreenAwake, (value: boolean) => {
+          this.buildSettingsToggleSettingRow(this.lt('Keep Screen Awake'), this.settings.debugKeepScreenAwake, (value: boolean) => {
             this.updateSettings({ debugKeepScreenAwake: value });
           }, '', true, 'settings_keepscreen.svg', false)
           this.buildSettingsToggleSettingRow(this.lt('Debug Mode'), this.debugModeEnabled, (value: boolean) => {
@@ -3938,12 +3938,12 @@ struct Index {
       Row() {
         Text(this.toastMessage)
           .fontSize(14)
-          .fontColor(getIconColorByIndex(this.toastColorOffset))
+          .fontColor(resolveIconColor(getIconColorByIndex(this.toastColorOffset), this.iconColorMode))
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-      .border({ width: 1.5, color: getIconColorByIndex(this.toastColorOffset), style: BorderStyle.Solid })
+      .border({ width: 1.5, color: resolveIconColor(getIconColorByIndex(this.toastColorOffset), this.iconColorMode), style: BorderStyle.Solid })
       .borderRadius(8)
       .backgroundColor(this.theme_CARD_BG)
       .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
@@ -3959,12 +3959,12 @@ struct Index {
       Row() {
         Text(this.connectionEventMessage)
           .fontSize(14)
-          .fontColor(this.theme_ACCENT)
+          .fontColor(this.resolveAccentColor())
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-      .border({ width: 1.5, color: this.theme_ACCENT, style: BorderStyle.Solid })
+      .border({ width: 1.5, color: this.resolveAccentColor(), style: BorderStyle.Solid })
       .borderRadius(8)
       .backgroundColor(this.theme_CARD_BG)
       .shadow({ radius: 8, color: '#15000000', offsetY: 2 })
@@ -4334,7 +4334,7 @@ struct Index {
         .layoutWeight(1)
 
       Toggle({ type: ToggleType.Switch, isOn: value })
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveToggleColor(icon))
         .switchPointColor(this.theme_WHITE)
         .constraintSize({ maxHeight: 32 })
         .onChange((isOn: boolean) => {
@@ -4404,7 +4404,7 @@ struct Index {
       Row() {}
         .width(28)
         .height(2)
-        .backgroundColor(this.currentConnectTab === tab ? this.theme_ACCENT : this.theme_CARET_HIDDEN)
+        .backgroundColor(this.currentConnectTab === tab ? this.resolveAccentColor() : this.theme_CARET_HIDDEN)
         .borderRadius(ThemeConfig.BORDER_RADIUS_ROUND)
     }
     .width(34)
@@ -4589,7 +4589,7 @@ struct Index {
       }
 
       Toggle({ type: ToggleType.Switch, isOn: this.settings.enableDirectIp })
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveAccentColor())
         .switchPointColor(this.theme_WHITE)
         .constraintSize({ maxHeight: 32 })
         .onChange((isOn: boolean) => {
@@ -4629,7 +4629,7 @@ struct Index {
       .alignItems(HorizontalAlign.Start)
 
       Toggle({ type: ToggleType.Switch, isOn: value })
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveToggleColor(icon))
         .switchPointColor(this.theme_WHITE)
         .constraintSize({ maxHeight: 32 })
         .enabled(!disabled)
@@ -4842,8 +4842,19 @@ struct Index {
     })
   }
 
+  private resolveAccentColor(): string {
+    return this.iconColorMode === 'colorful' ? this.theme_ACCENT : '#667085';
+  }
+
+  private resolveToggleColor(icon: string): string {
+    if (icon.length === 0) return this.resolveAccentColor();
+    if (this.iconColorMode === 'colorful') return getIconColor(icon);
+    return this.iconColorMode;
+  }
+
   private resolveHomeTabIconColor(tab: HomeTab): string {
     const selected: boolean = this.currentTab === tab;
+    if (this.iconColorMode !== 'colorful') return selected ? this.theme_ACCENT : '#667085';
     if (tab === 'connect') return selected ? '#FF7BA3' : '#D84E78';
     if (tab === 'chat') return selected ? '#4FA8F5' : '#1976C9';
     if (tab === 'share') return selected ? '#5BD88A' : '#2E9B58';
@@ -6877,6 +6888,7 @@ struct Index {
 
   private resolveConnectPeerTabIconColor(tab: ConnectPeerTab): string {
     const isSelected = this.currentConnectTab === tab;
+    if (this.iconColorMode !== 'colorful') return isSelected ? this.theme_ACCENT : '#667085';
     if (tab === 'recent') {
       return isSelected ? '#D84E78' : '#1976C9';
     }
@@ -8036,7 +8048,7 @@ struct Index {
                 }
                 .width('100%')
                 Slider({ value: this.resolveDefaultCustomZoomPercent(), min: 100, max: 600, step: 10, style: SliderStyle.OutSet })
-                  .selectedColor(this.theme_ACCENT)
+                  .selectedColor(this.resolveAccentColor())
                   .trackColor(this.theme_BORDER_SOFT)
                   .width('100%')
                   .onChange((value: number) => {
@@ -8094,7 +8106,7 @@ struct Index {
                 }
                 .width('100%')
                 Slider({ value: this.resolveDefaultCustomQuality(), min: 10, max: 2000, step: 10, style: SliderStyle.OutSet })
-                  .selectedColor(this.theme_ACCENT)
+                  .selectedColor(this.resolveAccentColor())
                   .trackColor(this.theme_BORDER_SOFT)
                   .width('100%')
                   .onChange((value: number) => {
@@ -8111,7 +8123,7 @@ struct Index {
                 }
                 .width('100%')
                 Slider({ value: this.resolveDefaultCustomFps(), min: 10, max: 120, step: 5, style: SliderStyle.OutSet })
-                  .selectedColor(this.theme_ACCENT)
+                  .selectedColor(this.resolveAccentColor())
                   .trackColor(this.theme_BORDER_SOFT)
                   .width('100%')
                   .onChange((value: number) => {
@@ -8228,7 +8240,7 @@ struct Index {
         .layoutWeight(1)
 
       Toggle({ type: ToggleType.Switch, isOn: isOn })
-        .selectedColor(this.theme_ACCENT)
+        .selectedColor(this.resolveToggleColor(icon))
         .switchPointColor(this.theme_WHITE)
         .constraintSize({ maxHeight: 32 })
         .onChange(onChange)
@@ -8534,7 +8546,7 @@ struct Index {
           Row({ space: 8 }) {
             Checkbox()
               .select(this.shareWarningDontShowAgain)
-              .selectedColor(this.theme_ACCENT)
+              .selectedColor(this.resolveAccentColor())
               .onChange((checked: boolean) => {
                 this.shareWarningDontShowAgain = checked;
               })
@@ -8658,7 +8670,7 @@ struct Index {
               .fontColor(this.theme_TEXT_PRIMARY)
               .layoutWeight(1)
             Toggle({ type: ToggleType.Switch, isOn: this.shareOtpNumeric })
-              .selectedColor(this.theme_ACCENT)
+              .selectedColor(this.resolveToggleColor('share_numeric.svg'))
               .onChange((isOn: boolean) => {
                 this.shareOtpNumeric = isOn;
                 this.saveShareSettings();
@@ -8855,7 +8867,7 @@ struct Index {
           })
             .layoutWeight(1)
             .height(28)
-            .selectedColor(this.theme_ACCENT)
+            .selectedColor(this.resolveAccentColor())
             .trackColor(this.theme_BORDER_SUBTLE)
             .onChange((value: number) => {
               const len = Math.round(value);

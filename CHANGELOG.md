@@ -2,6 +2,32 @@
 
 > 本文件记录阶段性变更，不作为当前状态总入口。新开对话或接手项目请先读 `docs/README.md`，当前核心、构建、安装和验证状态以 `docs/CORE.md`、`docs/PROGRESS.md`、`docs/CONNECTION_DEBUG_LOG.md` 为准。
 
+## v0.35.23 (2026-09-17)
+
+### UI 颜色优化
+
+- **默认图标颜色改为灰色**：`iconColorMode` 默认值从 `'colorful'` 改为 `'#667085'`，首次安装时所有图标以灰色显示，用户需手动切换到多彩模式才会显示彩色图标。
+- **TAB 选中/未选中颜色区分**：灰色模式下 TAB 选中图标使用主题蓝色（`#0071FF`），未选中使用灰色（`#667085`），选中状态明显可见。
+- **开关颜色跟随图标颜色**：所有 Toggle 的 `selectedColor` 改为与对应图标颜色一致。多彩模式下每个开关颜色匹配其图标颜色（如蓝色图标→蓝色开关）；灰色模式下统一为灰色。新增 `resolveToggleColor(icon)` 方法实现响应式颜色计算。
+- **Toast 颜色响应式**：Toast 提示颜色跟随当前图标颜色模式，修复 `resolveIconFillColor` 非响应式问题，改用 `@StorageLink`/`@StorageProp` 直接传入 `iconColorMode`。
+- **"调试时保持亮屏"改为"屏幕常亮"**：翻译键从 `'Debug Keep Screen Awake'` 改为 `'Keep Screen Awake'`，中文从"调试时保持亮屏"改为"屏幕常亮"，默认值从 `true` 改为 `false`。
+
+### 修改文件
+
+- `entry/src/main/ets/services/AppDataService.ets` — `iconColorMode` 默认值、`debugKeepScreenAwake` 默认值
+- `entry/src/main/ets/services/I18nService.ets` — 翻译键重命名
+- `entry/src/main/ets/entryability/EntryAbility.ets` — fallback 颜色
+- `entry/src/main/ets/pages/Index.ets` — 核心颜色逻辑（`resolveAccentColor`、`resolveToggleColor`、TAB 颜色、Toast 颜色）
+- `entry/src/main/ets/pages/RemoteControl.ets` — Toggle 颜色、`SliderOptionItem` 子组件响应式
+- `entry/src/main/ets/pages/LoginPage.ets` — provider button 颜色响应式
+- `entry/src/main/ets/pages/{FileTransfer,AddressBook,Terminal,ViewCamera,Chat}.ets` — 默认颜色
+- `entry/src/main/ets/common/CommonComponents.ets` — `ToastOverlay` 响应式颜色
+- `AppScope/app.json5` — versionCode 1000322, versionName 0.35.23
+
+### 构建验证
+
+- 构建通过，HAP 已安装到设备 `2NX0224429035123`
+
 ## v0.34.34 (2026-08-18)
 
 ### 新增与完善

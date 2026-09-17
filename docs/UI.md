@@ -2,6 +2,38 @@
 
 > 顶部渐变、Tab栏、连接页面布局、SVG图标主题适配
 
+## 2026-09-17 UI 颜色优化
+
+### 默认图标颜色改为灰色
+
+- `iconColorMode` 默认值从 `'colorful'` 改为 `'#667085'`
+- 首次安装时所有图标以灰色显示，用户手动切换到多彩模式才显示彩色
+- 涉及文件：`AppDataService.ets`、`EntryAbility.ets`、`Index.ets`、`RemoteControl.ets`、`LoginPage.ets`、`FileTransfer.ets`、`AddressBook.ets`、`Terminal.ets`、`ViewCamera.ets`、`Chat.ets`、`CommonComponents.ets`
+
+### TAB 选中/未选中颜色区分
+
+- 灰色模式下：选中图标用主题蓝色 `#0071FF`，未选中用灰色 `#667085`
+- `resolveHomeTabIconColor` 和 `resolveConnectPeerTabIconColor` 方法实现
+
+### 开关颜色跟随图标颜色
+
+- 新增 `resolveToggleColor(icon)` 方法：用 `this.iconColorMode`（`@StorageLink`，响应式）+ `getIconColor(icon)` 计算颜色
+- 多彩模式下每个 Toggle 的 `selectedColor` 匹配对应图标颜色
+- 灰色模式下统一为灰色
+- `buildToggleRow`、`buildSettingsToggleSettingRow`、`buildDisplaySettingsToggleRow` 均使用此方法
+
+### Toast 颜色响应式
+
+- `resolveIconFillColor` 内部用 `AppStorage.get` 读取模式，非响应式
+- 修复：`ToastOverlay` 添加 `@StorageProp('iconColorMode')`，`buildToastOverlay` 传入 `this.iconColorMode`
+- `LoginPage.ets` provider button 也传入 `this.iconColorMode` 给 `resolveIconColor`
+
+### "屏幕常亮"重命名
+
+- 翻译键从 `'Debug Keep Screen Awake'` 改为 `'Keep Screen Awake'`
+- 中文从"调试时保持亮屏"改为"屏幕常亮"
+- 默认值从 `true` 改为 `false`
+
 ## 2026-06-28 外部鼠标输入与滚动优化
 
 ### 鼠标输入

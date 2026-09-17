@@ -144,7 +144,6 @@ export class AppDataService {
     }
     this.loadSettings();
     this.migrateIncomingServiceDefaultOff();
-    this.migrateDebugKeepScreenAwakeDefaultOn();
     this.loadRecentSessions();
     this.loadAddressBook();
     this.loadLocalFavorites();
@@ -1185,7 +1184,7 @@ export class AppDataService {
   private static createDefaultSettings(): SettingsState {
     return {
       theme: 'auto',
-      iconColorMode: 'colorful',
+      iconColorMode: '#667085',
       language: 'zh-CN',
       notificationsEnabled: true,
       autoConnect: false,
@@ -1218,7 +1217,7 @@ export class AppDataService {
       autoCloseInactiveSessions: false,
       checkUpdatesOnStartup: true,
       keepScreenOnWhenControlled: false,
-      debugKeepScreenAwake: true,
+      debugKeepScreenAwake: false,
       quality: 80,
       keepScreenOn: 'session',
       approvalMode: 'password',

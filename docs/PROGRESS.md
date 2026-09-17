@@ -1,5 +1,19 @@
 # 功能进度与优化方向
 
+## 2026-09-17 UI 颜色优化
+
+### 已完成
+
+1. **默认图标颜色改为灰色**（`AppDataService.ets`、`EntryAbility.ets`、所有页面）：`iconColorMode` 默认值从 `'colorful'` 改为 `'#667085'`
+2. **TAB 选中/未选中颜色区分**（`Index.ets`）：灰色模式下选中用 `this.theme_ACCENT`（`#0071FF`），未选中用 `#667085`
+3. **开关颜色跟随图标颜色**（`Index.ets`、`RemoteControl.ets`）：新增 `resolveToggleColor(icon)` 方法，多彩模式下开关颜色匹配图标颜色，灰色模式下统一灰色
+4. **Toast 颜色响应式**（`Index.ets`、`CommonComponents.ets`、`LoginPage.ets`）：修复 `resolveIconFillColor` 非响应式问题，改用 `@StorageLink`/`@StorageProp` 传入 `iconColorMode`
+5. **"屏幕常亮"重命名**（`I18nService.ets`、`AppDataService.ets`、`Index.ets`）：从"调试时保持亮屏"改为"屏幕常亮"，默认关闭
+
+### 构建验证
+
+- 版本 `0.35.23 (1000322)`，构建通过，HAP 已安装到设备 `2NX0224429035123`
+
 ## 2026-09-17 登录态清除 + 密码弹窗防护 + 多显示器切换
 
 ### 已修复

@@ -28,7 +28,7 @@ struct Terminal {
     this.handleTerminalOutput(event);
   };
 
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State deviceId: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State deviceId: string = '';
   @State deviceName: string = '';
   @State commandInput: string = '';
   @State terminalLines: TerminalRenderLine[] = [];

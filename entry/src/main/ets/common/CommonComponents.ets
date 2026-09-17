@@ -14,7 +14,7 @@ export const ICON_DEFAULT_COLORS: string[] = ['#1976C9', '#0F9D8A', '#7C5CE5', '
 
 export function resolveIconColor(defaultColor: string, selectedMode: string = ''): string {
   const selected: string = selectedMode.length > 0 ? selectedMode :
-    (AppStorage.get<string>('iconColorMode') || 'colorful');
+    (AppStorage.get<string>('iconColorMode') || '#667085');
   return selected === 'colorful' ? defaultColor : selected;
 }
 
@@ -28,7 +28,7 @@ export function iconDefaultColor(index: number): string {
 }
 
 export function resolveFillColor(color: string, iconIndex: number = -1): string {
-  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  const mode: string = AppStorage.get<string>('iconColorMode') || '#667085';
   if (mode === 'colorful') {
     if (iconIndex >= 0) return ICON_DEFAULT_COLORS[iconIndex % ICON_DEFAULT_COLORS.length];
     let hash: number = 0;
@@ -167,7 +167,7 @@ export function createIconColorFilterByIndex(index: number, mode: string = ''): 
 }
 
 export function resolveIconFillColor(src: string): string {
-  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  const mode: string = AppStorage.get<string>('iconColorMode') || '#667085';
   if (mode === 'colorful') return getIconColor(src);
   return mode;
 }
@@ -177,7 +177,7 @@ export function createIconColorFilterForSrc(src: string, mode: string = ''): dra
 }
 
 export function createStrokeIconColorFilter(color: string): drawing.ColorFilter {
-  const mode: string = AppStorage.get<string>('iconColorMode') || 'colorful';
+  const mode: string = AppStorage.get<string>('iconColorMode') || '#667085';
   if (mode === 'colorful') {
     return drawing.ColorFilter.createBlendModeColorFilter(toArgbColor(color), drawing.BlendMode.SRC_IN);
   }
@@ -701,18 +701,19 @@ export struct ToastOverlay {
   @Prop toastColorOffset: number = 0;
   @Prop cardBgColor: string = '#FFFFFF';
   @StorageProp('theme_CARD_BG') themeCardBg: string = '#FFFFFF';
+  @StorageProp('iconColorMode') iconColorMode: string = '#667085';
 
   build() {
     if (this.toastVisible) {
       Row() {
         Text(this.toastMessage)
           .fontSize(14)
-          .fontColor(getIconColorByIndex(this.toastColorOffset))
+          .fontColor(resolveIconColor(getIconColorByIndex(this.toastColorOffset), this.iconColorMode))
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-      .border({ width: 1.5, color: getIconColorByIndex(this.toastColorOffset), style: BorderStyle.Solid })
+      .border({ width: 1.5, color: resolveIconColor(getIconColorByIndex(this.toastColorOffset), this.iconColorMode), style: BorderStyle.Solid })
       .borderRadius(8)
       .backgroundColor(this.themeCardBg)
       .shadow({ radius: 8, color: '#15000000', offsetY: 2 })

@@ -52,7 +52,7 @@ struct FileTransfer {
   private fileAccessRequestPromise: Promise<boolean> | null = null;
   private bootstrapTimer: number = -1;
 
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State deviceId: string = '';
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State deviceId: string = '';
   @State deviceName: string = '';
   @State currentPane: FilePane = 'remote';
   @State sortField: SortField = 'name';

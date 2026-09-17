@@ -15,7 +15,7 @@
 - UI：ArkTS / ArkUI。
 - Native：C++ NAPI → Rust C ABI。
 - Core：从 `liyan-lucky/librustdesk_core` Release 下载并链接 `librustdesk_core.a`。
-- 最新维护构建：`0.34.34` / `versionCode 1000279`，BuildInfo `2026-08-18 22:29`。
+- 最新维护构建：`0.35.23` / `versionCode 1000322`，BuildInfo `2026-09-17`。
 - 线上构建当前为 HAP-only，只上传 `.hap`。
 
 ## 当前能力边界

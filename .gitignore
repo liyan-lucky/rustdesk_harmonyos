@@ -78,6 +78,8 @@ backup_*/
 *.bak
 check_i18n.py
 check_result.txt
+screenshots/build_log*.txt
+screenshots/hap_extract/
 
 entry/src/main/libs/arm64/librustdesk_core.a
 entry/src/main/libs/x86_64/librustdesk_core.a

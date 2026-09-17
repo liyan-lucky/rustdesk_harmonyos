@@ -23,7 +23,7 @@ interface DeviceRouteParams {
 struct ViewCamera {
   private deviceId: string = '';
   private frameRefreshTimer: number = -1;
-  @StorageLink('iconColorMode') iconColorMode: string = 'colorful';@State renderedFrame: image.PixelMap | null = null;
+  @StorageLink('iconColorMode') iconColorMode: string = '#667085';@State renderedFrame: image.PixelMap | null = null;
   private lastFrameId: number = 0;
 
   @State cameraStatus: string = '';
