@@ -5247,9 +5247,9 @@ struct Index {
 
   private async applyDraftServers(): Promise<void> {
     Logger.debug('SETTINGS', `applyDraftServers: draftApiServer="${this.draftApiServer}", draftIdServer="${this.draftIdServer}"`);
-    if (this.draftApiServer.trim() !== this.settings.apiServer.trim()) {
+    if (this.hasUnsavedServerChanges()) {
       this.accountService.cancelLogin();
-      this.accountService.clearLoginState('api server switched');
+      this.accountService.clearLoginState('server settings changed');
     }
     this.settings = this.appData.updateSettings({
       idServer: this.draftIdServer.trim(),
@@ -5315,8 +5315,12 @@ struct Index {
       return;
     }
     const currentSettings = this.appData.getSettings();
-    if (config.apiServer !== null && config.apiServer.trim() !== currentSettings.apiServer.trim()) {
-      this.accountService.clearLoginState('api server imported');
+    const serverChanged = (config.idServer !== null && config.idServer.trim() !== currentSettings.idServer.trim()) ||
+      (config.relayServer !== null && config.relayServer.trim() !== currentSettings.relayServer.trim()) ||
+      (config.apiServer !== null && config.apiServer.trim() !== currentSettings.apiServer.trim()) ||
+      (config.key !== null && config.key.trim() !== currentSettings.key.trim());
+    if (serverChanged) {
+      this.accountService.clearLoginState('server config imported');
     }
     this.settings = this.appData.updateSettings({
       idServer: config.idServer !== null ? config.idServer : currentSettings.idServer,
